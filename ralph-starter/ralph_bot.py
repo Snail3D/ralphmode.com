@@ -4853,7 +4853,7 @@ _Grab some popcorn..._
         )
 
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle voice messages - VO-002: Process voice as primary input with transcription."""
+        """Handle voice messages - VO-004: Full voice-to-intent pipeline with tone analysis."""
         user_id = update.effective_user.id
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
@@ -4862,27 +4862,53 @@ _Grab some popcorn..._
         # Show typing indicator while processing
         await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
-        # VO-002: Transcribe voice message if handler available
+        # VO-004: Process voice through full pipeline
         if VOICE_HANDLER_AVAILABLE:
             voice_handler = get_voice_handler(self.groq_api_key)
-            transcribed_text = await voice_handler.transcribe_voice(update, context)
 
-            if transcribed_text:
-                logger.info(f"VO-002: Transcribed voice: {transcribed_text}")
+            # Run the full pipeline: transcribe -> tone analysis -> intent extraction
+            pipeline_result = await voice_handler.process_voice_message(update, context)
+
+            if pipeline_result and pipeline_result.get('success'):
+                transcription = pipeline_result['transcription']
+                tone_data = pipeline_result['tone']
+                intent_data = pipeline_result['intent']
+
+                logger.info(f"VO-004: Pipeline success - Transcription: {transcription[:100]}...")
+                logger.info(f"VO-004: Tone: {tone_data['primary_tone']} ({tone_data['intensity']})")
+                logger.info(f"VO-004: Intent: {intent_data['intent_type']} (confidence: {intent_data['confidence']})")
+
+                # VO-004: Handle unclear audio gracefully
+                if intent_data.get('needs_clarification') or intent_data['clarity'] == 'unclear':
+                    clarification_response = self.ralph_misspell(
+                        "Um... I heard you but I'm not sure what you want me to do? "
+                        "Can you say that again or type it maybe? My brain gets confused sometimes."
+                    )
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None, clarification_response,
+                        topic="voice unclear - asking for clarification",
+                        with_typing=True
+                    )
+                    return
+
+                # Store tone and intent in context for potential use by handlers
+                if not hasattr(context, 'user_data'):
+                    context.user_data = {}
+                context.user_data['voice_tone'] = tone_data
+                context.user_data['voice_intent'] = intent_data
 
                 # Create a synthetic text message to process through existing handle_text
-                # This allows voice messages to be treated like text input
                 original_text = update.message.text
-                update.message.text = transcribed_text
+                update.message.text = intent_data['extracted_message']
 
-                # Call the existing text handler
+                # Call the existing text handler with enriched context
                 await self.handle_text(update, context)
 
-                # Restore original text (shouldn't matter but good practice)
+                # Restore original text
                 update.message.text = original_text
 
             else:
-                # Transcription failed
+                # VO-004: Transcription or pipeline failed
                 error_response = self.ralph_misspell(
                     "I couldn't hear you very good! Can you try again? My ears are funny sometimes."
                 )
