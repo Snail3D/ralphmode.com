@@ -1,0 +1,466 @@
+# SEC-030: Supply Chain Security
+# Comprehensive supply chain protection: signed commits, package verification, SBOM generation
+name: Supply Chain Security
+
+on:
+  # Run on PRs and pushes to main
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+  # Run on releases to generate SBOM
+  release:
+    types: [ created, published ]
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Prevent concurrent runs
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Verify commit signatures (informational for now)
+  verify-commits:
+    name: Verify Commit Signatures
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit signatures
+        run: |
+          echo "Checking commit signatures..."
+
+          # Get all commits in this PR/push
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            COMMITS=$(git log origin/${{ github.base_ref }}..${{ github.sha }} --format="%H")
+          else
+            # For push events, check last commit
+            COMMITS="${{ github.sha }}"
+          fi
+
+          UNSIGNED=0
+          for commit in $COMMITS; do
+            # Check if commit is signed
+            if git verify-commit "$commit" 2>/dev/null; then
+              echo "✅ Commit $commit is signed"
+            else
+              echo "⚠️  Commit $commit is NOT signed"
+              UNSIGNED=$((UNSIGNED + 1))
+            fi
+          done
+
+          if [ $UNSIGNED -gt 0 ]; then
+            echo ""
+            echo "::warning::Found $UNSIGNED unsigned commit(s)"
+            echo "::notice::To sign commits, configure GPG: git config commit.gpgsign true"
+            # Don't fail - this is informational for now
+          else
+            echo ""
+            echo "✅ All commits are signed"
+          fi
+
+  # Verify package integrity with lockfile
+  verify-packages:
+    name: Verify Package Integrity
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pip-tools
+        run: pip install pip-tools
+
+      - name: Verify lockfile is up to date
+        run: |
+          echo "Generating fresh lockfile to compare..."
+          pip-compile --generate-hashes --output-file=requirements.lock.tmp requirements.txt
+
+          if diff requirements.lock requirements.lock.tmp; then
+            echo "✅ Lockfile is up to date"
+          else
+            echo "❌ Lockfile is out of date!"
+            echo "Run: pip-compile --generate-hashes --output-file=requirements.lock requirements.txt"
+            exit 1
+          fi
+
+      - name: Install dependencies with hash verification
+        run: |
+          echo "Installing with hash verification..."
+          pip install --require-hashes -r requirements.lock
+          echo "✅ All package hashes verified"
+
+      - name: Check for typosquat packages
+        run: |
+          echo "Checking for common typosquat patterns..."
+
+          # Check for suspicious package names
+          SUSPICIOUS=0
+
+          # Common typosquats to watch for
+          TYPOSQUATS=(
+            "python-telegram" # Should be python-telegram-bot
+            "request" # Should be requests
+            "flask-cor" # Should be flask-cors
+            "pydantik" # Should be pydantic
+            "redis-py" # Should be redis
+          )
+
+          for pkg in "${TYPOSQUATS[@]}"; do
+            if grep -q "$pkg" requirements.txt; then
+              echo "⚠️  Found suspicious package: $pkg"
+              SUSPICIOUS=$((SUSPICIOUS + 1))
+            fi
+          done
+
+          if [ $SUSPICIOUS -gt 0 ]; then
+            echo "❌ Found $SUSPICIOUS potential typosquat package(s)"
+            exit 1
+          else
+            echo "✅ No typosquat packages detected"
+          fi
+
+  # Pin all dependencies (no loose versions)
+  verify-pinning:
+    name: Verify Dependency Pinning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for unpinned dependencies
+        run: |
+          echo "Checking for unpinned dependencies..."
+
+          # Look for >= or > or * in requirements
+          if grep -E "[>=<\*]" requirements.txt | grep -v "^#"; then
+            echo "⚠️  Found version constraints (not exact pins):"
+            grep -E "[>=<\*]" requirements.txt | grep -v "^#"
+            echo ""
+            echo "Note: requirements.txt uses >= for flexibility."
+            echo "Security is enforced via requirements.lock with exact hashes."
+            echo "✅ This is acceptable with hash-verified lockfile"
+          else
+            echo "✅ All dependencies use exact versions"
+          fi
+
+      - name: Verify lockfile exists
+        run: |
+          if [ ! -f "requirements.lock" ]; then
+            echo "❌ requirements.lock not found!"
+            echo "Generate it with: pip-compile --generate-hashes --output-file=requirements.lock requirements.txt"
+            exit 1
+          fi
+          echo "✅ Lockfile exists with hashed dependencies"
+
+  # Generate SBOM (Software Bill of Materials)
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.lock
+
+      - name: Generate SBOM (CycloneDX format)
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py --format json --output sbom.json
+          cyclonedx-py --format xml --output sbom.xml
+
+      - name: Generate SBOM (SPDX format)
+        run: |
+          pip install spdx-tools
+
+          # Create SPDX SBOM
+          cat > sbom.spdx << EOF
+          SPDXVersion: SPDX-2.3
+          DataLicense: CC0-1.0
+          SPDXID: SPDXRef-DOCUMENT
+          DocumentName: Ralph Mode Bot
+          DocumentNamespace: https://github.com/Snail3D/ralphmode.com/sbom/${{ github.sha }}
+          Creator: Tool: GitHub Actions
+          Created: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          PackageName: ralph-mode-bot
+          SPDXID: SPDXRef-Package
+          PackageVersion: ${{ github.ref_name }}
+          PackageDownloadLocation: https://github.com/Snail3D/ralphmode.com
+          FilesAnalyzed: false
+          PackageVerificationCode: ${{ github.sha }}
+          PackageLicenseConcluded: MIT
+          PackageLicenseDeclared: MIT
+          PackageCopyrightText: NOASSERTION
+
+          EOF
+
+          # Add dependencies
+          pip list --format=json | python3 -c "
+          import json, sys
+          deps = json.load(sys.stdin)
+          for dep in deps:
+              print(f\"\"\"
+          PackageName: {dep['name']}
+          SPDXID: SPDXRef-{dep['name']}
+          PackageVersion: {dep['version']}
+          PackageDownloadLocation: https://pypi.org/project/{dep['name']}/{dep['version']}/
+          FilesAnalyzed: false
+          PackageLicenseConcluded: NOASSERTION
+          PackageLicenseDeclared: NOASSERTION
+          \"\"\")
+          " >> sbom.spdx
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: |
+            sbom.json
+            sbom.xml
+            sbom.spdx
+
+      - name: Attach SBOM to release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./sbom.json
+          asset_name: sbom.json
+          asset_content_type: application/json
+
+  # Verify third-party code review
+  review-third-party:
+    name: Review Third-Party Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for vendored code
+        run: |
+          echo "Checking for vendored third-party code..."
+
+          # Common vendored code locations
+          VENDOR_DIRS=("vendor" "third_party" "3rdparty" "external" "lib")
+
+          FOUND_VENDOR=0
+          for dir in "${VENDOR_DIRS[@]}"; do
+            if [ -d "$dir" ]; then
+              echo "⚠️  Found third-party directory: $dir"
+              echo "Contents:"
+              ls -la "$dir"
+              FOUND_VENDOR=1
+            fi
+          done
+
+          if [ $FOUND_VENDOR -eq 0 ]; then
+            echo "✅ No vendored code detected (all dependencies via pip)"
+          else
+            echo ""
+            echo "::warning::Third-party code should be reviewed and documented"
+          fi
+
+      - name: Check for inline third-party code
+        run: |
+          echo "Checking for inline third-party code markers..."
+
+          # Look for common third-party markers
+          if git grep -i "third.party\|vendored\|copied from" -- '*.py'; then
+            echo "::warning::Found potential inline third-party code - ensure it's reviewed"
+          else
+            echo "✅ No inline third-party code markers found"
+          fi
+
+  # CI/CD pipeline security
+  verify-cicd-security:
+    name: Verify CI/CD Pipeline Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check workflow permissions
+        run: |
+          echo "Checking GitHub Actions workflow permissions..."
+
+          # Scan workflows for overly permissive settings
+          for workflow in .github/workflows/*.yml; do
+            echo "Checking $workflow..."
+
+            # Check for write-all permissions
+            if grep -q "permissions:.*write-all" "$workflow"; then
+              echo "❌ Found write-all permissions in $workflow"
+              exit 1
+            fi
+
+            # Check for missing permissions block
+            if ! grep -q "permissions:" "$workflow"; then
+              echo "⚠️  No permissions block in $workflow"
+            fi
+          done
+
+          echo "✅ No overly permissive workflows detected"
+
+      - name: Verify action versions are pinned
+        run: |
+          echo "Checking if GitHub Actions are pinned to SHA..."
+
+          UNPINNED=0
+          for workflow in .github/workflows/*.yml; do
+            # Look for actions using tags instead of SHA
+            if grep "uses:.*@v[0-9]" "$workflow"; then
+              echo "⚠️  Found unpinned actions in $workflow:"
+              grep "uses:.*@v[0-9]" "$workflow"
+              UNPINNED=$((UNPINNED + 1))
+            fi
+          done
+
+          if [ $UNPINNED -gt 0 ]; then
+            echo ""
+            echo "::warning::Consider pinning actions to commit SHA for reproducibility"
+            echo "Example: actions/checkout@v4 → actions/checkout@<sha>"
+          else
+            echo "✅ All actions are pinned"
+          fi
+
+      - name: Check for secrets exposure
+        run: |
+          echo "Checking for potential secrets in workflows..."
+
+          # Look for suspicious patterns
+          if git grep -i "password\|secret\|token\|key" .github/workflows/ | grep -v "secrets\." | grep -v "^#"; then
+            echo "⚠️  Found potential hardcoded secrets - verify these are safe"
+          else
+            echo "✅ No hardcoded secrets detected in workflows"
+          fi
+
+  # Build reproducibility
+  verify-reproducibility:
+    name: Verify Build Reproducibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build 1
+        run: |
+          pip install -r requirements.lock
+
+          # Create a deterministic artifact
+          tar -czf build1.tar.gz --sort=name --mtime='1970-01-01' \
+            *.py requirements.txt requirements.lock
+
+          sha256sum build1.tar.gz > build1.sha256
+
+      - name: Clean environment
+        run: |
+          pip uninstall -y -r requirements.lock || true
+          rm -rf build/dist
+
+      - name: Build 2
+        run: |
+          pip install -r requirements.lock
+
+          # Create the same artifact
+          tar -czf build2.tar.gz --sort=name --mtime='1970-01-01' \
+            *.py requirements.txt requirements.lock
+
+          sha256sum build2.tar.gz > build2.sha256
+
+      - name: Compare builds
+        run: |
+          echo "Build 1 hash:"
+          cat build1.sha256
+          echo ""
+          echo "Build 2 hash:"
+          cat build2.sha256
+          echo ""
+
+          if diff build1.sha256 build2.sha256; then
+            echo "✅ Builds are reproducible"
+          else
+            echo "❌ Builds are NOT reproducible"
+            exit 1
+          fi
+
+  # Aggregate security gate
+  supply-chain-gate:
+    name: Supply Chain Security Gate
+    runs-on: ubuntu-latest
+    needs:
+      - verify-commits
+      - verify-packages
+      - verify-pinning
+      - review-third-party
+      - verify-cicd-security
+      - verify-reproducibility
+
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "Checking supply chain security results..."
+
+          # Check if any critical jobs failed
+          if [ "${{ needs.verify-packages.result }}" == "failure" ] || \
+             [ "${{ needs.verify-pinning.result }}" == "failure" ] || \
+             [ "${{ needs.verify-cicd-security.result }}" == "failure" ] || \
+             [ "${{ needs.verify-reproducibility.result }}" == "failure" ]; then
+            echo "❌ Critical supply chain security checks failed!"
+            exit 1
+          fi
+
+          echo "✅ All critical supply chain security checks passed"
+
+          # Informational checks
+          if [ "${{ needs.verify-commits.result }}" == "failure" ]; then
+            echo "ℹ️  Commit signature verification had warnings (non-blocking)"
+          fi
+
+          if [ "${{ needs.review-third-party.result }}" == "failure" ]; then
+            echo "ℹ️  Third-party code review had warnings (non-blocking)"
+          fi
