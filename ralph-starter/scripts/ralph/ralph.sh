@@ -38,8 +38,8 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "═══════════════════════════════════════════════════════════"
   echo ""
 
-  # Run Claude Code with the prompt, auto-accepting all permissions
-  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
+  # Run Claude Code with Opus model, auto-accepting all permissions
+  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --model opus --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
 
   # Check for completion signal
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
