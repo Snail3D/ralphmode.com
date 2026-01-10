@@ -6,6 +6,7 @@ Implements:
 - SEC-003: CSRF Protection
 - SEC-005: Sensitive Data Exposure Prevention
 - SEC-006: Broken Access Control Prevention
+- SEC-007: Security Misconfiguration Prevention
 """
 
 import os
@@ -17,6 +18,9 @@ from typing import Optional, Dict, Any
 from flask import Flask, request, jsonify, make_response, session
 from flask_cors import CORS
 from functools import wraps
+
+# SEC-007: Import secure configuration
+from config import AppConfig
 
 # SEC-005: Import data protection
 from data_protection import (
@@ -51,12 +55,16 @@ except ValueError:
     ALLOWED_ORIGINS = ["https://ralphmode.com", "http://localhost:3000"]
 
 app = Flask(__name__)
+
+# SEC-007: Apply secure configuration from config module
+app.config.update(AppConfig.get_flask_config())
 app.secret_key = SESSION_SECRET_KEY
 
 # SEC-004 & SEC-005: Secure session configuration
-app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
-app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
-app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'  # SEC-003: SameSite attribute
+app.config['SESSION_COOKIE_SECURE'] = AppConfig.SESSION_COOKIE_SECURE
+app.config['SESSION_COOKIE_HTTPONLY'] = AppConfig.SESSION_COOKIE_HTTPONLY
+app.config['SESSION_COOKIE_SAMESITE'] = AppConfig.SESSION_COOKIE_SAMESITE
+app.config['SESSION_COOKIE_NAME'] = AppConfig.SESSION_COOKIE_NAME
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # SEC-004: Session timeout
 
 # Enable CORS with specific origins
@@ -684,21 +692,36 @@ def internal_error(e):
 
 
 if __name__ == '__main__':
+    # SEC-007: Validate and enforce secure configuration
+    print("\n🔍 Validating configuration...")
+    AppConfig.enforce_security()
+
+    # Print configuration summary
+    AppConfig.print_config_summary()
+
     # Development server
     # In production, use gunicorn or similar WSGI server
-    print("⚠️  Starting development server")
-    print("⚠️  DO NOT use in production - use gunicorn/uwsgi instead")
+    if AppConfig.ENV != 'production':
+        print("⚠️  Starting development server")
+        print("⚠️  DO NOT use in production - use gunicorn/uwsgi instead")
+    else:
+        print("🚀 Starting production server")
+        print("⚠️  Ensure you're behind nginx/reverse proxy with HTTPS")
+
     print(f"🔒 CSRF Protection: ENABLED")
     print(f"🔒 Data Encryption: ENABLED (AES-256-GCM)")
+    print(f"🔒 RBAC: ENABLED")
     print(f"🔒 HSTS: ENABLED (max-age=31536000)")
     print(f"🔒 TLS 1.3: REQUIRED")
+    print(f"🔒 Security Misconfiguration Prevention: ENABLED")
     print(f"🌐 Allowed Origins: {ALLOWED_ORIGINS}")
+    print(f"🐛 Debug Mode: {AppConfig.DEBUG}")
 
-    # SEC-005: Run with HTTPS in production
+    # SEC-005 & SEC-007: Run with HTTPS in production
     # For production, use nginx with Let's Encrypt SSL certificate
     app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=False,
+        host=AppConfig.HOST,
+        port=AppConfig.PORT,
+        debug=AppConfig.DEBUG,
         ssl_context='adhoc' if os.environ.get('USE_SSL') else None
     )
