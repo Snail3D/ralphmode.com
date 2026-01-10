@@ -2,9 +2,13 @@
 """
 Configuration Management for Ralph Mode
 SEC-007: Security Misconfiguration Prevention
+SEC-016: Secrets Management
 
 This module enforces secure configuration defaults and prevents
 common security misconfigurations in production.
+
+SEC-016: Secrets are loaded from SecretsManager (Vault/AWS) at runtime,
+never from code or config files.
 """
 
 import os
@@ -31,6 +35,7 @@ class Config:
     Secure configuration with environment-specific settings.
 
     SEC-007: Enforces secure defaults and prevents misconfigurations.
+    SEC-016: Secrets loaded from SecretsManager at runtime.
     """
 
     # Detect environment (default to production for safety)
@@ -42,20 +47,78 @@ class Config:
     # SEC-007: Testing mode (disable in production)
     TESTING = False if ENV == 'production' else os.getenv('TESTING', 'False').lower() == 'true'
 
-    # Flask secret keys (must be set in production)
-    SECRET_KEY = os.getenv('SECRET_KEY')
-    SESSION_SECRET_KEY = os.getenv('SESSION_SECRET_KEY')
-    CSRF_SECRET_KEY = os.getenv('CSRF_SECRET_KEY')
+    # SEC-016: Initialize SecretsManager (lazy loading)
+    _secrets_manager = None
+
+    @classmethod
+    def _get_secrets_manager(cls):
+        """Lazy-load secrets manager"""
+        if cls._secrets_manager is None:
+            try:
+                from secrets_manager import create_secrets_manager
+                cls._secrets_manager = create_secrets_manager(cls.ENV)
+            except Exception as e:
+                # Fall back to environment variables if SecretsManager unavailable
+                warnings.warn(f"SecretsManager unavailable, falling back to env vars: {e}")
+                cls._secrets_manager = False  # Marker to prevent retrying
+        return cls._secrets_manager
+
+    @classmethod
+    def _get_secret(cls, secret_name: str, default: Optional[str] = None) -> Optional[str]:
+        """
+        SEC-016: Get secret from SecretsManager or fall back to env var.
+
+        Args:
+            secret_name: Name of the secret
+            default: Default value if not found
+
+        Returns:
+            Secret value or default
+        """
+        secrets_manager = cls._get_secrets_manager()
+
+        # If SecretsManager available, use it
+        if secrets_manager and secrets_manager is not False:
+            try:
+                return secrets_manager.get(secret_name, default)
+            except Exception:
+                pass  # Fall through to env var
+
+        # Fall back to environment variable
+        return os.getenv(secret_name, default)
+
+    # Flask secret keys (SEC-016: loaded at runtime from SecretsManager)
+    @property
+    def SECRET_KEY(self):
+        return self._get_secret('SECRET_KEY')
+
+    @property
+    def SESSION_SECRET_KEY(self):
+        return self._get_secret('SESSION_SECRET_KEY')
+
+    @property
+    def CSRF_SECRET_KEY(self):
+        return self._get_secret('CSRF_SECRET_KEY')
 
     # Database configuration
-    DATABASE_URL = os.getenv('DATABASE_URL')
+    @property
+    def DATABASE_URL(self):
+        return self._get_secret('DATABASE_URL')
 
-    # API Keys (must be set via environment, never hardcoded)
-    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-    ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+    # API Keys (SEC-016: never hardcoded, loaded at runtime)
+    @property
+    def TELEGRAM_BOT_TOKEN(self):
+        return self._get_secret('TELEGRAM_BOT_TOKEN')
 
-    # Server configuration
+    @property
+    def GROQ_API_KEY(self):
+        return self._get_secret('GROQ_API_KEY')
+
+    @property
+    def ANTHROPIC_API_KEY(self):
+        return self._get_secret('ANTHROPIC_API_KEY')
+
+    # Server configuration (non-sensitive, can remain as class vars)
     HOST = os.getenv('HOST', '0.0.0.0')
     PORT = int(os.getenv('PORT', '5000'))
 
@@ -90,6 +153,7 @@ class Config:
         Validate configuration for security issues.
 
         SEC-007: Automated configuration scanning
+        SEC-016: Validates secrets loaded from SecretsManager
 
         Returns:
             Tuple of (is_valid, list_of_issues)
@@ -101,19 +165,22 @@ class Config:
             issues.append("CRITICAL: DEBUG=True in production environment")
 
         # Check 2: Secret keys must be set in production
+        # SEC-016: Access via properties to load from SecretsManager
         if cls.ENV == 'production':
-            if not cls.SECRET_KEY:
+            secret_key = cls._get_secret('SECRET_KEY')
+            if not secret_key:
                 issues.append("CRITICAL: SECRET_KEY not set in production")
-            elif len(cls.SECRET_KEY) < 32:
+            elif len(secret_key) < 32:
                 issues.append("CRITICAL: SECRET_KEY too short (min 32 characters)")
 
-            if not cls.SESSION_SECRET_KEY:
+            if not cls._get_secret('SESSION_SECRET_KEY'):
                 issues.append("CRITICAL: SESSION_SECRET_KEY not set in production")
 
-            if not cls.CSRF_SECRET_KEY:
+            if not cls._get_secret('CSRF_SECRET_KEY'):
                 issues.append("CRITICAL: CSRF_SECRET_KEY not set in production")
 
         # Check 3: Default credentials check
+        # SEC-016: Check secrets from SecretsManager
         insecure_defaults = [
             'changeme', 'password', 'admin', 'secret', 'default',
             'your_token_here', 'your_key_here', 'your_password_here',
@@ -121,7 +188,7 @@ class Config:
         ]
 
         for key_name in ['SECRET_KEY', 'SESSION_SECRET_KEY', 'CSRF_SECRET_KEY']:
-            key_value = getattr(cls, key_name, '')
+            key_value = cls._get_secret(key_name, '')
             if key_value:
                 if any(default in key_value.lower() for default in insecure_defaults):
                     issues.append(f"CRITICAL: {key_name} contains insecure default value")
@@ -144,10 +211,11 @@ class Config:
                 issues.append("WARNING: PROPAGATE_EXCEPTIONS=True in production")
 
         # Check 7: Validate API keys are set
+        # SEC-016: Load from SecretsManager
         if cls.ENV == 'production':
-            if not cls.TELEGRAM_BOT_TOKEN:
+            if not cls._get_secret('TELEGRAM_BOT_TOKEN'):
                 issues.append("ERROR: TELEGRAM_BOT_TOKEN not set")
-            if not cls.GROQ_API_KEY:
+            if not cls._get_secret('GROQ_API_KEY'):
                 issues.append("ERROR: GROQ_API_KEY not set")
 
         # Check 8: Check for test/development artifacts
@@ -217,11 +285,19 @@ class Config:
 
     @classmethod
     def print_config_summary(cls):
-        """Print configuration summary (without sensitive data)"""
+        """
+        Print configuration summary (without sensitive data).
+
+        SEC-016: Shows whether secrets are loaded from SecretsManager.
+        """
+        secrets_manager = cls._get_secrets_manager()
+        provider = "None (env vars)" if not secrets_manager or secrets_manager is False else secrets_manager.provider_type.value
+
         print(f"\n{'='*60}")
         print(f"  Ralph Mode - Configuration Summary")
         print(f"{'='*60}")
         print(f"  Environment:        {cls.ENV}")
+        print(f"  Secrets Provider:   {provider}")
         print(f"  Debug Mode:         {cls.DEBUG}")
         print(f"  Testing Mode:       {cls.TESTING}")
         print(f"  Force HTTPS:        {cls.FORCE_HTTPS}")
@@ -229,11 +305,11 @@ class Config:
         print(f"  Log Level:          {cls.LOG_LEVEL}")
         print(f"  Host:Port:          {cls.HOST}:{cls.PORT}")
         print(f"  Allowed Origins:    {len(cls.ALLOWED_ORIGINS)} origin(s)")
-        print(f"  Secret Key Set:     {'Yes' if cls.SECRET_KEY else 'No'}")
-        print(f"  Session Key Set:    {'Yes' if cls.SESSION_SECRET_KEY else 'No'}")
-        print(f"  CSRF Key Set:       {'Yes' if cls.CSRF_SECRET_KEY else 'No'}")
-        print(f"  Telegram Token Set: {'Yes' if cls.TELEGRAM_BOT_TOKEN else 'No'}")
-        print(f"  Groq API Key Set:   {'Yes' if cls.GROQ_API_KEY else 'No'}")
+        print(f"  Secret Key Set:     {'Yes' if cls._get_secret('SECRET_KEY') else 'No'}")
+        print(f"  Session Key Set:    {'Yes' if cls._get_secret('SESSION_SECRET_KEY') else 'No'}")
+        print(f"  CSRF Key Set:       {'Yes' if cls._get_secret('CSRF_SECRET_KEY') else 'No'}")
+        print(f"  Telegram Token Set: {'Yes' if cls._get_secret('TELEGRAM_BOT_TOKEN') else 'No'}")
+        print(f"  Groq API Key Set:   {'Yes' if cls._get_secret('GROQ_API_KEY') else 'No'}")
         print(f"{'='*60}\n")
 
 
