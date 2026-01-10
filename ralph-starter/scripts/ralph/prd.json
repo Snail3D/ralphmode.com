@@ -413,7 +413,7 @@
         "Don't overdo it - keep it brief"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-027",
@@ -997,6 +997,44 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": false
+    },
+    {
+      "id": "RM-062",
+      "category": "Overhear Mode",
+      "title": "Authentic Feature Discoveries - No Glazing",
+      "description": "Workers genuinely discover interesting things in the codebase and get excited about REAL features. No fake enthusiasm, no BS. If something is cool, explain WHY it's cool - how it works, the flow, the clever bits.",
+      "acceptance_criteria": [
+        "ZERO glazing - no fake 'wow this is amazing!' BS",
+        "Point out genuinely interesting patterns/features",
+        "Explain WHY it's interesting: 'Oh sick, you do X and it automatically does Y'",
+        "Show the flow: 'So when a user clicks this, it goes here, then...'",
+        "Backend insights: 'The clever bit is how this handles...'",
+        "Workers react like devs finding cool code: 'Huh, that's actually smart'",
+        "Gus: 'Now THAT's how you do it. Seen too many people screw this up.'",
+        "Mona: 'Interesting architecture choice here...'",
+        "Stool: 'Yo this animation is smooth, look at how they chained it'",
+        "Genuine human excitement, not corporate enthusiasm"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-063",
+      "category": "Overhear Mode",
+      "title": "Feature Flow Walkthroughs",
+      "description": "Workers trace through actual user flows in the code. 'User clicks login → this handler fires → validates here → creates session → redirects.' Makes the codebase tangible.",
+      "acceptance_criteria": [
+        "Identify key user flows in the codebase",
+        "Walk through step by step in conversation",
+        "Stool: 'So user hits this button...'",
+        "Gomer: 'Then the API call goes to...'",
+        "Mona: 'Which triggers the validation in...'",
+        "Show connections between files/components",
+        "Make abstract code feel concrete and real",
+        "User understands their own codebase better"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
     }
   ],
 
@@ -1027,7 +1065,18 @@
     "RM-017 - Frinky design specialist (first specialist)",
     "RM-021 - Specialist summoning (make it usable)",
     "RM-018 to RM-020 - Other specialists (expand the team)",
-    "RM-022 - API registry (future-proofing)"
+    "RM-022 - API registry (future-proofing)",
+    "RM-053 - Idle codebase chatter (fill dead time with education)",
+    "RM-054 - Codebase exploration discussions (workers talk about the code)",
+    "RM-055 - Explain Like Ralph is 5 (educational comedy)",
+    "RM-056 - Interrupt and resume flow (MUD interaction)",
+    "RM-057 - MUD-style presence (workers feel real)",
+    "RM-058 - Codebase summary generation (build understanding)",
+    "RM-059 - Question prompts (include user in conversation)",
+    "RM-060 - Byte-sized learning (1-2 sentences, texting pace)",
+    "RM-061 - Voice input (talk to your dev team!)",
+    "RM-062 - No glazing authentic discoveries (real excitement only)",
+    "RM-063 - Feature flow walkthroughs (trace the code)"
   ],
 
   "golden_rules": [

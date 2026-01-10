@@ -2222,6 +2222,14 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
         This is called after each task completes. Shows a brief celebration
         followed by the progress bar after a tasteful delay.
 
+        Includes:
+        - Quick completion message
+        - Occasional Ralph comments (~30%)
+        - Occasional worker high-fives (~20%)
+        - Big celebration for final task
+        - Progress bar after delay
+        - Mid-session reports at milestones
+
         Args:
             context: Telegram context
             chat_id: Chat ID
@@ -2235,6 +2243,14 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
         tasks_done = m.get("tasks_completed", 0)
         tasks_total = m.get("tasks_identified", 0)
 
+        # Check if this is the final task
+        is_final_task = tasks_done >= tasks_total and tasks_total > 0
+
+        if is_final_task:
+            # BIG celebration for final task!
+            await self._final_task_celebration(context, chat_id, user_id, task_title)
+            return
+
         # Quick completion message
         completion_msg = f"✅ Task {tasks_done}/{tasks_total} done!"
         if task_title:
@@ -2246,11 +2262,124 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
             parse_mode="Markdown"
         )
 
+        # Ralph occasionally comments (~30% chance)
+        if random.random() < 0.3:
+            ralph_comments = [
+                "We did a thing!",
+                "Another one! We're like a machine!",
+                "My tummy feels accomplished!",
+                "That was fun! More more more!",
+                "Yay! My cat would be proud!",
+                "I helped! Probably!",
+                "Check us out, Mr. Worms!",
+            ]
+            ralph_comment = self.ralph_misspell(random.choice(ralph_comments))
+            await asyncio.sleep(self.timing.rapid_banter())
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_comment,
+                topic="celebration", with_typing=False
+            )
+
+        # Workers occasionally high-five (~20% chance)
+        elif random.random() < 0.25:  # 20% of remaining 70% = ~17.5%
+            workers = list(self.DEV_TEAM.keys())
+            random.shuffle(workers)
+            worker1, worker2 = workers[0], workers[1]
+            high_five_actions = [
+                f"*{worker1} and {worker2} fist bump*",
+                f"*{worker1} high-fives {worker2}*",
+                f"*{worker1} nods approvingly at {worker2}*",
+                f"*{worker2} gives {worker1} a thumbs up*",
+            ]
+            await asyncio.sleep(self.timing.rapid_banter())
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=self.format_action(random.choice(high_five_actions).strip('*')),
+                parse_mode="Markdown"
+            )
+
         # Show progress bar after delay
         await self.show_progress_bar(context, chat_id, user_id, delay=5.0)
 
         # Check if we should give a mid-session progress report
         await self.maybe_give_progress_report(context, chat_id, user_id)
+
+    async def _final_task_celebration(self, context, chat_id: int, user_id: int, task_title: str = None):
+        """Big celebration for completing the final task!
+
+        This is a special celebration when ALL tasks are done.
+        More elaborate than regular task completions.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            task_title: Optional title of final task
+        """
+        m = self.quality_metrics.get(user_id, {})
+        tasks_total = m.get("tasks_identified", 0)
+
+        # Big announcement
+        if task_title:
+            final_msg = f"🎉🎉🎉 *{task_title}* - FINAL TASK COMPLETE! 🎉🎉🎉"
+        else:
+            final_msg = "🎉🎉🎉 *FINAL TASK COMPLETE!* 🎉🎉🎉"
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=final_msg,
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(1.0)
+
+        # Team celebration
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action("The entire team erupts in celebration!"),
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(0.5)
+
+        # Each team member reacts
+        team_reactions = [
+            ("Stool", "LET'S GOOO! We did it!"),
+            ("Gomer", "Woohoo! Donuts for everyone!"),
+            ("Mona", "Excellent work, team. All objectives achieved."),
+            ("Gus", "*raises coffee mug* Not bad. Not bad at all."),
+        ]
+
+        for name, reaction in team_reactions:
+            worker = self.DEV_TEAM.get(name, {})
+            await asyncio.sleep(self.timing.rapid_banter())
+            await self.send_styled_message(
+                context, chat_id, name, worker.get('title'), reaction,
+                topic="final celebration", with_typing=False
+            )
+
+        await asyncio.sleep(1.0)
+
+        # Ralph's special celebration
+        ralph_finals = [
+            "WE DID IT! All the tasks! My brain is so happy it might leak out my ears!",
+            "FINISHED! This calls for paste! The GOOD paste!",
+            "Mr. Worms! Mr. Worms! We did ALL the things! I'm going to tell my cat!",
+            "YAY! I'm the best manager ever! Probably! My daddy will be so proud!",
+        ]
+        ralph_celebration = self.ralph_misspell(random.choice(ralph_finals))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_celebration,
+            topic="final celebration", with_typing=True
+        )
+
+        # Maybe a GIF
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "happy")
+
+        # Final progress bar
+        await self.show_progress_bar(context, chat_id, user_id, delay=2.0)
 
     def should_give_progress_report(self, user_id: int) -> bool:
         """Check if it's time for a mid-session progress report.
