@@ -15,6 +15,10 @@ import asyncio
 import requests
 from datetime import datetime
 
+# SEC-008: Use secure deserialization
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from secure_deserializer import safe_json_load
+
 # Load .env FIRST before anything else
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
 if os.path.exists(env_path):
@@ -248,8 +252,8 @@ async def main():
     # Load recent work context
     prd_path = os.path.join(os.path.dirname(__file__), "prd.json")
 
-    with open(prd_path) as f:
-        prd = json.load(f)
+    # SEC-008: Use secure deserialization
+    prd = safe_json_load(prd_path)
 
     # Find recently completed tasks
     completed = [t for t in prd.get("tasks", []) if t.get("done")]

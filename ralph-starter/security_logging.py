@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, asdict
 import os
+from secure_deserializer import safe_json_loads, DeserializationError
 
 
 # ============================================================================
@@ -562,9 +563,10 @@ class TamperProofLogger:
             with open(self.log_file, 'r') as f:
                 lines = f.readlines()
                 if lines:
-                    last_line = json.loads(lines[-1])
+                    # SEC-008: Use secure deserialization
+                    last_line = safe_json_loads(lines[-1].strip())
                     return last_line.get('hash', '0' * 64)
-        except FileNotFoundError:
+        except (FileNotFoundError, DeserializationError):
             pass
         return '0' * 64  # Genesis hash
 
@@ -598,7 +600,8 @@ class TamperProofLogger:
 
             previous_hash = '0' * 64
             for i, line in enumerate(lines):
-                entry = json.loads(line)
+                # SEC-008: Use secure deserialization
+                entry = safe_json_loads(line.strip())
 
                 # Check if previous_hash matches
                 if entry.get('previous_hash') != previous_hash:
