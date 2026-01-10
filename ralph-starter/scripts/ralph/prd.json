@@ -3676,7 +3676,7 @@
       "files_likely_modified": [
         "*.py with serialization"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-009",

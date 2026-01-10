@@ -2893,3 +2893,151 @@ Check priority_order for next incomplete task (SEC-025 - Security Alerting)
 Check priority_order for next incomplete task (SEC-028 - Telegram Bot Security)
 
 ---
+
+## Iteration [SEC-025] - 2026-01-10
+**Task**: [SEC-025] Security Alerting
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive security_monitor.py module with real-time threat detection
+- Implemented failed login detection (5+ from same IP in 5 minutes)
+- Implemented privilege escalation detection (3+ attempts in 1 minute)
+- Implemented SQL injection detection (3+ attempts in 1 minute)
+- Implemented XSS attack detection (3+ attempts in 1 minute)
+- Implemented API burst detection (100+ requests in 10 seconds)
+- Implemented API reconnaissance detection (20+ unique endpoints in 1 minute)
+- Implemented immediate admin account creation alerts (no threshold)
+- Added alert cooldown system (5 minutes) to prevent alert fatigue
+- Integrated with existing security_alerts.py for multi-channel alerting (Telegram, Email, Slack, PagerDuty)
+- Created MonitoringSecurityLogger wrapper for automatic event monitoring
+- Added comprehensive test suite (15 tests, all passing)
+
+### Files changed
+- security_monitor.py (new)
+- test_security_monitor.py (new)
+- scripts/ralph/prd.json (marked SEC-025 as passing)
+
+### Learnings
+- Security monitoring requires tuned thresholds to balance detection vs false positives
+- Different attack types need different time windows (privilege escalation is faster than brute force)
+- Alert cooldowns are CRITICAL - without them, a single attack triggers hundreds of alerts
+- Admin account creation should always trigger immediate alert (no threshold)
+- Pattern tracking in memory is efficient for short time windows (5-10 minutes)
+- Integration with existing security infrastructure (SecurityLogger, SecurityAlertManager) makes the system modular
+- Async/await is essential for non-blocking alert delivery
+- Testing with mocked alert managers allows unit testing without actual alerts
+
+### Security Best Practices Applied
+1. **Defense in Depth**: Multiple detection layers (auth, input validation, API patterns)
+2. **Fail Secure**: If alert manager unavailable, log warnings but don't crash
+3. **Alert Fatigue Prevention**: Cooldown periods prevent spam from repeated attacks
+4. **Severity Routing**: Critical alerts go to PagerDuty, medium alerts to Telegram/Email
+5. **Time-Window Tracking**: Sliding window algorithm for accurate pattern detection
+6. **Per-Entity Tracking**: Track by IP for some attacks, by user_id for others
+
+### Next Steps
+- Consider adding machine learning for anomaly detection
+- Add geographic IP analysis for suspicious locations
+- Consider integrating with threat intelligence feeds
+- Add alert acknowledgment system
+
+---
+
+## Iteration 26 - 2026-01-10
+**Task**: [SEC-008] Insecure Deserialization Prevention
+**Status**: ✅ Complete
+
+### What was implemented
+
+**Core Security Module** (secure_deserializer.py):
+- Created comprehensive SecureDeserializer class with multiple layers of protection
+- Size limits (10MB default) prevent DoS attacks via huge payloads
+- Depth limits (10 levels) prevent stack overflow attacks
+- HMAC-SHA256 integrity verification for tamper detection
+- Schema validation support with built-in validators
+- Comprehensive error logging and monitoring
+- JSON-only policy - explicitly NO pickle/marshal/eval
+
+**Security Features**:
+- safe_json_loads() - Validates and deserializes JSON strings safely
+- safe_json_load() - Safely loads JSON from files
+- create_signed_json() - Creates tamper-proof JSON with HMAC signature
+- Schema validators: validate_dict, validate_list, create_schema_validator
+- DeserializationError exception for all validation failures
+- All errors logged for security monitoring
+
+**Test Coverage** (test_secure_deserializer.py):
+- 18 comprehensive tests covering all security scenarios
+- Size/depth limit enforcement verified
+- Invalid JSON rejection tested
+- Schema validation (both success and failure cases)
+- HMAC integrity checks and tamper detection
+- File loading and error handling
+- All tests passing ✅
+
+**Documentation** (DESERIALIZATION_POLICY.md):
+- Clear policy: JSON only, no pickle/marshal/eval
+- Usage examples for common patterns (config files, APIs, logs)
+- Migration guide from unsafe to secure deserialization
+- Security benefits explanation
+- Testing instructions
+
+**Applied to Existing Code**:
+- security_logging.py: Updated 2 json.loads() calls to use safe_json_loads()
+- scripts/ralph/boss_meeting.py: Updated json.load() to use safe_json_load()
+- Added proper import statements and error handling
+
+### Files changed
+- secure_deserializer.py (new, 367 lines)
+- test_secure_deserializer.py (new, 308 lines)
+- DESERIALIZATION_POLICY.md (new documentation)
+- security_logging.py (updated imports and 2 deserialization calls)
+- scripts/ralph/boss_meeting.py (updated to use safe_json_load)
+
+### Learnings
+
+**Why Deserialization Attacks Are Dangerous**:
+- pickle/marshal can execute arbitrary code during deserialization
+- Attackers can craft malicious serialized objects to run commands
+- OWASP A08 - Software and Data Integrity Failures
+- CWE-502: Deserialization of Untrusted Data
+
+**Defense in Depth Strategy**:
+1. **Format restriction**: JSON only (data format, not code)
+2. **Size limits**: Prevent resource exhaustion attacks
+3. **Depth limits**: Prevent stack overflow via deep nesting
+4. **Schema validation**: Ensure data matches expected structure
+5. **Integrity checks**: HMAC signatures detect tampering
+6. **Error logging**: Monitor for attack patterns
+
+**Best Practices Applied**:
+- Never trust input data - always validate
+- Use secure defaults (limits enabled by default)
+- Log all security-relevant events
+- Fail securely (reject invalid data, don't try to fix it)
+- Principle of least privilege (only deserialize what's needed)
+
+**Python-Specific Gotchas**:
+- pickle is convenient but NEVER safe for untrusted data
+- yaml.load() can execute code - use yaml.safe_load() if needed
+- json.loads() is safe but still validate the data structure
+- Always set size limits to prevent DoS
+- Deep nesting can crash Python (hence depth limits)
+
+**Integration Patterns**:
+- Convenience functions (safe_json_loads/load) for simple cases
+- Full SecureDeserializer class for advanced needs (HMAC, custom limits)
+- Schema validators can be reused across the codebase
+- Error handling with DeserializationError makes debugging easy
+
+### Acceptance Criteria Met
+✅ No pickle/marshal on untrusted data (verified with tests)
+✅ JSON used for serialization (not YAML/XML) - enforced by module design
+✅ Input schema validation before deserialization - create_schema_validator()
+✅ Integrity checks on serialized data - HMAC-SHA256 signatures
+✅ Deserialization errors logged and monitored - all errors logged
+
+### Next Task
+Check priority_order for next incomplete task (SEC-009 - Known Vulnerabilities Monitoring)
+
+---
