@@ -4788,3 +4788,77 @@ python build_orchestrator.py
 ```
 
 ---
+
+## Iteration - 2026-01-10 19:15
+**Task**: [BO-002] Isolated Build Environment
+**Status**: ✅ Complete
+
+### What was implemented
+- Created complete Docker isolation system for builds:
+  - Dockerfile.build: Python 3.12 slim image with git, curl, build tools
+  - docker-entrypoint.sh: Container startup script that clones repo, creates branches, runs Ralph
+  - Enhanced build_orchestrator.py with Docker integration
+- Docker workflow:
+  1. Check if Docker available (_check_docker method)
+  2. Build ralph-build:latest image if missing (_build_docker_image)
+  3. Spawn build in container with --rm flag for auto-cleanup
+  4. Mount task file as read-only volume
+  5. Container clones repo, creates feedback/FB-{id} branch, runs build
+  6. Auto-removes container on completion
+- Non-root security: Builds run as 'builder' user, not root
+- Fallback mode: If Docker unavailable, falls back to local builds (--no-docker flag)
+- Container naming: ralph-build-{feedback_id} for easy identification
+- Environment variables passed: REPO_URL, FEEDBACK_ID, TASK_FILE, BRANCH_NAME
+
+### Files changed
+- build_orchestrator.py (added Docker methods, updated spawn logic)
+- Dockerfile.build (NEW - container definition)
+- docker-entrypoint.sh (NEW - container entrypoint)
+- scripts/ralph/prd.json (marked BO-002 as passes: true)
+
+### Learnings
+- Docker isolation prevents cross-contamination between builds
+- --rm flag is crucial for automatic container cleanup
+- Read-only volume mounts prevent accidental file modification
+- Non-root users in containers are a security best practice
+- Fallback to local builds ensures development without Docker
+- Fresh git clone ensures clean state for each build
+- Branch naming convention (feedback/FB-XXX) keeps work organized
+- Container names make debugging easier (can use `docker ps` to see what's building)
+- 10-minute timeout for image build prevents hanging
+- Double-checking Docker availability at startup prevents runtime failures
+
+---
+
+## Iteration 69 - 2026-01-10T20:30:00Z
+**Task**: BO-003 Build Failure Handling
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `consecutive_failures` field to Feedback model in database.py
+- Enhanced `_handle_build_failure()` method to track failures per feedback item
+- Implemented priority score reduction (50% on each failure)
+- Added `_alert_admin_consecutive_failures()` method for admin notifications
+- Added `_pause_build_loop()` method to halt orchestrator after 5+ failures
+- Enhanced `_handle_build_success()` to reset consecutive_failures counter
+- Failed builds now return to queue with reduced priority instead of being rejected
+
+### Files changed
+- database.py: Added consecutive_failures column to Feedback model
+- build_orchestrator.py: Enhanced failure handling with all BO-003 requirements
+
+### Learnings
+- Build failure tracking requires both database state (consecutive_failures) and runtime behavior (priority reduction, alerting)
+- Returning failed items to queue (status="queued") instead of rejecting them allows for retry with deprioritization
+- Admin alerting pattern: log to file (/tmp/ralph_admin_alerts.log) for monitoring since bot instance runs in separate process
+- Pause mechanism uses flag file (/tmp/ralph_build_paused.flag) for cross-process coordination
+- Always reset failure counters on success to avoid penalizing feedback items that eventually succeed
+- Priority score reduction is multiplicative (0.5x) rather than subtractive to maintain relative ordering
+
+### Architecture notes
+- Build orchestrator runs as daemon process, separate from Telegram bot
+- Admin notifications currently file-based; future enhancement could integrate with bot's messaging
+- Pause file contains full context (feedback_id, failure count, reason) for debugging
+- Database schema change (consecutive_failures) requires migration in production
+
+---
