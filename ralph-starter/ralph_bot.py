@@ -4767,6 +4767,143 @@ _Grab some popcorn..._
                 with_typing=True
             )
 
+    async def version_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /version command - VM-003: Version Selection for Users."""
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # Parse command arguments
+        args = context.args
+
+        # Get current version from VERSION file
+        try:
+            from version_manager import VersionManager
+            vm = VersionManager()
+            current_version = vm.get_current_version()
+        except Exception as e:
+            logger.error(f"Error reading version: {e}")
+            current_version = "unknown"
+
+        # If no arguments, show current version and preference
+        if not args:
+            try:
+                with get_db() as db:
+                    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+                    if not user:
+                        # Create user if doesn't exist
+                        user = User(telegram_id=telegram_id)
+                        db.add(user)
+                        db.commit()
+
+                    preference = user.version_preference or "stable"
+
+                    status_text = f"""
+*📦 Ralph Mode Version Info*
+
+🔢 Current Version: `{current_version}`
+⚙️ Your Preference: `{preference}`
+
+*Available Versions:*
+• `/version stable` - Stable release (recommended)
+• `/version beta` - Beta testing (new features)
+• `/version alpha` - Alpha testing (cutting edge, Priority tier only)
+
+Use `/version <type>` to switch!
+"""
+
+                    await update.message.reply_text(status_text, parse_mode="Markdown")
+
+            except Exception as e:
+                logger.error(f"Error in version command: {e}")
+                await update.message.reply_text(
+                    "Uh oh! Something went wrong checking your version preference. Try again?",
+                    parse_mode="Markdown"
+                )
+            return
+
+        # Handle version selection
+        version_type = args[0].lower()
+
+        if version_type not in ["stable", "beta", "alpha"]:
+            error_msg = self.ralph_misspell(
+                f"Hmm, I don't know what '{version_type}' version is! "
+                "I only know about stable, beta, and alpha. Pick one of those!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_msg,
+                topic="version error",
+                with_typing=True
+            )
+            return
+
+        # Check if alpha requires Priority tier
+        if version_type == "alpha":
+            try:
+                with get_db() as db:
+                    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+                    if not user or user.subscription_tier not in ["priority", "enterprise"]:
+                        restriction_msg = self.ralph_misspell(
+                            "Ooh! Alpha versions are special! Only Priority and Enterprise members can use those! "
+                            "They get to test the super new stuff before everyone else! "
+                            "You can use /subscribe to upgrade, or pick 'stable' or 'beta' instead!"
+                        )
+                        await self.send_styled_message(
+                            context, chat_id, "Ralph", None, restriction_msg,
+                            topic="version restriction",
+                            with_typing=True
+                        )
+                        return
+            except Exception as e:
+                logger.error(f"Error checking subscription tier: {e}")
+
+        # Update user's version preference
+        try:
+            with get_db() as db:
+                user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+                if not user:
+                    user = User(telegram_id=telegram_id)
+                    db.add(user)
+
+                old_preference = user.version_preference or "stable"
+                user.version_preference = version_type
+                db.commit()
+
+                # Confirm the change
+                if old_preference == version_type:
+                    confirm_msg = self.ralph_misspell(
+                        f"You're already using {version_type} version! That's a good choice!"
+                    )
+                else:
+                    confirm_msg = self.ralph_misspell(
+                        f"Okay! I switched you from {old_preference} to {version_type}! "
+                        f"You'll get {version_type} versions from now on! My cat's breath smells like cat food!"
+                    )
+
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, confirm_msg,
+                    topic="version changed",
+                    with_typing=True
+                )
+
+                # Maybe send a GIF
+                if self.should_send_gif():
+                    await self.send_ralph_gif(context, chat_id, "happy")
+
+        except Exception as e:
+            logger.error(f"Error updating version preference: {e}")
+            error_msg = self.ralph_misspell(
+                "Uh oh! I tried to remember your choice but I forgot already! "
+                "Can you try again? My brain makes its own choices sometimes!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_msg,
+                topic="version update error",
+                with_typing=True
+            )
+
     def run(self):
         """Start the bot."""
         if not TELEGRAM_BOT_TOKEN:
@@ -4818,6 +4955,7 @@ _Grab some popcorn..._
         app.add_handler(CommandHandler("mystatus", self.mystatus_command))  # QS-003 & FQ-003
         app.add_handler(CommandHandler("report", self.report_command))
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
+        app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))

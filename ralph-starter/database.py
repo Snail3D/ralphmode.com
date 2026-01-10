@@ -233,6 +233,7 @@ class User(Base):
     is_banned = Column(Boolean, default=False)
     ban_reason = Column(Text, nullable=True)
     quality_score = Column(Float, default=50.0)  # User reputation (0-100)
+    version_preference = Column(String(20), default="stable")  # VM-003: stable, beta, alpha
 
     # Relationships
     sessions = relationship("BotSession", back_populates="user", lazy="dynamic")

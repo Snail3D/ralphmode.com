@@ -5111,3 +5111,49 @@ python build_orchestrator.py
 ✅ Displayed on website - CHANGELOG.md file created and updated automatically
 
 ---
+
+## Iteration - 2026-01-10 (Current)
+**Task**: [VM-003] Version Selection for Users
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `version_preference` field to User model in database (default: "stable")
+- Created `/version` command handler with three modes:
+  - `/version` - Show current version and user's preference
+  - `/version stable|beta|alpha` - Switch version preference
+  - Alpha version access restricted to Priority/Enterprise tiers
+- Implemented version preference storage per user in database
+- Created database migration script `migrate_vm003.py` for adding version_preference column
+- Integrated with existing VersionManager to display current version from VERSION file
+- Added Ralph-style personality responses for all version command interactions
+- Registered command handler in bot's application setup
+
+### Files changed
+- `database.py` - Added version_preference field to User model
+- `ralph_bot.py` - Added version_command() handler and registered it
+- `migrate_vm003.py` (NEW) - Database migration for version_preference column
+- `scripts/ralph/prd.json` - Marked VM-003 as complete
+
+### Learnings
+- **Database schema evolution**: SQLite ALTER TABLE for adding columns with defaults
+- **Command argument parsing**: Used `context.args` to parse command parameters
+- **Subscription tier checking**: Integrated with existing subscription_tier field for alpha access control
+- **User creation patterns**: Create user record on first interaction if doesn't exist
+- **Error handling**: Graceful fallbacks when database or version manager unavailable
+- **Ralph personality**: Applied ralph_misspell() to error messages for consistency
+
+### Architecture decisions
+1. **Per-user preference**: Stored in users table, not per-group (simpler, follows user across chats)
+2. **Default to stable**: New users default to stable version for safety
+3. **Three tiers**: stable (all users), beta (all users), alpha (Priority+ only)
+4. **Separated concerns**: Version display uses VersionManager, preference storage uses database
+5. **Migration pattern**: Followed existing migrate_dd002.py pattern for consistency
+
+### Acceptance criteria verification
+✅ /version command shows current version - Displays from VERSION file via VersionManager
+✅ /version stable - switch to stable - Implemented with database update
+✅ /version beta - switch to beta - Implemented with database update
+✅ /version alpha - switch to alpha (Priority only) - Implemented with tier check
+✅ Version preference stored per user/group - Stored per user in database
+
+---
