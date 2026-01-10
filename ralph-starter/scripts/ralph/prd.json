@@ -2237,7 +2237,7 @@
         "ralph_bot.py",
         "config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MU-001",

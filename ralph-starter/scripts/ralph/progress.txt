@@ -6334,3 +6334,66 @@ Command handler test output shows correct detection:
 - "Great work on the feature!" → feedback, no priority ✓
 
 ---
+## Iteration BC-006 - 2026-01-10
+**Task**: [BC-006] Broadcast-Safe Flag
+**Status**: ✅ Complete
+
+### What was implemented
+- Added BROADCAST_SAFE and BROADCAST_SAFE_DELAY configuration options to config.py
+- Enhanced sanitizer.py with extra-strict broadcast-safe patterns:
+  * Email addresses (redacted in broadcast mode only)
+  * Phone numbers (multiple formats)
+  * Credit card patterns (basic detection)
+  * SSN-like patterns
+  * File paths (both Unix and Windows)
+  * More aggressive long string filtering (32+ chars vs 40+ in normal mode)
+- Implemented _apply_broadcast_safe_delay() method in ralph_bot.py
+- Applied delay to all message sending paths (send_styled_message, fallbacks)
+- Added visual indicators:
+  * Startup log message with 🔴 emoji
+  * Console print statement
+  * /start command banner showing delay and status
+- Config validation now displays broadcast-safe status in summary
+
+### Files changed
+- config.py (added BROADCAST_SAFE and BROADCAST_SAFE_DELAY settings)
+- sanitizer.py (added BROADCAST_SAFE_PATTERNS and enhanced sanitize_for_telegram)
+- ralph_bot.py (imported config, added delay method, applied to send paths, added indicators)
+
+### Learnings
+- Broadcast-safe mode is designed for live streaming scenarios where messages need review before public display
+- The 5-second delay gives humans a buffer to catch and prevent leaks
+- Two-tier filtering approach:
+  1. Normal mode: strips obvious secrets (API keys, tokens, IPs)
+  2. Broadcast-safe mode: also strips PII (emails, phones, paths)
+- The sanitizer already had broadcast_safe_mode support but it was basic (just checking env var)
+- Enhanced it to work with the centralized Config class
+- Visual indicators are critical for operators to know they're in a special mode
+- The delay is applied at the lowest level (before bot.send_message) to ensure all paths are covered
+- Pattern matching is more aggressive in broadcast mode to err on the side of safety
+- The implementation follows the "defense in depth" principle: multiple layers of protection
+
+### Key Pattern
+Broadcast-safe mode activation flow:
+1. Set BROADCAST_SAFE=true in .env
+2. Bot startup reads Config.BROADCAST_SAFE
+3. Sanitizer reads same flag (or falls back to env var)
+4. Every message goes through:
+   a. sanitize_for_telegram() (applies broadcast-safe patterns if enabled)
+   b. _apply_broadcast_safe_delay() (sleeps 5s if enabled)
+   c. bot.send_message() (final send)
+5. Operators see 🔴 BROADCAST-SAFE MODE indicator in:
+   - Startup logs
+   - Console output
+   - /start command banner
+
+### Test Results
+- Config validation shows: "Broadcast Safe: True" ✓
+- Review delay displays: "Review Delay: 5.0s" ✓
+- Sanitizer test shows enhanced filtering:
+  * Normal: "test@example.com" → kept
+  * Broadcast: "test@example.com" → [EMAIL] ✓
+- All Python files compile successfully ✓
+- No syntax errors in modified files ✓
+
+---
