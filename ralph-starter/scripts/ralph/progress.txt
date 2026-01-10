@@ -5521,3 +5521,41 @@ Linode (monthly):
 - Network Segmentation (NIST): https://csrc.nist.gov/publications/detail/sp/800-125b/final
 
 ---
+
+## Iteration 81 - 2026-01-10 11:30 AM
+**Task**: [RM-006] Deleted Message Simulation
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `last_deleted_message` tracking dictionary to RalphBot.__init__
+- Implemented 7.5% trigger rate (middle of 5-10% range) in send_styled_message
+- Created `deleted_message_moment()` method with full Easter egg flow
+- Workers type embarrassing/gossipy messages then "delete" them
+- 50/50 chance between strikethrough (~message~) or [message deleted]
+- Ralph notices 40% of the time with reactions like "What did that say?"
+- Workers play innocent with responses like "Nothing sir!" or "Just a typo, boss!"
+- Used message editing API to create authentic deletion effect
+- Integrated with existing timing system (interruption, rapid_banter)
+- Minimum 8 minutes between deleted message events (prevents spam)
+
+### Files changed
+- ralph_bot.py (added tracking dict, trigger logic, deleted_message_moment method)
+- scripts/ralph/prd.json (marked RM-006 as passes: true)
+
+### Learnings
+- Easter egg pattern: Track last occurrence + random chance + cooldown period
+- Message editing creates more authentic "deletion" effect than just sending new message
+- Fallback to new message if edit fails (handles edge cases gracefully)
+- Comedy timing is critical: 1-2s to read original, then interruption timing for Ralph
+- 40% reaction rate feels right - not every deletion gets noticed (more realistic)
+- Deleted messages should be mid-sentence or embarrassing for best effect
+- Workers need variety in "caught" responses to stay fresh
+
+### Technical patterns discovered
+- asyncio.create_task() for background Easter eggs (doesn't block main flow)
+- self.timing.interruption() and self.timing.rapid_banter() for natural pacing
+- edit_message_text with try/except fallback for robustness
+- Random sampling from message arrays keeps responses unpredictable
+- Cooldown periods prevent Easter eggs from feeling spammy
+
+---
