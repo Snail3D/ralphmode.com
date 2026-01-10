@@ -24,7 +24,7 @@ from telegram import Update, File
 from telegram.ext import ContextTypes
 
 from database import get_db, Feedback, User, InputValidator
-from rate_limiter import check_feedback_rate_limits, check_user_rate_limits
+from rate_limiter import check_feedback_rate_limits, check_user_rate_limits, check_burst_detection
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +134,21 @@ class FeedbackCollector:
                     )
                     db.add(user)
                     db.flush()
+
+                # RL-003: Check burst detection FIRST (highest priority)
+                allowed_burst, error_burst = check_burst_detection(
+                    user_id=str(user.id)
+                )
+
+                if not allowed_burst:
+                    logger.warning(
+                        f"Burst detected for user {telegram_id} "
+                        f"(flagged: {error_burst.get('flagged', False)})"
+                    )
+                    if metadata is None:
+                        metadata = {}
+                    metadata['rate_limit_error'] = error_burst
+                    return -1  # Signal rate limit exceeded
 
                 # RL-001: Check IP-based rate limits
                 if update:

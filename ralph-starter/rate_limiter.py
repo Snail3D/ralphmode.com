@@ -73,6 +73,12 @@ class RateLimitConfig:
     FEEDBACK_PRIORITY_PER_HOUR = 20
     FEEDBACK_PRIORITY_PER_DAY = 100
 
+    # RL-003: Burst detection
+    BURST_THRESHOLD = 3  # More than 3 in 1 minute = burst
+    BURST_WINDOW = 60  # 60 seconds
+    BURST_PENALTY = 600  # 10 minutes block
+    BURST_FLAG_THRESHOLD = 3  # 3+ burst events = manual approval required
+
     # Admin endpoints (per admin user)
     ADMIN_PER_USER_MINUTE = 100
     ADMIN_PER_USER_HOUR = 1000
@@ -683,6 +689,149 @@ def check_user_rate_limits(
             'limit': daily_limit,
             'retry_after': metadata_daily['retry_after'],
             'message': f"You've reached your daily feedback limit ({daily_limit}/day). Try again tomorrow!"
+        }
+
+    return True, None
+
+
+def check_burst_detection(
+    user_id: str,
+    log_callback: Optional[Any] = None
+) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """
+    RL-003: Detect and block burst (rapid-fire) submissions.
+
+    Detects >3 submissions in 60 seconds and blocks for 10 minutes.
+    Flags account for admin review after 3+ burst events.
+
+    Args:
+        user_id: User identifier
+        log_callback: Optional callback function to log burst events
+
+    Returns:
+        Tuple of (is_allowed, error_metadata)
+        - is_allowed: True if not in burst mode
+        - error_metadata: Dict with error info if burst detected
+    """
+    # Check if user is currently in burst penalty (blocked for 10 minutes)
+    penalty_key = f"burst_penalty:{user_id}"
+    limiter = RateLimiter()
+
+    # Check if penalty is active using a "1 request per penalty window" check
+    # If they have a penalty marker, deny the request
+    if hasattr(limiter._backend, 'redis_client'):
+        # Redis backend
+        try:
+            penalty_active = limiter._backend.redis_client.get(penalty_key)
+            if penalty_active:
+                ttl = limiter._backend.redis_client.ttl(penalty_key)
+                return False, {
+                    'limit_type': 'burst_penalty',
+                    'message': f'Burst detected! Too many rapid submissions. Blocked for {ttl} more seconds.',
+                    'retry_after': max(ttl, 0),
+                    'flagged': True
+                }
+        except Exception as e:
+            logger.error(f"Redis error checking burst penalty: {e}")
+    else:
+        # In-memory backend - use a simple dict
+        if not hasattr(limiter._backend, '_burst_penalties'):
+            limiter._backend._burst_penalties = {}
+
+        if user_id in limiter._backend._burst_penalties:
+            penalty_until = limiter._backend._burst_penalties[user_id]
+            if time.time() < penalty_until:
+                retry_after = int(penalty_until - time.time())
+                return False, {
+                    'limit_type': 'burst_penalty',
+                    'message': f'Burst detected! Too many rapid submissions. Blocked for {retry_after} more seconds.',
+                    'retry_after': retry_after,
+                    'flagged': True
+                }
+            else:
+                # Penalty expired
+                del limiter._backend._burst_penalties[user_id]
+
+    # Check for burst: >3 submissions in 60 seconds
+    allowed, metadata = RateLimiter.check_rate_limit(
+        identifier=user_id,
+        limit=RateLimitConfig.BURST_THRESHOLD,
+        window=RateLimitConfig.BURST_WINDOW,
+        scope='burst_detection'
+    )
+
+    if not allowed:
+        # BURST DETECTED! Block for 10 minutes
+        now = time.time()
+        penalty_until = now + RateLimitConfig.BURST_PENALTY
+
+        # Increment burst event counter
+        burst_count_key = f"burst_count:{user_id}"
+
+        if hasattr(limiter._backend, 'redis_client'):
+            try:
+                # Increment burst event counter
+                burst_count = limiter._backend.redis_client.incr(burst_count_key)
+                # Set expiration (keep count for 24 hours)
+                limiter._backend.redis_client.expire(burst_count_key, 86400)
+
+                # Set penalty marker
+                limiter._backend.redis_client.setex(
+                    penalty_key,
+                    RateLimitConfig.BURST_PENALTY,
+                    '1'
+                )
+
+                flagged = burst_count >= RateLimitConfig.BURST_FLAG_THRESHOLD
+            except Exception as e:
+                logger.error(f"Redis error setting burst penalty: {e}")
+                burst_count = 1
+                flagged = False
+        else:
+            # In-memory
+            if not hasattr(limiter._backend, '_burst_counts'):
+                limiter._backend._burst_counts = {}
+            if not hasattr(limiter._backend, '_burst_penalties'):
+                limiter._backend._burst_penalties = {}
+
+            # Increment burst count
+            if user_id not in limiter._backend._burst_counts:
+                limiter._backend._burst_counts[user_id] = {'count': 0, 'expires': now + 86400}
+
+            # Clean expired counts
+            if limiter._backend._burst_counts[user_id]['expires'] < now:
+                limiter._backend._burst_counts[user_id] = {'count': 0, 'expires': now + 86400}
+
+            limiter._backend._burst_counts[user_id]['count'] += 1
+            burst_count = limiter._backend._burst_counts[user_id]['count']
+
+            # Set penalty
+            limiter._backend._burst_penalties[user_id] = penalty_until
+
+            flagged = burst_count >= RateLimitConfig.BURST_FLAG_THRESHOLD
+
+        # Log burst event
+        logger.warning(
+            f"BURST DETECTED for user {user_id}! "
+            f"Burst count: {burst_count}, "
+            f"Flagged for review: {flagged}, "
+            f"Blocked for {RateLimitConfig.BURST_PENALTY}s"
+        )
+
+        if log_callback:
+            log_callback({
+                'user_id': user_id,
+                'burst_count': burst_count,
+                'flagged': flagged,
+                'blocked_until': penalty_until
+            })
+
+        return False, {
+            'limit_type': 'burst_detected',
+            'message': f'Burst detected! Too many rapid submissions. Blocked for 10 minutes.',
+            'retry_after': RateLimitConfig.BURST_PENALTY,
+            'burst_count': burst_count,
+            'flagged': flagged
         }
 
     return True, None
