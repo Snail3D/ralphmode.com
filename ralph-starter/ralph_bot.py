@@ -5738,8 +5738,16 @@ _Grab some popcorn..._
     async def password_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /password command - MU-002: Power User Authentication."""
         if not USER_MANAGER_AVAILABLE or not self.user_manager:
-            await update.message.reply_text(
-                "Sorry, the tier system isn't available right now, Mr. Worms!",
+            # Delete the command message immediately for security
+            try:
+                await update.message.delete()
+            except Exception as e:
+                logger.warning(f"Could not delete password command: {e}")
+
+            # Send private response
+            await context.bot.send_message(
+                chat_id=update.effective_user.id,
+                text="Sorry, the tier system isn't available right now, Mr. Worms!",
                 parse_mode="Markdown"
             )
             return
@@ -5747,11 +5755,19 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
 
+        # MU-002: Delete the command message immediately (hide password from chat)
+        try:
+            await update.message.delete()
+        except Exception as e:
+            logger.warning(f"Could not delete password command: {e}")
+
         # Parse password from command arguments
         args = context.args
         if not args:
-            await update.message.reply_text(
-                "*How to use /password*\n\n"
+            # Send instructions as private message
+            await context.bot.send_message(
+                chat_id=telegram_id,
+                text="*How to use /password*\n\n"
                 "Usage: `/password YOUR_PASSWORD`\n\n"
                 "If you have the power user password, this will upgrade your access to Tier 2 (Power User).\n\n"
                 "*Current Tier System:*\n"
@@ -5768,10 +5784,11 @@ _Grab some popcorn..._
 
         # Try to authenticate
         if self.user_manager.authenticate_power_user(telegram_id, password):
-            # Success!
+            # Success! Send confirmation as private message
             tier_info = self.user_manager.get_user_info(telegram_id)
-            await update.message.reply_text(
-                f"*Access Upgraded!* 🎉\n\n"
+            await context.bot.send_message(
+                chat_id=telegram_id,
+                text=f"*Access Upgraded!* 🎉\n\n"
                 f"You're now a {tier_info['tier_name']}!\n\n"
                 f"*Your Permissions:*\n"
                 f"• Control bot actions: {'Yes' if tier_info['can_control_build'] else 'No'}\n"
@@ -5781,9 +5798,13 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
         else:
-            # Failed authentication
-            await update.message.reply_text(
-                "*Access Denied* ❌\n\n"
+            # Failed authentication - log but don't announce in chat
+            logger.warning(f"MU-002: Failed password authentication for user {telegram_id}")
+
+            # Send denial as private message
+            await context.bot.send_message(
+                chat_id=telegram_id,
+                text="*Access Denied* ❌\n\n"
                 "That password didn't work, Mr. Worms. Double-check it and try again!",
                 parse_mode="Markdown"
             )
