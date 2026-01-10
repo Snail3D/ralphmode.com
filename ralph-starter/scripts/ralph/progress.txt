@@ -3740,3 +3740,93 @@ Priority user (10/hour):
 ```
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [RL-002] User Rate Limiter for Feedback
+**Status**: ✅ Complete
+
+### What was implemented
+- Added user-based rate limit configuration (separate from IP limits)
+- Builder tier: 10/hour, 50/day
+- Priority/Enterprise tier: 20/hour, 100/day
+- Free tier: No additional user limits (IP limits apply)
+- Created `check_user_rate_limits()` function with tier-based logic
+- Integrated into FeedbackCollector.collect_text_feedback()
+- Both IP AND user limits must pass (dual-layer protection)
+- Tier detection from user.subscription_tier field
+- Graceful error messages specific to each tier
+
+### Files changed
+- rate_limiter.py: Added FEEDBACK_BUILDER_PER_HOUR/DAY, FEEDBACK_PRIORITY_PER_HOUR/DAY, check_user_rate_limits()
+- feedback_collector.py: Added user rate limit check after IP check
+
+### Acceptance Criteria Met
+✅ Track submissions per user_id
+✅ Builder: 10/hour, 50/day
+✅ Priority: 20/hour, 100/day
+✅ Separate from IP limits (both apply)
+✅ Graceful messaging when limited
+
+### Learnings
+- **Dual-layer rate limiting**: IP limits (RL-001) + User limits (RL-002) both checked sequentially
+- **Free tier optimization**: Returns early (True, None) to avoid double-limiting free users with IP limits
+- **Tier normalization**: Handles "builder", "builder+", "builder plus" variants
+- **Separate scopes prevent collisions**: Uses 'feedback_user_hour' and 'feedback_user_day' scopes
+- **User ID as string**: RateLimiter expects string identifiers, so str(user.id) conversion needed
+- **Sequential checks work**: Check IP first (fails fast for anonymous abuse), then user (tier-specific)
+
+### Gotchas to avoid
+- **Don't skip IP check for paid users**: Both limits apply, not either/or
+- **Handle new user creation**: User might not exist yet when checking limits - create first, then check
+- **Tier case sensitivity**: Always .lower() the tier before comparison
+- **Return early for free tier**: Avoids redundant rate limiting (IP limits already cover free users)
+- **Log which limit failed**: IP vs User limit failures need different context in logs
+
+### Integration Points
+- **RL-001** (IP Rate Limiter) runs FIRST, then RL-002 (User Rate Limiter) - both must pass
+- **RL-003** (Burst Detection) will add ANOTHER layer (>3 in 1 minute = instant block)
+- **FB-002** (Subscription Gate) sets tier, RL-002 uses tier for limits
+- **FQ-001** (Feedback Queue) needs to know which limit was hit for admin visibility
+- **NT-001** (Notifications) should include limit type in error notifications
+
+### Technical Patterns
+- **Three-tier limit system**: Free (IP only), Builder (10/50), Priority/Enterprise (20/100)
+- **Early return optimization**: Free tier returns True immediately
+- **Tier-based lookup**: if/elif chain maps tier to limit constants
+- **Dual scope strategy**: feedback_user_hour vs feedback_user_day for separate tracking
+- **Error metadata consistency**: Same structure as RL-001 for easy handling
+- **Falls back gracefully**: If tier unknown, treats as free (safe default)
+
+### Test Results
+```
+Free tier:
+  ✅ No additional limits (IP limits only)
+
+Builder tier (10/hour):
+  Requests 1-10: ✅ Allowed
+  Request 11: ❌ Blocked with message
+
+Priority tier (20/hour):
+  Requests 1-20: ✅ Allowed
+  Request 21: ❌ Blocked with message
+
+Enterprise tier (20/hour):
+  Requests 1-20: ✅ Allowed
+  Request 21: ❌ Blocked with message
+```
+
+### Relationship to RL-001
+RL-001 = IP-based limits (5/hour, 20/day for normal, 10/hour, 40/day for priority)
+RL-002 = User-based limits (10/hour, 50/day for builder, 20/hour, 100/day for priority)
+
+**Both run sequentially**:
+1. Check IP limit (RL-001) - fails fast for anonymous abuse
+2. If IP check passes, check User limit (RL-002) - tier-specific limits
+3. Only if BOTH pass does feedback get stored
+
+This prevents:
+- Anonymous spam (IP limits)
+- Authenticated spam (User limits)
+- Tier abuse (paid users can't share accounts)
+
+---
