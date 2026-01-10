@@ -63,7 +63,7 @@ class SceneManager:
         }
     }
 
-    # Time of day options
+    # Time of day options with enhanced atmospheric details
     TIMES = {
         "early_morning": {
             "times": ["6:47 AM", "7:03 AM", "7:21 AM", "7:58 AM"],
@@ -71,8 +71,12 @@ class SceneManager:
                 "The office is eerily quiet",
                 "Coffee machine is still warming up",
                 "The parking lot is mostly empty",
-                "Even the pigeons haven't woken up yet"
-            ]
+                "Even the pigeons haven't woken up yet",
+                "First one in. The silence is actually kinda nice",
+                "Dawn light just starting to filter through the windows"
+            ],
+            "energy": "slow_start",
+            "worker_mood": "groggy but focused"
         },
         "morning": {
             "times": ["8:34 AM", "9:07 AM", "9:42 AM", "9:58 AM"],
@@ -80,8 +84,12 @@ class SceneManager:
                 "The daily standup is in 20 minutes. Nobody's prepared",
                 "Keyboards are starting to clatter",
                 "Someone microwaves fish. Again",
-                "The coffee pot is already half empty"
-            ]
+                "The coffee pot is already half empty",
+                "Workers trickle in with their morning routines",
+                "Slack notifications are starting to pile up"
+            ],
+            "energy": "picking_up",
+            "worker_mood": "caffeinated and ready"
         },
         "late_morning": {
             "times": ["10:17 AM", "10:49 AM", "11:23 AM", "11:55 AM"],
@@ -89,8 +97,12 @@ class SceneManager:
                 "The morning energy is fading. Lunch can't come soon enough",
                 "Three browser tabs of Stack Overflow already open",
                 "Someone's on their fourth coffee",
-                "The午前会議 ended 10 minutes ago. Nobody moved yet"
-            ]
+                "The午前会議 ended 10 minutes ago. Nobody moved yet",
+                "Productive energy fills the air. Or maybe that's just the HVAC",
+                "Stomachs start rumbling. Lunch is on everyone's mind"
+            ],
+            "energy": "productive",
+            "worker_mood": "focused but hungry"
         },
         "afternoon": {
             "times": ["1:08 PM", "1:43 PM", "2:17 PM", "2:54 PM"],
@@ -98,8 +110,12 @@ class SceneManager:
                 "Post-lunch food coma is setting in",
                 "Half the team is in meetings. The other half pretends to be",
                 "Someone's watching YouTube with headphones",
-                "The afternoon slump is real"
-            ]
+                "The afternoon slump is real",
+                "Settling into steady work. The day has found its rhythm",
+                "Coffee runs are starting again. Second wind incoming"
+            ],
+            "energy": "settling_in",
+            "worker_mood": "steady grind"
         },
         "late_afternoon": {
             "times": ["3:29 PM", "4:02 PM", "4:38 PM", "4:56 PM"],
@@ -107,8 +123,12 @@ class SceneManager:
                 "End of day approaching. People are getting antsy",
                 "The parking lot is emptier already",
                 "Someone asks 'is this urgent or can it wait til tomorrow?'",
-                "The energy picks up slightly. Home time is near"
-            ]
+                "The energy picks up slightly. Home time is near",
+                "Last push before wrapping up. Or starting crunch mode",
+                "Eyes on the clock. But the work isn't done yet"
+            ],
+            "energy": "winding_down",
+            "worker_mood": "tired but pushing through"
         },
         "evening": {
             "times": ["6:12 PM", "7:23 PM", "8:41 PM", "9:07 PM"],
@@ -116,8 +136,12 @@ class SceneManager:
                 "The cleaning crew arrives. We're still here",
                 "Pizza boxes and empty energy drinks litter the desks",
                 "The only sounds are mechanical keyboards and distant sirens",
-                "Everyone else went home. We're in crunch mode"
-            ]
+                "Everyone else went home. We're in crunch mode",
+                "Night shift mode activated. This is where real work happens",
+                "Tired but focused. The deadline doesn't care what time it is"
+            ],
+            "energy": "crunch_mode",
+            "worker_mood": "exhausted but dedicated"
         },
         "night": {
             "times": ["10:34 PM", "11:18 PM", "12:03 AM", "1:27 AM"],
@@ -125,8 +149,12 @@ class SceneManager:
                 "The office is dark except for monitor glow",
                 "Someone's asleep on the couch in the break room",
                 "The coffee is old but we're drinking it anyway",
-                "Peak productivity hours. Or delirium. Hard to tell"
-            ]
+                "Peak productivity hours. Or delirium. Hard to tell",
+                "Skeleton crew. The dedicated few. The slightly insane",
+                "The city sleeps. We debug. This is the way"
+            ],
+            "energy": "skeleton_crew",
+            "worker_mood": "delirious but determined"
         }
     }
 
@@ -261,6 +289,8 @@ class SceneManager:
             "time": time_key,
             "time_str": time_str,
             "mood": mood,
+            "energy": time_info.get("energy", "neutral"),
+            "worker_mood": time_info.get("worker_mood", "working"),
             "worker_order": workers + ["Ralph"],  # Ralph always arrives last (he's the manager)
             "worker_arrivals": self.WORKER_ARRIVALS
         }
@@ -269,6 +299,38 @@ class SceneManager:
         """Get a random arrival message for a specific worker."""
         arrivals = self.WORKER_ARRIVALS.get(worker_name, [f"{worker_name} arrives"])
         return random.choice(arrivals)
+
+    def get_time_of_day_context(self) -> Dict[str, str]:
+        """
+        Get current time of day context for use in responses.
+
+        Returns:
+            Dictionary with time_key, energy, and worker_mood
+        """
+        current_hour = datetime.now().hour
+        if current_hour < 7:
+            time_key = "early_morning"
+        elif current_hour < 10:
+            time_key = "morning"
+        elif current_hour < 12:
+            time_key = "late_morning"
+        elif current_hour < 15:
+            time_key = "afternoon"
+        elif current_hour < 17:
+            time_key = "late_afternoon"
+        elif current_hour < 21:
+            time_key = "evening"
+        else:
+            time_key = "night"
+
+        time_info = self.TIMES[time_key]
+
+        return {
+            "time_key": time_key,
+            "energy": time_info.get("energy", "neutral"),
+            "worker_mood": time_info.get("worker_mood", "working"),
+            "description": random.choice(time_info["descriptions"])
+        }
 
 
 # Global instance for easy import
@@ -283,6 +345,11 @@ def generate_opening_scene(project_name: str = None) -> Dict[str, Any]:
 def get_worker_arrival(worker_name: str) -> str:
     """Get worker arrival text (convenience function)."""
     return _scene_manager.get_worker_arrival(worker_name)
+
+
+def get_time_of_day_context() -> Dict[str, str]:
+    """Get current time of day context (convenience function)."""
+    return _scene_manager.get_time_of_day_context()
 
 
 if __name__ == "__main__":

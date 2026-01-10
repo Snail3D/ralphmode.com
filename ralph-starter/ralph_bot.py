@@ -39,9 +39,9 @@ from telegram.ext import (
     filters,
 )
 
-# SS-001: Import scene manager for opening scene generation
+# SS-001 & SS-003: Import scene manager for opening scene generation and time-aware scenes
 try:
-    from scene_manager import generate_opening_scene, get_worker_arrival
+    from scene_manager import generate_opening_scene, get_worker_arrival, get_time_of_day_context
     SCENE_MANAGER_AVAILABLE = True
 except ImportError:
     SCENE_MANAGER_AVAILABLE = False
