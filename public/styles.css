@@ -175,6 +175,102 @@ body {
     51%, 100% { opacity: 0; }
 }
 
+/* What is Ralph Section */
+.what-is-ralph {
+    padding: 6rem 2rem;
+    background: var(--bg-card);
+}
+
+.section-container {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.what-is-ralph h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.section-intro {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto 3rem;
+    line-height: 1.7;
+}
+
+.ralph-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: var(--bg-dark);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.diagram-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    min-width: 100px;
+}
+
+.step-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.step-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.step-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.diagram-arrow {
+    font-size: 2rem;
+    color: var(--accent);
+    font-weight: 300;
+}
+
+.loop-arrow {
+    font-size: 2.5rem;
+    color: var(--green);
+}
+
+.credits {
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.credits p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.credits a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.credits a:hover {
+    text-decoration: underline;
+}
+
 /* Responsive */
 @media (min-width: 768px) {
     .hero {

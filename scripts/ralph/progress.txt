@@ -36,3 +36,20 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 2 - 2026-01-09
+**Story**: [US-2.2] Create 'What is Ralph?' section
+**Status**: Complete
+
+### What was implemented
+- Added "What is Ralph?" section with explanation
+- Visual diagram: PRD → Claude → Commit → Loop
+- Used emoji icons for visual interest
+- Credits section linking to Geoffrey Huntley and Ryan Carson
+- Responsive layout for diagram
+
+### Learnings
+- Flexbox with gap works well for diagram layout
+- Border-top for credits creates nice visual separation
+
+---
+
