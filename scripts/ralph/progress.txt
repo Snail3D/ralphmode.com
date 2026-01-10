@@ -189,3 +189,28 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 10 - 2026-01-10
+**Story**: [US-5.1] Deploy to production
+**Status**: ⏸️ BLOCKED - Awaiting DNS configuration
+
+### What was implemented
+- Deployed all files to /var/www/ralphmode.com/
+  - index.html (9.6KB)
+  - styles.css (8.8KB)
+  - ralph-starter.zip (6.4KB)
+  - favicon.svg (250B)
+- Fixed file permissions (chmod 644)
+- Site accessible at http://69.164.201.191
+- Download working: http://69.164.201.191/ralph-starter.zip
+
+### What's blocked
+- Domain access (https://ralphmode.com) - needs DNS
+- SSL certificate - needs DNS first
+
+### How to complete after DNS is configured
+1. Verify DNS: `dig ralphmode.com A` should return 69.164.201.191
+2. Get SSL: `ssh root@69.164.201.191 && certbot --nginx -d ralphmode.com -d www.ralphmode.com`
+3. Verify: https://ralphmode.com works with green lock
+
+---
+

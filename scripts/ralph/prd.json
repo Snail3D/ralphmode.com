@@ -145,7 +145,9 @@
         "Mobile looks good"
       ],
       "files_likely_modified": [],
-      "passes": false
+      "passes": false,
+      "blocked": true,
+      "notes": "Site deployed to http://69.164.201.191. Download works. Domain/SSL pending DNS configuration (US-1.2)."
     }
   ]
 }
