@@ -1,429 +1,410 @@
 #!/usr/bin/env python3
 """
-DD-003: Version Manager and Changelog Tracking for Ralph Mode Bot
+VM-001: Semantic Version Manager for Ralph Mode Bot
 
-This module tracks version history and changelogs to detect when user feedback
-describes issues that have already been fixed in recent versions.
+This service handles:
+- Semantic versioning (MAJOR.MINOR.PATCH)
+- Auto-increment based on change type
+- Version storage in VERSION file
+- Git tag creation for each version
 
-Features:
-- Stores version changelog entries (fixes, features, improvements)
-- Checks if feedback matches recently fixed issues
-- Suggests version upgrades when user is on old version
-- Uses semantic similarity to match feedback against changelog
+Change types:
+- MAJOR: Breaking changes (incompatible API changes)
+- MINOR: New features (feature_request, backward compatible)
+- PATCH: Bug fixes and enhancements (bug_report, enhancement)
+
+Usage:
+    from version_manager import VersionManager
+
+    vm = VersionManager()
+
+    # Increment version based on change type
+    new_version = vm.increment_version('minor')  # For new feature
+    print(f"New version: {new_version}")
+
+    # Get current version
+    current = vm.get_current_version()
+    print(f"Current: {current}")
 """
 
 import os
+import sys
 import logging
+import subprocess
+import re
+from pathlib import Path
+from typing import Optional, Literal
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
+from enum import Enum
 
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler('version_manager.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
+
+
+class ChangeType(Enum):
+    """Type of change for version bumping."""
+    MAJOR = "major"  # Breaking changes
+    MINOR = "minor"  # New features
+    PATCH = "patch"  # Bug fixes
+
+
+@dataclass
+class Version:
+    """Semantic version representation."""
+    major: int
+    minor: int
+    patch: int
+
+    def __str__(self) -> str:
+        """String representation of version."""
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __repr__(self) -> str:
+        """Repr of version."""
+        return f"Version({self.major}.{self.minor}.{self.patch})"
+
+    @staticmethod
+    def parse(version_string: str) -> 'Version':
+        """
+        Parse version string into Version object.
+
+        Args:
+            version_string: Version string like "1.2.3"
+
+        Returns:
+            Version object
+
+        Raises:
+            ValueError: If version string is invalid
+        """
+        # Remove 'v' prefix if present
+        version_string = version_string.lstrip('v')
+
+        # Parse semantic version
+        match = re.match(r'^(\d+)\.(\d+)\.(\d+)$', version_string)
+        if not match:
+            raise ValueError(f"Invalid version string: {version_string}")
+
+        return Version(
+            major=int(match.group(1)),
+            minor=int(match.group(2)),
+            patch=int(match.group(3))
+        )
+
+    def increment(self, change_type: ChangeType) -> 'Version':
+        """
+        Create new version by incrementing based on change type.
+
+        Args:
+            change_type: Type of change (MAJOR, MINOR, PATCH)
+
+        Returns:
+            New Version object
+        """
+        if change_type == ChangeType.MAJOR:
+            return Version(self.major + 1, 0, 0)
+        elif change_type == ChangeType.MINOR:
+            return Version(self.major, self.minor + 1, 0)
+        elif change_type == ChangeType.PATCH:
+            return Version(self.major, self.minor, self.patch + 1)
+        else:
+            raise ValueError(f"Unknown change type: {change_type}")
 
 
 class VersionManager:
     """
-    Manages version history and changelog tracking.
+    VM-001: Version Manager for Semantic Versioning
 
-    For DD-003, we track the last 5 versions and their changelogs
-    to detect when user feedback describes already-fixed issues.
+    Manages semantic versioning for the Ralph Mode Bot, including
+    auto-incrementing based on change type, storing versions in
+    a VERSION file, and creating git tags.
     """
 
-    def __init__(self):
-        """Initialize version manager with hardcoded changelog for now."""
-        # In production, this would come from a database or API
-        # For now, we'll use a simple in-memory structure
-        self.current_version = "0.3.0"
-
-        # Changelog: last 5 versions with their fixes/features
-        # Each entry has: version, date, type (fix/feature/improvement), description
-        self.changelog = [
-            {
-                "version": "0.3.0",
-                "date": "2026-01-10",
-                "entries": [
-                    {"type": "fix", "description": "Fixed duplicate detection using semantic similarity"},
-                    {"type": "feature", "description": "Added duplicate merging and upvoting system"},
-                    {"type": "improvement", "description": "Improved quality scoring algorithm"},
-                ]
-            },
-            {
-                "version": "0.2.5",
-                "date": "2026-01-08",
-                "entries": [
-                    {"type": "fix", "description": "Fixed spam detection false positives"},
-                    {"type": "fix", "description": "Fixed abuse detection for profanity filter"},
-                    {"type": "feature", "description": "Added user quality score tracking"},
-                ]
-            },
-            {
-                "version": "0.2.0",
-                "date": "2026-01-05",
-                "entries": [
-                    {"type": "fix", "description": "Fixed rate limiting for IP-based limits"},
-                    {"type": "fix", "description": "Fixed subscription tier checking for Builder+ users"},
-                    {"type": "feature", "description": "Added feedback type classification"},
-                ]
-            },
-            {
-                "version": "0.1.5",
-                "date": "2026-01-03",
-                "entries": [
-                    {"type": "fix", "description": "Fixed security logging and PII redaction"},
-                    {"type": "fix", "description": "Fixed JWT token validation edge cases"},
-                    {"type": "improvement", "description": "Improved API rate limiting accuracy"},
-                ]
-            },
-            {
-                "version": "0.1.0",
-                "date": "2026-01-01",
-                "entries": [
-                    {"type": "feature", "description": "Initial release of Ralph Mode Bot"},
-                    {"type": "feature", "description": "Basic feedback collection system"},
-                    {"type": "feature", "description": "Telegram bot integration"},
-                ]
-            }
-        ]
-
-    def get_recent_versions(self, count: int = 5) -> List[Dict[str, Any]]:
+    def __init__(self, version_file: Optional[str] = None):
         """
-        Get the most recent N versions from changelog.
+        Initialize the version manager.
 
         Args:
-            count: Number of versions to retrieve (default 5)
+            version_file: Path to VERSION file (default: ./VERSION)
+        """
+        # Version file location
+        if version_file:
+            self.version_file = Path(version_file)
+        else:
+            # Default to VERSION file in project root
+            project_root = Path(__file__).parent
+            self.version_file = project_root / 'VERSION'
+
+        # Git repository root
+        self.git_root = self._find_git_root()
+
+        logger.info(f"VersionManager initialized: version_file={self.version_file}")
+
+    def _find_git_root(self) -> Optional[Path]:
+        """
+        Find the git repository root.
 
         Returns:
-            List of version dictionaries
-        """
-        return self.changelog[:count]
-
-    def get_all_fixes_in_recent_versions(self, count: int = 5) -> List[Tuple[str, str]]:
-        """
-        Get all fix descriptions from recent versions.
-
-        Args:
-            count: Number of versions to check (default 5)
-
-        Returns:
-            List of (version, fix_description) tuples
-        """
-        fixes = []
-
-        for version_data in self.changelog[:count]:
-            version = version_data["version"]
-            for entry in version_data["entries"]:
-                if entry["type"] == "fix":
-                    fixes.append((version, entry["description"]))
-
-        return fixes
-
-    def get_version_date(self, version: str) -> Optional[str]:
-        """
-        Get the release date of a specific version.
-
-        Args:
-            version: Version string (e.g., "0.2.5")
-
-        Returns:
-            Date string or None if version not found
-        """
-        for version_data in self.changelog:
-            if version_data["version"] == version:
-                return version_data["date"]
-        return None
-
-    def is_version_outdated(self, user_version: str) -> bool:
-        """
-        Check if user's version is outdated.
-
-        Args:
-            user_version: User's current version
-
-        Returns:
-            True if outdated, False if current or newer
+            Path to git root or None if not in a git repo
         """
         try:
-            # Simple version comparison (assumes semantic versioning)
-            user_parts = [int(x) for x in user_version.split(".")]
-            current_parts = [int(x) for x in self.current_version.split(".")]
+            result = subprocess.run(
+                ['git', 'rev-parse', '--show-toplevel'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return Path(result.stdout.strip())
+        except subprocess.CalledProcessError:
+            logger.warning("Not in a git repository")
+            return None
 
-            # Pad to same length
-            max_len = max(len(user_parts), len(current_parts))
-            user_parts += [0] * (max_len - len(user_parts))
-            current_parts += [0] * (max_len - len(current_parts))
-
-            return user_parts < current_parts
-
-        except (ValueError, AttributeError):
-            # If version format is invalid, assume outdated to be safe
-            logger.warning(f"DD-003: Invalid version format: {user_version}")
-            return True
-
-    def format_changelog_entry(self, version: str, description: str) -> str:
+    def get_current_version(self) -> Version:
         """
-        Format a changelog entry for display to user.
-
-        Args:
-            version: Version string
-            description: Fix description
+        Get the current version from VERSION file.
 
         Returns:
-            Formatted string for user notification
+            Current Version object
+
+        Raises:
+            FileNotFoundError: If VERSION file doesn't exist
         """
-        date = self.get_version_date(version)
-        date_str = f" ({date})" if date else ""
-        return f"Version {version}{date_str}: {description}"
-
-
-class AlreadyFixedDetector:
-    """
-    DD-003: Detects if user feedback describes an issue that's already fixed.
-
-    Uses semantic similarity to compare feedback against changelog entries
-    from recent versions.
-    """
-
-    def __init__(self, duplicate_detector=None, version_manager: Optional[VersionManager] = None):
-        """
-        Initialize already-fixed detector.
-
-        Args:
-            duplicate_detector: DuplicateDetector instance (for embeddings)
-            version_manager: VersionManager instance
-        """
-        self.version_manager = version_manager or VersionManager()
-        self.duplicate_detector = duplicate_detector
-
-        # Threshold for matching feedback to changelog (slightly lower than duplicate threshold)
-        # We want to catch likely matches but not be too aggressive
-        self.similarity_threshold = 0.80
-
-    def check_already_fixed(
-        self,
-        feedback_content: str,
-        user_version: Optional[str] = None
-    ) -> Tuple[bool, Optional[str], Optional[str], float]:
-        """
-        Check if feedback describes an issue already fixed in recent versions.
-
-        Args:
-            feedback_content: User's feedback content
-            user_version: User's current version (if known)
-
-        Returns:
-            Tuple of (is_fixed, version_fixed_in, fix_description, similarity_score)
-        """
-        if not self.duplicate_detector:
-            logger.warning("DD-003: No duplicate detector available, cannot check for already-fixed issues")
-            return (False, None, None, 0.0)
+        if not self.version_file.exists():
+            logger.warning(f"VERSION file not found at {self.version_file}, starting at 0.1.0")
+            return Version(0, 1, 0)
 
         try:
-            # Generate embedding for feedback
-            feedback_embedding = self.duplicate_detector._generate_embedding(feedback_content)
-
-            if feedback_embedding is None:
-                logger.warning("DD-003: Could not generate embedding for feedback")
-                return (False, None, None, 0.0)
-
-            # Get all fixes from recent versions
-            recent_fixes = self.version_manager.get_all_fixes_in_recent_versions(count=5)
-
-            logger.info(f"DD-003: Checking against {len(recent_fixes)} recent fixes")
-
-            # Compare against each fix
-            best_match = None
-            best_similarity = 0.0
-
-            for version, fix_description in recent_fixes:
-                # Generate embedding for fix description
-                fix_embedding = self.duplicate_detector._generate_embedding(fix_description)
-
-                if fix_embedding is None:
-                    continue
-
-                # Calculate similarity
-                similarity = self.duplicate_detector._cosine_similarity(
-                    feedback_embedding,
-                    fix_embedding
-                )
-
-                # Track best match
-                if similarity > best_similarity:
-                    best_similarity = similarity
-                    best_match = (version, fix_description)
-
-                logger.debug(
-                    f"DD-003: Similarity to '{fix_description[:50]}...' in v{version}: {similarity:.2f}"
-                )
-
-            # Check if best match exceeds threshold
-            if best_similarity >= self.similarity_threshold and best_match:
-                version_fixed, fix_desc = best_match
-                logger.info(
-                    f"DD-003: Feedback matches already-fixed issue in v{version_fixed} "
-                    f"(similarity: {best_similarity:.2f})"
-                )
-                return (True, version_fixed, fix_desc, best_similarity)
-
-            return (False, None, None, best_similarity)
-
+            version_string = self.version_file.read_text().strip()
+            version = Version.parse(version_string)
+            logger.info(f"Current version: {version}")
+            return version
         except Exception as e:
-            logger.error(f"DD-003: Error checking for already-fixed issue: {e}")
-            return (False, None, None, 0.0)
+            logger.error(f"Error reading VERSION file: {e}")
+            raise
 
-    def generate_notification_message(
+    def increment_version(
         self,
-        version_fixed: str,
-        fix_description: str,
-        user_version: Optional[str] = None,
-        similarity_score: float = 0.0
-    ) -> str:
+        change_type: Literal['major', 'minor', 'patch'],
+        create_tag: bool = True,
+        commit: bool = True
+    ) -> Version:
         """
-        Generate user notification message for already-fixed issue.
+        Increment version based on change type.
 
         Args:
-            version_fixed: Version where issue was fixed
-            fix_description: Description of the fix
-            user_version: User's current version (if known)
-            similarity_score: Similarity score for transparency
+            change_type: Type of change ('major', 'minor', or 'patch')
+            create_tag: Whether to create a git tag
+            commit: Whether to commit the VERSION file change
 
         Returns:
-            Formatted notification message
+            New Version object
         """
-        message_parts = [
-            "✅ Good news! This issue appears to have been fixed in a recent version.",
-            "",
-            self.version_manager.format_changelog_entry(version_fixed, fix_description),
-        ]
+        # Get current version
+        current_version = self.get_current_version()
 
-        # Add upgrade suggestion if user version is known and outdated
-        if user_version and self.version_manager.is_version_outdated(user_version):
-            message_parts.extend([
-                "",
-                f"You're currently on version {user_version}. "
-                f"Upgrade to version {self.version_manager.current_version} to get this fix!",
-                "",
-                "Your feedback has been automatically closed since the issue is resolved."
-            ])
-        else:
-            message_parts.extend([
-                "",
-                "If you're still experiencing this issue on the latest version, "
-                "please submit new feedback with more details.",
-                "",
-                "Your feedback has been closed as already fixed."
-            ])
+        # Increment based on change type
+        change_enum = ChangeType(change_type)
+        new_version = current_version.increment(change_enum)
 
-        # Add similarity score for transparency (optional, for debugging)
-        if logger.isEnabledFor(logging.DEBUG):
-            message_parts.append(f"\n(Similarity score: {similarity_score:.2f})")
+        logger.info(f"Incrementing version: {current_version} -> {new_version} ({change_type})")
 
-        return "\n".join(message_parts)
+        # Save new version to file
+        self._save_version(new_version)
 
+        # Commit VERSION file if requested
+        if commit and self.git_root:
+            self._commit_version_file(new_version)
 
-# Singleton instance
-_version_manager = None
-_already_fixed_detector = None
+        # Create git tag if requested
+        if create_tag and self.git_root:
+            self._create_git_tag(new_version)
 
+        return new_version
 
-def get_version_manager() -> VersionManager:
-    """Get the global version manager instance."""
-    global _version_manager
-    if _version_manager is None:
-        _version_manager = VersionManager()
-    return _version_manager
+    def _save_version(self, version: Version):
+        """
+        Save version to VERSION file.
 
+        Args:
+            version: Version to save
+        """
+        try:
+            self.version_file.write_text(str(version) + '\n')
+            logger.info(f"Version saved to {self.version_file}: {version}")
+        except Exception as e:
+            logger.error(f"Error saving version to file: {e}")
+            raise
 
-def get_already_fixed_detector(duplicate_detector=None) -> AlreadyFixedDetector:
-    """
-    Get the global already-fixed detector instance.
+    def _commit_version_file(self, version: Version):
+        """
+        Commit VERSION file to git.
 
-    Args:
-        duplicate_detector: Optional DuplicateDetector instance
-
-    Returns:
-        AlreadyFixedDetector instance
-    """
-    global _already_fixed_detector
-    if _already_fixed_detector is None:
-        _already_fixed_detector = AlreadyFixedDetector(
-            duplicate_detector=duplicate_detector,
-            version_manager=get_version_manager()
-        )
-    return _already_fixed_detector
-
-
-if __name__ == "__main__":
-    # Test version manager
-    print("=" * 60)
-    print("DD-003: Version Manager Test")
-    print("=" * 60)
-
-    vm = get_version_manager()
-
-    print(f"\nCurrent version: {vm.current_version}")
-    print(f"\nRecent versions ({len(vm.get_recent_versions())} total):")
-
-    for version_data in vm.get_recent_versions():
-        print(f"\n  v{version_data['version']} ({version_data['date']}):")
-        for entry in version_data['entries']:
-            icon = "🐛" if entry['type'] == 'fix' else "✨" if entry['type'] == 'feature' else "⚡"
-            print(f"    {icon} {entry['description']}")
-
-    print(f"\n\nAll fixes in recent 5 versions:")
-    for version, fix in vm.get_all_fixes_in_recent_versions():
-        print(f"  v{version}: {fix}")
-
-    # Test version comparison
-    print(f"\n\nVersion comparison tests:")
-    test_versions = ["0.1.0", "0.2.5", "0.3.0", "0.4.0"]
-    for v in test_versions:
-        outdated = vm.is_version_outdated(v)
-        status = "outdated" if outdated else "current/newer"
-        print(f"  v{v}: {status}")
-
-    print("\n" + "=" * 60)
-    print("\nDD-003: Already-Fixed Detector Test")
-    print("=" * 60)
-
-    # Test already-fixed detection (requires duplicate detector with Groq API)
-    try:
-        from duplicate_detector import get_duplicate_detector
-
-        detector = get_duplicate_detector()
-        fixed_detector = get_already_fixed_detector(duplicate_detector=detector)
-
-        if not detector.api_key:
-            print("\n⚠️  No Groq API key - cannot test semantic matching")
-            print("   Set GROQ_API_KEY environment variable to test")
-        else:
-            print("\n✅ Testing with real semantic matching...")
-
-            # Test case: feedback that should match a fixed issue
-            test_feedback = "The spam filter keeps flagging legitimate feedback as spam"
-            print(f"\nTest feedback: '{test_feedback}'")
-
-            is_fixed, version, fix_desc, similarity = fixed_detector.check_already_fixed(
-                test_feedback,
-                user_version="0.2.0"
+        Args:
+            version: Version that was set
+        """
+        try:
+            # Stage VERSION file
+            subprocess.run(
+                ['git', 'add', str(self.version_file)],
+                check=True,
+                capture_output=True
             )
 
-            if is_fixed:
-                print(f"\n✅ Detected as already fixed!")
-                print(f"   Version: {version}")
-                print(f"   Fix: {fix_desc}")
-                print(f"   Similarity: {similarity:.2f}")
-                print(f"\nNotification message:")
-                print("-" * 60)
-                print(fixed_detector.generate_notification_message(
-                    version, fix_desc, "0.2.0", similarity
-                ))
-                print("-" * 60)
-            else:
-                print(f"\n❌ Not detected as already fixed (similarity: {similarity:.2f})")
-                print("   This might be a new issue or threshold needs adjustment")
+            # Commit with version bump message
+            commit_message = f"chore: Bump version to {version}"
+            subprocess.run(
+                ['git', 'commit', '-m', commit_message],
+                check=True,
+                capture_output=True
+            )
 
-    except ImportError:
-        print("\n⚠️  duplicate_detector module not available")
-        print("   Run this after implementing DD-001")
+            logger.info(f"VERSION file committed: {version}")
 
-    print("\n" + "=" * 60)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error committing VERSION file: {e}")
+            # Don't raise - tag creation might still work
+
+    def _create_git_tag(self, version: Version):
+        """
+        Create a git tag for the version.
+
+        Args:
+            version: Version to tag
+        """
+        try:
+            tag_name = f"v{version}"
+
+            # Create annotated tag
+            subprocess.run(
+                ['git', 'tag', '-a', tag_name, '-m', f"Release {version}"],
+                check=True,
+                capture_output=True
+            )
+
+            logger.info(f"Git tag created: {tag_name}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error creating git tag: {e}")
+            # Don't raise - version is still saved
+
+    def get_change_type_from_feedback_type(self, feedback_type: str) -> ChangeType:
+        """
+        Determine change type from feedback type.
+
+        Args:
+            feedback_type: Feedback type (e.g., 'feature_request', 'bug_report')
+
+        Returns:
+            ChangeType enum value
+        """
+        # Map feedback types to change types
+        if feedback_type == 'breaking_change':
+            return ChangeType.MAJOR
+        elif feedback_type in ['feature_request', 'feature']:
+            return ChangeType.MINOR
+        elif feedback_type in ['bug_report', 'bug', 'enhancement', 'improvement']:
+            return ChangeType.PATCH
+        else:
+            # Default to patch for unknown types
+            logger.warning(f"Unknown feedback type '{feedback_type}', defaulting to PATCH")
+            return ChangeType.PATCH
+
+    def set_version(self, version_string: str, create_tag: bool = True) -> Version:
+        """
+        Set version explicitly (for initialization or manual override).
+
+        Args:
+            version_string: Version string like "1.2.3"
+            create_tag: Whether to create a git tag
+
+        Returns:
+            Version object
+        """
+        version = Version.parse(version_string)
+        logger.info(f"Setting version to: {version}")
+
+        self._save_version(version)
+
+        if create_tag and self.git_root:
+            self._create_git_tag(version)
+
+        return version
+
+
+def main():
+    """Main entry point for CLI."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Ralph Mode Version Manager (VM-001)')
+    parser.add_argument(
+        'action',
+        choices=['get', 'increment', 'set'],
+        help='Action to perform'
+    )
+    parser.add_argument(
+        '--change-type',
+        choices=['major', 'minor', 'patch'],
+        help='Change type for increment action'
+    )
+    parser.add_argument(
+        '--version',
+        type=str,
+        help='Version string for set action'
+    )
+    parser.add_argument(
+        '--no-tag',
+        action='store_true',
+        help='Skip git tag creation'
+    )
+    parser.add_argument(
+        '--no-commit',
+        action='store_true',
+        help='Skip git commit of VERSION file'
+    )
+
+    args = parser.parse_args()
+
+    vm = VersionManager()
+
+    if args.action == 'get':
+        # Get current version
+        version = vm.get_current_version()
+        print(f"Current version: {version}")
+
+    elif args.action == 'increment':
+        # Increment version
+        if not args.change_type:
+            print("Error: --change-type required for increment action")
+            sys.exit(1)
+
+        version = vm.increment_version(
+            args.change_type,
+            create_tag=not args.no_tag,
+            commit=not args.no_commit
+        )
+        print(f"New version: {version}")
+
+    elif args.action == 'set':
+        # Set version explicitly
+        if not args.version:
+            print("Error: --version required for set action")
+            sys.exit(1)
+
+        version = vm.set_version(
+            args.version,
+            create_tag=not args.no_tag
+        )
+        print(f"Version set to: {version}")
+
+
+if __name__ == '__main__':
+    main()
