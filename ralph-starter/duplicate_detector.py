@@ -284,6 +284,99 @@ class DuplicateDetector:
 
         return (False, None, 0.0)
 
+    def merge_duplicate(
+        self,
+        duplicate_feedback_id: int,
+        original_feedback_id: int,
+        similarity_score: float
+    ) -> Tuple[bool, str]:
+        """
+        DD-002: Merge duplicate feedback into original item.
+
+        When a duplicate is found:
+        1. Mark the duplicate as merged (set is_duplicate_of)
+        2. Increment upvote_count on original
+        3. Update original's priority_score (+0.5 for each upvote)
+        4. Set duplicate status to 'rejected' with reason
+
+        Args:
+            duplicate_feedback_id: ID of the duplicate feedback
+            original_feedback_id: ID of the original feedback to merge into
+            similarity_score: Similarity score between duplicate and original
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            with get_db() as db:
+                # Get both feedback items
+                duplicate = db.query(Feedback).filter(Feedback.id == duplicate_feedback_id).first()
+                original = db.query(Feedback).filter(Feedback.id == original_feedback_id).first()
+
+                if not duplicate:
+                    return (False, f"Duplicate feedback {duplicate_feedback_id} not found")
+
+                if not original:
+                    return (False, f"Original feedback {original_feedback_id} not found")
+
+                # Check if already merged
+                if duplicate.is_duplicate_of is not None:
+                    return (False, f"Feedback {duplicate_feedback_id} already merged")
+
+                # Merge the duplicate
+                duplicate.is_duplicate_of = original_feedback_id
+                duplicate.status = "rejected"
+                duplicate.rejection_reason = (
+                    f"DD-002: Duplicate of feedback #{original_feedback_id} "
+                    f"(similarity: {similarity_score:.2f})"
+                )
+                duplicate.rejected_at = datetime.utcnow()
+
+                # Increment upvote count on original
+                original.upvote_count += 1
+
+                # Update priority score: each upvote adds 0.5
+                # If priority_score is None, initialize based on upvotes
+                if original.priority_score is None:
+                    original.priority_score = original.upvote_count * 0.5
+                else:
+                    original.priority_score += 0.5
+
+                # Update timestamps
+                original.updated_at = datetime.utcnow()
+
+                # Commit changes
+                db.commit()
+
+                logger.info(
+                    f"DD-002: Merged feedback {duplicate_feedback_id} into {original_feedback_id}. "
+                    f"Original now has {original.upvote_count} upvotes, "
+                    f"priority score: {original.priority_score:.2f}"
+                )
+
+                return (
+                    True,
+                    f"Feedback merged successfully. Original item now has {original.upvote_count} upvotes."
+                )
+
+        except Exception as e:
+            logger.error(f"DD-002: Failed to merge duplicates: {e}")
+            return (False, f"Failed to merge: {str(e)}")
+
+    def get_original_feedback_url(self, feedback_id: int) -> str:
+        """
+        DD-002: Generate a display string for the original feedback item.
+
+        In a real system, this would be a URL. For now, returns a reference string.
+
+        Args:
+            feedback_id: ID of the original feedback
+
+        Returns:
+            Reference string for the original feedback
+        """
+        return f"Feedback #{feedback_id}"
+
     def preload_embeddings(self, limit: int = 1000):
         """
         Preload embeddings for recent feedback into cache.

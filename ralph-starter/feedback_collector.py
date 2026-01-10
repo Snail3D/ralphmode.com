@@ -43,6 +43,14 @@ except ImportError:
     def get_priority_boost(user_id: int): return 1.0
     logging.warning("QS-003: User quality tracker not available - priority boost disabled")
 
+# DD-001, DD-002: Import duplicate detector for duplicate merging
+try:
+    from duplicate_detector import get_duplicate_detector
+    DUPLICATE_DETECTOR_AVAILABLE = True
+except ImportError:
+    DUPLICATE_DETECTOR_AVAILABLE = False
+    logging.warning("DD-001/DD-002: Duplicate detector not available - duplicate detection disabled")
+
 logger = logging.getLogger(__name__)
 
 
@@ -173,6 +181,30 @@ class FeedbackCollector:
                         metadata['spam_rejection_reason'] = spam_reason
                         return -2  # Signal spam detected
 
+                # DD-001/DD-002: Check for duplicate feedback
+                # If duplicate found, merge into original and notify user
+                if DUPLICATE_DETECTOR_AVAILABLE:
+                    detector = get_duplicate_detector()
+                    is_duplicate, original_id, similarity = detector.check_duplicate(
+                        content=content,
+                        feedback_type=feedback_type
+                    )
+
+                    if is_duplicate and original_id:
+                        logger.info(
+                            f"DD-002: Duplicate feedback detected from user {telegram_id}. "
+                            f"Similar to feedback #{original_id} (similarity: {similarity:.2f})"
+                        )
+                        # Store info in metadata so caller can notify user
+                        if metadata is None:
+                            metadata = {}
+                        metadata['is_duplicate'] = True
+                        metadata['original_feedback_id'] = original_id
+                        metadata['similarity_score'] = similarity
+                        # Return special code to indicate duplicate (but still create temporary entry)
+                        # We'll create the feedback entry and then immediately merge it
+                        # This is needed to get a feedback_id for the merge operation
+
                 # RL-003: Check burst detection FIRST (highest priority)
                 allowed_burst, error_burst = check_burst_detection(
                     user_id=str(user.id)
@@ -252,6 +284,33 @@ class FeedbackCollector:
 
                 db.add(feedback)
                 db.flush()
+
+                # DD-002: If this was a duplicate, merge it now
+                if metadata and metadata.get('is_duplicate'):
+                    original_id = metadata.get('original_feedback_id')
+                    similarity = metadata.get('similarity_score', 0.0)
+
+                    if DUPLICATE_DETECTOR_AVAILABLE and original_id:
+                        detector = get_duplicate_detector()
+                        success, message = detector.merge_duplicate(
+                            duplicate_feedback_id=feedback.id,
+                            original_feedback_id=original_id,
+                            similarity_score=similarity
+                        )
+
+                        if success:
+                            logger.info(
+                                f"DD-002: Successfully merged feedback {feedback.id} into {original_id}. "
+                                f"{message}"
+                            )
+                            # Update metadata with merge info for user notification
+                            metadata['merge_success'] = True
+                            metadata['merge_message'] = message
+                            metadata['original_url'] = detector.get_original_feedback_url(original_id)
+                        else:
+                            logger.error(f"DD-002: Failed to merge duplicate: {message}")
+                            metadata['merge_success'] = False
+                            metadata['merge_error'] = message
 
                 logger.info(f"Collected text feedback from user {telegram_id}: {feedback.id}")
                 return feedback.id
@@ -424,6 +483,33 @@ class FeedbackCollector:
 
         reason = metadata['spam_rejection_reason']
         return f"Feedback rejected: {reason}"
+
+    def get_duplicate_merge_message(self, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """
+        DD-002: Get friendly duplicate merge message from metadata.
+
+        Args:
+            metadata: Metadata dict that may contain duplicate merge info
+
+        Returns:
+            Friendly message for user notification or None
+        """
+        if not metadata or not metadata.get('is_duplicate'):
+            return None
+
+        if metadata.get('merge_success'):
+            original_id = metadata.get('original_feedback_id')
+            original_url = metadata.get('original_url', f"Feedback #{original_id}")
+            upvote_msg = metadata.get('merge_message', '')
+
+            return (
+                f"Your feedback was added to an existing item ({original_url}). "
+                f"{upvote_msg}"
+            )
+        elif metadata.get('merge_error'):
+            return f"Note: This may be similar to existing feedback, but we've kept it separate."
+
+        return None
 
     def classify_feedback_type(self, content: str) -> str:
         """
