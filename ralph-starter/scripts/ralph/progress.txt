@@ -1633,3 +1633,63 @@ Verified existing api_server.py error handlers:
 
 ---
 
+## Iteration 13 - 2026-01-10
+**Task**: [SEC-013] API Authentication (JWT)
+**Status**: ✅ Complete
+
+### What was implemented
+- Created jwt_manager.py with JWTManager class for token management
+- JWT access tokens with 15-minute expiry (RS256 asymmetric signing)
+- Refresh tokens with 7-day expiry, rotated on use (old token invalidated when refreshed)
+- RSA-2048 key pair generation and management (private key for signing, public for verification)
+- Token revocation system using blacklist (tracks JWT IDs with expiry timestamps)
+- APIKeyManager for service-to-service authentication
+- API keys prefixed with "rmk_" and hashed with bcrypt (cost factor 12)
+- Token validation decorator for API endpoints (require_jwt_auth)
+- Automatic cleanup of expired tokens from blacklist
+
+### Files changed
+- jwt_manager.py (new - 700+ lines)
+- test_jwt_manager.py (new - comprehensive test suite with 19 tests)
+
+### Test Results
+All 19 tests passing:
+✅ JWT token issuance (access + refresh pair)
+✅ Access token verification with RS256
+✅ Refresh token rotation (old token invalidated)
+✅ Token revocation (blacklist)
+✅ Token expiry validation
+✅ API key generation (hashed storage)
+✅ API key verification
+✅ RSA key pair loading/generation
+✅ All SEC-013 acceptance criteria met
+
+### Learnings
+- RS256 (asymmetric) is more secure than HS256 (symmetric) - public key can be shared for verification
+- Token blacklist must store expiry to allow cleanup of stale entries
+- Refresh token rotation prevents replay attacks (each refresh invalidates old token)
+- API keys should be prefixed (rmk_) for easy identification in logs
+- Bcrypt for API keys provides same security as password hashing
+- Token cleanup is critical for production (blacklist grows over time)
+- PyJWT library handles JWT encoding/decoding, cryptography library handles RSA keys
+
+### Security Highlights
+✅ 15-minute access token expiry (minimize compromise window)
+✅ 7-day refresh token expiry (balance security and UX)
+✅ RS256 asymmetric signing (private key never leaves server)
+✅ Token revocation (logout, security incidents)
+✅ API keys hashed in database (bcrypt cost 12)
+✅ Token validation on every request (decorator pattern)
+✅ RSA private key permissions (0600 - owner read/write only)
+
+### Next Steps
+- SEC-014: DDoS Protection - next in priority order
+- Integrate JWTManager into ralph_bot.py for API endpoints
+- Add JWT middleware to FastAPI/Starlette app (api_server.py)
+- Store refresh tokens in Redis for distributed systems
+- Add JWT payload encryption for sensitive claims (optional)
+- Implement token introspection endpoint (/token/info)
+- Add rate limiting per user_id from JWT (SEC-011 integration)
+
+---
+

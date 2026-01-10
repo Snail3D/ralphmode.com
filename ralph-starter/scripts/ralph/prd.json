@@ -3778,7 +3778,7 @@
         "auth.py",
         "jwt_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-014",
