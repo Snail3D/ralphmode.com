@@ -5757,3 +5757,44 @@ Linode (monthly):
 5. Log success/failure but don't block on errors
 
 ---
+
+## Iteration 86 - 2026-01-10
+**Task**: NT-003 - Deployed Notification
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `send_deployed_notification()` async method to NotificationService
+- Implemented synchronous wrapper `send_deployed_sync()` for non-async contexts
+- Notification includes:
+  - Celebration message in Ralph's voice ("We Did It Mr. Worms!")
+  - Feedback ID reference
+  - Version number (e.g., "0.4.0")
+  - Changelog link (with fallback to generic URL)
+  - Thank you message to user
+  - Satisfaction survey prompt (👍/👎)
+  - Random Ralph sign-offs for variety
+- Applied Ralph's signature misspellings via `_ralph_misspell()`
+- Full error handling with TelegramError and generic exceptions
+- Proper logging for NT-003 task tracking
+
+### Files changed
+- notification_service.py (added send_deployed_notification + send_deployed_sync)
+- scripts/ralph/prd.json (marked NT-003 as passes=True)
+
+### Learnings
+- The notification service already had a solid pattern from NT-002 (build started)
+- Reused `_ralph_misspell()` helper for consistent character voice
+- Random sign-offs provide freshness without needing LLM calls
+- Sync wrapper pattern is essential for calling from deploy_manager.py
+- Changelog URL should be configurable but have a sensible fallback
+- Thumbs up/down satisfaction survey is simple but effective feedback loop
+- The notification fits Ralph's personality: proud, excited, wants validation
+
+### Integration points
+- deploy_manager.py can call this after successful promotion to production
+- Should be called from `_promote_canary_to_production()` after line 936
+- Needs user_id from feedback item (stored in database via FB-001/FQ-001)
+- Version number comes from VERSION file or version_manager.py
+- Changelog URL can be generated from changelog_generator.py
+
+---

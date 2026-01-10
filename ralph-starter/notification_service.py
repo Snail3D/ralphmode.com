@@ -222,6 +222,115 @@ class NotificationService:
             logger.error(f"NT-002: Error in sync wrapper: {e}", exc_info=True)
             return False
 
+    async def send_deployed_notification(
+        self,
+        user_id: int,
+        feedback_id: int,
+        version: str,
+        changelog_url: Optional[str] = None
+    ) -> bool:
+        """
+        NT-003: Send notification when a build is deployed to production.
+
+        Args:
+            user_id: Telegram user ID to notify
+            feedback_id: Feedback item ID that was deployed
+            version: Version number of the deployment (e.g., "0.4.0")
+            changelog_url: Optional URL to the changelog
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        if not self.bot:
+            logger.warning("NT-003: Bot not initialized, skipping notification")
+            return False
+
+        try:
+            # Build in-character message from Ralph
+            base_message = (
+                f"🎉 *We Did It Mr. Worms!*\n\n"
+                f"Your feedbak #{feedback_id} is now live in produkshun!\n\n"
+                f"📦 *Version:* {version}\n"
+            )
+
+            # Add changelog link if available
+            if changelog_url:
+                base_message += f"📋 *Changelog:* [See what's new]({changelog_url})\n"
+            else:
+                # Fallback to generic changelog URL
+                base_message += f"📋 *Changelog:* [See what's new](https://ralphmode.com/changelog)\n"
+
+            base_message += (
+                f"\n"
+                f"Thank you for making Ralph Mode better! Your sugestion really helpt.\n\n"
+                f"*How did we do?*\n"
+                f"👍 Great! / 👎 Needs work\n\n"
+            )
+
+            # Ralph's signature sign-offs (vary for freshness)
+            sign_offs = [
+                "I'm super proud of this one!",
+                "Me and my team worked real hard!",
+                "This was a good idea Mr. Worms!",
+                "I think you'll like it!",
+                "We did our bestest!",
+            ]
+            import random
+            sign_off = random.choice(sign_offs)
+
+            base_message += f"— Ralph 👷\n_{sign_off}_"
+
+            # Apply Ralph's misspellings
+            message = self._ralph_misspell(base_message)
+
+            # Send the notification
+            await self.bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode="Markdown",
+                disable_web_page_preview=False  # Show link preview for changelog
+            )
+
+            logger.info(f"NT-003: Sent deployed notification to user {user_id} for feedback {feedback_id}, version {version}")
+            return True
+
+        except TelegramError as e:
+            logger.error(f"NT-003: Failed to send deployed notification to user {user_id}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"NT-003: Unexpected error sending deployed notification: {e}", exc_info=True)
+            return False
+
+    def send_deployed_sync(
+        self,
+        user_id: int,
+        feedback_id: int,
+        version: str,
+        changelog_url: Optional[str] = None
+    ) -> bool:
+        """
+        Synchronous wrapper for send_deployed_notification.
+
+        This is useful when calling from non-async contexts like deploy_manager.
+        """
+        try:
+            # Create new event loop if needed
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            # Run the async function
+            return loop.run_until_complete(
+                self.send_deployed_notification(
+                    user_id, feedback_id, version, changelog_url
+                )
+            )
+        except Exception as e:
+            logger.error(f"NT-003: Error in sync wrapper: {e}", exc_info=True)
+            return False
+
 
 # Global instance
 _notification_service: Optional[NotificationService] = None
