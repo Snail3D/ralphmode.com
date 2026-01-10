@@ -206,3 +206,30 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 8 - 2026-01-10
+**Task**: [RM-049] Rich Telegram Markdown Formatting
+**Status**: ✅ Complete
+
+### What was implemented
+- Created format_action(text) - wraps text in italics for actions/narration
+- Created format_code(code, language) - triple backticks for multi-line, single for inline
+- Created format_code_inline(code) - single backticks for short snippets
+- Created format_progress_bar(done, total, bar_length) - visual ▓▓▓░░░ progress bar
+- Created escape_markdown(text) - escapes special chars to prevent parsing issues
+- Created safe_send_message() - sends with Markdown, falls back to plain text on failure
+- All helper methods documented with docstrings and examples
+- Existing patterns already use italics (_action_), bold (*Name:*), and backticks (`code`)
+- parse_mode='Markdown' already used consistently throughout
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- format_code() auto-detects multi-line vs inline for appropriate formatting
+- escape_markdown() handles all Telegram special chars: _ * [ ] ( ) ~ ` > # + - = | { } . !
+- safe_send_message() provides graceful degradation when markdown fails
+- Progress bar uses ▓ (filled) and ░ (empty) for universal emoji compatibility
+- These helpers also cover RM-050 criteria (formatting helpers)
+
+---
+

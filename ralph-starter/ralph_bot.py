@@ -862,6 +862,170 @@ _But the customer is IMPORTANT. This bug must die._""",
         else:
             return f"{prefix} {message}"
 
+    def format_action(self, text: str) -> str:
+        """Format an action/narration in italics.
+
+        Used for stage directions like character movements and scene descriptions.
+
+        Args:
+            text: The action text to format
+
+        Returns:
+            Text wrapped in Telegram markdown italics
+
+        Examples:
+            >>> format_action("Gus sips his coffee thoughtfully")
+            '_Gus sips his coffee thoughtfully_'
+            >>> format_action("The team gathers around the whiteboard")
+            '_The team gathers around the whiteboard_'
+        """
+        if not text:
+            return ""
+        # Remove any existing underscores at start/end to avoid double formatting
+        text = text.strip('_')
+        return f"_{text}_"
+
+    def format_code(self, code: str, language: str = "") -> str:
+        """Format code with proper Telegram markdown code blocks.
+
+        Uses triple backticks for multi-line code blocks with optional
+        language hint, or single backticks for inline code.
+
+        Args:
+            code: The code to format
+            language: Optional language for syntax hint (e.g., "python", "javascript")
+
+        Returns:
+            Properly formatted code block string
+
+        Examples:
+            >>> format_code("x = 1", "python")
+            '```python\\nx = 1\\n```'
+            >>> format_code("doThing()")
+            '`doThing()`'
+        """
+        if not code:
+            return ""
+
+        # Check if it's multi-line or long code
+        is_multiline = '\n' in code or len(code) > 60
+
+        if is_multiline:
+            # Use triple backtick code block
+            lang_hint = language if language else ""
+            return f"```{lang_hint}\n{code}\n```"
+        else:
+            # Use inline code
+            return f"`{code}`"
+
+    def format_code_inline(self, code: str) -> str:
+        """Format short code snippets with inline backticks.
+
+        Args:
+            code: The code snippet
+
+        Returns:
+            Code wrapped in single backticks
+
+        Example:
+            >>> format_code_inline("function doThing()")
+            '`function doThing()`'
+        """
+        if not code:
+            return ""
+        return f"`{code}`"
+
+    def format_progress_bar(self, done: int, total: int, bar_length: int = 10) -> str:
+        """Create a visual progress bar using emoji blocks.
+
+        Args:
+            done: Number of completed tasks
+            total: Total number of tasks
+            bar_length: Length of the bar in characters (default 10)
+
+        Returns:
+            Formatted progress bar string
+
+        Example:
+            >>> format_progress_bar(4, 10)
+            '▓▓▓▓░░░░░░ 4/10 (40%)'
+        """
+        if total <= 0:
+            return "░" * bar_length + " 0/0 (0%)"
+
+        percentage = (done / total) * 100
+        filled = int((done / total) * bar_length)
+        empty = bar_length - filled
+
+        bar = "▓" * filled + "░" * empty
+        return f"{bar} {done}/{total} ({percentage:.0f}%)"
+
+    def escape_markdown(self, text: str) -> str:
+        """Escape special markdown characters in text.
+
+        Use this when text might contain characters that would break
+        Telegram's markdown parsing (like * or _ in user input).
+
+        Args:
+            text: Text that might contain markdown special chars
+
+        Returns:
+            Text with special characters escaped
+        """
+        if not text:
+            return ""
+        # Telegram markdown special chars: _ * [ ] ( ) ~ ` > # + - = | { } . !
+        special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+        for char in special_chars:
+            text = text.replace(char, f'\\{char}')
+        return text
+
+    async def safe_send_message(
+        self,
+        context,
+        chat_id: int,
+        text: str,
+        parse_mode: str = "Markdown",
+        reply_markup=None
+    ) -> bool:
+        """Send a message with automatic fallback if markdown fails.
+
+        First attempts to send with markdown formatting. If that fails
+        (usually due to unbalanced formatting chars), retries as plain text.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            text: Message text (may contain markdown)
+            parse_mode: Parsing mode, defaults to Markdown
+            reply_markup: Optional keyboard markup
+
+        Returns:
+            True if sent with formatting, False if fell back to plain text
+        """
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"Markdown send failed, falling back to plain text: {e}")
+            try:
+                # Strip markdown and send plain
+                plain_text = text.replace('*', '').replace('_', '').replace('`', '')
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=plain_text,
+                    reply_markup=reply_markup
+                )
+                return False
+            except Exception as e2:
+                logger.error(f"Plain text send also failed: {e2}")
+                return False
+
     # ==================== RALPH'S AUTHENTIC VOICE ====================
 
     def ralph_misspell(self, text: str, misspell_chance: float = 0.2) -> str:
