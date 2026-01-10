@@ -63,22 +63,31 @@ DATABASE_URL = os.environ.get(
     "sqlite:///ralph_mode.db"
 )
 
-# For SQLite, we need special handling for thread safety
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False  # Set to True for SQL debugging
-    )
-else:
-    # PostgreSQL or other databases
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,  # Verify connections before use
-        pool_recycle=3600,   # Recycle connections after 1 hour
-        echo=False
-    )
+# SEC-018: Use secure engine with connection pooling, SSL/TLS, and audit logging
+try:
+    from db_config import get_secure_engine
+    # Use secure engine with all SEC-018 protections
+    engine = get_secure_engine(DATABASE_URL)
+    logger.info("SEC-018: Using secure database engine with encryption and audit logging")
+except ImportError:
+    # Fallback to basic engine if db_config not available
+    logger.warning("SEC-018: db_config not found, using basic engine")
+    # For SQLite, we need special handling for thread safety
+    if DATABASE_URL.startswith("sqlite"):
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+            echo=False  # Set to True for SQL debugging
+        )
+    else:
+        # PostgreSQL or other databases
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,  # Verify connections before use
+            pool_recycle=3600,   # Recycle connections after 1 hour
+            echo=False
+        )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -645,6 +654,15 @@ def setup_database():
     try:
         init_db()
         logger.info("SEC-001: Database layer initialized with SQL injection prevention")
+
+        # SEC-018: Enable audit logging on sensitive tables
+        try:
+            from db_config import setup_audit_logging
+            setup_audit_logging(engine)
+            logger.info("SEC-018: Audit logging enabled on sensitive tables")
+        except ImportError:
+            logger.warning("SEC-018: db_config not found, audit logging not enabled")
+
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
