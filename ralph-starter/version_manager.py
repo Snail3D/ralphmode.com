@@ -33,7 +33,7 @@ import logging
 import subprocess
 import re
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -195,7 +195,9 @@ class VersionManager:
         self,
         change_type: Literal['major', 'minor', 'patch'],
         create_tag: bool = True,
-        commit: bool = True
+        commit: bool = True,
+        feedback_ids: Optional[List[int]] = None,
+        generate_changelog: bool = True
     ) -> Version:
         """
         Increment version based on change type.
@@ -204,6 +206,8 @@ class VersionManager:
             change_type: Type of change ('major', 'minor', or 'patch')
             create_tag: Whether to create a git tag
             commit: Whether to commit the VERSION file change
+            feedback_ids: List of feedback IDs addressed in this version (VM-002)
+            generate_changelog: Whether to generate changelog (VM-002)
 
         Returns:
             New Version object
@@ -219,6 +223,22 @@ class VersionManager:
 
         # Save new version to file
         self._save_version(new_version)
+
+        # VM-002: Generate and save changelog if requested
+        if generate_changelog and feedback_ids:
+            try:
+                from changelog_generator import ChangelogGenerator
+                cg = ChangelogGenerator()
+                changelog = cg.generate_and_save(
+                    version=str(new_version),
+                    feedback_ids=feedback_ids,
+                    change_type=change_type,
+                    update_file=True
+                )
+                logger.info(f"Changelog generated for version {new_version}")
+            except Exception as e:
+                logger.error(f"Error generating changelog: {e}")
+                # Don't fail the version bump if changelog generation fails
 
         # Commit VERSION file if requested
         if commit and self.git_root:
@@ -370,6 +390,16 @@ def main():
         action='store_true',
         help='Skip git commit of VERSION file'
     )
+    parser.add_argument(
+        '--feedback-ids',
+        type=str,
+        help='Comma-separated list of feedback IDs for changelog (VM-002)'
+    )
+    parser.add_argument(
+        '--no-changelog',
+        action='store_true',
+        help='Skip changelog generation (VM-002)'
+    )
 
     args = parser.parse_args()
 
@@ -386,10 +416,21 @@ def main():
             print("Error: --change-type required for increment action")
             sys.exit(1)
 
+        # Parse feedback IDs if provided (VM-002)
+        feedback_ids = None
+        if args.feedback_ids:
+            try:
+                feedback_ids = [int(x.strip()) for x in args.feedback_ids.split(',')]
+            except ValueError:
+                print("Error: --feedback-ids must be comma-separated integers")
+                sys.exit(1)
+
         version = vm.increment_version(
             args.change_type,
             create_tag=not args.no_tag,
-            commit=not args.no_commit
+            commit=not args.no_commit,
+            feedback_ids=feedback_ids,
+            generate_changelog=not args.no_changelog
         )
         print(f"New version: {version}")
 

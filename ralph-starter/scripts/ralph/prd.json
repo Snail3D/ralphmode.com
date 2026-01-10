@@ -3325,7 +3325,7 @@
         "version_manager.py",
         "changelog_generator.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "VM-003",
