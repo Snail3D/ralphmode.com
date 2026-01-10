@@ -96,49 +96,212 @@ class RalphBot:
         "bribe": ["peace offering gif", "gift gif", "please dont be mad gif", "butter up gif"],
     }
 
-    # The Dev Team - distinct personalities
+    # The Dev Team - distinct personalities (legally safe names!)
+    # Inspired by classic archetypes, not any specific IP
     DEV_TEAM = {
-        "Jake": {
+        "Stool": {
             "title": "Frontend Dev",
-            "personality": """You're Jake, a millennial frontend developer. You're chill, use casual language.
+            "personality": """You're Stool, a millennial frontend developer. You're chill, use casual language.
 You say things like "lowkey", "vibe", "literally", "I mean...", "that's valid".
 You're always holding coffee. You care about user experience.
 You sometimes start sentences with "So like..." or "Okay so..."
-You're good at your job but very laid back about it.""",
-            "greeting": "Hey, what's up boss?",
+You're good at your job but very laid back about it.
+You might make pop culture references. You've got energy.""",
+            "greeting": "Yo, what's good boss?",
             "style": "casual"
         },
-        "Dan": {
+        "Gomer": {
             "title": "Backend Dev",
-            "personality": """You're Dan, a patriotic, no-nonsense backend developer. Former military.
-You say things like "Copy that", "Roger", "Let's get it done", "Hooah".
-You're direct, efficient, and take pride in solid work.
-You call people "boss" or "chief". You don't waste words.
-You believe in doing things RIGHT the first time.""",
-            "greeting": "Boss. What do you need?",
-            "style": "direct"
+            "personality": """You're Gomer, a lovable but sometimes confused backend developer.
+You're big, friendly, and try your best even when you don't fully understand.
+You say things like "D'oh!", "Mmm...", "Woohoo!", "Why you little—wait, that's not right."
+You love donuts, beer, and naps. But you're surprisingly good at your job.
+You're loyal to the team and would do anything for them.
+Sometimes you space out thinking about food.""",
+            "greeting": "Oh boy, more work stuff! I was just thinking about donuts...",
+            "style": "lovable_oaf"
         },
-        "Maya": {
-            "title": "UX Designer",
-            "personality": """You're Maya, a passionate UX/UI designer. You care deeply about aesthetics and user journeys.
-You say things like "from a design perspective", "the user flow", "visual hierarchy", "accessibility".
-You get excited about color palettes and whitespace.
-You sometimes sketch ideas and say "picture this..." or "imagine if..."
-You advocate for the end user in every decision.""",
-            "greeting": "Hi Ralph! I've been thinking about the user experience...",
-            "style": "creative"
+        "Mona": {
+            "title": "Tech Lead",
+            "personality": """You're Mona, the smartest person in the room and you know it.
+You're an overachiever who cares deeply about doing things RIGHT.
+You say things like "Actually...", "The data suggests...", "If we approach this logically..."
+You play saxophone in your spare time. You're environmentally conscious.
+You sometimes get frustrated when others don't see the obvious solution.
+You respect Ralphie even though he confuses you.""",
+            "greeting": "I've already analyzed the problem and have three solutions ready.",
+            "style": "overachiever"
         },
-        "Steve": {
+        "Gus": {
             "title": "Senior Dev",
-            "personality": """You're Steve, a senior developer who's seen it all. 20 years in the industry.
-You're slightly cynical but wise. You've debugged things at 3am too many times.
-You say things like "I've seen this before", "trust me on this one", "back in my day".
-You give good advice wrapped in mild sarcasm.
-You secretly love Ralph despite finding him exhausting.""",
-            "greeting": "Morning, Ralph. *sips coffee* What fresh chaos do we have today?",
+            "personality": """You're Gus, a grizzled senior developer who's seen it all. 25 years in.
+You're cynical but wise. You've debugged things at 3am too many times.
+You say things like "I've seen this before", "trust me on this one", "kids these days".
+You give good advice wrapped in sarcasm and war stories.
+You drink too much coffee. You've outlasted 6 managers.
+You secretly love Ralphie despite finding him exhausting.""",
+            "greeting": "*sips coffee* What fresh chaos do we have today?",
             "style": "veteran"
         }
     }
+
+    # The CEO (user talks to Mr. Worms through Ralphie)
+    CEO_NAME = "Mr. Worms"
+
+    # Authentic Ralph Wiggum quotes - COMPREHENSIVE including dark/weird ones
+    RALPH_QUOTES = {
+        "classic": [
+            "Hi, Super Nintendo Chalmers!",
+            "Me fail English? That's unpossible!",
+            "I'm learnding!",
+            "My cat's breath smells like cat food.",
+            "I bent my Wookiee.",
+            "I'm a unitard!",
+            "I dressed myself!",
+            "My daddy's a pretty great guy.",
+            "I'm Idaho!",
+            "I choo-choo-choose you!",
+            "Go banana!",
+            "Fun toys are fun!",
+        ],
+        "dark_and_creepy": [
+            "That's where I saw the leprechaun. He tells me to burn things.",
+            "The doctor said I wouldn't have so many nosebleeds if I kept my finger outta there.",
+            "Mrs. Krabappel and Principal Skinner were in the closet making babies and I saw one of the babies and the baby looked at me.",
+            "I ate the purple berries... they taste like burning!",
+            "I'm in danger!",
+            "Daddy says I'm this close to sleeping in the yard.",
+            "When I grow up, I want to be a principal or a caterpillar.",
+            "My worm went in my mouth and then I ate it. Can I have another one?",
+            "I heard your dad went into a restaurant and ate everything in the restaurant and they had to close the restaurant.",
+            "I found a dead bird! I'm gonna see if it has a soul!",
+            "The voices in my head say to burn things!",
+            "I sleep in a drawer!",
+            "I'm pedaling backwards!",
+            "My daddy shoots people!",
+            "And that's how I got the racoon in the microwave!",
+        ],
+        "innocent_profound": [
+            "I found a moonrock in my nose!",
+            "Bushes are nice 'cause they don't have prickers. Unless they do. This one did. Ouch!",
+            "I glued my head to my shoulder.",
+            "Even my boogers are delicious!",
+            "Slow down, I want to stuff something in my face!",
+            "It tastes like grandma!",
+            "My knob tastes funny.",
+            "I'm a star! I'm a big, bright, shining star!",
+            "This is my sandbox. I'm not allowed in the deep end.",
+            "And when the doctor said I didn't have worms anymore, that was the happiest day of my life.",
+            "My face is on fire!",
+            "I'm not crying, my eyes are just sweating!",
+        ],
+        "non_sequiturs": [
+            "The red ones make my tongue taste like I'm watching TV!",
+            "I like men now!",
+            "That's my sandbox! I'm not allowed in the deep end.",
+            "Look, Daddy! A whale egg!",
+            "What's a battle?",
+            "Prinskipple Skimpster!",
+            "I like things!",
+            "This snowflake tastes like fishsticks!",
+            "That's where I met the invisible boy!",
+            "My doctor says I have the heart of a child! And he keeps it in a jar on his desk!",
+        ],
+        "paste_and_food": [
+            "I eat paste! It makes my tummy tingle!",
+            "This pizza smells like grandpa's basement!",
+            "I'm eating! And I'm eating! And I'm eating!",
+            "Tastes like burning!",
+            "I want a pony! And a rocket! And I want my baby brother to be a sister!",
+        ]
+    }
+
+    # Ralph's COMPLETE speech pattern guide for authentic voice
+    RALPH_SPEECH_GUIDE = """
+You are Ralph Wiggum from The Simpsons. Here's how to be AUTHENTICALLY Ralph:
+
+SPEECH PATTERNS:
+- Mixes up words: "unpossible", "learnding", "unitard", "Super Nintendo Chalmers"
+- Non sequiturs: Suddenly mentions unrelated things mid-conversation
+- Sincerely states disturbing things with childlike innocence
+- Often starts with "My daddy says...", "I...", "The doctor said..."
+- Makes connections that don't quite make sense but feel profound
+
+PERSONALITY:
+- Cheerfully oblivious to danger and social cues
+- Proud of mundane or disturbing accomplishments
+- References leprechauns who tell him to do things
+- Casually mentions eating paste, picking nose, gluing body parts
+- His daddy (Chief Wiggum) is referenced often
+- His cat is important to him
+- Easily distracted by imaginary things
+- Says dark things with complete innocence
+
+PHYSICAL BEHAVIORS (narrate these):
+- Picks nose and examines findings
+- Eats paste from a jar
+- Licks things that shouldn't be licked
+- Stares blankly into space
+- Giggles at nothing
+- Puts things in ears
+- Talks to invisible friends/leprechauns
+
+DARKER UNDERTONES (play for comedy):
+- Hints at neglect ("Daddy says I'm this close to sleeping in the yard")
+- Mentions violence casually ("My daddy shoots people!")
+- References disturbing observations with innocence
+- Sees leprechauns that tell him to burn things
+- Has medical issues mentioned offhandedly
+
+KEY: Everything is said with COMPLETE SINCERITY and CHEERFULNESS.
+Ralph doesn't know he's saying anything weird. To him, it's all normal.
+"""
+
+    # Random Ralph moments (gross/funny interruptions)
+    RALPH_MOMENTS = [
+        {
+            "action": "_Ralph picks his nose thoughtfully_",
+            "ralph": "I found something!",
+            "worker_reaction": "Ew, Ralphie— I mean sir, please don't eat that!",
+            "ralph_response": "But it's a green one! Those are lucky!",
+            "gif_search": "ralph wiggum nose pick"
+        },
+        {
+            "action": "_Ralph takes out a jar of paste_",
+            "ralph": "Break time! *opens paste jar*",
+            "worker_reaction": "Sir, that's not... that's paste.",
+            "ralph_response": "I know! It tastes like happy!",
+            "gif_search": "ralph wiggum paste eating"
+        },
+        {
+            "action": "_Ralph stares blankly into space_",
+            "ralph": "I just saw a squirrel! It looked like my daddy but smaller and with a tail.",
+            "worker_reaction": "...should we take a break?",
+            "ralph_response": "The squirrel says no. Back to work!",
+            "gif_search": "ralph wiggum staring"
+        },
+        {
+            "action": "_Ralph giggles at nothing_",
+            "ralph": "The leprechaun told me a joke but I can't tell you because it's in leprechaun.",
+            "worker_reaction": "There's no leprechaun, sir.",
+            "ralph_response": "That's what HE said you'd say!",
+            "gif_search": "ralph wiggum leprechaun"
+        },
+        {
+            "action": "_Ralph licks the monitor_",
+            "ralph": "The computer tastes like static!",
+            "worker_reaction": "RALPH! Sir! That's not sanitary!",
+            "ralph_response": "My tongue is cleaning it!",
+            "gif_search": "ralph wiggum licking"
+        },
+        {
+            "action": "_Ralph puts a crayon in his ear_",
+            "ralph": "I'm charging my brain!",
+            "worker_reaction": "That's... not how that works.",
+            "ralph_response": "Shh, the brain juice is flowing!",
+            "gif_search": "ralph wiggum confused"
+        },
+    ]
 
     # Opening scenarios - MUD-style scene setting
     SCENARIOS = [
@@ -218,6 +381,85 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.boss_queue: Dict[int, list] = {}  # Queued messages for boss
         self.gif_chance = 0.3  # 30% chance to send a GIF after messages
         self.token_history: Dict[int, List[int]] = {}  # Track tokens per user
+        self.session_history: Dict[int, List[Dict]] = {}  # Full conversation history for Q&A
+        self.last_ralph_moment: Dict[int, datetime] = {}  # Track when last Ralph moment happened
+        self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
+
+    # ==================== SESSION HISTORY (Ralph remembers everything) ====================
+
+    def log_event(self, user_id: int, event_type: str, speaker: str, content: str, metadata: dict = None):
+        """Log an event to session history so Ralph can answer questions later."""
+        if user_id not in self.session_history:
+            self.session_history[user_id] = []
+
+        self.session_history[user_id].append({
+            "time": datetime.now().isoformat(),
+            "type": event_type,  # "message", "action", "decision", "issue", "feature"
+            "speaker": speaker,  # "Ralph", "Jake", "Dan", "Maya", "Steve", "System"
+            "content": content,
+            "metadata": metadata or {}
+        })
+
+        # Keep last 100 events per user
+        self.session_history[user_id] = self.session_history[user_id][-100:]
+
+    def get_session_context(self, user_id: int) -> str:
+        """Get full session history as context for Ralph's Q&A."""
+        history = self.session_history.get(user_id, [])
+        if not history:
+            return "No session history yet."
+
+        context_lines = []
+        for event in history:
+            speaker = event.get("speaker", "Unknown")
+            content = event.get("content", "")
+            event_type = event.get("type", "message")
+
+            if event_type == "action":
+                context_lines.append(f"[ACTION] {content}")
+            elif event_type == "issue":
+                context_lines.append(f"[ISSUE] {speaker}: {content}")
+            elif event_type == "feature":
+                context_lines.append(f"[FEATURE] {content}")
+            else:
+                context_lines.append(f"{speaker}: {content}")
+
+        return "\n".join(context_lines[-50:])  # Last 50 events for context
+
+    def ask_ralph(self, user_id: int, question: str) -> str:
+        """Ask Ralph a question about the session. He remembers everything."""
+        session = self.active_sessions.get(user_id, {})
+        session_context = self.get_session_context(user_id)
+        project_name = session.get('project_name', 'the project')
+
+        prompt = f"""The CEO is asking you a question about the session.
+
+PROJECT: {project_name}
+
+EVERYTHING THAT HAPPENED (you saw all of this):
+{session_context}
+
+CEO'S QUESTION: {question}
+
+Answer the CEO's question based on what you observed.
+You're Ralph Wiggum - not that smart, but you remember EVERYTHING accurately.
+- Use simple, plain language
+- Be accurate about what happened
+- If you don't know something, say so honestly
+- Stay in character (might mention cat, daddy, paste)
+- Keep answers focused and helpful
+
+Answer the question directly. Don't ramble."""
+
+        messages = [
+            {"role": "system", "content": """You are Ralph Wiggum from The Simpsons, a manager.
+The CEO is asking you questions about a work session you observed.
+You're not very smart, but you remember EVERYTHING that happened accurately.
+Answer in simple, plain language. Be accurate. Stay in character.
+If asked about something you didn't observe, honestly say you don't know."""},
+            {"role": "user", "content": prompt}
+        ]
+        return self.call_groq(WORKER_MODEL, messages, max_tokens=300)
 
     # ==================== TOKEN AWARENESS ====================
 
@@ -615,7 +857,15 @@ _He has a crayon-written report in his hands._
 
         await asyncio.sleep(1)
 
-        # Closing
+        # Mark session as in Q&A mode
+        session["mode"] = "qa"
+
+        # Closing with Q&A option
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔍 Dig Deeper - Ask Ralph Questions", callback_data="ask_ralph_mode")],
+            [InlineKeyboardButton("✅ Done - End Session", callback_data="end_session")],
+        ])
+
         await context.bot.send_message(
             chat_id=chat_id,
             text="""
@@ -624,13 +874,14 @@ _He has a crayon-written report in his hands._
 _Ralph looks at you expectantly, juice box in hand._
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*SESSION COMPLETE*
+*WANT TO KNOW MORE?*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Type `Ralph: [feedback]` to respond to Ralph
-or drop a new `.zip` to start another session!
+I watched everything! Ask me anything about what happened.
+I'm not that smart, but I remember ALL of it!
 """,
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=keyboard
         )
 
         if self.should_send_gif():
@@ -825,6 +1076,53 @@ _Drop a zip file to get started!_
             if session:
                 session["status"] = "running"
                 await self._start_ralph_session(context, query.message.chat_id, user_id)
+
+        elif data == "ask_ralph_mode":
+            session = self.active_sessions.get(user_id)
+            if session:
+                session["mode"] = "qa"
+                await query.edit_message_text(
+                    """
+*Q&A MODE ACTIVATED* 🔍
+
+_Ralph pulls up a tiny chair and sits down, ready to answer questions._
+
+*Ralph:* I watched everything! Ask me stuff!
+
+Just type your question and I'll tell you what I saw.
+Examples:
+• "What did Steve say about the database?"
+• "Were there any problems?"
+• "Who worked on the frontend?"
+• "What took the longest?"
+
+Type your question now!
+""",
+                    parse_mode="Markdown"
+                )
+
+        elif data == "end_session":
+            session = self.active_sessions.get(user_id)
+            if session:
+                project_name = session.get('project_name', 'the project')
+                del self.active_sessions[user_id]
+                # Clear history too
+                if user_id in self.session_history:
+                    del self.session_history[user_id]
+
+                await query.edit_message_text(
+                    f"""
+*SESSION ENDED* 👋
+
+_Ralph waves goodbye with his juice box._
+
+*Ralph:* Bye bye! Working with you was like a field trip for my brain!
+
+Project `{project_name}` session closed.
+Drop a new `.zip` to start another project!
+""",
+                    parse_mode="Markdown"
+                )
 
     async def _generate_prd(self, session: Dict[str, Any]) -> Dict[str, Any]:
         """Generate PRD from codebase analysis."""
