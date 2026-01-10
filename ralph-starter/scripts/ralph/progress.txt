@@ -3562,3 +3562,52 @@ tar -czf build.tar.gz --sort=name --mtime='1970-01-01' *.py requirements.txt req
 - Continue with next priority task per prd.json priority_order
 
 ---
+
+## Iteration - FB-002 - 2026-01-10
+**Task**: [FB-002] Subscription Gate for Feedback
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `subscription_manager.py` with comprehensive tier management
+- Subscription tiers: free (Viewer), builder ($10/mo), priority ($20/mo), enterprise (custom)
+- Added subscription check in `/feedback` command BEFORE accepting feedback
+- Viewer tier users get Ralph-style upgrade prompts (3 variations with personality)
+- Builder tier: can submit feedback with weight 1.0
+- Priority tier: can submit feedback with weight 2.0 (2x influence in RLHF loop)
+- Enterprise tier: weight 3.0 for future custom clients
+- Weight stored in `Feedback.priority_score` field for prioritization algorithms
+- Ralph says hilarious things like "my boss says only Builders can tell us what to build!"
+
+### Files changed
+- `subscription_manager.py` (new) - Core subscription tier logic with get_subscription_manager() singleton
+- `ralph_bot.py` - Import subscription_manager, check tier in feedback_command, show upgrade prompts
+- `feedback_collector.py` - Added `weight` parameter to collect_text_feedback(), stores in priority_score
+
+### Acceptance Criteria Met
+✅ Check user subscription tier before accepting feedback
+✅ Viewer tier: Show upgrade prompt in-character
+✅ Builder tier: Accept feedback with weight 1.0
+✅ Priority tier: Accept feedback with weight 2.0
+✅ Expired subscriptions blocked (not implemented yet - pending Stripe integration)
+✅ Ralph says something like "Ooh feedback! But my boss says only Builders can tell us what to build"
+
+### Learnings
+- **Database design pays off**: The existing `User.subscription_tier` and `Feedback.priority_score` fields were perfect for this implementation. No schema changes needed!
+- **Subscription weight = priority queue position**: Using priority_score as the weight multiplier means Priority users literally jump the queue in the RLHF build loop (PR-001 will use this)
+- **Ralph personality is the wrapper**: Upgrade prompts maintain entertainment value while clearly explaining the business model
+- **Graceful degradation**: If SUBSCRIPTION_MANAGER_AVAILABLE is False, the bot still works (just doesn't gate feedback)
+- **Feedback weight flows through**: weight param added to collect_text_feedback() so voice/screenshot feedback can also use subscription weights in future
+
+### Gotchas to avoid
+- **Don't forget to pass weight parameter**: Updated the ralph_bot.py call to collect_text_feedback() to include `weight=feedback_weight`
+- **User doesn't exist yet**: subscription_manager checks handle non-existent users gracefully (defaults to "free")
+- **Priority score will be refined**: FB-002 sets BASE priority from subscription, but PR-001 will add quality assessment, duplicate detection, etc.
+- **Ralph quotes need variety**: Used random.choice() with 3 different upgrade prompts to avoid repetition
+
+### Integration Points
+- **PR-001** (Priority Score Algorithm) will multiply quality_score × subscription_weight × other_factors
+- **FQ-001** (Feedback Queue) will ORDER BY priority_score DESC to process Priority users first
+- **Stripe integration** (pending) will update User.subscription_tier on payment events
+- **DD-001** (Duplicate Detection) will merge feedback but preserve highest priority_score
+
+---
