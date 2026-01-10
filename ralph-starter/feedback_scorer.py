@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """
-QS-001: Feedback Quality Scoring Module for Ralph Mode Bot
+QS-001 & QS-002: Feedback Quality Scoring Module for Ralph Mode Bot
 
-Calculates quality scores (0-100) for user feedback based on:
+QS-001 - Rule-based scoring (0-100) based on:
 - Clarity (0-25): Is it clearly written?
 - Actionability (0-25): Can we do something with this?
 - Specificity (0-25): Does it include details, examples?
 - Reproducibility (0-25): Can we reproduce/understand scope?
 
+QS-002 - LLM-based assessment:
+- Extract structured data (problem, expected, actual, steps)
+- Generate clarifying questions for low-quality feedback
+- Enhanced quality scoring from LLM analysis
+
 This is part of the RLHF Self-Building System where feedback quality
 determines priority and implementation order.
 """
 
+import os
+import json
 import logging
 import re
-from typing import Dict, Optional
+import requests
+from typing import Dict, Optional, List, Tuple
 from datetime import datetime
 
 from database import get_db, Feedback, InputValidator
@@ -33,9 +41,15 @@ class FeedbackScorer:
     4. Reproducibility: Steps provided, scope defined
     """
 
-    def __init__(self):
-        """Initialize the feedback scorer."""
-        pass
+    def __init__(self, groq_api_key: Optional[str] = None):
+        """
+        Initialize the feedback scorer.
+
+        Args:
+            groq_api_key: Optional Groq API key for LLM assessment (QS-002)
+        """
+        self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
+        self.groq_api_url = "https://api.groq.com/openai/v1/chat/completions"
 
     def score_clarity(self, content: str) -> float:
         """
@@ -371,6 +385,231 @@ class FeedbackScorer:
             logger.error(f"Failed to score feedback {feedback_id}: {e}")
             return None
 
+    def assess_with_llm(self, content: str, feedback_type: str = "general") -> Optional[Dict]:
+        """
+        QS-002: Use LLM to assess feedback quality and extract structured data.
+
+        Args:
+            content: Feedback text content
+            feedback_type: Type of feedback (bug, feature, improvement, praise)
+
+        Returns:
+            Dict with structured data:
+            {
+                'problem': str,
+                'expected': str (for bugs),
+                'actual': str (for bugs),
+                'steps': List[str] (for bugs),
+                'use_case': str (for features),
+                'scope': str,
+                'quality_assessment': str,
+                'extracted_score': float (0-100),
+                'needs_clarification': bool,
+                'clarifying_questions': List[str]
+            }
+        """
+        if not self.groq_api_key:
+            logger.warning("QS-002: Groq API key not available, skipping LLM assessment")
+            return None
+
+        # Build prompt based on feedback type
+        if feedback_type in ["bug", "issue", "problem"]:
+            system_prompt = """You are a feedback analyzer for a software development bot.
+Analyze the bug report and extract structured information.
+
+Return ONLY valid JSON (no markdown, no explanations) with this exact structure:
+{
+  "problem": "concise problem statement",
+  "expected": "expected behavior",
+  "actual": "actual behavior",
+  "steps": ["step 1", "step 2", "step 3"],
+  "scope": "when this occurs (always, sometimes, specific conditions)",
+  "quality_assessment": "brief quality assessment",
+  "extracted_score": 75.5,
+  "needs_clarification": false,
+  "clarifying_questions": ["question 1 if needed"]
+}
+
+Quality scoring guide:
+- 80-100: Clear, actionable, reproducible with steps
+- 60-79: Good description but missing some details
+- 40-59: Vague, needs clarification
+- 0-39: Unusable, major information missing"""
+        else:
+            system_prompt = """You are a feedback analyzer for a software development bot.
+Analyze the feature request/improvement and extract structured information.
+
+Return ONLY valid JSON (no markdown, no explanations) with this exact structure:
+{
+  "problem": "what problem does this solve",
+  "use_case": "how would this be used",
+  "scope": "who needs this / what scenarios",
+  "quality_assessment": "brief quality assessment",
+  "extracted_score": 75.5,
+  "needs_clarification": false,
+  "clarifying_questions": ["question 1 if needed"]
+}
+
+Quality scoring guide:
+- 80-100: Clear use case, specific request, actionable
+- 60-79: Good idea but needs more detail on implementation
+- 40-59: Vague request, unclear value
+- 0-39: Unusable, not enough information"""
+
+        try:
+            response = requests.post(
+                self.groq_api_url,
+                headers={
+                    "Authorization": f"Bearer {self.groq_api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Analyze this feedback:\n\n{content}"}
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 1000
+                },
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                assistant_message = result['choices'][0]['message']['content']
+
+                # Parse JSON response
+                # Remove markdown code blocks if present
+                assistant_message = assistant_message.strip()
+                if assistant_message.startswith('```'):
+                    # Remove ```json and closing ```
+                    lines = assistant_message.split('\n')
+                    assistant_message = '\n'.join(lines[1:-1])
+
+                structured_data = json.loads(assistant_message)
+                logger.info(f"QS-002: LLM assessment completed, score: {structured_data.get('extracted_score', 0)}")
+                return structured_data
+            else:
+                logger.error(f"QS-002: Groq API error: {response.status_code} - {response.text}")
+                return None
+
+        except requests.exceptions.Timeout:
+            logger.error("QS-002: Groq API timeout")
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(f"QS-002: Failed to parse LLM response as JSON: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"QS-002: LLM assessment failed: {e}")
+            return None
+
+    def generate_clarifying_questions(self, content: str, feedback_type: str = "general") -> List[str]:
+        """
+        QS-002: Generate clarifying questions for low-quality feedback.
+
+        Args:
+            content: Feedback text content
+            feedback_type: Type of feedback
+
+        Returns:
+            List of clarifying questions
+        """
+        # First try LLM-based questions
+        assessment = self.assess_with_llm(content, feedback_type)
+        if assessment and assessment.get('clarifying_questions'):
+            return assessment['clarifying_questions']
+
+        # Fallback to rule-based questions
+        questions = []
+
+        # Check what's missing
+        content_lower = content.lower()
+
+        if feedback_type in ["bug", "issue"]:
+            # Missing steps
+            if not any(word in content_lower for word in ['step', 'first', 'then', '1.', '2.']):
+                questions.append("Can you describe the exact steps to reproduce this issue?")
+
+            # Missing expected behavior
+            if not any(word in content_lower for word in ['expected', 'should']):
+                questions.append("What did you expect to happen?")
+
+            # Missing actual behavior
+            if not any(word in content_lower for word in ['actual', 'instead', 'but']):
+                questions.append("What actually happened?")
+
+            # Missing frequency
+            if not any(word in content_lower for word in ['always', 'sometimes', 'every', 'never']):
+                questions.append("Does this happen every time, or only in certain conditions?")
+
+        elif feedback_type == "feature":
+            # Missing use case
+            if not any(word in content_lower for word in ['when', 'if', 'use case', 'scenario']):
+                questions.append("Can you describe a specific scenario where you would use this feature?")
+
+            # Missing why
+            if not any(word in content_lower for word in ['because', 'so that', 'would help', 'need']):
+                questions.append("What problem would this solve for you?")
+
+            # Missing scope
+            if not any(word in content_lower for word in ['who', 'users', 'everyone', 'people']):
+                questions.append("Who would benefit from this feature?")
+
+        # Generic questions for vague feedback
+        if len(content.split()) < 15:
+            questions.append("Could you provide more details about what you're trying to do?")
+
+        return questions[:3]  # Max 3 questions
+
+    def calculate_enhanced_quality_score(
+        self,
+        content: str,
+        feedback_type: str = "general",
+        use_llm: bool = True
+    ) -> Dict[str, any]:
+        """
+        Calculate enhanced quality score combining rule-based (QS-001) and LLM (QS-002).
+
+        Args:
+            content: Feedback text content
+            feedback_type: Type of feedback
+            use_llm: Whether to use LLM assessment (default True)
+
+        Returns:
+            Dict with scores, structured data, and clarifying questions
+        """
+        # QS-001: Rule-based scoring
+        rule_based_scores = self.calculate_quality_score(content)
+
+        result = {
+            'rule_based': rule_based_scores,
+            'llm_assessment': None,
+            'final_score': rule_based_scores['total'],
+            'needs_clarification': rule_based_scores['total'] < 40,
+            'clarifying_questions': []
+        }
+
+        # QS-002: LLM assessment (if enabled and API key available)
+        if use_llm and self.groq_api_key:
+            llm_assessment = self.assess_with_llm(content, feedback_type)
+            if llm_assessment:
+                result['llm_assessment'] = llm_assessment
+
+                # Combine scores (70% LLM, 30% rule-based for balance)
+                llm_score = llm_assessment.get('extracted_score', rule_based_scores['total'])
+                result['final_score'] = round(0.7 * llm_score + 0.3 * rule_based_scores['total'], 2)
+
+                # Use LLM's clarification assessment
+                result['needs_clarification'] = llm_assessment.get('needs_clarification', result['needs_clarification'])
+                result['clarifying_questions'] = llm_assessment.get('clarifying_questions', [])
+
+        # Generate clarifying questions if needed
+        if result['needs_clarification'] and not result['clarifying_questions']:
+            result['clarifying_questions'] = self.generate_clarifying_questions(content, feedback_type)
+
+        return result
+
     def batch_score_unscored_feedback(self, limit: int = 100) -> int:
         """
         Score all feedback items that don't have a quality_score yet.
@@ -410,16 +649,19 @@ class FeedbackScorer:
 _feedback_scorer = None
 
 
-def get_feedback_scorer() -> FeedbackScorer:
+def get_feedback_scorer(groq_api_key: Optional[str] = None) -> FeedbackScorer:
     """
     Get the global feedback scorer instance.
+
+    Args:
+        groq_api_key: Optional Groq API key for LLM assessment
 
     Returns:
         FeedbackScorer instance
     """
     global _feedback_scorer
     if _feedback_scorer is None:
-        _feedback_scorer = FeedbackScorer()
+        _feedback_scorer = FeedbackScorer(groq_api_key)
     return _feedback_scorer
 
 

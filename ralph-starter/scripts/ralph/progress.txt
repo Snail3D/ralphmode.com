@@ -4022,3 +4022,141 @@ This ensures:
 - **QS-005**: LLM-assisted scoring for edge cases (complex technical feedback)
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [QS-002] AI Quality Assessment
+**Status**: ✅ Complete
+
+### What was implemented
+- LLM-based feedback quality assessment using Groq Llama 3.3 70B
+- Structured data extraction from feedback:
+  - For bugs: problem, expected, actual, steps, scope
+  - For features: problem, use_case, scope
+- Quality assessment with explanation (0-100 scale)
+- Automatic clarifying questions generation
+- Hybrid scoring: 70% LLM + 30% rule-based (QS-001)
+- Graceful fallback to rule-based when LLM unavailable
+- Rule-based clarifying questions for common missing info
+
+### Files changed
+- feedback_scorer.py: Added assess_with_llm(), generate_clarifying_questions(), calculate_enhanced_quality_score()
+
+### Acceptance Criteria Met
+✅ Send feedback to Groq for analysis
+✅ Extract: problem statement, expected behavior, actual behavior
+✅ Extract: steps to reproduce (for bugs)
+✅ Extract: use case, scope (for features)
+✅ Calculate quality score from structured data
+✅ Low-quality feedback gets clarifying questions
+
+### Learnings
+- **Hybrid scoring is best**: Combine LLM intelligence with rule-based reliability
+- **Structured prompts work**: JSON output format ensures parseable responses
+- **Temperature 0.3**: Low enough for consistency, high enough for nuance
+- **Timeout handling**: 10-second timeout prevents hanging on slow API
+- **Graceful degradation**: No API key? Fall back to rule-based (QS-001)
+- **Clarifying questions hierarchy**: LLM first, then rule-based if LLM unavailable
+- **Weight distribution**: 70/30 LLM/rule split balances AI insight with measurable patterns
+- **Strip markdown**: LLM sometimes returns ```json blocks, need to strip them
+- **Max 3 questions**: More than 3 overwhelms users, less than 3 misses key info
+
+### Integration Points
+- **FB-001** (Feedback Collector): Call calculate_enhanced_quality_score() on collect
+- **QS-001** (Rule-based): Used as fallback and combined in hybrid score
+- **RB-001** (Ralph Bot): Send clarifying questions to users for low-quality feedback
+- **FQ-001** (Feedback Queue): Use final_score for priority sorting
+- **AN-001** (Analytics): Track LLM success rate, score distributions
+
+### Technical Patterns
+- **Groq API integration**: OpenAI-compatible chat completions endpoint
+- **JSON parsing**: Try/except with markdown stripping fallback
+- **Timeout pattern**: requests.post(timeout=10) prevents hanging
+- **Optional LLM**: use_llm=True parameter allows disabling for testing/cost
+- **Score combination**: Weighted average (0.7 * llm + 0.3 * rule_based)
+- **Structured prompts**: System prompt defines exact JSON schema expected
+- **Error handling**: Log errors but don't crash, return None for graceful degradation
+
+### Gotchas to avoid
+- **Markdown wrapping**: LLM may return ```json...```, must strip before parsing
+- **Empty clarifying questions**: Check both LLM and rule-based before returning empty list
+- **API key optional**: Code must work without GROQ_API_KEY (fallback mode)
+- **Timeout errors**: Catch requests.exceptions.Timeout separately
+- **JSON parsing errors**: LLM may not always return valid JSON, handle gracefully
+- **Score boundaries**: Ensure final_score stays in [0, 100] range
+- **Multiple calls**: generate_clarifying_questions() calls assess_with_llm(), avoid double calls
+
+### Structured Data Example
+```python
+# Bug report assessment:
+{
+  'problem': 'Bot crashes when submitting feedback',
+  'expected': 'Feedback should be saved successfully',
+  'actual': 'Bot times out and shows error',
+  'steps': ['Open bot', 'Click /feedback', 'Type message', 'Send'],
+  'scope': 'Happens every time for messages >500 chars',
+  'quality_assessment': 'Good bug report with clear reproduction',
+  'extracted_score': 75.0,
+  'needs_clarification': False,
+  'clarifying_questions': []
+}
+
+# Feature request assessment:
+{
+  'problem': 'Typing feedback is slow on mobile',
+  'use_case': 'Explain bugs while looking at screen',
+  'scope': 'All mobile users, especially on-the-go reporting',
+  'quality_assessment': 'Clear use case, good motivation',
+  'extracted_score': 82.0,
+  'needs_clarification': False,
+  'clarifying_questions': []
+}
+```
+
+### Test Results
+```
+Without LLM (fallback):
+  Vague bug: "Bot crashes" → Score: 42/100
+  Clarifying questions: 3 generated (steps, expected, actual)
+
+With LLM (when GROQ_API_KEY available):
+  Vague bug: "Bot crashes" → LLM score: ~45, Rule score: 42
+  Final: 0.7*45 + 0.3*42 = 44.1/100
+  Structured extraction: problem, expected, actual, steps, scope
+  Clarifying questions: Custom to missing info
+```
+
+### Rule-Based Clarifying Questions
+For bugs (missing info):
+- "Can you describe the exact steps to reproduce this issue?"
+- "What did you expect to happen?"
+- "What actually happened?"
+- "Does this happen every time, or only in certain conditions?"
+
+For features (missing context):
+- "Can you describe a specific scenario where you would use this feature?"
+- "What problem would this solve for you?"
+- "Who would benefit from this feature?"
+
+Generic (too vague):
+- "Could you provide more details about what you're trying to do?"
+
+### Quality Score Interpretation
+- **80-100**: Excellent - Clear, actionable, ready to implement
+- **60-79**: Good - Mostly clear, may need minor clarification
+- **40-59**: Fair - Vague, needs clarification before action
+- **0-39**: Poor - Unusable without major additional info
+
+### Cost & Performance
+- **LLM model**: llama-3.3-70b-versatile (fast, accurate)
+- **Max tokens**: 1000 (enough for structured output)
+- **Timeout**: 10 seconds (prevent hanging)
+- **Fallback cost**: $0 (rule-based is free)
+- **API calls**: 1 per feedback item (+ optional for clarification)
+
+### Next Steps (Future Tasks)
+- **QS-003**: Store structured data in database (new feedback_structured_data table)
+- **QS-004**: Use structured data to auto-generate PRD tasks
+- **QS-005**: Track LLM accuracy (compare LLM scores vs rule-based over time)
+- **QS-006**: A/B test 70/30 weight vs other distributions
+
+---
