@@ -6893,3 +6893,49 @@ DELETE_ORIGINAL_MESSAGES=true
 - This pattern (track recent → generate avoidance prompt → include in system message) can be reused for other freshness features
 
 ---
+
+---
+
+## Iteration 105 - 2026-01-10
+**Task**: [MU-001] User Tier System
+**Status**: ✅ Complete
+
+### What was implemented
+- Created user_manager.py with 4-tier access system (Owner, Power, Chatter, Viewer)
+- Added access_tier column to User model in database.py for persistence
+- Integrated UserManager singleton into RalphBot class initialization
+- Implemented /password command for power user authentication (Tier 2 upgrade)
+- Added TELEGRAM_OWNER_ID and POWER_USER_PASSWORD environment variables to .env.example
+- All acceptance criteria met:
+  - Database/storage for user tiers ✓
+  - Tier 1 (Owner): Full control, admin powers, directs the build ✓
+  - Tier 2 (Power): Can control bot actions, authenticated via /password ✓
+  - Tier 3 (Chatter): Can chat with Ralph, input doesn't affect build ✓
+  - Tier 4 (Viewer): View only, no interaction ✓
+  - Default tier configurable (defaults to Tier 4 Viewer) ✓
+  - Tiers persist across sessions via database ✓
+
+### Files changed
+- user_manager.py (new)
+- database.py (added access_tier column)
+- ralph_bot.py (imported UserManager, added /password command)
+- .env.example (added MU-001 and MU-002 environment variables)
+- scripts/ralph/prd.json (marked MU-001 as passing)
+
+### Learnings
+- User tier system enables multi-user access control for group chats
+- Owner is automatically identified via TELEGRAM_OWNER_ID environment variable
+- Power users can authenticate via /password command to gain Tier 2 access
+- Tier system uses in-memory fallback if database unavailable (graceful degradation)
+- UserManager follows singleton pattern for consistent state across bot
+- Access control checks can be done via can_control_build(), can_chat(), can_view(), has_admin_powers()
+- Database migration needed for access_tier column (column added to User model)
+- Password-based authentication provides simple but effective access control
+- Default tier configurable at UserManager initialization time
+
+### Next Steps
+- MU-002 is implemented (password authentication)
+- MU-003 will need character assignment logic for multi-user chats
+- MU-004 will need tier-based input filtering (enforce view-only, chat-only, etc.)
+
+---
