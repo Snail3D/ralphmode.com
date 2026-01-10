@@ -488,6 +488,64 @@ _But the customer is IMPORTANT. This bug must die._""",
         emoji = self.CHARACTER_COLORS.get(name, "⚪")  # Default to white if unknown
         return f"{emoji} *{name}:*"
 
+    async def send_typing(self, context, chat_id: int, duration: float = 1.0):
+        """Send typing indicator for realistic feel.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send typing to
+            duration: How long to show typing (seconds)
+        """
+        try:
+            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+            await asyncio.sleep(duration)
+        except Exception as e:
+            logger.warning(f"Typing indicator failed: {e}")
+
+    async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
+        """Send a message with a preceding typing indicator.
+
+        Duration scales with message length for realism:
+        - Short messages (< 50 chars): 0.5-1s
+        - Medium messages (50-150 chars): 1-2s
+        - Long messages (> 150 chars): 2-3s
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            text: Message text
+            parse_mode: Markdown or HTML
+            reply_markup: Optional keyboard
+            typing_duration: Override automatic duration calculation
+        """
+        # Calculate typing duration based on message length if not specified
+        if typing_duration is None:
+            text_len = len(text) if text else 0
+            if text_len < 50:
+                typing_duration = random.uniform(0.5, 1.0)
+            elif text_len < 150:
+                typing_duration = random.uniform(1.0, 2.0)
+            else:
+                typing_duration = random.uniform(2.0, 3.0)
+
+        # Show typing indicator
+        await self.send_typing(context, chat_id, typing_duration)
+
+        # Send the message
+        if reply_markup:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode=parse_mode
+            )
+
     def format_character_message(self, name: str, title: str = None, message: str = "") -> str:
         """Format a message from a character with their color prefix.
 
@@ -862,27 +920,24 @@ If asked about something you didn't observe, honestly say you don't know."""},
         worker = self.DEV_TEAM[worker_name]
 
         # Worker offers the joke
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message(worker_name, worker['title'], "Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?"),
-            parse_mode="Markdown"
-        )
-        await asyncio.sleep(2)
-
-        # Ralph loves jokes
-        ralph_response = self.call_boss("Someone wants to tell you a joke! You LOVE jokes. Respond excitedly.")
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message("Ralph", message=ralph_response),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message(worker_name, worker['title'], "Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?")
         )
         await asyncio.sleep(1)
 
+        # Ralph loves jokes
+        ralph_response = self.call_boss("Someone wants to tell you a joke! You LOVE jokes. Respond excitedly.")
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message("Ralph", message=ralph_response)
+        )
+        await asyncio.sleep(0.5)
+
         # Worker tells the joke
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message(worker_name, message=f"Okay here goes... {joke}"),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message(worker_name, message=f"Okay here goes... {joke}")
         )
 
         # Chuck Norris or programming meme GIF
@@ -899,21 +954,19 @@ If asked about something you didn't observe, honestly say you don't know."""},
         await asyncio.sleep(2)
 
         # Ralph laughs
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message("Ralph", message=self.ralph_misspell("Hahaha! That's a good one! My tummy feels like laughing!")),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message("Ralph", message=self.ralph_misspell("Hahaha! That's a good one! My tummy feels like laughing!"))
         )
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "laughing")
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
         # Ralph asks what's up
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message("Ralph", message="Okay, what did you want to tell me?"),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message("Ralph", message="Okay, what did you want to tell me?")
         )
 
     # ==================== AI CALLS ====================
@@ -1801,12 +1854,11 @@ _He looks around at his team with genuine excitement._
         # Each team member responds
         for name, worker in self.DEV_TEAM.items():
             greeting = worker['greeting']
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=self.format_character_message(name, worker['title'], greeting),
-                parse_mode="Markdown"
+            await self.send_with_typing(
+                context, chat_id,
+                self.format_character_message(name, worker['title'], greeting)
             )
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.3)
 
         # Rally cry
         await asyncio.sleep(1)
@@ -1836,10 +1888,9 @@ _The team nods in unison._
             "What do you think? Ask the team about it."
         )
 
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message("Ralph", message=boss_response),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message("Ralph", message=boss_response)
         )
 
         # Maybe a Ralph GIF based on his mood
@@ -1847,12 +1898,15 @@ _The team nods in unison._
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, mood)
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
 
         # Check if workers should be in efficiency mode (Ralph complained last time)
         efficiency_mode = session.get("efficiency_mode", False)
 
         # Worker responds - pick a random team member
+        # Show typing while AI generates response
+        await self.send_typing(context, chat_id, 1.5)
+
         name, title, worker_response, token_count = self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
             context=f"Project: {session.get('project_name')}",
@@ -1862,10 +1916,9 @@ _The team nods in unison._
         # Track tokens
         self.track_tokens(user_id, token_count)
 
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message(name, title, worker_response),
-            parse_mode="Markdown"
+        await self.send_with_typing(
+            context, chat_id,
+            self.format_character_message(name, title, worker_response)
         )
 
         # Maybe a worker GIF (office memes, NOT Ralph)
@@ -1876,11 +1929,10 @@ _The team nods in unison._
         # Ralph might notice the token usage
         ralph_observation = self.get_ralph_token_observation(user_id, token_count)
         if ralph_observation:
-            await asyncio.sleep(2)
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=self.format_character_message("Ralph", message=self.ralph_misspell(ralph_observation)),
-                parse_mode="Markdown"
+            await asyncio.sleep(1)
+            await self.send_with_typing(
+                context, chat_id,
+                self.format_character_message("Ralph", message=self.ralph_misspell(ralph_observation))
             )
             # Next time, workers will be more efficient!
             if token_count > 50:  # If it was a lot
@@ -1916,13 +1968,16 @@ _Grab some popcorn..._
         if text.lower().startswith("ralph:"):
             order = text[6:].strip()
 
+            # Show typing while Ralph thinks
+            await self.send_typing(context, update.effective_chat.id, 1.0)
+
             ralph_response = self.call_boss(
                 f"The CEO just told you: '{order}'. You're excited to help! Respond and let them know you'll handle it."
             )
 
-            await update.message.reply_text(
-                self.format_character_message("Ralph", message=ralph_response),
-                parse_mode="Markdown"
+            await self.send_with_typing(
+                context, update.effective_chat.id,
+                self.format_character_message("Ralph", message=ralph_response)
             )
 
             # Queue the order

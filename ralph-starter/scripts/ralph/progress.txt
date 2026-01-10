@@ -134,3 +134,28 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 6 - 2026-01-10
+**Task**: [RM-007] Typing Indicators
+**Status**: ✅ Complete
+
+### What was implemented
+- Created send_typing(context, chat_id, duration) for typing indicators
+- Created send_with_typing() that auto-calculates duration based on message length:
+  - Short (<50 chars): 0.5-1s
+  - Medium (50-150): 1-2s
+  - Long (>150): 2-3s
+- Updated worker_bribes_ralph() to use typing
+- Updated _start_ralph_session() - team greetings, Ralph/worker responses
+- Updated handle_text() - Ralph: command responses
+- Typing shown while AI generates responses too
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Variable typing duration feels more natural than fixed delay
+- Typing before AI calls masks the API latency
+- Reduces fixed asyncio.sleep() delays - typing does double duty
+
+---
+
