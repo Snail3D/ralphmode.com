@@ -3901,7 +3901,7 @@
         "gdpr.py",
         "user_data_controller.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-020",
