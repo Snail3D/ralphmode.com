@@ -3918,3 +3918,107 @@ All three must pass for feedback to be accepted. This creates a layered defense:
 - User limits prevent account abuse
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [QS-001] Quality Score Algorithm
+**Status**: ✅ Complete
+
+### What was implemented
+- Quality scoring algorithm for feedback (0-100 scale)
+- Four scoring components (0-25 each):
+  1. Clarity: Grammar, structure, readability, appropriate length
+  2. Actionability: Action words, solution-oriented, clear requests
+  3. Specificity: Examples, details, concrete references, technical terms
+  4. Reproducibility: Steps, conditions, scope, expected vs actual behavior
+- FeedbackScorer class with component scoring methods
+- Database integration to store quality_score in Feedback model
+- Batch scoring function for unscored feedback
+- Singleton pattern with get_feedback_scorer()
+- Convenience function score_feedback(content)
+
+### Files changed
+- feedback_scorer.py: Complete implementation with all scoring components
+
+### Acceptance Criteria Met
+✅ Clarity (0-25): Grammar, sentence structure, readability
+✅ Actionability (0-25): Clear asks, solution-oriented language
+✅ Specificity (0-25): Details, examples, concrete references
+✅ Reproducibility (0-25): Steps, conditions, scope definition
+✅ Final score = sum of all factors (0-100)
+✅ Score stored with feedback item (quality_score field)
+
+### Learnings
+- **Objective scoring works best**: Use concrete metrics (word count, punctuation, keywords)
+- **Balance is key**: Not too short (vague) or too long (rambling) scores best
+- **Action words matter**: "add", "fix", "change" indicate clear direction
+- **Examples boost specificity**: Quotes, code, URLs, paths = concrete feedback
+- **Steps indicate quality**: Bug reports with numbered steps score higher
+- **Vague language penalty**: "something", "somehow", "maybe" reduce score
+- **Complaints need context**: "This sucks" without details = low score
+- **Component breakdown**: 4x25 makes scores interpretable and debuggable
+
+### Test Results
+```
+High quality bug report (detailed steps): 82/100
+  - Clarity: 25/25, Actionability: 17/25
+  - Specificity: 15/25, Reproducibility: 25/25
+
+Good feature request (clear ask): 70/100
+  - Clarity: 25/25, Actionability: 23/25
+  - Specificity: 12/25, Reproducibility: 10/25
+
+Vague complaint ("sucks, fix it"): 44/100
+  - Clarity: 15/25, Actionability: 14/25
+  - Specificity: 10/25, Reproducibility: 5/25
+
+Short praise ("Love it!"): 25/100
+  - Clarity: 0/25, Actionability: 10/25
+  - Specificity: 10/25, Reproducibility: 5/25
+```
+
+### Integration Points
+- **FB-001** (Feedback Collector): Call score_feedback() when storing feedback
+- **PR-001** (Priority Scoring): Use quality_score as input factor
+- **QS-002** (Low Quality Handler): Trigger clarifying questions for scores <40
+- **FQ-001** (Feedback Queue): Sort by combined quality + priority score
+- **FS-001** (Feedback Stats): Show average quality by user/type
+
+### Technical Patterns
+- **Component scoring**: Each factor is independently calculated (separation of concerns)
+- **Regex for patterns**: Use re.search() to find URLs, paths, technical markers
+- **Keyword matching**: Count occurrences of indicator words (action, vague, solution)
+- **Normalization**: Clamp scores to [0, 25] per component, [0, 100] total
+- **Base scores**: Start with reasonable baseline (10-15) and adjust up/down
+- **Penalty system**: Subtract points for anti-patterns (all caps, excessive emoji)
+- **Database integration**: Update quality_score field + updated_at timestamp
+- **Batch processing**: score_feedback_by_id() for single, batch_score_unscored_feedback() for bulk
+
+### Gotchas to avoid
+- **Don't over-penalize short feedback**: Some users are concise - balance brevity vs clarity
+- **Action words vary**: "could you", "would like", "please" are requests too
+- **Context matters**: Same word can be constructive or destructive ("broken" in steps vs alone)
+- **False positives**: Numbers/URLs boost score but don't guarantee quality
+- **Component balance**: One low component shouldn't tank entire score (25 max each)
+- **Null handling**: Check for None/empty content before scoring
+- **Subjective vs objective**: Stick to measurable patterns, not human judgment
+
+### Quality Scoring Philosophy
+The algorithm prioritizes **objective patterns** over subjective assessment:
+- Counts > sentiment analysis
+- Structure > tone
+- Concrete details > abstract concepts
+- Reproducibility > creativity
+
+This ensures:
+- Consistent scoring across similar feedback
+- No bias based on writing style or tone
+- Clear improvement path for users (add steps, examples, specifics)
+- Scalable without human review
+
+### Next Steps (Future Tasks)
+- **QS-002**: Auto-request clarification for low-quality feedback (<40 score)
+- **QS-003**: Track quality trends per user (learning curve)
+- **QS-004**: A/B test weighting (is clarity more important than specificity?)
+- **QS-005**: LLM-assisted scoring for edge cases (complex technical feedback)
+
+---
