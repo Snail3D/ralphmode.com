@@ -128,7 +128,7 @@
         "Favicon"
       ],
       "files_likely_modified": ["index.html"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-5.1",
