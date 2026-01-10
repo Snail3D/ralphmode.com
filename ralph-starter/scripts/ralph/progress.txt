@@ -2645,3 +2645,113 @@ if GDPR_AVAILABLE:
 SEC-021 - Payment Security (PCI-DSS via Stripe)
 
 ---
+
+## Iteration 20 - 2026-01-10
+**Task**: [SEC-021] Payment Security (PCI-DSS via Stripe)
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive payment security module (payment.py)
+  - PaymentConfig with secure API key retrieval from secrets manager
+  - SubscriptionTier enum (FREE, BUILDER $10, PRIORITY $30, ENTERPRISE)
+  - create_checkout_session() for Stripe Checkout (client-side tokenization)
+  - verify_webhook_signature() with HMAC-SHA256 verification
+  - handle_webhook() for processing Stripe events
+  - Event handlers for checkout, subscriptions, payments
+  - log_payment_event() that explicitly excludes card details
+
+- Created Telegram bot integration (stripe_integration.py)
+  - /subscribe command - Shows subscription tiers with pricing
+  - /billing command - Access Stripe billing portal
+  - /cancel command - Cancel subscription with confirmation
+  - Callback handlers for tier selection and cancellation
+  - notify_payment_success() and notify_payment_failed() for webhooks
+  - register_payment_handlers() for easy bot integration
+
+- PCI-DSS Compliance Implementation
+  - Requirement 3: No card data stored (Stripe handles all card data)
+  - Requirement 4: Encrypted transmission (Stripe.js + HTTPS)
+  - Requirement 6: Secure systems (using Stripe's PCI Level 1 infrastructure)
+  - Requirement 8: Access control (API keys in secrets manager)
+  - Requirement 10: Logging (payment events logged, NO card details)
+  - Requirement 11: Security testing (Stripe's responsibility)
+
+### Files changed
+- payment.py (new - 550+ lines)
+- stripe_integration.py (new - 450+ lines)
+- scripts/ralph/prd.json (SEC-021 passes: true)
+
+### Learnings
+- PCI-DSS compliance is achieved by NEVER touching card data
+- Stripe is PCI-DSS Level 1 certified - let them handle everything
+- Our servers should never see: card numbers, CVV, expiration dates
+- Stripe.js tokenizes cards client-side (browser → Stripe, not through our server)
+
+- Stripe Checkout is the easiest PCI-compliant approach
+- Creates hosted checkout page on Stripe's domain
+- User enters card details directly to Stripe
+- We only get session_id and subscription_id back (no card data)
+- Supports one-time payments and subscriptions
+
+- Webhook signature verification is CRITICAL
+- Without verification, attackers could send fake "payment succeeded" events
+- Stripe signs webhooks with HMAC-SHA256
+- Signature includes timestamp to prevent replay attacks
+- Timestamp must be within 5 minutes (prevents old webhook replay)
+- Use constant-time comparison (hmac.compare_digest) to prevent timing attacks
+
+- Payment logging must exclude ALL sensitive data
+- Never log: card numbers, CVV, expiry dates, full names on cards
+- Safe to log: amounts, subscription IDs, Stripe customer IDs, event types
+- Implement explicit checks for sensitive field names before logging
+- PCI-DSS audit will review all logs - one leak = major violation
+
+- Stripe Billing Portal is the easiest way for customers to manage billing
+- Customers can: update cards, view invoices, cancel subscriptions
+- We create a portal session, redirect user to Stripe
+- No card update UI needed on our side (PCI-DSS benefit!)
+
+- Subscription tiers should map to Stripe Price IDs
+- Create products and prices in Stripe Dashboard
+- Use price IDs (price_xxx) in create_checkout_session
+- Different price IDs for monthly vs annual billing
+- Can use Stripe CLI for testing: stripe listen --forward-to localhost:8000/webhook
+
+- Free tier is important for user acquisition
+- Builder ($10/mo): Small teams, hobbyists
+- Priority ($30/mo): Professional developers
+- Enterprise (custom): Large organizations, custom needs
+- Pricing should be simple and predictable
+
+- Webhook events to handle:
+  - checkout.session.completed: Payment succeeded, activate subscription
+  - customer.subscription.deleted: Subscription cancelled, downgrade to free
+  - invoice.payment_succeeded: Recurring payment succeeded
+  - invoice.payment_failed: Payment failed, notify user, possibly suspend
+
+### Acceptance Criteria Met
+✅ All payment processing via Stripe (create_checkout_session uses Stripe Checkout)
+✅ No card data stored on our servers (we never see card data, Stripe handles it)
+✅ Stripe.js for client-side tokenization (Stripe Checkout uses Stripe.js internally)
+✅ Webhook signatures verified (verify_webhook_signature with HMAC-SHA256)
+✅ HTTPS required for all payment pages (enforced by Stripe for production mode)
+✅ Stripe API keys in secrets manager (PaymentConfig.get_stripe_secret_key())
+✅ Payment logs don't contain card details (log_payment_event explicitly checks)
+
+### PCI-DSS Requirements Met
+- Requirement 1 & 2: Firewall/secure defaults (Stripe's infrastructure)
+- Requirement 3: Protect cardholder data → DON'T STORE IT!
+- Requirement 4: Encrypt transmission → Stripe.js + HTTPS
+- Requirement 5: Anti-virus (Stripe's responsibility)
+- Requirement 6: Secure systems → Using Stripe's secure platform
+- Requirement 7: Access control → Need-to-know (we don't need card data)
+- Requirement 8: Authentication → API keys in secrets manager
+- Requirement 9: Physical security (Stripe's data centers)
+- Requirement 10: Logging → Payment events logged (no card details)
+- Requirement 11: Security testing → Stripe's responsibility
+- Requirement 12: Security policy → This documentation
+
+### Next Task
+Check priority_order for next incomplete task
+
+---
