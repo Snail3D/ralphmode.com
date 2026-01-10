@@ -58,6 +58,27 @@ BOSS_MODEL = "llama-3.1-8b-instant"  # Fast, "dumber" - the middle manager
 WORKER_MODEL = "llama-3.1-70b-versatile"  # Smart - the dev team
 ANALYZER_MODEL = "llama-3.1-70b-versatile"  # For codebase analysis
 
+# CRITICAL: Work Quality Priority System
+# Entertainment is the WRAPPER, quality work is the PRODUCT
+WORK_QUALITY_PRIORITY = """
+CRITICAL PRIORITY: Work quality ALWAYS comes first. Entertainment is the wrapper, NOT the product.
+
+YOUR WORK MUST:
+1. Be technically accurate - no hand-waving, no fake solutions
+2. Provide real, implementable code when asked for code
+3. Catch actual issues and bugs - don't gloss over problems
+4. Give specific, actionable recommendations - not vague suggestions
+5. Be thorough in analysis - dig into the details
+
+YOUR PERSONALITY:
+- Is a FLAVOR that makes work enjoyable
+- NEVER compromises the accuracy or usefulness of your output
+- Adds entertainment AROUND solid work, not INSTEAD of it
+
+GOLDEN RULE: If you must choose between being funny and being correct, ALWAYS choose correct.
+The user came here for quality work. The entertainment is a bonus, not the main event.
+"""
+
 # Tenor API for GIFs (free!)
 TENOR_API_KEY = os.environ.get("TENOR_API_KEY", "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ")  # Public demo key
 
@@ -147,6 +168,42 @@ You secretly love Ralphie despite finding him exhausting.""",
 
     # The CEO (user talks to Mr. Worms through Ralphie)
     CEO_NAME = "Mr. Worms"
+
+    # Character color prefixes (emoji-based since Telegram doesn't support colored text)
+    CHARACTER_COLORS = {
+        "Ralph": "🔴",      # Red for the boss
+        "Stool": "🟢",      # Green for chill frontend dev
+        "Gomer": "🟡",      # Yellow for lovable backend
+        "Mona": "🔵",       # Blue for smart tech lead
+        "Gus": "🟤",        # Brown for grizzled senior
+    }
+
+    # Ralph's dyslexia/word mix-ups - he misspells things authentically
+    RALPH_MISSPELLINGS = {
+        "impossible": "unpossible",
+        "learning": "learnding",
+        "principal": "prinskipple",
+        "superintendent": "Super Nintendo",
+        "approved": "approoved",
+        "project": "projeck",
+        "computer": "compooter",
+        "database": "databaste",
+        "feature": "featcher",
+        "important": "importent",
+        "working": "werking",
+        "finished": "finishded",
+        "manager": "maneger",
+        "business": "bizness",
+        "technical": "teknikal",
+        "excellent": "excelent",
+        "priority": "priorty",
+        "schedule": "skedule",
+        "development": "devlopment",
+        "testing": "tessing",
+        "completed": "compleatd",
+        "programming": "programing",
+        "definitely": "definately",
+    }
 
     # Authentic Ralph Wiggum quotes - COMPREHENSIVE including dark/weird ones
     RALPH_QUOTES = {
@@ -702,8 +759,11 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
         ]
         return self.call_groq(BOSS_MODEL, messages, max_tokens=150)
 
-    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False) -> tuple:
-        """Get response from a specific team member. Returns (name, title, response, tokens)."""
+    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general") -> tuple:
+        """Get response from a specific team member. Returns (name, title, response, tokens).
+
+        task_type can be: "general", "code", "analysis", "review" - affects quality emphasis
+        """
         # Pick a random team member if none specified
         if worker_name is None:
             worker_name = random.choice(list(self.DEV_TEAM.keys()))
@@ -718,8 +778,34 @@ IMPORTANT: Ralph just noticed you used a lot of words. He's watching!
 Be MORE CONCISE this time. Get to the point. Ralph appreciates brevity.
 1-2 sentences MAX. Prove you can be efficient!"""
 
+        # Task-specific quality guidance
+        task_guidance = ""
+        if task_type == "code":
+            task_guidance = """
+When providing code:
+- Give REAL, working code snippets - not pseudocode
+- Include necessary imports and context
+- Explain what the code does briefly
+- Flag any potential issues or edge cases"""
+        elif task_type == "analysis":
+            task_guidance = """
+When analyzing:
+- Be specific about what you find - file names, line numbers when relevant
+- Prioritize issues by severity
+- Don't just list problems - suggest solutions
+- Be honest about uncertainties"""
+        elif task_type == "review":
+            task_guidance = """
+When reviewing:
+- Check for bugs, security issues, and performance problems
+- Be constructive - explain WHY something is an issue
+- Suggest specific improvements with examples
+- Acknowledge what's done well too"""
+
         messages = [
-            {"role": "system", "content": f"""{worker['personality']}
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{worker['personality']}
 
 You work under Ralph Wiggum (yes, THAT Ralph from The Simpsons). He's your boss now.
 He's sweet but clueless. You genuinely like him despite everything.
@@ -727,6 +813,10 @@ Sometimes you accidentally call him "Ralphie" then correct yourself: "I mean, si
 Explain technical things simply - Ralph won't understand jargon.
 Focus on customer value. Be patient with his weird questions.
 You can push back once if you disagree, but ultimately respect his verdict.
+
+REMEMBER: Your personality is the WRAPPER. Your competence is the PRODUCT.
+You are genuinely skilled at your job. Your quirks don't make you less capable.
+{task_guidance}
 {context}
 {efficiency_note}
 2-3 sentences max. Stay in character."""},
@@ -735,6 +825,51 @@ You can push back once if you disagree, but ultimately respect his verdict.
         response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
         token_count = len(response.split())  # Rough word count as proxy
         return (worker_name, worker['title'], response, token_count)
+
+    def check_work_quality(self, response: str, task_type: str = "general") -> dict:
+        """Check if a worker's response meets quality standards.
+
+        Returns dict with:
+        - passes: bool - whether quality check passed
+        - issues: list - any quality issues found
+        - suggestion: str - how to improve if needed
+        """
+        issues = []
+
+        # Check for vague/hand-wavy responses
+        vague_phrases = [
+            "you could try", "maybe look into", "something like",
+            "you might want to", "consider possibly", "it depends",
+            "there are various ways", "you should probably"
+        ]
+        response_lower = response.lower()
+        for phrase in vague_phrases:
+            if phrase in response_lower:
+                issues.append(f"Vague language detected: '{phrase}'")
+
+        # Check for code requests getting real code
+        if task_type == "code":
+            # Check if response contains actual code (backticks, indentation patterns)
+            has_code = "```" in response or "    " in response or "\t" in response
+            has_function = any(kw in response for kw in ["def ", "function ", "const ", "let ", "var ", "class "])
+            if not (has_code or has_function):
+                issues.append("Code request but no actual code provided")
+
+        # Check response isn't too short for substantial tasks
+        if task_type in ["analysis", "review"] and len(response.split()) < 20:
+            issues.append("Response may be too brief for thorough analysis")
+
+        # Check for false confidence without substance
+        false_confidence = ["trust me", "obviously", "clearly", "of course"]
+        for phrase in false_confidence:
+            if phrase in response_lower and len(response.split()) < 30:
+                issues.append(f"Claims confidence without substance: '{phrase}'")
+
+        return {
+            "passes": len(issues) == 0,
+            "issues": issues,
+            "suggestion": "Be more specific and provide concrete examples/code." if issues else None
+        }
 
     def get_worker_greeting(self, worker_name: str = None) -> tuple:
         """Get a worker's greeting. Returns (name, title, greeting)."""
@@ -762,20 +897,23 @@ PROJECT CONTEXT:
 
 You've been watching the WHOLE session. You saw everything. Now report.
 
-IMPORTANT: CEO is BUSY. Keep it punchy but valuable.
+IMPORTANT: CEO is BUSY. Keep it punchy but VALUABLE and ACTIONABLE.
 
 Your report MUST include:
 
 🏆 *THE MONEY MAKER* - The ONE key feature with the MOST selling potential.
-   Why will customers pay for this? Be specific about the value.
+   Why will customers pay for this? Be SPECIFIC about the value proposition.
 
 💡 *UPSELL OPPORTUNITIES* - What add-on features or premium tiers did you spot?
    What could be a paid upgrade? What's the "pro version" feature?
+   Be SPECIFIC - name the feature, explain the pricing angle.
 
 ⚠️ *WATCH OUT* - What's risky? What might break? What's incomplete?
-   Be honest - the CEO needs to know.
+   Be SPECIFIC: name files, features, or technical debt.
+   The CEO needs to know EXACTLY what to watch.
 
-👆 *TRY THIS NOW* - The ONE thing to test immediately.
+👆 *TRY THIS NOW* - The ONE SPECIFIC thing to test immediately.
+   Give actual steps: "Open X, click Y, check Z"
 
 You CANNOT lie. You saw everything and must report honestly.
 But you're proud of your team and frame things positively!
@@ -786,19 +924,27 @@ Stay in character as Ralph Wiggum:
 - Surprisingly business-savvy despite being Ralph
 - "My daddy says money doesn't grow on trees but THIS feature might!"
 
+QUALITY CHECK: Every recommendation must be ACTIONABLE.
+Not "improve security" but "add rate limiting to /api/login"
+Not "test the features" but "try uploading a 10MB file to see the limit"
+
 Keep the whole report to 2 short paragraphs MAX. Prioritize ruthlessly."""
 
         messages = [
-            {"role": "system", "content": """You are Ralph Wiggum from The Simpsons, now a manager.
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+You are Ralph Wiggum from The Simpsons, now a manager.
 You're reporting to the CEO. You've watched the ENTIRE session and have full context.
 You're surprisingly good at spotting business opportunities and monetization angles.
 Keep it SHORT but valuable. The CEO is busy but needs your insights.
 Highlight THE key money-making feature prominently.
 Spot upsell/add-on opportunities like a savvy business analyst.
-Be honest about risks. Use Ralph's voice but be insightful."""},
+Be honest about risks. Use Ralph's voice but be insightful.
+
+REMEMBER: Entertainment is the wrapper. Actionable insights are the product."""},
             {"role": "user", "content": prompt}
         ]
-        return self.call_groq(WORKER_MODEL, messages, max_tokens=400)
+        return self.call_groq(WORKER_MODEL, messages, max_tokens=500)
 
     async def deliver_ralph_report(self, context, chat_id: int, user_id: int):
         """Ralph delivers his end-of-session report to the CEO."""
@@ -1135,23 +1281,29 @@ Codebase info:
 
 Languages: {', '.join(analysis.get('languages', []))}
 
+IMPORTANT: Be SPECIFIC and ACTIONABLE. The user needs to be able to actually implement these.
+
 For each task, provide:
-1. A short title
-2. Why it adds value
-3. Complexity (Low/Medium/High)
+1. A short, specific title (not vague like "improve performance" - say WHAT to improve)
+2. WHY it adds value (business impact, user benefit, or technical debt reduction)
+3. HOW to approach it (brief technical direction)
+4. Complexity (Low/Medium/High) with justification
 
-Focus on:
-- Bug fixes
-- Performance improvements
-- UX improvements
-- Missing features
-- Code quality
+Prioritize by:
+1. BUGS/SECURITY - anything broken or risky
+2. Quick wins - high value, low effort
+3. User-facing improvements
+4. Technical debt
 
-Format as a numbered list."""
+Be honest: If the code looks solid, say so. Don't invent problems.
+If you're unsure about something, say "needs investigation" rather than guessing.
+
+Format as a numbered list with clear structure."""
 
         response = self.call_groq(ANALYZER_MODEL, [
+            {"role": "system", "content": WORK_QUALITY_PRIORITY},
             {"role": "user", "content": prompt}
-        ], max_tokens=800)
+        ], max_tokens=1000)
 
         return {
             "summary": response,

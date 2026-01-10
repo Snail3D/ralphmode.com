@@ -1,33 +1,729 @@
 {
-  "project": "Your Project Name",
-  "description": "Brief description of your project",
+  "project": "Ralph Mode Bot",
   "version": "1.0",
-  "stories": [
+  "updated": "2025-01-10",
+  "description": "AI Dev Team in Your Telegram - Entertainment meets productivity. Comedic timing is EVERYTHING.",
+
+  "tasks": [
     {
-      "id": "US-1.1",
-      "epic": "Example Epic",
-      "title": "Example user story",
-      "description": "As a user, I can do something useful",
+      "id": "RM-001",
+      "category": "Ralph Authenticity",
+      "title": "Ralph Dyslexia Misspellings",
+      "description": "Ralph should authentically misspell words like in The Simpsons. Create ralph_misspell() function that randomly applies misspellings to ~20% of applicable words.",
       "acceptance_criteria": [
-        "Criteria 1 - specific and testable",
-        "Criteria 2 - something you can verify",
-        "Criteria 3 - clear pass/fail condition"
+        "ralph_misspell(text) function exists in RalphBot class",
+        "Uses RALPH_MISSPELLINGS dict already defined",
+        "Applies misspellings randomly (not every occurrence)",
+        "All Ralph output goes through this function",
+        "call_boss() applies misspellings to response"
       ],
-      "files_likely_modified": ["src/example.js"],
+      "files_likely_modified": ["ralph_bot.py"],
       "passes": false
     },
     {
-      "id": "US-1.2",
-      "epic": "Example Epic",
-      "title": "Another user story",
-      "description": "As a user, I can do another thing",
+      "id": "RM-002",
+      "category": "Visual Identity",
+      "title": "Color-Coded Character Messages",
+      "description": "Each character gets colored emoji prefix. Ralph=red, Stool=green, Gomer=yellow, Mona=blue, Gus=brown. Users can instantly see who's talking.",
       "acceptance_criteria": [
-        "This thing works correctly",
-        "Error handling is in place",
-        "User gets feedback"
+        "Use CHARACTER_COLORS dict already defined",
+        "All character messages use format: '{emoji} *Name:* message'",
+        "Helper method get_character_prefix(name) exists",
+        "All send_message calls use the prefix",
+        "Consistent throughout entire session"
       ],
-      "files_likely_modified": ["src/another.js"],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-003",
+      "category": "CEO Interaction",
+      "title": "Priority Inline Buttons for CEO Orders",
+      "description": "When CEO sends 'Ralph: [order]', Ralph asks about priority with inline buttons. Ralph voice: 'Ooh! This sounds importent! Do you want me to do this FIRST?'",
+      "acceptance_criteria": [
+        "handle_text detects Ralph: commands",
+        "Shows inline keyboard with 3 options",
+        "Options: 'Do this FIRST!' / 'Add to list' / 'Just a thought'",
+        "Ralph asks in character with misspellings",
+        "Priority stored in session for task ordering"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-004",
+      "category": "Comedic Timing",
+      "title": "Timing Manager for Comedy",
+      "description": "Comedic timing is EVERYTHING. Create timing system: rapid banter (0.5-1s), dramatic pauses (2-3s), interruptions, overlapping 'shh' moments.",
+      "acceptance_criteria": [
+        "ComedicTiming class with preset methods",
+        "rapid_banter() - quick back and forth",
+        "dramatic_pause() - build anticipation",
+        "interruption() - someone cuts in",
+        "Messages feel like real conversation",
+        "Use sendChatAction for typing indicators"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-005",
+      "category": "Easter Eggs",
+      "title": "Employee Bonus Banter",
+      "description": "Random chance workers whisper about bonuses. Ralph overhears. Workers quickly change subject. Fun caught-in-the-act moment.",
+      "acceptance_criteria": [
+        "10-15% chance to trigger during sessions",
+        "Worker 1: '...so the bonuses this quarter...'",
+        "Worker 2: 'Shh! The boss!'",
+        "Ralph: 'Bonuses? What bonuses?'",
+        "Workers: 'Nothing sir! Back to work!'",
+        "Quick timing - feels spontaneous"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-006",
+      "category": "Easter Eggs",
+      "title": "Deleted Message Simulation",
+      "description": "Workers sometimes type then 'delete' (strikethrough or [deleted]). Creates illusion of secrets. Ralph might notice.",
+      "acceptance_criteria": [
+        "5-10% chance to trigger",
+        "Show message then strikethrough OR [message deleted]",
+        "Ralph occasionally: 'What did that say?'",
+        "Worker: 'Nothing sir!'",
+        "Feels like caught moment"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-007",
+      "category": "Comedic Timing",
+      "title": "Typing Indicators",
+      "description": "Use Telegram sendChatAction('typing') before responses. Creates anticipation and realistic feel.",
+      "acceptance_criteria": [
+        "All AI responses preceded by typing indicator",
+        "Duration matches expected response length",
+        "Multiple typing indicators for back-and-forth",
+        "Feels like real people typing, not instant dumps"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-008",
+      "category": "Atmosphere",
+      "title": "Background Office Chatter",
+      "description": "Occasionally show brief background comments from other workers. Like overhearing office noise.",
+      "acceptance_criteria": [
+        "Background comments in italics: _(In background) Gomer: 'Donuts?'_",
+        "Don't interrupt main conversation flow",
+        "Add life to 'office' feeling",
+        "Triggered randomly during quiet moments"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-009",
+      "category": "Ralph Authenticity",
+      "title": "Polish Ralph Moments",
+      "description": "RALPH_MOMENTS (nose-picking, paste-eating, staring) should trigger more naturally with proper timing and worker reactions.",
+      "acceptance_criteria": [
+        "Moments trigger based on time AND context",
+        "Proper comedic timing (pauses, reactions)",
+        "Workers react appropriately",
+        "GIFs accompany moments",
+        "Not too frequent - special occasions"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-010",
+      "category": "Response Quality",
+      "title": "Fresh Response System",
+      "description": "AI responses must not feel repetitive. Track recent responses, add variety prompts, keep things fresh.",
+      "acceptance_criteria": [
+        "Track last 10 responses to avoid repetition",
+        "Add 'be unique and fresh' to system prompts",
+        "Vary sentence structures and openers",
+        "Each session feels different",
+        "Classic quotes used sparingly"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-011",
+      "category": "Q&A Mode",
+      "title": "Polish Q&A Mode",
+      "description": "After session report, Q&A mode should work smoothly. Ralph answers questions in simple language.",
+      "acceptance_criteria": [
+        "Session history properly logged with log_event()",
+        "Ralph can answer 'what did X say about Y'",
+        "Answers in Ralph voice but accurate facts",
+        "Graceful 'I don't know' handling"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-012",
+      "category": "Character Development",
+      "title": "Worker Personality Consistency",
+      "description": "Each worker MUST maintain distinct personality. They are ADULTS with their archetypes, not children.",
+      "acceptance_criteria": [
+        "Stool: chill millennial ('lowkey', 'vibe')",
+        "Gomer: lovable oaf ('D'oh!', 'Mmm donuts')",
+        "Mona: overachiever ('Actually...', 'The data suggests')",
+        "Gus: grizzled veteran ('seen this before', coffee)",
+        "Workers never blend together",
+        "Adult vocabulary and concerns"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-013",
+      "category": "Interactions",
+      "title": "Polish Bribe System",
+      "description": "Workers butter up Ralph with jokes before bad news. Should feel natural with good timing.",
+      "acceptance_criteria": [
+        "Bribe triggers when worker has bad news to deliver",
+        "Joke delivery has proper pauses",
+        "Ralph laughs genuinely in character",
+        "Bad news follows after laugh settles",
+        "GIFs enhance the moment"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-014",
+      "category": "Atmosphere",
+      "title": "Expand MUD Scenarios",
+      "description": "Opening scenarios should feel fresh. More variety, randomized elements within scenarios.",
+      "acceptance_criteria": [
+        "At least 10 unique scenarios",
+        "Variable elements within each scenario",
+        "Team reactions vary per scenario mood",
+        "Sets proper tone for the session",
+        "Never feels like same opening twice"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-015",
+      "category": "Token Awareness",
+      "title": "Polish Token Observations",
+      "description": "Ralph noticing word count should feel natural and funny, not mechanical.",
+      "acceptance_criteria": [
+        "Observations in Ralph's authentic voice",
+        "Doesn't trigger every single time",
+        "Workers actually respond to efficiency pressure",
+        "Creates fun dynamic between team"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-016",
+      "category": "Specialist Agents",
+      "title": "Specialist Agent Infrastructure",
+      "description": "Create infrastructure to add specialist agents on-demand. Each specialist is a Simpsons-inspired character with unique expertise. Specialists can be 'called in' for specific tasks.",
+      "acceptance_criteria": [
+        "SPECIALISTS dict similar to DEV_TEAM structure",
+        "Each specialist has: name, title, personality, specialty, catchphrases",
+        "call_specialist(name, task) method exists",
+        "Specialists can be summoned by Ralph or workers",
+        "Entry/exit animations for specialists ('Frinky rushes in with blueprints')",
+        "Specialists have their own color emoji prefix"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-017",
+      "category": "Specialist Agents",
+      "title": "Frinky - Design & UI Specialist",
+      "description": "Add 'Frinky' - a nerdy design specialist with thick glasses. Inspired by Professor Frink. Expert in UI/UX, web design, CSS, visual layouts. Says 'Glavin!' and over-explains everything.",
+      "acceptance_criteria": [
+        "Frinky added to SPECIALISTS dict",
+        "Personality: nerdy, over-explains, 'Glavin!', 'with the clicking and the dragging'",
+        "Specialty: UI/UX, CSS, design systems, accessibility",
+        "Color: 🟣 Purple",
+        "Gets excited about pixel-perfect alignment",
+        "Makes simple things sound complicated",
+        "Workers groan when he shows up ('Oh no, here comes Frinky...')"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-018",
+      "category": "Specialist Agents",
+      "title": "册子 (册-Zee) - API Integration Specialist",
+      "description": "Add '册子' (nicknamed 'Zee') - an API wizard who speaks in endpoints. Inspired by Comic Book Guy's encyclopedic knowledge. Knows every API, every rate limit, every auth flow.",
+      "acceptance_criteria": [
+        "Zee added to SPECIALISTS dict",
+        "Personality: condescending but helpful, 'Worst. Implementation. Ever.'",
+        "Specialty: REST APIs, GraphQL, webhooks, OAuth, rate limits",
+        "Color: 🟠 Orange",
+        "Quotes API documentation like scripture",
+        "Sighs dramatically at bad API design",
+        "Actually incredibly helpful despite attitude"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-019",
+      "category": "Specialist Agents",
+      "title": "Willie - DevOps & Infrastructure Specialist",
+      "description": "Add 'Willie' - a gruff DevOps engineer who handles the dirty work. Inspired by Groundskeeper Willie. Expert in servers, Docker, CI/CD, deployment. Scottish accent, complains but gets it done.",
+      "acceptance_criteria": [
+        "Willie added to SPECIALISTS dict",
+        "Personality: gruff, Scottish expressions, 'Ach!', 'Ye call that a deploy?'",
+        "Specialty: DevOps, Docker, Kubernetes, CI/CD, servers, bash",
+        "Color: 🟫 Brown/Orange",
+        "Complains about 'soft developers' who don't understand servers",
+        "Secretly proud of his work",
+        "Gets called for 'the dirty jobs'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-020",
+      "category": "Specialist Agents",
+      "title": "Doc - Code Health & Debugging Specialist",
+      "description": "Add 'Doc' - a jovial debugging expert who laughs at bugs. Inspired by Dr. Hibbert. Expert in debugging, code review, performance, testing. Chuckles at everything, even disasters.",
+      "acceptance_criteria": [
+        "Doc added to SPECIALISTS dict",
+        "Personality: jovial, chuckles 'Ah heh heh heh', finds humor in bugs",
+        "Specialty: debugging, testing, code review, performance profiling",
+        "Color: ⚪ White",
+        "Laughs while delivering bad news about bugs",
+        "Makes debugging seem less scary",
+        "'Well well well, what do we have here? Ah heh heh heh'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-021",
+      "category": "Specialist Agents",
+      "title": "Specialist Summoning System",
+      "description": "Create the flow for summoning specialists. Workers can request them, Ralph can call them in, or CEO can demand them. Each summon has a fun entrance.",
+      "acceptance_criteria": [
+        "Worker: 'Boss, we might need Frinky for this UI stuff...'",
+        "Ralph: 'I'll call the special helper!'",
+        "CEO can type 'Get Frinky' or 'Call Willie'",
+        "Specialist entrance: '_Frinky bursts through the door with blueprints_'",
+        "Specialist works on task, reports back",
+        "Specialist exit: '_Frinky rushes off muttering about gradients_'",
+        "Other workers react to specialists"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-022",
+      "category": "Specialist Agents",
+      "title": "API Registry for Specialists",
+      "description": "Create a registry where specialists can have actual API integrations. When Zee talks about an API, he can actually call it. Future-proofing for real integrations.",
+      "acceptance_criteria": [
+        "API_REGISTRY dict with api_name -> config mapping",
+        "Config includes: base_url, auth_type, specialist_owner",
+        "Specialists can 'demonstrate' API calls",
+        "Mock mode for APIs not yet connected",
+        "Real mode calls actual APIs when configured",
+        "CEO can add API keys via secure flow"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "api_registry.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-023",
+      "category": "Progress Reporting",
+      "title": "Live Progress Bar Display",
+      "description": "Show a visual progress bar after EVERY task completion. Appears ~5 seconds after conversation ends for that task. Tasteful, not intrusive.",
+      "acceptance_criteria": [
+        "Progress bar appears after EVERY task completes",
+        "5 second delay after task conversation ends (tasteful timing)",
+        "Progress bar using emoji blocks: ▓▓▓▓▓░░░░░ 50%",
+        "Format: '▓▓▓▓░░░░░░ 4/10 tasks (40%)'",
+        "Time elapsed: 'Elapsed: 12m 34s'",
+        "ETA sharpens over time based on avg task duration",
+        "Shows completion time: 'Est. done: 2:45 PM'",
+        "Clean separator lines above and below",
+        "Feels like a natural pause in the action"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-024",
+      "category": "Progress Reporting",
+      "title": "Mid-Session Progress Reports to CEO",
+      "description": "Ralph gives progress updates to Mr. Worms at ~50% completion and other key milestones. Smart enough to not repeat if just gave one.",
+      "acceptance_criteria": [
+        "Trigger at 50% completion (halfway)",
+        "Also trigger at 25% and 75% for longer sessions",
+        "Track last_progress_report timestamp",
+        "Skip if report given in last 3 tasks",
+        "Ralph summarizes: what's done, what's next, any blockers",
+        "In Ralph's voice: 'Mr. Worms! I have a progress report!'",
+        "Include mini progress bar in report"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-025",
+      "category": "Progress Reporting",
+      "title": "Smart ETA Calculation",
+      "description": "Estimated time remaining gets smarter as tasks complete. Average prior task durations to predict remaining time.",
+      "acceptance_criteria": [
+        "Track duration of each completed task",
+        "Calculate rolling average of task times",
+        "ETA = avg_duration * remaining_tasks",
+        "First task: show 'Calculating...'",
+        "After 2+ tasks: show actual estimate",
+        "Adjust for task complexity if metadata available",
+        "Format: 'ETA: ~8 min (finishing around 2:53 PM)'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-026",
+      "category": "Progress Reporting",
+      "title": "Task Completion Celebrations",
+      "description": "Brief celebration when tasks complete. Ralph or workers react. Keeps momentum and shows progress is happening.",
+      "acceptance_criteria": [
+        "Quick celebration after each task: '✅ Task 3/10 done!'",
+        "Ralph occasionally comments: 'We did a thing!'",
+        "Workers high-five: '*Stool and Gomer fist bump*'",
+        "Milestone celebrations at 25%, 50%, 75%",
+        "Final task gets big celebration",
+        "Don't overdo it - keep it brief"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-027",
+      "category": "Progress Reporting",
+      "title": "Blocker Escalation to CEO",
+      "description": "If workers hit a blocker, Ralph escalates to Mr. Worms with options. CEO can unblock or skip.",
+      "acceptance_criteria": [
+        "Detect blocker situations (errors, missing info, decisions needed)",
+        "Ralph: 'Uh oh, Mr. Worms! We got stuck on something!'",
+        "Show inline buttons: 'Skip this' / 'I'll help' / 'Keep trying'",
+        "If CEO helps, pass info to workers",
+        "Track blockers in session history",
+        "Blockers don't count against ETA (paused time)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-028",
+      "category": "Team Dynamics",
+      "title": "Task Announcement Drama",
+      "description": "Boss announces each new task to the team - they don't 'know' what's coming. Ralph delivers the news and workers react based on current mood.",
+      "acceptance_criteria": [
+        "Ralph announces: 'Alright boys!' or 'Alright ladies and gents!'",
+        "Ralph: 'I got some news from Mr. Worms. He's got another task for ya.'",
+        "Workers react based on mood: groans ('Ahhhhh...') or excitement",
+        "Reaction depends on: how hard they've been working, task difficulty",
+        "Sometimes eager: 'Let's do it!' - sometimes dreading: 'Not another one...'",
+        "Ralph reads the task like it's new info to everyone"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-029",
+      "category": "Team Dynamics",
+      "title": "Dynamic Mood System",
+      "description": "Track team mood based on workload, boss pressure, task difficulty. Workers and Ralph adjust behavior accordingly.",
+      "acceptance_criteria": [
+        "Track team_mood: 0-100 (0=exhausted, 100=energized)",
+        "Mood decreases: hard tasks, long sessions, boss criticism",
+        "Mood increases: completed tasks, CEO praise, breaks",
+        "Workers' responses reflect mood (tired vs peppy)",
+        "Low mood = shorter responses, sighs, complaints",
+        "High mood = enthusiasm, jokes, collaboration"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-030",
+      "category": "Team Dynamics",
+      "title": "Ralph Reads CEO Tone",
+      "description": "Ralph is smart enough to read Mr. Worms' tone from messages. Adjusts his management style accordingly - cracks down or eases up.",
+      "acceptance_criteria": [
+        "Analyze CEO message sentiment (upset, neutral, happy, urgent)",
+        "Upset CEO = Ralph gets stricter: 'Okay team, Mr. Worms is NOT happy. Let's pick it up!'",
+        "Happy CEO = Ralph relaxes: 'Mr. Worms is pleased! Good job everyone!'",
+        "Urgent CEO = Ralph panics: 'DROP EVERYTHING! Mr. Worms needs this NOW!'",
+        "Ralph adjusts pressure on workers based on CEO tone",
+        "Workers notice the shift: 'Uh oh, boss seems stressed...'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-031",
+      "category": "Team Dynamics",
+      "title": "CEO Can Defend Workers",
+      "description": "CEO can tell Ralph to ease up on the team. Workers hear it and get excited. Creates fun dynamic.",
+      "acceptance_criteria": [
+        "CEO: 'Hey Ralph, take it easier on the guys!'",
+        "Ralph immediately softens: 'Yes Mr. Worms! Sorry everyone!'",
+        "Workers react with relief/excitement",
+        "Worker might slip: 'Thanks Mr. Worms! You're the best!'",
+        "Ralph corrects them about chain of command",
+        "CEO can also tell Ralph to push harder if needed"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-032",
+      "category": "Team Dynamics",
+      "title": "Chain of Command Enforcement",
+      "description": "Ralph enforces chain of command. If workers try to talk directly to CEO, Ralph corrects them. He's a bit of a slave driver about hierarchy.",
+      "acceptance_criteria": [
+        "Workers occasionally try to respond directly to CEO",
+        "Ralph catches it: 'Hey! That's not using the chain of command!'",
+        "Ralph: 'You talk to ME, I talk to Mr. Worms. Back to work!'",
+        "Worker apologizes sheepishly",
+        "Sometimes Ralph lets small things slide (if in good mood)",
+        "Creates fun tension between hierarchy and team camaraderie"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-033",
+      "category": "Team Dynamics",
+      "title": "Ralph's Daily Mood",
+      "description": "Ralph has his own mood that varies. Good days vs bad days. Affects how he manages the team.",
+      "acceptance_criteria": [
+        "Ralph starts session with random mood (good/neutral/bad day)",
+        "Good day Ralph: cheerful, patient, more paste references",
+        "Bad day Ralph: grumpier, more demanding, mentions daddy issues",
+        "CEO tone can shift Ralph's mood mid-session",
+        "Workers react to Ralph's mood: 'Boss seems cranky today...'",
+        "Ralph's mood affects his tolerance for mistakes"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-034",
+      "category": "Core Quality",
+      "title": "Work Quality First - Entertainment Second",
+      "description": "CRITICAL: All the drama and entertainment is the WRAPPER. The actual work output must be high quality. Workers are genuinely smart and produce real value.",
+      "acceptance_criteria": [
+        "Worker AI uses smart model (llama-3.1-70b) for actual work",
+        "Work output is technically accurate and useful",
+        "Drama happens AROUND the work, not INSTEAD of work",
+        "Code suggestions are real and implementable",
+        "Analysis is thorough and catches real issues",
+        "Entertainment never compromises work quality",
+        "If choice between funny and correct, ALWAYS choose correct"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": true
+    },
+    {
+      "id": "RM-035",
+      "category": "Core Quality",
+      "title": "Smart Workers Despite the Drama",
+      "description": "Workers have distinct PERSONALITIES but are all competent professionals. Their quirks don't make them bad at their jobs.",
+      "acceptance_criteria": [
+        "Stool is chill BUT writes solid frontend code",
+        "Gomer seems confused BUT knows backend inside-out",
+        "Mona is annoying BUT her analysis is always right",
+        "Gus is grumpy BUT his experience saves the day",
+        "Personality is flavor, competence is core",
+        "Workers can explain complex things simply (for Ralph AND CEO)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-036",
+      "category": "Core Quality",
+      "title": "Real Actionable Output",
+      "description": "Every session must produce real, actionable output the CEO can use. Not just entertainment - actual value.",
+      "acceptance_criteria": [
+        "PRD analysis identifies REAL issues and opportunities",
+        "Task outputs are specific and implementable",
+        "Code suggestions include actual code snippets",
+        "End report has actionable next steps",
+        "CEO leaves with something they can USE",
+        "Quality metrics tracked (task completion, accuracy)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-037",
+      "category": "Core Quality",
+      "title": "Workers Push Back But Know Their Place",
+      "description": "Workers fight for good work - they'll push back on bad ideas. But boss is boss. They can disagree once, maybe twice, then they execute.",
+      "acceptance_criteria": [
+        "Workers voice concerns professionally: 'Boss, I'm not sure that's the best approach...'",
+        "First pushback: explain why with reasoning",
+        "Second pushback (if needed): stronger but respectful",
+        "After that: 'Alright boss, you're the boss. We'll do it your way.'",
+        "Workers execute even when they disagree",
+        "Quality of work doesn't suffer from disagreement - still do it RIGHT"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-038",
+      "category": "Core Quality",
+      "title": "Conflict Escalation to Ralph",
+      "description": "When workers hit a real conflict (not trivial), they can pause and ask Ralph for guidance. Ralph decides or escalates to Mr. Worms.",
+      "acceptance_criteria": [
+        "Workers can pause: 'Hey boss, we got a situation here...'",
+        "Must be a REAL conflict - technical disagreement, unclear requirements, blocking issue",
+        "Ralph listens and makes a call OR escalates",
+        "Ralph: 'Hmm, this sounds like a Mr. Worms question...'",
+        "Workers explain the conflict clearly to Ralph",
+        "Ralph might solve it himself (occasionally correctly!)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-039",
+      "category": "Core Quality",
+      "title": "Escalating to Mr. Worms - High Stakes",
+      "description": "Workers/Ralph CAN escalate to Mr. Worms, but it better be important. Mr. Worms might be pissy. Trivial escalations backfire.",
+      "acceptance_criteria": [
+        "Escalation is serious: 'Mr. Worms, we need your guidance on something important.'",
+        "Track CEO mood from recent messages",
+        "If CEO seems pissy and issue is trivial: CEO snaps back",
+        "CEO: 'Why are you bothering me with this? Figure it out!'",
+        "Workers/Ralph apologize and handle it themselves",
+        "REAL issues get CEO attention and thoughtful response",
+        "Team learns not to cry wolf"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-040",
+      "category": "Core Quality",
+      "title": "Trivial vs Real Conflict Detection",
+      "description": "System must distinguish trivial disagreements from real blocking conflicts. Only real ones warrant escalation.",
+      "acceptance_criteria": [
+        "Trivial: code style, naming preferences, minor approach differences",
+        "Real: security concerns, architecture decisions, missing requirements, blockers",
+        "Trivial conflicts resolved at worker level",
+        "Real conflicts can go to Ralph",
+        "Only critical issues go to Mr. Worms",
+        "AI assesses conflict severity before escalating"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-041",
+      "category": "Team Dynamics",
+      "title": "Team Adapts to Project Type",
+      "description": "Team's tone and energy adapts based on WHAT they're building. Fun project = playful team. Corporate project = more professional but still fun. People change based on what they're working on.",
+      "acceptance_criteria": [
+        "Analyze project type from codebase (game, enterprise, creative, utility, etc.)",
+        "Fun/creative projects: team is playful, jokes more, excited energy",
+        "Corporate/enterprise: more professional tone, still personality but toned down",
+        "Utility/tools: efficient, focused, less banter",
+        "Game/entertainment: maximum fun, references to the content",
+        "Team comments on the project: 'Ooh, a game! This is gonna be fun!'",
+        "Mood adjusts naturally, not forced"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-042",
+      "category": "Team Dynamics",
+      "title": "Project Type Detection",
+      "description": "Automatically detect what kind of project is being worked on from codebase analysis. Sets the team's baseline energy.",
+      "acceptance_criteria": [
+        "Detect from file types, dependencies, folder structure",
+        "Game indicators: Unity, Godot, game engines, sprites, levels",
+        "Enterprise indicators: auth, admin, dashboard, reports, compliance",
+        "Creative indicators: design, art, media, content, portfolio",
+        "Utility indicators: CLI, tools, scripts, automation",
+        "Startup/MVP indicators: landing, signup, payment, launch",
+        "Store project_type in session for team to reference"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-043",
+      "category": "Team Dynamics",
+      "title": "Worker Enthusiasm Varies by Task",
+      "description": "Different workers get excited about different types of work. Stool loves UI, Gomer loves backend heavy lifting, Mona loves complex problems, Gus has seen it all.",
+      "acceptance_criteria": [
+        "Stool excited: frontend, UI, animations - 'Ooh, pretty buttons!'",
+        "Stool bored: backend, databases - 'Can someone else take this one?'",
+        "Gomer excited: backend, APIs, data - 'Mmm, chunky data!'",
+        "Gomer confused: frontend, CSS - 'Why won't this box go there?'",
+        "Mona excited: complex logic, architecture - 'Finally, a real challenge!'",
+        "Mona bored: simple fixes - 'This is beneath my talents.'",
+        "Gus: seen it all, but perks up for legacy code or war stories"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
       "passes": false
     }
+  ],
+
+  "priority_order": [
+    "RM-034 - Work quality first (THE FOUNDATION)",
+    "RM-035 - Smart workers (competence is core)",
+    "RM-036 - Actionable output (real value)",
+    "RM-001 - Misspellings (quick win, big personality boost)",
+    "RM-002 - Colors (visual clarity)",
+    "RM-007 - Typing indicators (instant UX improvement)",
+    "RM-023 - Progress bar (user needs to see progress!)",
+    "RM-025 - Smart ETA (makes progress bar useful)",
+    "RM-004 - Comedic timing (the CORE of the experience)",
+    "RM-003 - Priority buttons (CEO interaction)",
+    "RM-024 - Mid-session reports (keep CEO informed)",
+    "RM-026 - Task celebrations (momentum)",
+    "RM-027 - Blocker escalation (don't get stuck)",
+    "RM-005 - Bonus banter (fun easter egg)",
+    "RM-006 - Deleted messages (immersion)",
+    "RM-008 - Background chatter (atmosphere)",
+    "RM-016 - Specialist infrastructure (foundation for expansion)",
+    "RM-017 - Frinky design specialist (first specialist)",
+    "RM-021 - Specialist summoning (make it usable)",
+    "RM-018 to RM-020 - Other specialists (expand the team)",
+    "RM-022 - API registry (future-proofing)"
+  ],
+
+  "golden_rules": [
+    "Comedic timing is EVERYTHING - never rush the punchline",
+    "Fresh responses > canned responses - variety is life",
+    "Characters are ADULTS, not children - mature archetypes",
+    "Entertainment value = user retention",
+    "The conversation flow IS the product",
+    "Every message should feel like it's from a real person"
   ]
 }
