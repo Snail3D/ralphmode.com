@@ -1,0 +1,13 @@
+# Ralph Progress Log
+
+Started: [Date]
+Project: [Your Project Name]
+
+---
+
+## Codebase Patterns
+<!-- Add reusable patterns here as you discover them -->
+
+
+---
+

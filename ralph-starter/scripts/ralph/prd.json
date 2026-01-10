@@ -1,0 +1,33 @@
+{
+  "project": "Your Project Name",
+  "description": "Brief description of your project",
+  "version": "1.0",
+  "stories": [
+    {
+      "id": "US-1.1",
+      "epic": "Example Epic",
+      "title": "Example user story",
+      "description": "As a user, I can do something useful",
+      "acceptance_criteria": [
+        "Criteria 1 - specific and testable",
+        "Criteria 2 - something you can verify",
+        "Criteria 3 - clear pass/fail condition"
+      ],
+      "files_likely_modified": ["src/example.js"],
+      "passes": false
+    },
+    {
+      "id": "US-1.2",
+      "epic": "Example Epic",
+      "title": "Another user story",
+      "description": "As a user, I can do another thing",
+      "acceptance_criteria": [
+        "This thing works correctly",
+        "Error handling is in place",
+        "User gets feedback"
+      ],
+      "files_likely_modified": ["src/another.js"],
+      "passes": false
+    }
+  ]
+}

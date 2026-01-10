@@ -1,0 +1,30 @@
+# Secrets - NEVER commit these
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# GoDaddy API credentials (if used)
+godaddy.json
+.godaddy
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if we add any)
+node_modules/
+npm-debug.log
+
+# Build outputs
+dist/
+build/
