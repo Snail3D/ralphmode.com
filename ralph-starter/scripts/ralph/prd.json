@@ -3979,7 +3979,7 @@
       "files_likely_modified": [
         ".github/workflows/security.yml"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-024",
