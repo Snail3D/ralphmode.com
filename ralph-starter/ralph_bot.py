@@ -27,7 +27,7 @@ import requests
 import base64
 import random
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -2519,20 +2519,135 @@ class RalphBot:
             await asyncio.sleep(self.timing.beat())
             await self.send_ralph_gif(context, chat_id, "silly")
 
+    def _generate_codebase_exploration_quotes(self, session: Dict[str, Any]) -> List[Tuple[str, str]]:
+        """RM-054: Generate codebase-specific exploration discussions based on actual analysis.
+
+        Returns list of (speaker, message) tuples tailored to the specific codebase.
+        """
+        quotes = []
+        analysis = session.get("analysis", {})
+
+        if not analysis:
+            return quotes
+
+        files = analysis.get("files", [])
+        languages = analysis.get("languages", [])
+        total_lines = analysis.get("total_lines", 0)
+
+        # File structure discussions
+        if len(files) > 0:
+            biggest_file = files[0]
+            quotes.append(("Stool", f"Yo, `{biggest_file['path']}` is {biggest_file['lines']} lines. That's... a lot."))
+            quotes.append(("Gomer", f"Mmm, checked the file structure. {len(files)} files total."))
+            quotes.append(("Mona", f"Biggest file is `{biggest_file['path']}`. Might need splitting."))
+
+            if len(files) >= 3:
+                quotes.append(("Gus", f"Files are organized... differently. I've seen worse."))
+
+        # Language-specific discussions
+        if languages:
+            lang_str = ", ".join(languages[:2]) if len(languages) > 2 else ", ".join(languages)
+            quotes.append(("Stool", f"They're using {lang_str}. Pretty standard stack."))
+            quotes.append(("Gomer", f"Mmm, {languages[0]} codebase. Classic."))
+
+            if len(languages) > 3:
+                quotes.append(("Mona", f"{len(languages)} different languages. Interesting mix."))
+
+            if "Python" in languages:
+                quotes.append(("Gus", "Python. Good choice. Less rope to hang yourself with."))
+            if "JavaScript" in languages or "TypeScript" in languages:
+                quotes.append(("Stool", "The frontend code lowkey needs some attention."))
+                quotes.append(("Gomer", "Async everywhere. Like they discovered promises yesterday."))
+
+        # Size discussions
+        if total_lines > 5000:
+            quotes.append(("Mona", f"{total_lines:,} lines total. Not small."))
+            quotes.append(("Gus", "Big codebase. Someone's been busy."))
+        elif total_lines < 1000:
+            quotes.append(("Stool", "This is pretty compact. Focused."))
+            quotes.append(("Gomer", "Small codebase. Either new or really clean."))
+
+        # Pattern discussions (inferred from file names)
+        has_tests = any('test' in f['path'].lower() for f in files)
+        has_config = any('config' in f['path'].lower() or '.env' in f['path'] or 'settings' in f['path'].lower() for f in files)
+        has_api = any('api' in f['path'].lower() or 'route' in f['path'].lower() for f in files)
+        has_db = any('db' in f['path'].lower() or 'database' in f['path'].lower() or 'model' in f['path'].lower() for f in files)
+
+        if has_tests:
+            quotes.append(("Mona", "Found test files. That's promising."))
+            quotes.append(("Gus", "Tests exist. Whether they pass... different question."))
+        else:
+            quotes.append(("Gomer", "Mmm, no test directory. Bold strategy."))
+
+        if has_config:
+            quotes.append(("Stool", "Config files are here somewhere. Standard setup."))
+
+        if has_api:
+            quotes.append(("Gomer", "API layer is separate. Good separation of concerns."))
+            quotes.append(("Mona", "Routes are organized. Someone planned this."))
+
+        if has_db:
+            quotes.append(("Gus", "Database layer exists. Hopefully with migrations."))
+            quotes.append(("Stool", "Yo, the data models are actually documented."))
+
+        # Dependency discussions (check for common package files)
+        has_package_json = any('package.json' in f['path'] for f in files)
+        has_requirements = any('requirements.txt' in f['path'] or 'Pipfile' in f['path'] for f in files)
+        has_go_mod = any('go.mod' in f['path'] for f in files)
+
+        if has_package_json:
+            quotes.append(("Stool", "Checked package.json. Dependencies look... interesting."))
+            quotes.append(("Gomer", "NPM packages. This should be fun."))
+
+        if has_requirements:
+            quotes.append(("Mona", "Requirements file exists. At least it's documented."))
+            quotes.append(("Gus", "Dependencies are listed. Smart."))
+
+        if has_go_mod:
+            quotes.append(("Gomer", "Go modules. Clean dependency management."))
+
+        # Documentation discussions
+        has_readme = any('readme' in f['path'].lower() for f in files)
+        has_docs = any('doc' in f['path'].lower() for f in files)
+
+        if has_readme:
+            quotes.append(("Stool", "README exists. Whether it's accurate... TBD."))
+            quotes.append(("Mona", "Found documentation. Better than nothing."))
+        else:
+            quotes.append(("Gomer", "Mmm, no README. Good luck figuring this out."))
+
+        if has_docs:
+            quotes.append(("Gus", "Docs folder exists. Rare sight these days."))
+
+        return quotes
+
     async def idle_codebase_chatter(self, context, chat_id: int, user_id: int):
         """RM-053: Idle codebase chatter - Workers discuss what they learned during quiet periods.
 
         Triggers when no active task running. Messages come at texting pace (5-15 seconds apart).
         Each message is 1-2 sentences MAX - conversational, not info dumps.
         Pauses when user sends a message, resumes after 10 seconds of silence.
+
+        RM-054: Now includes codebase-specific exploration discussions based on actual analysis.
         """
         try:
             # Don't start if session not active
             if user_id not in self.active_sessions:
                 return
 
-            # Create a shuffled copy of quotes for this session
+            session = self.active_sessions[user_id]
+
+            # RM-054: Combine generic quotes with codebase-specific exploration quotes
             available_quotes = self.CODEBASE_LEARNING_QUOTES.copy()
+
+            # Generate codebase-specific quotes if analysis exists
+            specific_quotes = self._generate_codebase_exploration_quotes(session)
+            if specific_quotes:
+                # Mix in specific quotes (about 60% specific, 40% generic)
+                # This keeps it educational but varied
+                for _ in range(len(specific_quotes)):
+                    available_quotes.insert(random.randint(0, len(available_quotes)), specific_quotes.pop(0))
+
             random.shuffle(available_quotes)
 
             for speaker, message in available_quotes:
