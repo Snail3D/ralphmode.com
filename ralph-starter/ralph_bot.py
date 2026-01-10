@@ -657,6 +657,7 @@ class RalphBot:
         self.session_history: Dict[int, List[Dict]] = {}  # Full conversation history for Q&A
         self.last_ralph_moment: Dict[int, datetime] = {}  # Track when last Ralph moment happened
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
+        self.last_bonus_banter: Dict[int, datetime] = {}  # RM-005: Track when last bonus banter happened
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
         self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
         self.message_counter = 0  # Counter for unique message IDs
@@ -802,6 +803,24 @@ class RalphBot:
                     parse_mode="Markdown",
                     reply_markup=keyboard
                 )
+
+                # RM-005: Bonus Banter Easter Egg (10-15% chance)
+                # Only trigger for worker messages (not Ralph), and not too frequently
+                if name != "Ralph" and name in self.DEV_TEAM:
+                    # Get user_id from chat_id (for tracking purposes)
+                    user_id = chat_id  # In DM, chat_id == user_id
+
+                    # Check if enough time has passed since last bonus banter (at least 5 minutes)
+                    now = datetime.now()
+                    last_banter = self.last_bonus_banter.get(user_id)
+                    time_since_last = (now - last_banter).total_seconds() if last_banter else 9999
+
+                    # 12% chance (middle of 10-15% range) and at least 5 minutes since last one
+                    if random.random() < 0.12 and time_since_last > 300:
+                        self.last_bonus_banter[user_id] = now
+                        # Trigger bonus banter in background (don't block current message)
+                        asyncio.create_task(self.bonus_banter_moment(context, chat_id))
+
                 return True
             except Exception as e:
                 logger.warning(f"Button styling failed, falling back to text: {e}")
@@ -1849,6 +1868,68 @@ class RalphBot:
                 "We were discussing the, uh, project!",
                 "Nothing important! Back to work!",
             ])
+        )
+
+    async def bonus_banter_moment(self, context, chat_id: int):
+        """Easter egg: Workers whisper about bonuses, Ralph overhears, they change subject.
+
+        RM-005: Employee Bonus Banter
+        Triggered randomly (10-15% chance) during active sessions.
+        Creates a fun caught-in-the-act moment with comedic timing.
+        """
+        # Pick two random workers
+        workers = random.sample(list(self.DEV_TEAM.keys()), 2)
+        whisperer = workers[0]
+        listener = workers[1]
+
+        whisperer_data = self.DEV_TEAM[whisperer]
+        listener_data = self.DEV_TEAM[listener]
+
+        # Worker 1 whispers about bonuses
+        bonus_whispers = [
+            "...so the bonuses this quarter...",
+            "Do you think we'll get bonuses for this one?",
+            "I heard the bonuses might be better this year...",
+            "...if we finish early, maybe a bonus...",
+        ]
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_{whisperer} whispers to {listener}: '{random.choice(bonus_whispers)}'_",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Worker 2 notices Ralph and alerts
+        await self.interruption_send(
+            context, chat_id, listener, listener_data.get('title'),
+            "Shh! The boss!"
+        )
+        await asyncio.sleep(self.timing.interruption())
+
+        # Ralph overhears and reacts
+        ralph_responses = [
+            "Bonuses? What bonuses?",
+            "Did someone say bonuses? I love bonuses!",
+            "Bonuses?! I didn't approve any bonuses!",
+            "Wait, are we giving out bonuses? Nobody told me!",
+        ]
+        await self.rapid_banter_send(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(random.choice(ralph_responses))
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Workers quickly change subject
+        cover_ups = [
+            "Nothing sir! Back to work!",
+            "We were just... talking about the codebase! Yeah, the codebase!",
+            "Nothing, boss! Just discussing project milestones!",
+            "Uh, we said 'components', not 'bonuses'! Easy to confuse!",
+        ]
+        await self.rapid_banter_send(
+            context, chat_id, whisperer, whisperer_data.get('title'),
+            random.choice(cover_ups)
         )
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
