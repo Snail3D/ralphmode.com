@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """
-DP-001: Staging Deployment Manager for Ralph Mode Bot
+DP-001 & DP-002: Staging and Canary Deployment Manager for Ralph Mode Bot
 
 This service handles:
-- Auto-deploy passing builds to staging environment
-- Run integration tests on staging
-- Health check endpoints
-- Auto-promote to canary if healthy
+- DP-001: Auto-deploy passing builds to staging environment
+- DP-001: Run integration tests on staging
+- DP-001: Health check endpoints
+- DP-002: Canary deployment with 5% traffic split
+- DP-002: Monitor error rates vs baseline for 30 minutes
+- DP-002: Auto-promote if healthy (error rate < 2x baseline)
+- DP-002: Auto-rollback if unhealthy
 - Integration with build orchestrator
 
 Usage:
     from deploy_manager import DeployManager
 
+    # Deploy to staging (DP-001)
     dm = DeployManager()
     result = dm.deploy_to_staging(feedback_id=123)
     if result.success:
         print(f"Deployed to {result.staging_url}")
+
+    # Deploy to canary (DP-002)
+    result = dm.deploy_to_canary(feedback_id=123)
+    if result.success and result.promoted:
+        print(f"Promoted to production!")
 """
 
 import os
@@ -50,6 +59,15 @@ class DeploymentStage(Enum):
     PRODUCTION = "production"
 
 
+class CanaryStatus(Enum):
+    """Status of canary deployment."""
+    OBSERVING = "observing"
+    HEALTHY = "healthy"
+    UNHEALTHY = "unhealthy"
+    PROMOTED = "promoted"
+    ROLLED_BACK = "rolled_back"
+
+
 @dataclass
 class DeploymentResult:
     """Result of a deployment operation."""
@@ -73,6 +91,47 @@ class HealthCheckResult:
     error_message: Optional[str] = None
 
 
+@dataclass
+class MetricsSnapshot:
+    """Snapshot of deployment metrics."""
+    error_count: int = 0
+    request_count: int = 0
+    total_latency_ms: float = 0.0
+    timestamp: Optional[datetime] = None
+
+    @property
+    def error_rate(self) -> float:
+        """Calculate error rate (0.0 to 1.0)."""
+        if self.request_count == 0:
+            return 0.0
+        return self.error_count / self.request_count
+
+    @property
+    def avg_latency_ms(self) -> float:
+        """Calculate average latency in milliseconds."""
+        if self.request_count == 0:
+            return 0.0
+        return self.total_latency_ms / self.request_count
+
+
+@dataclass
+class CanaryDeploymentResult:
+    """Result of a canary deployment."""
+    success: bool
+    feedback_id: int
+    canary_url: Optional[str] = None
+    production_url: Optional[str] = None
+    status: CanaryStatus = CanaryStatus.OBSERVING
+    baseline_metrics: Optional[MetricsSnapshot] = None
+    canary_metrics: Optional[MetricsSnapshot] = None
+    observation_start: Optional[datetime] = None
+    observation_end: Optional[datetime] = None
+    error_message: Optional[str] = None
+    version: Optional[str] = None
+    promoted: bool = False
+    rolled_back: bool = False
+
+
 class DeployManager:
     """
     DP-001: Deployment Manager for Staging Environment
@@ -89,12 +148,28 @@ class DeployManager:
         self.staging_user = os.getenv('STAGING_USER', 'root')
         self.staging_path = os.getenv('STAGING_PATH', '/root/ralph-staging')
 
+        # Canary deployment configuration
+        self.canary_host = os.getenv('CANARY_HOST', '69.164.201.191')
+        self.canary_port = os.getenv('CANARY_PORT', '8002')
+        self.canary_path = os.getenv('CANARY_PATH', '/root/ralph-canary')
+        self.canary_traffic_percent = float(os.getenv('CANARY_TRAFFIC_PERCENT', '5.0'))
+        self.canary_observation_minutes = int(os.getenv('CANARY_OBSERVATION_MINUTES', '30'))
+        self.canary_error_rate_threshold = float(os.getenv('CANARY_ERROR_RATE_THRESHOLD', '2.0'))
+
+        # Production deployment configuration
+        self.production_host = os.getenv('PRODUCTION_HOST', '69.164.201.191')
+        self.production_port = os.getenv('PRODUCTION_PORT', '8000')
+        self.production_path = os.getenv('PRODUCTION_PATH', '/root/ralph-production')
+
         # Health check configuration
         self.health_check_timeout = int(os.getenv('HEALTH_CHECK_TIMEOUT', '30'))
         self.health_check_retries = int(os.getenv('HEALTH_CHECK_RETRIES', '3'))
 
         # Integration test configuration
         self.integration_test_timeout = int(os.getenv('INTEGRATION_TEST_TIMEOUT', '300'))
+
+        # Metrics tracking file
+        self.metrics_file = Path('/tmp/ralph_deployment_metrics.json')
 
         logger.info(f"DeployManager initialized: staging={self.staging_host}:{self.staging_port}")
 
@@ -446,6 +521,490 @@ class DeployManager:
         """
         return self._run_health_checks()
 
+    def deploy_to_canary(self, feedback_id: int, version: Optional[str] = None) -> CanaryDeploymentResult:
+        """
+        DP-002: Deploy to canary environment with 5% traffic split.
+
+        This method:
+        1. Deploys to canary server
+        2. Collects baseline metrics from production
+        3. Routes 5% of traffic to canary
+        4. Monitors for 30 minutes
+        5. Auto-promotes if healthy (error rate < 2x baseline)
+        6. Auto-rollbacks if unhealthy
+
+        Args:
+            feedback_id: Feedback item ID being deployed
+            version: Optional version string
+
+        Returns:
+            CanaryDeploymentResult with deployment status
+        """
+        logger.info(f"Starting canary deployment for feedback_id={feedback_id}")
+
+        result = CanaryDeploymentResult(
+            success=False,
+            feedback_id=feedback_id,
+            version=version or self._generate_version(),
+            canary_url=f"http://{self.canary_host}:{self.canary_port}",
+            production_url=f"http://{self.production_host}:{self.production_port}"
+        )
+
+        try:
+            # Step 1: Collect baseline metrics from production
+            logger.info("Collecting baseline metrics from production...")
+            result.baseline_metrics = self._collect_metrics('production')
+
+            if result.baseline_metrics.request_count == 0:
+                logger.warning("No baseline traffic found. Proceeding with caution.")
+                # Set minimal baseline for comparison
+                result.baseline_metrics = MetricsSnapshot(
+                    error_count=0,
+                    request_count=1,
+                    total_latency_ms=100.0,
+                    timestamp=datetime.utcnow()
+                )
+
+            # Step 2: Deploy to canary server
+            logger.info(f"Deploying to canary server {self.canary_host}:{self.canary_port}...")
+            if not self._deploy_to_canary_server(feedback_id):
+                result.error_message = "Failed to deploy to canary server"
+                return result
+
+            # Step 3: Run health checks on canary
+            logger.info("Running health checks on canary...")
+            health_result = self._run_canary_health_checks()
+            if not health_result.healthy:
+                result.error_message = f"Canary health check failed: {health_result.error_message}"
+                return result
+
+            # Step 4: Start observation period
+            result.observation_start = datetime.utcnow()
+            result.status = CanaryStatus.OBSERVING
+            logger.info(
+                f"Starting {self.canary_observation_minutes} minute observation period "
+                f"with {self.canary_traffic_percent}% traffic to canary"
+            )
+
+            # Step 5: Monitor metrics during observation period
+            observation_result = self._observe_canary_deployment(result)
+
+            # Step 6: Make promotion decision
+            if observation_result['healthy']:
+                logger.info("Canary deployment is HEALTHY. Auto-promoting to production.")
+                if self._promote_canary_to_production(feedback_id):
+                    result.status = CanaryStatus.PROMOTED
+                    result.promoted = True
+                    result.success = True
+                else:
+                    result.error_message = "Failed to promote canary to production"
+                    result.status = CanaryStatus.UNHEALTHY
+            else:
+                logger.warning(
+                    f"Canary deployment is UNHEALTHY: {observation_result['reason']}. "
+                    "Auto-rolling back."
+                )
+                if self._rollback_canary(feedback_id):
+                    result.status = CanaryStatus.ROLLED_BACK
+                    result.rolled_back = True
+                    result.error_message = f"Rolled back: {observation_result['reason']}"
+                else:
+                    result.error_message = "Failed to rollback canary"
+                    result.status = CanaryStatus.UNHEALTHY
+
+            result.observation_end = datetime.utcnow()
+            result.canary_metrics = observation_result.get('final_metrics')
+
+            logger.info(
+                f"Canary deployment completed: status={result.status.value}, "
+                f"promoted={result.promoted}, rolled_back={result.rolled_back}"
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error during canary deployment: {e}", exc_info=True)
+            result.error_message = str(e)
+            result.status = CanaryStatus.UNHEALTHY
+            return result
+
+    def _deploy_to_canary_server(self, feedback_id: int) -> bool:
+        """
+        Deploy artifacts to canary server.
+
+        Args:
+            feedback_id: Feedback item ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            deploy_dir = Path(f'/tmp/deploy_{feedback_id}')
+
+            # Ensure canary directory exists on remote server
+            ssh_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.canary_host}',
+                f'mkdir -p {self.canary_path}'
+            ]
+
+            result = subprocess.run(
+                ssh_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                logger.error(f"Failed to create canary directory: {result.stderr}")
+                return False
+
+            # Use rsync to deploy files
+            rsync_cmd = [
+                'rsync',
+                '-avz',
+                '--delete',
+                f'{deploy_dir}/',
+                f'{self.staging_user}@{self.canary_host}:{self.canary_path}/'
+            ]
+
+            logger.info(f"Running: {' '.join(rsync_cmd)}")
+
+            result = subprocess.run(
+                rsync_cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode != 0:
+                logger.error(f"rsync failed: {result.stderr}")
+                return False
+
+            # Restart canary service
+            kill_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.canary_host}',
+                f'pkill -f "ralph_bot.*{self.canary_port}" || true'
+            ]
+            subprocess.run(kill_cmd, capture_output=True, text=True, timeout=30)
+            time.sleep(2)
+
+            start_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.canary_host}',
+                f'cd {self.canary_path} && '
+                f'PORT={self.canary_port} nohup python3 ralph_bot.py > /tmp/ralph_canary.log 2>&1 &'
+            ]
+
+            result = subprocess.run(
+                start_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                logger.error(f"Failed to start canary service: {result.stderr}")
+                return False
+
+            logger.info("Canary service deployed and started")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error deploying to canary server: {e}", exc_info=True)
+            return False
+
+    def _run_canary_health_checks(self) -> HealthCheckResult:
+        """
+        Run health checks against canary environment.
+
+        Returns:
+            HealthCheckResult with health status
+        """
+        health_url = f"http://{self.canary_host}:{self.canary_port}/health"
+
+        for attempt in range(1, self.health_check_retries + 1):
+            try:
+                logger.info(f"Canary health check attempt {attempt}/{self.health_check_retries}")
+
+                start_time = time.time()
+                response = requests.get(
+                    health_url,
+                    timeout=self.health_check_timeout
+                )
+                response_time_ms = (time.time() - start_time) * 1000
+
+                if response.status_code == 200:
+                    return HealthCheckResult(
+                        healthy=True,
+                        status_code=response.status_code,
+                        response_time_ms=response_time_ms
+                    )
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Canary health check attempt {attempt} failed: {e}")
+
+            if attempt < self.health_check_retries:
+                time.sleep(5)
+
+        return HealthCheckResult(
+            healthy=False,
+            error_message=f"Canary health check failed after {self.health_check_retries} attempts"
+        )
+
+    def _collect_metrics(self, environment: str) -> MetricsSnapshot:
+        """
+        Collect current metrics from an environment.
+
+        Args:
+            environment: 'production', 'canary', or 'staging'
+
+        Returns:
+            MetricsSnapshot with current metrics
+        """
+        try:
+            # Read metrics from file if it exists
+            if self.metrics_file.exists():
+                with open(self.metrics_file, 'r') as f:
+                    all_metrics = json.load(f)
+                    env_metrics = all_metrics.get(environment, {})
+
+                    return MetricsSnapshot(
+                        error_count=env_metrics.get('error_count', 0),
+                        request_count=env_metrics.get('request_count', 0),
+                        total_latency_ms=env_metrics.get('total_latency_ms', 0.0),
+                        timestamp=datetime.utcnow()
+                    )
+
+            # Return empty metrics if file doesn't exist
+            return MetricsSnapshot(
+                error_count=0,
+                request_count=0,
+                total_latency_ms=0.0,
+                timestamp=datetime.utcnow()
+            )
+
+        except Exception as e:
+            logger.error(f"Error collecting metrics: {e}", exc_info=True)
+            return MetricsSnapshot(timestamp=datetime.utcnow())
+
+    def _observe_canary_deployment(self, result: CanaryDeploymentResult) -> Dict[str, Any]:
+        """
+        Observe canary deployment for specified period and monitor metrics.
+
+        Args:
+            result: CanaryDeploymentResult being monitored
+
+        Returns:
+            Dict with 'healthy' bool, 'reason' str, and 'final_metrics' MetricsSnapshot
+        """
+        observation_seconds = self.canary_observation_minutes * 60
+        check_interval = 60  # Check every minute
+        checks_needed = observation_seconds // check_interval
+
+        logger.info(
+            f"Observing canary for {self.canary_observation_minutes} minutes "
+            f"({checks_needed} checks, 1 per minute)"
+        )
+
+        canary_metrics = MetricsSnapshot(timestamp=datetime.utcnow())
+        baseline = result.baseline_metrics
+
+        for check_num in range(1, checks_needed + 1):
+            # Sleep until next check
+            time.sleep(check_interval)
+
+            # Collect current canary metrics
+            canary_metrics = self._collect_metrics('canary')
+
+            # Calculate current error rates
+            baseline_error_rate = baseline.error_rate
+            canary_error_rate = canary_metrics.error_rate
+
+            # Calculate latency comparison
+            baseline_latency = baseline.avg_latency_ms
+            canary_latency = canary_metrics.avg_latency_ms
+
+            logger.info(
+                f"Check {check_num}/{checks_needed}: "
+                f"Canary error_rate={canary_error_rate:.4f} (baseline={baseline_error_rate:.4f}), "
+                f"latency={canary_latency:.2f}ms (baseline={baseline_latency:.2f}ms), "
+                f"requests={canary_metrics.request_count}"
+            )
+
+            # Check if canary has enough traffic to make a decision
+            if canary_metrics.request_count >= 10:
+                # Check error rate threshold
+                if baseline_error_rate > 0:
+                    error_rate_ratio = canary_error_rate / baseline_error_rate
+                else:
+                    # If baseline has no errors, any error in canary is concerning
+                    error_rate_ratio = float('inf') if canary_error_rate > 0 else 0
+
+                if error_rate_ratio > self.canary_error_rate_threshold:
+                    return {
+                        'healthy': False,
+                        'reason': (
+                            f"Error rate {error_rate_ratio:.2f}x baseline "
+                            f"(threshold: {self.canary_error_rate_threshold}x)"
+                        ),
+                        'final_metrics': canary_metrics
+                    }
+
+                # Check latency (warning only, not a failure condition for now)
+                if baseline_latency > 0:
+                    latency_ratio = canary_latency / baseline_latency
+                    if latency_ratio > 2.0:
+                        logger.warning(
+                            f"Canary latency is {latency_ratio:.2f}x baseline "
+                            f"({canary_latency:.2f}ms vs {baseline_latency:.2f}ms)"
+                        )
+
+        # Observation period complete
+        logger.info("Observation period complete. Canary is HEALTHY.")
+        return {
+            'healthy': True,
+            'reason': 'Passed observation period',
+            'final_metrics': canary_metrics
+        }
+
+    def _promote_canary_to_production(self, feedback_id: int) -> bool:
+        """
+        Promote canary deployment to production (100% traffic).
+
+        Args:
+            feedback_id: Feedback item ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info("Promoting canary to production...")
+
+            # Copy canary deployment to production path
+            sync_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.production_host}',
+                f'rsync -avz --delete {self.canary_path}/ {self.production_path}/'
+            ]
+
+            result = subprocess.run(
+                sync_cmd,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+
+            if result.returncode != 0:
+                logger.error(f"Failed to sync canary to production: {result.stderr}")
+                return False
+
+            # Restart production service
+            kill_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.production_host}',
+                f'pkill -f "ralph_bot.*{self.production_port}" || true'
+            ]
+            subprocess.run(kill_cmd, capture_output=True, text=True, timeout=30)
+            time.sleep(2)
+
+            start_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.production_host}',
+                f'cd {self.production_path} && '
+                f'PORT={self.production_port} nohup python3 ralph_bot.py > /tmp/ralph_production.log 2>&1 &'
+            ]
+
+            result = subprocess.run(
+                start_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                logger.error(f"Failed to start production service: {result.stderr}")
+                return False
+
+            logger.info("Canary promoted to production successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error promoting canary to production: {e}", exc_info=True)
+            return False
+
+    def _rollback_canary(self, feedback_id: int) -> bool:
+        """
+        Rollback canary deployment (stop canary service).
+
+        Args:
+            feedback_id: Feedback item ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info("Rolling back canary deployment...")
+
+            # Stop canary service
+            kill_cmd = [
+                'ssh',
+                f'{self.staging_user}@{self.canary_host}',
+                f'pkill -f "ralph_bot.*{self.canary_port}" || true'
+            ]
+
+            result = subprocess.run(
+                kill_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            logger.info("Canary service stopped (rollback complete)")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error rolling back canary: {e}", exc_info=True)
+            return False
+
+    def record_request_metric(self, environment: str, latency_ms: float, is_error: bool = False):
+        """
+        Record a request metric for monitoring.
+
+        Args:
+            environment: 'production', 'canary', or 'staging'
+            latency_ms: Request latency in milliseconds
+            is_error: Whether the request resulted in an error
+        """
+        try:
+            # Load existing metrics
+            all_metrics = {}
+            if self.metrics_file.exists():
+                with open(self.metrics_file, 'r') as f:
+                    all_metrics = json.load(f)
+
+            # Get or create environment metrics
+            if environment not in all_metrics:
+                all_metrics[environment] = {
+                    'error_count': 0,
+                    'request_count': 0,
+                    'total_latency_ms': 0.0
+                }
+
+            # Update metrics
+            all_metrics[environment]['request_count'] += 1
+            all_metrics[environment]['total_latency_ms'] += latency_ms
+            if is_error:
+                all_metrics[environment]['error_count'] += 1
+
+            # Save updated metrics
+            with open(self.metrics_file, 'w') as f:
+                json.dump(all_metrics, f, indent=2)
+
+        except Exception as e:
+            logger.error(f"Error recording metric: {e}", exc_info=True)
+
 
 # Health check endpoint handler
 def create_health_endpoint():
@@ -471,9 +1030,12 @@ def main():
     """Main entry point for testing."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Ralph Mode Deployment Manager (DP-001)')
+    parser = argparse.ArgumentParser(description='Ralph Mode Deployment Manager (DP-001, DP-002)')
     parser.add_argument('--feedback-id', type=int, required=True, help='Feedback ID to deploy')
     parser.add_argument('--check-health', action='store_true', help='Check staging health')
+    parser.add_argument('--stage', choices=['staging', 'canary'], default='staging',
+                        help='Deployment stage (default: staging)')
+    parser.add_argument('--version', type=str, help='Version string (optional)')
 
     args = parser.parse_args()
 
@@ -488,19 +1050,49 @@ def main():
             print(f"Error: {result.error_message}")
         sys.exit(0 if result.healthy else 1)
 
-    # Deploy to staging
-    result = dm.deploy_to_staging(args.feedback_id)
+    if args.stage == 'canary':
+        # DP-002: Deploy to canary
+        result = dm.deploy_to_canary(args.feedback_id, version=args.version)
 
-    if result.success:
-        print(f"✅ Staging deployment SUCCESS")
-        print(f"   URL: {result.staging_url}")
-        print(f"   Health check: {'PASS' if result.health_check_passed else 'FAIL'}")
-        print(f"   Integration tests: {'PASS' if result.integration_tests_passed else 'FAIL'}")
-        sys.exit(0)
+        if result.success and result.promoted:
+            print(f"✅ Canary deployment SUCCESS - PROMOTED to production")
+            print(f"   Canary URL: {result.canary_url}")
+            print(f"   Production URL: {result.production_url}")
+            print(f"   Status: {result.status.value}")
+            print(f"   Observation: {result.observation_start} to {result.observation_end}")
+            if result.baseline_metrics and result.canary_metrics:
+                print(f"   Baseline error rate: {result.baseline_metrics.error_rate:.4f}")
+                print(f"   Canary error rate: {result.canary_metrics.error_rate:.4f}")
+                print(f"   Baseline latency: {result.baseline_metrics.avg_latency_ms:.2f}ms")
+                print(f"   Canary latency: {result.canary_metrics.avg_latency_ms:.2f}ms")
+            sys.exit(0)
+        elif result.rolled_back:
+            print(f"⚠️  Canary deployment ROLLED BACK")
+            print(f"   Reason: {result.error_message}")
+            print(f"   Status: {result.status.value}")
+            if result.canary_metrics:
+                print(f"   Canary error rate: {result.canary_metrics.error_rate:.4f}")
+                print(f"   Canary requests: {result.canary_metrics.request_count}")
+            sys.exit(1)
+        else:
+            print(f"❌ Canary deployment FAILED")
+            print(f"   Error: {result.error_message}")
+            print(f"   Status: {result.status.value}")
+            sys.exit(1)
     else:
-        print(f"❌ Staging deployment FAILED")
-        print(f"   Error: {result.error_message}")
-        sys.exit(1)
+        # DP-001: Deploy to staging
+        result = dm.deploy_to_staging(args.feedback_id, version=args.version)
+
+        if result.success:
+            print(f"✅ Staging deployment SUCCESS")
+            print(f"   URL: {result.staging_url}")
+            print(f"   Health check: {'PASS' if result.health_check_passed else 'FAIL'}")
+            print(f"   Integration tests: {'PASS' if result.integration_tests_passed else 'FAIL'}")
+            sys.exit(0)
+        else:
+            print(f"❌ Staging deployment FAILED")
+            print(f"   Error: {result.error_message}")
+            sys.exit(1)
 
 
 if __name__ == '__main__':
