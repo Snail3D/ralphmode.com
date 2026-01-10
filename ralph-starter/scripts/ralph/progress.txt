@@ -4413,3 +4413,123 @@ Generic (too vague):
 - FQ-003: /mystatus can show upvote counts on user's feedback
 
 ---
+## Iteration [Ralph Auto] - 2026-01-10 20:45 UTC
+**Task**: [DD-003] Already Fixed Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created version_manager.py with VersionManager class to track version history:
+  - Stores changelog for last 5 versions (hardcoded for now, easily upgradable to DB/API)
+  - Each version has release date and entries (fixes, features, improvements)
+  - Methods to get recent versions, all fixes, version dates, and check if version outdated
+  - Simple semantic versioning comparison (e.g., 0.2.5 < 0.3.0)
+- Created AlreadyFixedDetector class in version_manager.py:
+  - Uses semantic similarity to compare feedback against changelog fixes
+  - Threshold: 0.80 similarity (slightly lower than duplicate threshold)
+  - Returns (is_fixed, version_fixed_in, fix_description, similarity_score)
+  - Generates user-friendly notification messages with upgrade suggestions
+- Integrated already-fixed detection into duplicate_detector.py:
+  - Added check_already_fixed() method that delegates to AlreadyFixedDetector
+  - Added mark_as_already_fixed() method to close feedback and update status
+  - Stores fix version and description in rejection_reason for transparency
+  - Uses existing embedding infrastructure from DD-001
+- Added comprehensive test suites to both modules
+
+### Files changed
+- version_manager.py: New module with VersionManager and AlreadyFixedDetector classes
+- duplicate_detector.py: Added check_already_fixed() and mark_as_already_fixed() methods
+- scripts/ralph/prd.json: Marked DD-003 as passes=true
+
+### Learnings
+- Changelog tracking pattern: Store as list of version dicts with entries
+- Version comparison: Parse semantic versioning strings, pad to same length, compare as tuples
+- Threshold tuning: 0.80 for already-fixed (vs 0.85 for duplicates) to catch likely matches without false positives
+- User experience: Always suggest upgrade if version is outdated, show fix version for transparency
+- Reusability: AlreadyFixedDetector uses DuplicateDetector for embeddings (don't duplicate infrastructure)
+- Testing pattern: Module-level tests at bottom of file for quick validation
+
+### Integration points
+- DD-001: Uses embedding generation and cosine similarity infrastructure
+- DD-002: Similar rejection workflow (status=rejected, rejection_reason)
+- FB-002: User notification system can show "already fixed" messages with upgrade prompts
+- FQ-003: /mystatus can show when feedback was rejected as already-fixed
+- Future: Version tracking could come from git tags, GitHub releases, or changelog.md parser
+
+### Next steps for production
+1. Move changelog to database or API (currently hardcoded)
+2. Auto-populate changelog from git tags/GitHub releases
+3. Add user version tracking in database (store with feedback submission)
+4. Consider lowering threshold to 0.75 if missing too many matches
+5. Add telemetry to track false positive/negative rates
+6. Allow users to reopen if they're on latest version and still experiencing issue
+
+---
+
+
+## Iteration 4 - 2026-01-10 11:30:03
+**Task**: [PR-001] Priority Score Algorithm
+**Status**: ✅ Complete
+
+### What was implemented
+- Added calculate_priority_score() function in feedback_scorer.py:
+  - Implements formula: Priority = (Impact × Frequency × Urgency × Quality × UserWeight) / Complexity
+  - Takes 6 parameters: impact (1-10), frequency (1-10), urgency (1-10), quality (0.3-1.0), user_weight (1.0 or 2.0), complexity (1-10)
+  - Returns priority score (typically 0.03 to 200+, higher = more priority)
+  - Includes input validation for all parameters
+  - Returns rounded float (2 decimal places)
+- Added normalize_quality_score() function:
+  - Converts quality score from 0-100 scale to 0.3-1.0 scale
+  - Uses 0.3 as minimum so even low-quality feedback can be prioritized if critical
+  - Quality acts as a multiplier, not a gatekeeper
+  - Linear mapping: 0 → 0.3, 100 → 1.0
+- Added estimate_complexity_from_feedback() function:
+  - Heuristic estimation based on feedback content and type
+  - Checks for complexity indicators (database, migration, architecture, etc.)
+  - Checks for simple indicators (typo, text, color, button, etc.)
+  - Considers multiple systems involved and breaking changes
+  - Returns complexity score (1-10) with descriptive ranges
+- Created comprehensive test suite in test_priority_scorer.py:
+  - Tests priority calculation with known inputs (high, medium, low priority examples)
+  - Tests quality normalization edge cases and examples
+  - Tests complexity estimation for simple, medium, and complex changes
+  - Tests input validation (ensures ValueError raised for invalid inputs)
+  - Tests full workflow from quality score to priority calculation
+  - All tests pass successfully
+
+### Files changed
+- feedback_scorer.py: Added 3 new functions (calculate_priority_score, normalize_quality_score, estimate_complexity_from_feedback)
+- test_priority_scorer.py: New test file with comprehensive test coverage
+- scripts/ralph/prd.json: Marked PR-001 as passes=true
+
+### Learnings
+- Priority scoring formula is multiplicative for factors that increase priority, divided by complexity
+- Quality normalization uses minimum of 0.3 to prevent zero-ing out critical feedback with poor quality
+- User weight doubles priority for Priority tier users (2.0) vs Builder tier (1.0)
+- Complexity estimation is heuristic-based and should be reviewed by dev team during implementation
+- Priority scores have wide range (0.03 to 200+) which allows clear differentiation between priorities
+- High priority example: impact=9, freq=9, urgency=10, quality=0.8, weight=2.0, complexity=3 → 432.0
+- Medium priority example: impact=5, freq=5, urgency=5, quality=0.7, weight=1.0, complexity=5 → 17.5
+- Low priority example: impact=2, freq=3, urgency=2, quality=0.5, weight=1.0, complexity=8 → 0.75
+- Input validation prevents invalid scores from being calculated
+
+### Integration points
+- QS-001: Uses quality_score (0-100) which gets normalized to 0.3-1.0 for priority calculation
+- QS-002: LLM-assessed quality scores can also be normalized
+- PR-002: Priority tiers (HIGH/MEDIUM/LOW) will use these scores for categorization
+- FQ-001: Priority scores will be stored in feedback queue database
+- FQ-002: High priority items (score > 7) will be picked first by Ralph
+- FB-001: Feedback submission will calculate priority score automatically
+- BO-001: Build orchestrator will use priority scores to determine build order
+
+### Next steps for production
+1. Integrate with feedback submission flow (calculate priority on feedback creation)
+2. Store priority score in database (add priority_score column to feedback table)
+3. Implement PR-002 for priority tier categorization (HIGH/MEDIUM/LOW)
+4. Add priority score to feedback queue dashboard for visibility
+5. Allow Ralph to pick highest priority items first from queue
+6. Add admin override to manually adjust priority scores if needed
+7. Track accuracy of complexity estimates vs actual implementation time
+8. Consider LLM-based complexity estimation for more accurate predictions
+
+---
+

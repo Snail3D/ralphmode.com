@@ -696,3 +696,164 @@ def score_feedback(content: str) -> Dict[str, float]:
     """
     scorer = get_feedback_scorer()
     return scorer.calculate_quality_score(content)
+
+
+def calculate_priority_score(
+    impact: float,
+    frequency: float,
+    urgency: float,
+    quality: float,
+    user_weight: float,
+    complexity: float
+) -> float:
+    """
+    PR-001: Calculate priority score for feedback.
+
+    Priority = (Impact × Frequency × Urgency × Quality × UserWeight) / Complexity
+
+    Args:
+        impact: Impact score (1-10) - How many users affected?
+        frequency: Frequency score (1-10) - How often does this occur?
+        urgency: Urgency score (1-10) - Is this blocking critical flows?
+        quality: Quality score (0.3-1.0) - Normalized from 0-100 quality score
+        user_weight: User tier weight - Builder=1.0, Priority=2.0
+        complexity: Complexity score (1-10) - Estimated effort to fix
+
+    Returns:
+        Priority score (typically 0.03 to 200+, higher = more priority)
+
+    Examples:
+        High priority: impact=9, frequency=9, urgency=10, quality=0.8,
+                      user_weight=2.0, complexity=3 → 432.0
+
+        Medium priority: impact=5, frequency=5, urgency=5, quality=0.7,
+                        user_weight=1.0, complexity=5 → 17.5
+
+        Low priority: impact=2, frequency=3, urgency=2, quality=0.5,
+                     user_weight=1.0, complexity=8 → 0.75
+    """
+    # Validate inputs
+    if not (1 <= impact <= 10):
+        raise ValueError(f"Impact must be 1-10, got {impact}")
+    if not (1 <= frequency <= 10):
+        raise ValueError(f"Frequency must be 1-10, got {frequency}")
+    if not (1 <= urgency <= 10):
+        raise ValueError(f"Urgency must be 1-10, got {urgency}")
+    if not (0.3 <= quality <= 1.0):
+        raise ValueError(f"Quality must be 0.3-1.0, got {quality}")
+    if user_weight not in [1.0, 2.0]:
+        raise ValueError(f"UserWeight must be 1.0 (Builder) or 2.0 (Priority), got {user_weight}")
+    if not (1 <= complexity <= 10):
+        raise ValueError(f"Complexity must be 1-10, got {complexity}")
+
+    # Calculate priority score
+    priority = (impact * frequency * urgency * quality * user_weight) / complexity
+
+    return round(priority, 2)
+
+
+def normalize_quality_score(quality_score_0_100: float) -> float:
+    """
+    Convert quality score from 0-100 scale to 0.3-1.0 scale for priority calculation.
+
+    We use 0.3 as minimum (not 0) so even low-quality feedback can be prioritized
+    if it's critical. Quality acts as a multiplier, not a gatekeeper.
+
+    Args:
+        quality_score_0_100: Quality score on 0-100 scale
+
+    Returns:
+        Normalized quality score on 0.3-1.0 scale
+
+    Examples:
+        100 → 1.0 (perfect quality)
+        70 → 0.79 (good quality)
+        40 → 0.58 (medium quality)
+        0 → 0.3 (poor quality, but still processable)
+    """
+    if not (0 <= quality_score_0_100 <= 100):
+        raise ValueError(f"Quality score must be 0-100, got {quality_score_0_100}")
+
+    # Linear mapping: 0 → 0.3, 100 → 1.0
+    normalized = 0.3 + (quality_score_0_100 / 100.0) * 0.7
+
+    return round(normalized, 3)
+
+
+def estimate_complexity_from_feedback(content: str, feedback_type: str = "general") -> float:
+    """
+    Estimate implementation complexity (1-10) based on feedback content.
+
+    This is a heuristic estimate. Actual complexity should be reviewed by
+    Ralph or the dev team during implementation planning.
+
+    Complexity factors:
+    - Feature scope (new feature vs. bug fix)
+    - Multiple systems involved
+    - Database changes
+    - UI changes
+    - API changes
+    - Testing requirements
+
+    Args:
+        content: Feedback text content
+        feedback_type: Type of feedback (bug, feature, improvement, praise)
+
+    Returns:
+        Complexity estimate (1-10)
+        1-3: Simple (quick fix, UI tweak, config change)
+        4-6: Medium (single feature, isolated bug, moderate changes)
+        7-9: Complex (multiple systems, DB migration, major refactor)
+        10: Very complex (architecture change, major feature, high risk)
+    """
+    complexity = 5.0  # Base complexity (medium)
+    content_lower = content.lower()
+
+    # Bug fixes are generally simpler than features
+    if feedback_type in ["bug", "issue", "problem"]:
+        complexity -= 1
+    elif feedback_type in ["feature", "new"]:
+        complexity += 1
+
+    # Check for complexity indicators
+    complex_indicators = [
+        'database', 'migration', 'schema', 'architecture', 'refactor',
+        'authentication', 'authorization', 'security', 'payment',
+        'integration', 'api', 'webhook', 'performance', 'scale'
+    ]
+
+    complexity_count = sum(1 for word in complex_indicators if word in content_lower)
+    if complexity_count >= 3:
+        complexity += 3  # Very complex
+    elif complexity_count >= 1:
+        complexity += 1.5
+
+    # Check for simple indicators
+    simple_indicators = [
+        'typo', 'text', 'color', 'button', 'label', 'tooltip',
+        'message', 'wording', 'copy', 'formatting'
+    ]
+
+    simple_count = sum(1 for word in simple_indicators if word in content_lower)
+    if simple_count >= 2:
+        complexity -= 2  # Simple change
+    elif simple_count >= 1:
+        complexity -= 1
+
+    # Multiple systems = more complex
+    system_words = ['frontend', 'backend', 'database', 'ui', 'api', 'telegram']
+    system_count = sum(1 for word in system_words if word in content_lower)
+    if system_count >= 3:
+        complexity += 2
+    elif system_count >= 2:
+        complexity += 1
+
+    # Breaking changes = more complex
+    breaking_words = ['breaking', 'migration', 'backwards', 'compatibility', 'rewrite']
+    if any(word in content_lower for word in breaking_words):
+        complexity += 2
+
+    # Clamp to 1-10 range
+    complexity = max(1.0, min(10.0, complexity))
+
+    return round(complexity, 1)
