@@ -7149,3 +7149,43 @@ DELETE_ORIGINAL_MESSAGES=true
 - Important to make confirmation ephemeral/invisible to maintain admin command stealth
 - The invisible moderation pattern preserves group chat flow while giving admin feedback
 
+
+---
+
+## Iteration [Next] - 2026-01-10 23:40 UTC
+**Task**: [AC-003] Rate Limiting - Cooldown Periods Per User
+**Status**: ✅ Complete
+
+### What was implemented
+- Admin can set cooldown periods for users via `/admin cooldown` command or voice commands
+- Voice command parsing: "admin command: set cooldown for user 123456789 5 minutes"
+- Text command: `/admin cooldown <user_id> <duration> <unit>`
+- Supports seconds, minutes, and hours as time units
+- Tracks last message time per user in USER_COOLDOWNS dictionary
+- Blocks messages during cooldown with friendly in-character Ralph response
+- Cooldown persists until explicitly changed or removed (set to 0)
+- Integrated into both text and voice message handlers
+- Private confirmation sent to admin when cooldown is set via voice
+
+### Files changed
+- admin_handler.py: Added handle_set_cooldown(), check_user_cooldown(), record_user_message()
+- ralph_bot.py: Added handle_admin_cooldown_command(), integrated cooldown checks in handle_text_message() and handle_voice()
+- test_ac003_cooldown.py: Comprehensive test suite (all tests pass)
+
+### Learnings
+- Admin commands can be triggered both via `/admin` text commands and voice commands starting with "admin command:"
+- Voice command parsing uses regex to extract user IDs and time durations flexibly
+- Cooldown tracking uses datetime.utcnow() for consistent UTC timestamps
+- In-character responses maintain immersion even for rate limiting ("The boss put a timer on ya - nothing personal!")
+- USER_COOLDOWNS dictionary persists in memory during bot runtime
+- First message after cooldown is set is always allowed (last_message_time starts as None)
+- Cooldown check happens early in message handlers, before any other processing
+
+### Patterns discovered
+- Admin voice commands follow pattern: "admin command: <action>"
+- Cooldown storage structure: {user_id: {'cooldown_seconds': int, 'last_message_time': datetime}}
+- Helper functions (check_user_cooldown, record_user_message) keep logic DRY
+- Always import admin_handler functions conditionally when ADMIN_HANDLER_AVAILABLE
+
+---
+
