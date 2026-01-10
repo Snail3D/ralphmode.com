@@ -176,6 +176,14 @@ except ImportError:
     def mask_for_logs(value, field_name=None): return str(value)
     logging.warning("SEC-020: PII masking not available - logs may contain unmasked PII")
 
+# MU-001: Import user manager for tier system
+try:
+    from user_manager import get_user_manager, UserTier
+    USER_MANAGER_AVAILABLE = True
+except ImportError:
+    USER_MANAGER_AVAILABLE = False
+    logging.warning("MU-001: User manager not available - tier system disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -751,6 +759,13 @@ class RalphBot:
         self.onboarding_state: Dict[int, Dict] = {}  # Track onboarding progress per user
         self.pending_analysis: Dict[int, asyncio.Task] = {}  # Track background analysis tasks
         self.recent_responses: Dict[int, List[str]] = {}  # RM-010: Track last 10 responses per user for freshness
+
+        # MU-001: Initialize user manager for tier system
+        if USER_MANAGER_AVAILABLE:
+            self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
+            logging.info("MU-001: User tier system initialized")
+        else:
+            self.user_manager = None
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
@@ -5720,6 +5735,59 @@ _Grab some popcorn..._
                 with_typing=True
             )
 
+    async def password_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /password command - MU-002: Power User Authentication."""
+        if not USER_MANAGER_AVAILABLE or not self.user_manager:
+            await update.message.reply_text(
+                "Sorry, the tier system isn't available right now, Mr. Worms!",
+                parse_mode="Markdown"
+            )
+            return
+
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # Parse password from command arguments
+        args = context.args
+        if not args:
+            await update.message.reply_text(
+                "*How to use /password*\n\n"
+                "Usage: `/password YOUR_PASSWORD`\n\n"
+                "If you have the power user password, this will upgrade your access to Tier 2 (Power User).\n\n"
+                "*Current Tier System:*\n"
+                "• Tier 1: Mr. Worms (Owner) - Full control\n"
+                "• Tier 2: Power User - Can control bot actions\n"
+                "• Tier 3: Chatter - Can chat with Ralph\n"
+                "• Tier 4: Viewer - Read-only access",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Get password from args
+        password = " ".join(args)
+
+        # Try to authenticate
+        if self.user_manager.authenticate_power_user(telegram_id, password):
+            # Success!
+            tier_info = self.user_manager.get_user_info(telegram_id)
+            await update.message.reply_text(
+                f"*Access Upgraded!* 🎉\n\n"
+                f"You're now a {tier_info['tier_name']}!\n\n"
+                f"*Your Permissions:*\n"
+                f"• Control bot actions: {'Yes' if tier_info['can_control_build'] else 'No'}\n"
+                f"• Chat with Ralph: {'Yes' if tier_info['can_chat'] else 'No'}\n"
+                f"• View sessions: {'Yes' if tier_info['can_view'] else 'No'}\n\n"
+                f"Welcome to the team, boss!",
+                parse_mode="Markdown"
+            )
+        else:
+            # Failed authentication
+            await update.message.reply_text(
+                "*Access Denied* ❌\n\n"
+                "That password didn't work, Mr. Worms. Double-check it and try again!",
+                parse_mode="Markdown"
+            )
+
     async def version_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /version command - VM-003: Version Selection for Users."""
         telegram_id = update.effective_user.id
@@ -5915,6 +5983,7 @@ Use `/version <type>` to switch!
         app.add_handler(CommandHandler("mystatus", self.mystatus_command))  # QS-003 & FQ-003
         app.add_handler(CommandHandler("report", self.report_command))
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
+        app.add_handler(CommandHandler("password", self.password_command))  # MU-002
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
