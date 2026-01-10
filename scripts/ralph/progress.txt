@@ -53,3 +53,20 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 3 - 2026-01-09
+**Story**: [US-2.3] Create 'How it works' section
+**Status**: Complete
+
+### What was implemented
+- 5 step cards explaining the full Ralph workflow
+- Grid layout with responsive auto-fit columns
+- Step numbers with accent color circles
+- Code tags with syntax highlighting for commands
+- Hover effects on cards
+
+### Learnings
+- CSS grid with auto-fit and minmax for responsive card layouts
+- Inline code styling with semi-transparent accent background
+
+---
+

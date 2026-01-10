@@ -76,5 +76,47 @@
             </div>
         </div>
     </section>
+
+    <!-- How it Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-container">
+            <h2>How It Works</h2>
+            <p class="section-intro">
+                The Ralph loop runs continuously until all your user stories are complete.
+            </p>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Write Your PRD</h3>
+                    <p>Define user stories in <code>prd.json</code> with acceptance criteria. Each story is a discrete piece of work Claude can complete.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Start the Loop</h3>
+                    <p>Run <code>./ralph.sh</code> and go to sleep. Ralph spawns Claude Code with <code>--dangerously-skip-permissions</code> for full autonomy.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Claude Implements</h3>
+                    <p>Claude reads the PRD, picks the first incomplete story, implements it following the acceptance criteria, then commits.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Mark Complete</h3>
+                    <p>Claude updates <code>prd.json</code> to mark the story as done, logs progress, and the loop restarts with the next story.</p>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-number">5</div>
+                    <h3>Wake Up to Code</h3>
+                    <p>Morning arrives. Your features are implemented, tested, and committed. Review the git log and ship to prod.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 </body>
 </html>

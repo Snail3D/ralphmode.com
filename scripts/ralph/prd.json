@@ -72,7 +72,7 @@
         "Easy to understand at a glance"
       ],
       "files_likely_modified": ["index.html", "styles.css"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-2.4",
