@@ -24,6 +24,7 @@ from telegram import Update, File
 from telegram.ext import ContextTypes
 
 from database import get_db, Feedback, User, InputValidator
+from rate_limiter import check_feedback_rate_limits
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,41 @@ class FeedbackCollector:
         """
         self.groq_api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
 
+    def _get_user_ip(self, update: Update) -> str:
+        """
+        RL-001: Extract user IP address from Telegram update.
+
+        Note: Telegram doesn't directly expose user IPs in their API.
+        For Telegram bots, we use the user_id as a proxy for IP-based limiting.
+        This prevents abuse while respecting Telegram's privacy model.
+
+        Args:
+            update: Telegram update object
+
+        Returns:
+            User identifier (telegram_id as string for IP limiting purposes)
+        """
+        if update and update.effective_user:
+            # Use telegram user_id as proxy for IP-based rate limiting
+            return f"telegram_{update.effective_user.id}"
+        return "unknown"
+
+    def _is_priority_user(self, user) -> bool:
+        """
+        RL-001: Check if user has priority tier (gets 2x rate limits).
+
+        Args:
+            user: User database object
+
+        Returns:
+            True if user has Builder+ or Priority tier
+        """
+        if not user:
+            return False
+
+        priority_tiers = ["builder", "builder+", "priority", "enterprise"]
+        return user.subscription_tier.lower() in priority_tiers
+
     async def collect_text_feedback(
         self,
         user_id: int,
@@ -54,7 +90,8 @@ class FeedbackCollector:
         content: str,
         feedback_type: str = "general",
         metadata: Optional[Dict[str, Any]] = None,
-        weight: float = 1.0
+        weight: float = 1.0,
+        update: Optional[Update] = None
     ) -> Optional[int]:
         """
         Collect text-based feedback.
@@ -66,9 +103,11 @@ class FeedbackCollector:
             feedback_type: Type of feedback (bug, feature, improvement, praise)
             metadata: Optional metadata (source, context, etc.)
             weight: FB-002 subscription weight (0.0=free, 1.0=builder, 2.0=priority, 3.0=enterprise)
+            update: Optional Telegram update (for IP-based rate limiting)
 
         Returns:
             Feedback ID if successful, None otherwise
+            Returns -1 if rate limited (use this to show friendly message)
         """
         # Validate input
         validated_telegram_id = InputValidator.validate_telegram_id(telegram_id)
@@ -95,6 +134,27 @@ class FeedbackCollector:
                     )
                     db.add(user)
                     db.flush()
+
+                # RL-001: Check IP-based rate limits
+                if update:
+                    user_ip = self._get_user_ip(update)
+                    is_priority = self._is_priority_user(user)
+
+                    allowed, error_metadata = check_feedback_rate_limits(
+                        ip_address=user_ip,
+                        is_priority=is_priority
+                    )
+
+                    if not allowed:
+                        logger.warning(
+                            f"Rate limit exceeded for user {telegram_id} "
+                            f"({error_metadata['limit_type']} limit: {error_metadata['limit']})"
+                        )
+                        # Store error metadata for caller to use in friendly message
+                        if metadata is None:
+                            metadata = {}
+                        metadata['rate_limit_error'] = error_metadata
+                        return -1  # Signal rate limit exceeded
 
                 # Create feedback entry
                 # FB-002: Use subscription weight as base priority_score
@@ -167,7 +227,8 @@ class FeedbackCollector:
                 telegram_id=telegram_id,
                 content=transcription,
                 feedback_type="general",
-                metadata=metadata
+                metadata=metadata,
+                update=update  # RL-001: Pass update for rate limiting
             )
 
             logger.info(f"Collected voice feedback from user {telegram_id}: {feedback_id}")
@@ -220,7 +281,8 @@ class FeedbackCollector:
                 telegram_id=telegram_id,
                 content=content,
                 feedback_type="bug" if "bug" in content.lower() else "general",
-                metadata=metadata
+                metadata=metadata,
+                update=update  # RL-001: Pass update for rate limiting
             )
 
             logger.info(f"Collected screenshot feedback from user {telegram_id}: {feedback_id}")
@@ -248,6 +310,22 @@ class FeedbackCollector:
         # For now, return placeholder
         logger.warning("Voice transcription not yet implemented - using placeholder")
         return None
+
+    def get_rate_limit_message(self, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """
+        RL-001: Get friendly rate limit error message from metadata.
+
+        Args:
+            metadata: Metadata dict that may contain rate_limit_error
+
+        Returns:
+            Friendly error message or None
+        """
+        if not metadata or 'rate_limit_error' not in metadata:
+            return None
+
+        error = metadata['rate_limit_error']
+        return error.get('message', 'Rate limit exceeded. Please try again later.')
 
     def classify_feedback_type(self, content: str) -> str:
         """

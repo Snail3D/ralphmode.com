@@ -57,6 +57,13 @@ class RateLimitConfig:
     FEEDBACK_PER_USER_HOUR = 5
     FEEDBACK_PER_USER_DAY = 20
 
+    # RL-001: Feedback endpoints (per IP)
+    FEEDBACK_PER_IP_HOUR = 5
+    FEEDBACK_PER_IP_DAY = 20
+
+    # RL-001: Priority tier multiplier (2x limits)
+    PRIORITY_MULTIPLIER = 2
+
     # Admin endpoints (per admin user)
     ADMIN_PER_USER_MINUTE = 100
     ADMIN_PER_USER_HOUR = 1000
@@ -540,6 +547,65 @@ def rate_limit_feedback():
         custom_limit=RateLimitConfig.FEEDBACK_PER_USER_HOUR,
         custom_window=RateLimitConfig.WINDOW_HOUR
     )
+
+
+def check_feedback_rate_limits(
+    ip_address: str,
+    is_priority: bool = False
+) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """
+    RL-001: Check IP-based rate limits for feedback submissions.
+
+    Checks both hourly and daily limits. Priority tier gets 2x limits.
+
+    Args:
+        ip_address: Client IP address
+        is_priority: Whether user has priority tier (Builder+ or Priority)
+
+    Returns:
+        Tuple of (is_allowed, error_metadata)
+        - is_allowed: True if request is within limits
+        - error_metadata: Dict with error info if blocked, None otherwise
+    """
+    # RL-001: Apply priority multiplier
+    multiplier = RateLimitConfig.PRIORITY_MULTIPLIER if is_priority else 1
+
+    hourly_limit = RateLimitConfig.FEEDBACK_PER_IP_HOUR * multiplier
+    daily_limit = RateLimitConfig.FEEDBACK_PER_IP_DAY * multiplier
+
+    # Check hourly limit
+    allowed_hourly, metadata_hourly = RateLimiter.check_rate_limit(
+        identifier=ip_address,
+        limit=hourly_limit,
+        window=RateLimitConfig.WINDOW_HOUR,
+        scope='feedback_ip_hour'
+    )
+
+    if not allowed_hourly:
+        return False, {
+            'limit_type': 'hourly',
+            'limit': hourly_limit,
+            'retry_after': metadata_hourly['retry_after'],
+            'message': f"You've reached the hourly feedback limit ({hourly_limit}/hour). Try again in {metadata_hourly['retry_after']} seconds."
+        }
+
+    # Check daily limit
+    allowed_daily, metadata_daily = RateLimiter.check_rate_limit(
+        identifier=ip_address,
+        limit=daily_limit,
+        window=RateLimitConfig.WINDOW_DAY,
+        scope='feedback_ip_day'
+    )
+
+    if not allowed_daily:
+        return False, {
+            'limit_type': 'daily',
+            'limit': daily_limit,
+            'retry_after': metadata_daily['retry_after'],
+            'message': f"You've reached the daily feedback limit ({daily_limit}/day). Try again tomorrow!"
+        }
+
+    return True, None
 
 
 def rate_limit_admin():
