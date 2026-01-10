@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DP-001 & DP-002: Staging and Canary Deployment Manager for Ralph Mode Bot
+DP-001, DP-002, DP-003: Deployment Manager for Ralph Mode Bot
 
 This service handles:
 - DP-001: Auto-deploy passing builds to staging environment
@@ -9,7 +9,9 @@ This service handles:
 - DP-002: Canary deployment with 5% traffic split
 - DP-002: Monitor error rates vs baseline for 30 minutes
 - DP-002: Auto-promote if healthy (error rate < 2x baseline)
-- DP-002: Auto-rollback if unhealthy
+- DP-003: Auto-rollback if error rate > 2x baseline
+- DP-003: Notify admin of rollback events
+- DP-003: Mark feedback items as failed on rollback
 - Integration with build orchestrator
 
 Usage:
@@ -21,10 +23,12 @@ Usage:
     if result.success:
         print(f"Deployed to {result.staging_url}")
 
-    # Deploy to canary (DP-002)
+    # Deploy to canary (DP-002 + DP-003)
     result = dm.deploy_to_canary(feedback_id=123)
     if result.success and result.promoted:
         print(f"Promoted to production!")
+    elif result.rolled_back:
+        print(f"Rolled back: {result.error_message}")
 """
 
 import os
@@ -604,10 +608,11 @@ class DeployManager:
                     f"Canary deployment is UNHEALTHY: {observation_result['reason']}. "
                     "Auto-rolling back."
                 )
-                if self._rollback_canary(feedback_id):
+                rollback_reason = observation_result['reason']
+                if self._rollback_canary(feedback_id, reason=rollback_reason):
                     result.status = CanaryStatus.ROLLED_BACK
                     result.rolled_back = True
-                    result.error_message = f"Rolled back: {observation_result['reason']}"
+                    result.error_message = f"Rolled back: {rollback_reason}"
                 else:
                     result.error_message = "Failed to rollback canary"
                     result.status = CanaryStatus.UNHEALTHY
@@ -934,18 +939,19 @@ class DeployManager:
             logger.error(f"Error promoting canary to production: {e}", exc_info=True)
             return False
 
-    def _rollback_canary(self, feedback_id: int) -> bool:
+    def _rollback_canary(self, feedback_id: int, reason: str = "") -> bool:
         """
-        Rollback canary deployment (stop canary service).
+        DP-003: Rollback canary deployment (stop canary service).
 
         Args:
             feedback_id: Feedback item ID
+            reason: Reason for rollback
 
         Returns:
             True if successful, False otherwise
         """
         try:
-            logger.info("Rolling back canary deployment...")
+            logger.info(f"Rolling back canary deployment (reason: {reason})...")
 
             # Stop canary service
             kill_cmd = [
@@ -961,12 +967,87 @@ class DeployManager:
                 timeout=30
             )
 
+            # DP-003: Notify admin of rollback
+            self._notify_admin_rollback(feedback_id, reason)
+
+            # DP-003: Mark feedback item as failed
+            self._mark_feedback_failed(feedback_id, reason)
+
             logger.info("Canary service stopped (rollback complete)")
             return True
 
         except Exception as e:
             logger.error(f"Error rolling back canary: {e}", exc_info=True)
             return False
+
+    def _notify_admin_rollback(self, feedback_id: int, reason: str):
+        """
+        DP-003: Notify admin of rollback event.
+
+        Args:
+            feedback_id: Feedback item ID
+            reason: Reason for rollback
+        """
+        try:
+            admin_email = os.getenv('ADMIN_EMAIL')
+            notification_webhook = os.getenv('NOTIFICATION_WEBHOOK')
+
+            message = (
+                f"🚨 ROLLBACK ALERT\n\n"
+                f"Feedback ID: {feedback_id}\n"
+                f"Reason: {reason}\n"
+                f"Time: {datetime.utcnow().isoformat()}\n"
+                f"Action: Canary deployment rolled back, production unaffected\n"
+            )
+
+            logger.warning(f"ROLLBACK NOTIFICATION: {message}")
+
+            # If webhook is configured, send notification
+            if notification_webhook:
+                try:
+                    requests.post(
+                        notification_webhook,
+                        json={'text': message},
+                        timeout=10
+                    )
+                    logger.info("Rollback notification sent to webhook")
+                except Exception as e:
+                    logger.error(f"Failed to send webhook notification: {e}")
+
+            # TODO: Email notification if admin_email is configured
+            # This would require SMTP setup
+
+        except Exception as e:
+            logger.error(f"Error notifying admin of rollback: {e}", exc_info=True)
+
+    def _mark_feedback_failed(self, feedback_id: int, reason: str):
+        """
+        DP-003: Mark feedback item as failed in database.
+
+        Args:
+            feedback_id: Feedback item ID
+            reason: Failure reason
+        """
+        try:
+            # This would integrate with the feedback queue database (FQ-001)
+            # For now, we'll write to a file that can be picked up by the feedback system
+
+            feedback_status_file = Path(f'/tmp/feedback_status_{feedback_id}.json')
+            status_data = {
+                'feedback_id': feedback_id,
+                'status': 'failed',
+                'reason': reason,
+                'timestamp': datetime.utcnow().isoformat(),
+                'stage': 'canary'
+            }
+
+            with open(feedback_status_file, 'w') as f:
+                json.dump(status_data, f, indent=2)
+
+            logger.info(f"Feedback {feedback_id} marked as failed: {reason}")
+
+        except Exception as e:
+            logger.error(f"Error marking feedback as failed: {e}", exc_info=True)
 
     def record_request_metric(self, environment: str, latency_ms: float, is_error: bool = False):
         """
