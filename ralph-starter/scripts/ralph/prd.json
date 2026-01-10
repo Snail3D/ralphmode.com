@@ -3738,7 +3738,7 @@
         "rate_limiter.py",
         "api_server.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-012",

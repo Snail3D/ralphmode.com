@@ -7,6 +7,7 @@ Implements:
 - SEC-005: Sensitive Data Exposure Prevention
 - SEC-006: Broken Access Control Prevention
 - SEC-007: Security Misconfiguration Prevention
+- SEC-011: API Rate Limiting
 """
 
 import os
@@ -41,6 +42,17 @@ from rbac import (
     require_role,
     require_ownership,
     require_subscription
+)
+
+# SEC-011: Import rate limiting
+from rate_limiter import (
+    rate_limit,
+    rate_limit_ip,
+    rate_limit_user,
+    rate_limit_auth,
+    rate_limit_feedback,
+    rate_limit_admin,
+    RateLimitConfig
 )
 
 # SEC-005: Load configuration from secure secret manager
@@ -377,6 +389,7 @@ def require_resource_access(resource_type: str, resource_id_param: str, action: 
 # API Endpoints
 
 @app.route('/api/csrf-token', methods=['GET'])
+@rate_limit_ip()  # SEC-011: Global rate limit per IP
 def get_csrf_token():
     """
     Get a CSRF token for the current session.
@@ -385,6 +398,8 @@ def get_csrf_token():
     1. Creates or retrieves session ID
     2. Generates CSRF token tied to session
     3. Sets CSRF cookie for double-submit pattern
+
+    SEC-011: Rate limited to prevent abuse
     """
     # Ensure session exists
     if 'id' not in session:
@@ -416,12 +431,14 @@ def get_csrf_token():
 @csrf_protect
 @require_auth
 @require_api_permission(Permission.FEEDBACK_CREATE)
+@rate_limit_feedback()  # SEC-011: 5 req/hour per user
 def submit_feedback():
     """
     Submit feedback endpoint.
 
     SEC-003: CSRF protected
     SEC-006: Requires authentication and FEEDBACK_CREATE permission
+    SEC-011: Rate limited to 5 requests per hour per user
     """
     user_id = get_current_user_id()
     data = request.get_json()
@@ -458,11 +475,13 @@ def submit_feedback():
 
 @app.route('/api/feedback/<feedback_id>', methods=['GET'])
 @require_auth
+@rate_limit_ip()  # SEC-011: Global rate limit
 def get_feedback(feedback_id):
     """
     Get feedback by ID.
 
     SEC-006: User must have permission to view feedback
+    SEC-011: Rate limited to prevent abuse
     """
     user_id = get_current_user_id()
 
@@ -491,12 +510,14 @@ def get_feedback(feedback_id):
 @csrf_protect
 @require_auth
 @require_resource_access('feedback', 'feedback_id', 'edit')
+@rate_limit_feedback()  # SEC-011: 5 req/hour per user
 def edit_feedback(feedback_id):
     """
     Edit feedback.
 
     SEC-003: CSRF protected
     SEC-006: User must own the feedback or have edit_any permission
+    SEC-011: Rate limited to 5 requests per hour per user
     """
     user_id = get_current_user_id()
     data = request.get_json()
@@ -522,12 +543,14 @@ def edit_feedback(feedback_id):
 @csrf_protect
 @require_auth
 @require_resource_access('feedback', 'feedback_id', 'delete')
+@rate_limit_ip()  # SEC-011: Global rate limit
 def delete_feedback(feedback_id):
     """
     Delete feedback.
 
     SEC-003: CSRF protected
     SEC-006: User must own the feedback or have delete_any permission
+    SEC-011: Rate limited to prevent abuse
     """
     user_id = get_current_user_id()
 
@@ -543,11 +566,13 @@ def delete_feedback(feedback_id):
 @app.route('/api/admin/users', methods=['GET'])
 @require_auth
 @require_api_role(Role.ADMIN)
+@rate_limit_admin()  # SEC-011: 100 req/min per admin
 def list_users():
     """
     List all users (admin only).
 
     SEC-006: Only admins can access this endpoint
+    SEC-011: Rate limited to 100 requests per minute per admin
     """
     user_id = get_current_user_id()
 
@@ -569,12 +594,14 @@ def list_users():
 @csrf_protect
 @require_auth
 @require_api_role(Role.ADMIN)
+@rate_limit_admin()  # SEC-011: 100 req/min per admin
 def change_user_role(target_user_id):
     """
     Change user role (admin only).
 
     SEC-003: CSRF protected
     SEC-006: Only admins can change roles
+    SEC-011: Rate limited to 100 requests per minute per admin
     """
     user_id = get_current_user_id()
     data = request.get_json()
@@ -614,12 +641,18 @@ def change_user_role(target_user_id):
 
 
 @app.route('/api/health', methods=['GET'])
+@rate_limit_ip()  # SEC-011: Global rate limit
 def health_check():
-    """Health check endpoint (no CSRF needed for GET)"""
+    """
+    Health check endpoint (no CSRF needed for GET)
+
+    SEC-011: Rate limited to prevent abuse
+    """
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'csrf_protection': 'enabled'
+        'csrf_protection': 'enabled',
+        'rate_limiting': 'enabled'
     })
 
 
@@ -711,6 +744,11 @@ if __name__ == '__main__':
     print(f"🔒 CSRF Protection: ENABLED")
     print(f"🔒 Data Encryption: ENABLED (AES-256-GCM)")
     print(f"🔒 RBAC: ENABLED")
+    print(f"🔒 Rate Limiting: ENABLED (SEC-011)")
+    print(f"   - Global: {RateLimitConfig.GLOBAL_PER_IP_MINUTE} req/min per IP")
+    print(f"   - Auth: {RateLimitConfig.AUTH_PER_IP_MINUTE} req/min per IP")
+    print(f"   - Feedback: {RateLimitConfig.FEEDBACK_PER_USER_HOUR} req/hour per user")
+    print(f"   - Admin: {RateLimitConfig.ADMIN_PER_USER_MINUTE} req/min per admin")
     print(f"🔒 HSTS: ENABLED (max-age=31536000)")
     print(f"🔒 TLS 1.3: REQUIRED")
     print(f"🔒 Security Misconfiguration Prevention: ENABLED")
