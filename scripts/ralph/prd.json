@@ -31,7 +31,9 @@
         "Document DNS settings in CLAUDE.md"
       ],
       "files_likely_modified": ["CLAUDE.md"],
-      "passes": false
+      "passes": false,
+      "blocked": true,
+      "notes": "REQUIRES HUMAN ACTION: Log into GoDaddy and follow instructions in CLAUDE.md. Domain currently parked at Afternic."
     },
     {
       "id": "US-2.1",

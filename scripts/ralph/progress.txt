@@ -166,3 +166,26 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 9 - 2026-01-10
+**Story**: [US-1.2] Configure GoDaddy DNS
+**Status**: ⏸️ BLOCKED - Requires human action
+
+### What was done
+- Checked current DNS status: domain parked at Afternic
+- Documented complete DNS setup instructions in CLAUDE.md
+- Instructions include:
+  1. Changing nameservers from Afternic to GoDaddy
+  2. Configuring A records
+  3. Getting SSL certificate after DNS propagates
+
+### Why it's blocked
+- DNS configuration requires logging into GoDaddy account
+- This is a manual step that cannot be automated by the agent
+
+### Next steps for human
+1. Log into GoDaddy: https://dcc.godaddy.com
+2. Follow instructions in CLAUDE.md under "GoDaddy DNS Setup"
+3. Once DNS propagates, run certbot for SSL
+
+---
+
