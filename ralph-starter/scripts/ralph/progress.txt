@@ -709,3 +709,115 @@ Project: Ralph Mode Bot
 
 ---
 
+
+## Iteration 20 - 2026-01-10
+**Task**: [SEC-004] Broken Authentication Prevention
+**Status**: ✅ Complete
+
+### What was implemented
+- Created auth.py - Enterprise-grade authentication with OWASP best practices:
+  - PasswordHasher class using bcrypt with cost factor 12 (2^12 = 4096 rounds)
+    - hash_password() - bcrypt hashing with auto-generated salt
+    - verify_password() - constant-time password verification
+  - PasswordValidator class with strong requirements:
+    - Minimum 12 characters
+    - At least 1 uppercase, 1 lowercase, 1 digit, 1 special character
+    - Common weak password detection
+  - AccountLockout class for brute-force protection:
+    - record_failed_attempt() - tracks failed logins per user
+    - is_account_locked() - locks after 5 failed attempts
+    - Auto-unlock after 15 minutes
+    - Reset counter on successful login
+  - MFAManager class for optional 2FA (TOTP):
+    - generate_secret() - base32 TOTP secret
+    - get_provisioning_uri() - QR code URI for authenticator apps
+    - verify_totp() - time-based token validation
+    - generate_backup_codes() - 10 recovery codes
+    - Works with Google Authenticator, Authy, 1Password
+  - PasswordReset class for secure reset flow:
+    - generate_reset_token() - 32-byte cryptographically random token
+    - verify_reset_token() - validates and checks expiration (1 hour)
+    - invalidate_reset_token() - one-time use tokens
+  - CredentialSanitizer class prevents leakage:
+    - sanitize_for_logging() - redacts passwords, tokens, secrets
+    - is_safe_for_url() - detects credential-like values
+    - Regex patterns for password, token, secret, api_key, auth
+  - AuthManager class ties everything together:
+    - hash_password() - validates strength then hashes
+    - authenticate() - full auth flow with lockout + MFA
+    - Returns detailed results (success, error, requires_mfa, locked_until)
+- Created session_manager.py - Secure session handling:
+  - TokenManager class for cryptographic tokens:
+    - generate_token() - 32-byte (64 hex char) random tokens using secrets module
+    - hash_token() - SHA256 hash before storage (defense in depth)
+    - verify_token_format() - validates token structure
+  - Session class with expiration tracking:
+    - created_at, last_activity, expires_at timestamps
+    - is_expired() - checks both inactivity (1 hour) and absolute (24 hours)
+    - update_activity() - extends session on each request
+    - IP address and user agent tracking for hijacking detection
+  - SessionStore class (in-memory, replaceable with Redis/DB):
+    - add() - stores session, enforces max 5 sessions per user
+    - get() - retrieves session by hashed token
+    - remove() - deletes session
+    - get_user_sessions() - lists all active sessions for user
+    - cleanup_all_expired() - periodic cleanup of expired sessions
+  - SessionManager class for high-level operations:
+    - create_session() - generates token, creates session
+    - validate_session() - verifies token, checks expiration, updates activity
+    - end_session() - logout (single session)
+    - end_all_user_sessions() - logout all devices (password change)
+    - get_session_data() / set_session_data() - store session data (max 4KB)
+    - get_cookie_config() - returns secure cookie settings
+  - Secure cookie configuration:
+    - httponly: True - prevents JavaScript access (XSS protection)
+    - secure: True - HTTPS only
+    - samesite: 'Strict' - prevents CSRF
+    - max_age: 3600 - 1 hour inactivity timeout
+  - require_session decorator for protected routes
+- Created test_auth.py - Comprehensive test suite (27 tests):
+  - TestSEC004Authentication class covers all acceptance criteria:
+    - AC1: Password hashing (6 tests) - bcrypt, cost factor, verification, strength
+    - AC2: Account lockout (4 tests) - 5 attempts, duration, reset, auth flow
+    - AC3: Session tokens (3 tests) - randomness, uniqueness, unpredictability
+    - AC4: Session expiration (3 tests) - timeout config, activity, expiration
+    - AC5: Secure cookies (2 tests) - flags (HttpOnly, Secure, SameSite)
+    - AC6: MFA/2FA (4 tests) - secret generation, enable, auth flow, backup codes
+    - AC7: Credential sanitization (3 tests) - logging, patterns, URL safety
+    - Integration tests (2 tests) - full auth flow, password reset flow
+  - All 27 tests passing ✅
+- Installed dependencies:
+  - bcrypt 4.3.0 - password hashing
+  - pyotp 2.9.0 - TOTP for 2FA (optional)
+
+### Files changed
+- auth.py (new, 859 lines)
+- session_manager.py (new, 798 lines)
+- test_auth.py (new, 565 lines)
+- scripts/ralph/prd.json (SEC-004 passes: true)
+
+### Learnings
+- Bcrypt cost factor 12 balances security and performance (4096 rounds)
+- Auto-generated salts ensure same password gets different hashes
+- Account lockout must reset on successful login to avoid permanent lockout
+- Lockout duration should balance security (prevent brute force) vs UX (allow retry)
+- Session tokens must be cryptographically random (secrets.token_hex)
+- Hashing tokens before storage adds defense-in-depth (compromised DB less useful)
+- Session inactivity timeout extends on each request (sliding window)
+- Absolute timeout prevents indefinite sessions even with activity
+- HttpOnly cookies prevent XSS token theft via JavaScript
+- Secure flag prevents token interception on HTTP (HTTPS only)
+- SameSite=Strict prevents CSRF attacks using session cookies
+- MFA/2FA dramatically increases security even with weak passwords
+- TOTP is standardized (RFC 6238) - works with all authenticator apps
+- Backup codes are critical for MFA account recovery
+- Password reset tokens must be one-time use and short-lived (1 hour)
+- Credential sanitization prevents accidental password leakage in logs
+- Regex patterns must capture and replace credential values, not just keywords
+- Session hijacking detection via IP/UA is tricky (VPNs, mobile networks change)
+- Multi-device session management needs max session limits per user
+- In-memory session storage is fine for development, use Redis for production
+- Session cleanup prevents memory exhaustion on long-running servers
+- All 7 acceptance criteria met with comprehensive test coverage
+
+---

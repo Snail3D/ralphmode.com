@@ -3145,7 +3145,7 @@
         "No credentials in URLs or logs"
       ],
       "files_likely_modified": ["auth.py", "session_manager.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-005",
