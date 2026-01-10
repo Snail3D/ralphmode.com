@@ -2000,17 +2000,74 @@
     {
       "id": "VO-001",
       "category": "Voice-Only Input",
-      "title": "Block Text Messages with Friendly Explanation",
-      "description": "Text input is blocked. Only voice messages allowed. Respond with friendly in-character explanation.",
+      "title": "Admin Text Input - Translated to Scene",
+      "description": "UPDATED: Admin/owner CAN type text. Text gets translated into theatrical scene just like voice. Non-admins still voice-only or limited based on tier.",
       "acceptance_criteria": [
-        "Detect text message (not voice)",
-        "Block from processing",
-        "Reply in character: Ralph confused by 'written notes'",
-        "Explain to use voice: 'Mr. Worms usually just tells us what to do'",
-        "Keep it funny and in-scene",
-        "Don't break immersion with technical explanation"
+        "Mr. Worms (Tier 1) can type OR use voice",
+        "Power Users (Tier 2) can type OR use voice",
+        "Text input translated same as voice would be",
+        "Angry text → *slams message on desk*",
+        "Questions → *leans in, curious look*",
+        "Commands → *points at the board*",
+        "Original text message can be deleted after translation",
+        "Tier 3/4 may be voice-only (configurable)",
+        "Comprehensive input: voice, text, files all work for admin"
       ],
       "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-005",
+      "category": "Voice-Only Input",
+      "title": "Document/File Attachment Translation",
+      "description": "When admin drops files, documents, images - translate into scene action. 'Mr. Worms slaps a folder on the desk.' Documents become physical objects in the scene.",
+      "acceptance_criteria": [
+        "Detect file/document attachments",
+        "Translate to scene: '*Mr. Worms drops a thick folder on Ralph's desk*'",
+        "Different file types = different objects:",
+        "  - PDFs/docs → folders, papers, binders",
+        "  - Images → photos, printouts, screenshots",
+        "  - Zip files → boxes, packages",
+        "  - Code files → technical specs, blueprints",
+        "Vary the actions: drops, slaps, slides, throws gently",
+        "File content still processed normally behind scenes",
+        "Scene description always fresh, never canned"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "translation_engine.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-006",
+      "category": "Voice-Only Input",
+      "title": "Multi-Input Session Support",
+      "description": "Admin can combine inputs in one session: voice + text + files. All get woven into coherent scene.",
+      "acceptance_criteria": [
+        "Handle voice message followed by text clarification",
+        "Handle text followed by file attachment",
+        "All inputs combined into flowing narrative",
+        "Scene stays coherent across input types",
+        "Example: Voice 'here's the code' + zip file → '*Mr. Worms sets down his coffee and slides a heavy box across the table*'",
+        "Timestamps/ordering preserved",
+        "Natural flow like real conversation"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "session_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-007",
+      "category": "Voice-Only Input",
+      "title": "Context Paste Support",
+      "description": "Admin can paste in large context blocks (code, logs, docs). Gets summarized and presented as 'documentation' in scene.",
+      "acceptance_criteria": [
+        "Detect large text pastes (>500 chars)",
+        "Summarize for scene presentation",
+        "Scene: '*Mr. Worms hands over a stack of technical documentation*'",
+        "Full content passed to workers behind scenes",
+        "Only summary/description shown in chat",
+        "Preserves immersion while allowing rich context",
+        "Workers can reference 'the documents Mr. Worms provided'"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "context_handler.py"],
       "passes": false
     },
     {
@@ -2445,6 +2502,36 @@
     "Mental health matters - care for the human, not just the session",
     "Grounded in reality - time, weather, the world outside the MUD",
     "The fool who stumbles into wisdom - Ralph's simple truths",
-    "High bar for breaking immersion - only when truly needed"
+    "High bar for breaking immersion - only when truly needed",
+    "WESTWORLD RULE: NEVER break character. Edge tests get innocent confusion.",
+    "Malicious input becomes *Ralph tilts head, confused* - stay in scene",
+    "Even if user tries to break the 4th wall, Ralph doesn't understand",
+    "Translate hostile input into innocent in-scene versions",
+    "The hosts don't know they're hosts - and never will"
+  ],
+
+  "scalability_notes": [
+    "Design for 10M+ users from day one",
+    "System CANNOT lock up - always have recovery ready",
+    "Failsafe processes to unlock/restart if stuck",
+    "Graceful degradation - reduced features > no features",
+    "Queue management for high load",
+    "Rate limiting to prevent abuse",
+    "Horizontal scaling ready (multiple bot instances)",
+    "Database designed for scale (not JSON files in prod)",
+    "CDN for static assets (GIFs, images)",
+    "Monitoring and alerting for issues",
+    "Auto-recovery from crashes",
+    "Separate hot/cold paths for critical vs nice-to-have features"
+  ],
+
+  "website_features": [
+    "Alpha download - testing version for early adopters",
+    "Beta download - more stable for wider testing",
+    "Live development stream - watch it being built",
+    "Changelog and roadmap visible",
+    "Community feedback integration",
+    "Documentation for self-hosting",
+    "Pricing and upgrade paths clear"
   ]
 }

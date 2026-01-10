@@ -39,6 +39,16 @@ from telegram.ext import (
     filters,
 )
 
+# BC-001: Import sanitizer for broadcast-safe output
+try:
+    from sanitizer import sanitize_for_groq, sanitize_for_telegram, get_sanitizer
+    SANITIZER_AVAILABLE = True
+except ImportError:
+    SANITIZER_AVAILABLE = False
+    def sanitize_for_groq(text): return text
+    def sanitize_for_telegram(text): return text
+    def get_sanitizer(): return None
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -2801,8 +2811,16 @@ If asked about something you didn't observe, honestly say you don't know."""},
     # ==================== AI CALLS ====================
 
     def call_groq(self, model: str, messages: list, max_tokens: int = 500) -> str:
-        """Call Groq API."""
+        """Call Groq API with BC-001 sanitization."""
         try:
+            # BC-001: Sanitize all messages BEFORE Groq sees them
+            sanitized_messages = []
+            for msg in messages:
+                sanitized_msg = msg.copy()
+                if 'content' in sanitized_msg:
+                    sanitized_msg['content'] = sanitize_for_groq(sanitized_msg['content'])
+                sanitized_messages.append(sanitized_msg)
+
             response = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={
@@ -2811,14 +2829,17 @@ If asked about something you didn't observe, honestly say you don't know."""},
                 },
                 json={
                     "model": model,
-                    "messages": messages,
+                    "messages": sanitized_messages,
                     "temperature": 0.7,
                     "max_tokens": max_tokens
                 },
                 timeout=60
             )
             result = response.json()
-            return result.get("choices", [{}])[0].get("message", {}).get("content", "...")
+            response_text = result.get("choices", [{}])[0].get("message", {}).get("content", "...")
+
+            # BC-002: Sanitize output too (belt and suspenders)
+            return sanitize_for_telegram(response_text)
         except Exception as e:
             logger.error(f"Groq error: {e}")
             return f"[AI Error: {e}]"
