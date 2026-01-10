@@ -3008,6 +3008,45 @@ class RalphBot:
 
         return ' '.join(result)
 
+    def detect_admin_command(self, text: str) -> bool:
+        """AC-001: Detect if text is an admin command trigger phrase.
+
+        Admin commands are voice messages that start with trigger phrases like:
+        - "admin command:"
+        - "admin:"
+        - "hey admin"
+        - "admin mode"
+
+        These commands are processed but NEVER shown in chat.
+
+        Args:
+            text: Transcribed text to check
+
+        Returns:
+            True if text starts with admin trigger phrase, False otherwise
+        """
+        if not text:
+            return False
+
+        text_lower = text.lower().strip()
+
+        # AC-001: Admin command trigger phrases
+        admin_triggers = [
+            'admin command:',
+            'admin command',
+            'admin:',
+            'hey admin',
+            'admin mode',
+            'admin please',
+        ]
+
+        # Check if text starts with any trigger phrase
+        for trigger in admin_triggers:
+            if text_lower.startswith(trigger):
+                return True
+
+        return False
+
     def _detect_text_tone(self, text: str) -> str:
         """
         VO-001: Detect emotional tone from text for scene translation.
@@ -5316,6 +5355,68 @@ _Grab some popcorn..._
             parse_mode="Markdown"
         )
 
+    async def process_admin_voice_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, transcription: str):
+        """AC-001: Process admin voice commands (never shown in chat).
+
+        Admin commands are voice messages starting with trigger phrases like "admin command:"
+        These are processed silently - no messages shown in chat, only actions performed.
+
+        Only Mr. Worms (Tier 1) can use admin commands.
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            transcription: The transcribed voice message text
+
+        Returns:
+            None (all actions are silent)
+        """
+        user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # AC-001: Only Tier 1 (Mr. Worms) can use admin commands
+        if USER_MANAGER_AVAILABLE:
+            try:
+                from user_manager import UserTier
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                if user_tier != UserTier.TIER_1_OWNER:
+                    # AC-001: Non-Tier-1 users get no response (silent rejection)
+                    logging.warning(f"AC-001: Non-Tier-1 user {telegram_id} ({user_tier.display_name}) attempted admin command")
+                    return
+            except Exception as e:
+                logging.error(f"AC-001: Error checking tier for admin command: {e}")
+                return
+        else:
+            # AC-001: If user manager not available, check if user is the admin from env
+            admin_id = os.getenv('TELEGRAM_ADMIN_ID')
+            if admin_id and str(telegram_id) != admin_id:
+                logging.warning(f"AC-001: Non-admin user {telegram_id} attempted admin command (no user manager)")
+                return
+
+        # AC-001: Extract command after trigger phrase
+        text_lower = transcription.lower().strip()
+        command_text = transcription.strip()
+
+        # Remove trigger phrase from command
+        for trigger in ['admin command:', 'admin command', 'admin:', 'hey admin', 'admin mode', 'admin please']:
+            if text_lower.startswith(trigger):
+                command_text = transcription[len(trigger):].strip()
+                break
+
+        logging.info(f"AC-001: Processing admin voice command from Tier 1 user {telegram_id}: {command_text[:50]}...")
+
+        # AC-001: Route to admin handler
+        # For now, we log the command and acknowledge silently
+        # Future enhancement: parse and execute specific admin commands
+
+        # Silent acknowledgment - no chat message sent
+        # The command is logged but user gets no feedback in chat
+        # This maintains the "invisible moderation" principle
+
+        logging.info(f"AC-001: Admin voice command processed silently: {command_text[:100]}")
+
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle voice messages - VO-004: Full voice-to-intent pipeline with tone analysis."""
         user_id = update.effective_user.id
@@ -5364,6 +5465,20 @@ _Grab some popcorn..._
                 logger.info(f"VO-004: Pipeline success - Transcription: {transcription[:100]}...")
                 logger.info(f"VO-004: Tone: {tone_data['primary_tone']} ({tone_data['intensity']})")
                 logger.info(f"VO-004: Intent: {intent_data['intent_type']} (confidence: {intent_data['confidence']})")
+
+                # AC-001: Check if this is an admin command (never shown in chat)
+                if self.detect_admin_command(transcription):
+                    logger.info(f"AC-001: Admin command detected in voice message")
+                    # AC-001: Delete the voice message silently (no replacement message)
+                    if DELETE_ORIGINAL_MESSAGES:
+                        try:
+                            await update.message.delete()
+                            logger.info("AC-001: Deleted admin voice message")
+                        except Exception as e:
+                            logger.warning(f"AC-001: Could not delete admin voice message: {e}")
+                    # AC-001: Process admin command silently (no chat output)
+                    await self.process_admin_voice_command(update, context, transcription)
+                    return
 
                 # VO-004: Handle unclear audio gracefully
                 if intent_data.get('needs_clarification') or intent_data['clarity'] == 'unclear':
