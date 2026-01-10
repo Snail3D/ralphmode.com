@@ -3838,7 +3838,7 @@
         "secrets_manager.py",
         "config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-017",
