@@ -501,6 +501,124 @@ You can push back once if you disagree, but ultimately respect his verdict.
         worker = self.DEV_TEAM[worker_name]
         return (worker_name, worker['title'], worker['greeting'])
 
+    def generate_ralph_report(self, session: Dict[str, Any]) -> str:
+        """Generate Ralph's end-of-session report to the CEO."""
+        project_name = session.get('project_name', 'the project')
+        prd_summary = session.get('prd', {}).get('summary', 'various tasks')
+
+        prompt = f"""You are Ralph Wiggum reporting to the CEO about your team's work.
+
+Project: {project_name}
+Tasks worked on: {prd_summary}
+
+IMPORTANT: The CEO is BUSY. You know this. Keep your report to 1-1.5 paragraphs MAX.
+You're surprisingly smart about this - you prioritize what matters.
+
+Your report MUST include (be concise!):
+
+⚠️ *RISKS* - What might break? What's fragile? What should they watch?
+🚧 *EARLY/INCOMPLETE* - What's not done yet? What needs more work?
+💰 *TOP VALUE* - 2-3 coolest features with earning potential
+👆 *TRY NOW* - 1-2 things to test immediately
+
+You CANNOT lie. If something's risky, say it. If something's incomplete, admit it.
+But frame it positively - you're proud of your team!
+
+Stay in character as Ralph Wiggum:
+- Simple language, might mention your cat
+- Excited but honest
+- Surprisingly insightful despite being Ralph
+
+KEEP IT SHORT. CEO doesn't have time for rambling. Be punchy!"""
+
+        messages = [
+            {"role": "system", "content": """You are Ralph Wiggum from The Simpsons, now a manager.
+You're reporting to the CEO. Keep it SHORT - 1-1.5 paragraphs max.
+You know the CEO is busy. Be surprisingly smart about prioritizing.
+Highlight risks and incomplete work honestly. But stay positive.
+Use Ralph's voice but be concise and valuable."""},
+            {"role": "user", "content": prompt}
+        ]
+        return self.call_groq(WORKER_MODEL, messages, max_tokens=300)
+
+    async def deliver_ralph_report(self, context, chat_id: int, user_id: int):
+        """Ralph delivers his end-of-session report to the CEO."""
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return
+
+        # Scene setting
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*END OF SESSION REPORT*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+_The team wraps up their work._
+_Ralph straightens his badge (still upside down) and clears his throat._
+_He has a crayon-written report in his hands._
+
+*Ralph:* CEO! I have a report for you! I wrote it myself!
+
+""",
+            parse_mode="Markdown"
+        )
+
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "happy")
+
+        await asyncio.sleep(2)
+
+        # Generate the report
+        report = self.generate_ralph_report(session)
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Ralph's Report:*\n\n{report}",
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(2)
+
+        # Team reactions
+        reactions = [
+            ("Jake", "Frontend Dev", "That was... actually pretty accurate, Ralphie. I mean sir."),
+            ("Dan", "Backend Dev", "Solid report, boss. Hooah."),
+            ("Maya", "UX Designer", "I love how you mentioned the user experience! *tears up*"),
+            ("Steve", "Senior Dev", "*nods* Not bad, kid. Not bad at all."),
+        ]
+
+        reaction = random.choice(reactions)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*{reaction[0]}* _{reaction[1]}_: {reaction[2]}",
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(1)
+
+        # Closing
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="""
+*Ralph:* That's my report! Did I do good? My cat would be proud of me.
+
+_Ralph looks at you expectantly, juice box in hand._
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*SESSION COMPLETE*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Type `Ralph: [feedback]` to respond to Ralph
+or drop a new `.zip` to start another session!
+""",
+            parse_mode="Markdown"
+        )
+
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "approved")
+
     # ==================== TELEGRAM HANDLERS ====================
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -518,6 +636,7 @@ Ralph Wiggum just became a manager. Your code will never be the same.
 
 *Commands:*
 /status - Check current session
+/report - Get Ralph's end-of-session report
 /stop - Stop the current session
 `Ralph: [message]` - Talk directly to Ralph
 
@@ -965,6 +1084,23 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
 
+    async def report_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /report command - Ralph delivers the end-of-session report."""
+        user_id = update.effective_user.id
+        session = self.active_sessions.get(user_id)
+
+        if session:
+            await update.message.reply_text(
+                "_Wrapping up the session..._",
+                parse_mode="Markdown"
+            )
+            await self.deliver_ralph_report(context, update.message.chat_id, user_id)
+        else:
+            await update.message.reply_text(
+                "No active session to report on! Drop a `.zip` file to start a project first.",
+                parse_mode="Markdown"
+            )
+
     def run(self):
         """Start the bot."""
         if not TELEGRAM_BOT_TOKEN:
@@ -979,6 +1115,7 @@ _Grab some popcorn..._
         # Handlers
         app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CommandHandler("status", self.status_command))
+        app.add_handler(CommandHandler("report", self.report_command))
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
