@@ -6225,3 +6225,43 @@ for item in low_sat:
 
 ---
 
+
+## Iteration 95 - 2026-01-10
+**Task**: [TL-005] Swear Word to Action Translation
+**Status**: ✅ Complete
+
+### What was implemented
+- Created SWEAR_PATTERNS list with regex patterns for common profanity
+- Added INTENSITY_ACTIONS mapping (intense/moderate/mild → physical actions)
+- Implemented detect_swear_words() to scan text for profanity with intensity classification
+- Implemented translate_swear_to_action() to convert intensity to random physical action
+- Implemented sanitize_swear_words() to remove swears and suggest actions
+- Integrated swear filtering into translate_to_scene() pipeline
+- Updated system prompts to emphasize broadcast-safe output
+- Added cleanup for orphaned articles and punctuation after swear removal
+- Comprehensive test suite with example translations
+
+### Files changed
+- translation_engine.py (added TL-005 functionality)
+- scripts/ralph/prd.json (marked TL-005 as passing)
+
+### Learnings
+- Swear words are now completely removed from output, replaced with physical actions
+- Emotional intensity is preserved through action descriptions (jaw clenches, fist slams, etc.)
+- The sanitization happens BEFORE Groq translation, so the LLM never sees profanity
+- Actions are randomly selected from pools to maintain variety (not verbatim)
+- Regex cleanup handles edge cases like "what the fuck" → "what is" (removes orphaned "the")
+- The system is broadcast-safe: no swears ever appear in final output
+- Test examples:
+  - "What the fuck is taking so long" → *jaw clenches tight* "What is taking so long"
+  - "This shit doesn't work" → *face hardens* "This doesn't work"
+  - "Fix this fucking login issue" → *veins pulse at temples* "Fix this login issue"
+
+### Key Pattern
+The translate_to_scene() flow is now:
+1. Detect and sanitize swear words → get suggested actions
+2. Pass sanitized input + suggested actions to Groq
+3. Groq incorporates actions into theatrical scene
+4. Output is always broadcast-safe with emotional weight preserved
+
+---
