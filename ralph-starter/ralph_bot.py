@@ -786,6 +786,8 @@ class RalphBot:
 
                 # Send the full formatted message with the button keyboard
                 full_text = self.format_character_message(name, title, message)
+                # BC-002: Sanitize before sending
+                full_text = self._sanitize_output(full_text)
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=full_text,
@@ -799,6 +801,8 @@ class RalphBot:
         # Fallback to plain text formatting
         try:
             full_text = self.format_character_message(name, title, message)
+            # BC-002: Sanitize before sending
+            full_text = self._sanitize_output(full_text)
             await context.bot.send_message(
                 chat_id=chat_id,
                 text=full_text,
@@ -809,9 +813,12 @@ class RalphBot:
             logger.error(f"Failed to send message: {e}")
             # Last resort: send without markdown
             try:
+                fallback_text = f"{name}: {message}"
+                # BC-002: Sanitize before sending
+                fallback_text = self._sanitize_output(fallback_text)
                 await context.bot.send_message(
                     chat_id=chat_id,
-                    text=f"{name}: {message}"
+                    text=fallback_text
                 )
             except:
                 pass
@@ -1937,6 +1944,32 @@ class RalphBot:
             text = text.replace(char, f'\\{char}')
         return text
 
+    def _sanitize_output(self, text: str) -> str:
+        """BC-002: Sanitize text before sending to Telegram.
+
+        This is a belt-and-suspenders approach - catches anything that
+        slipped through earlier sanitization layers.
+
+        Args:
+            text: The text to sanitize
+
+        Returns:
+            Sanitized text safe for Telegram display
+        """
+        if not text:
+            return text
+
+        if SANITIZER_AVAILABLE:
+            try:
+                sanitized = sanitize_for_telegram(text)
+                return sanitized
+            except Exception as e:
+                logger.error(f"BC-002: Sanitization failed: {e}")
+                # If sanitization fails, better to block than leak
+                return "[Message sanitization error - content hidden for safety]"
+
+        return text
+
     async def safe_send_message(
         self,
         context,
@@ -1950,6 +1983,8 @@ class RalphBot:
         First attempts to send with markdown formatting. If that fails
         (usually due to unbalanced formatting chars), retries as plain text.
 
+        BC-002: All messages are sanitized before sending to Telegram.
+
         Args:
             context: Telegram context
             chat_id: Chat to send to
@@ -1960,6 +1995,9 @@ class RalphBot:
         Returns:
             True if sent with formatting, False if fell back to plain text
         """
+        # BC-002: Belt-and-suspenders - sanitize before sending to Telegram
+        text = self._sanitize_output(text)
+
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
@@ -4207,6 +4245,40 @@ _Grab some popcorn..._
         print(f"   Groq API: {'✅' if GROQ_API_KEY else '❌'}")
 
         app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+        # BC-002: Wrap bot.send_message to sanitize ALL outgoing messages
+        original_send_message = app.bot.send_message
+        original_edit_message_text = app.bot.edit_message_text
+
+        async def sanitized_send_message(*args, **kwargs):
+            """BC-002: Sanitize all messages before sending to Telegram."""
+            # Sanitize the 'text' parameter
+            if 'text' in kwargs:
+                kwargs['text'] = self._sanitize_output(kwargs['text'])
+            elif len(args) > 1:
+                # text is the second positional argument (after chat_id)
+                args = list(args)
+                args[1] = self._sanitize_output(args[1])
+                args = tuple(args)
+
+            return await original_send_message(*args, **kwargs)
+
+        async def sanitized_edit_message_text(*args, **kwargs):
+            """BC-002: Sanitize edited messages before sending to Telegram."""
+            # Sanitize the 'text' parameter
+            if 'text' in kwargs:
+                kwargs['text'] = self._sanitize_output(kwargs['text'])
+            elif len(args) > 0:
+                # text is the first positional argument for edit_message_text
+                args = list(args)
+                args[0] = self._sanitize_output(args[0])
+                args = tuple(args)
+
+            return await original_edit_message_text(*args, **kwargs)
+
+        app.bot.send_message = sanitized_send_message
+        app.bot.edit_message_text = sanitized_edit_message_text
+        logger.info("BC-002: Output filter installed - all messages will be sanitized")
 
         # Handlers
         app.add_handler(CommandHandler("start", self.start))
