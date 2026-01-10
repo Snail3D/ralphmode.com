@@ -2982,7 +2982,7 @@
         "feedback_scorer.py",
         "user_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SP-001",

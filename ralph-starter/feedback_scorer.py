@@ -27,6 +27,15 @@ from datetime import datetime
 
 from database import get_db, Feedback, InputValidator
 
+# QS-003: Import user quality tracker
+try:
+    from user_quality_tracker import update_user_quality_score
+    USER_QUALITY_TRACKER_AVAILABLE = True
+except ImportError:
+    USER_QUALITY_TRACKER_AVAILABLE = False
+    def update_user_quality_score(user_id: int): return None
+    logging.warning("QS-003: User quality tracker not available")
+
 logger = logging.getLogger(__name__)
 
 
@@ -369,6 +378,7 @@ class FeedbackScorer:
                 # Update feedback record
                 feedback.quality_score = scores['total']
                 feedback.updated_at = datetime.utcnow()
+                user_id = feedback.user_id  # Save for later use
                 db.commit()
 
                 logger.info(
@@ -378,6 +388,15 @@ class FeedbackScorer:
                     f"specificity={scores['specificity']:.2f}, "
                     f"reproducibility={scores['reproducibility']:.2f})"
                 )
+
+                # QS-003: Update user quality score after scoring feedback
+                if USER_QUALITY_TRACKER_AVAILABLE and user_id:
+                    try:
+                        new_user_score = update_user_quality_score(user_id)
+                        if new_user_score is not None:
+                            logger.info(f"Updated user {user_id} quality score to {new_user_score}")
+                    except Exception as e:
+                        logger.error(f"Failed to update user quality score: {e}")
 
                 return scores
 

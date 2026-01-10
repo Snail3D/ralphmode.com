@@ -26,6 +26,15 @@ from telegram.ext import ContextTypes
 from database import get_db, Feedback, User, InputValidator
 from rate_limiter import check_feedback_rate_limits, check_user_rate_limits, check_burst_detection
 
+# QS-003: Import user quality tracker for priority boost
+try:
+    from user_quality_tracker import get_priority_boost
+    USER_QUALITY_TRACKER_AVAILABLE = True
+except ImportError:
+    USER_QUALITY_TRACKER_AVAILABLE = False
+    def get_priority_boost(user_id: int): return 1.0
+    logging.warning("QS-003: User quality tracker not available - priority boost disabled")
+
 logger = logging.getLogger(__name__)
 
 
@@ -191,13 +200,24 @@ class FeedbackCollector:
 
                 # Create feedback entry
                 # FB-002: Use subscription weight as base priority_score
+                # QS-003: Apply quality score boost to priority
                 # This will be further refined by PR-001 algorithm later
+                quality_boost = 1.0
+                if USER_QUALITY_TRACKER_AVAILABLE:
+                    try:
+                        quality_boost = get_priority_boost(user.id)
+                    except Exception as e:
+                        logger.error(f"Failed to get quality boost: {e}")
+
+                # Calculate final priority score: subscription weight * quality boost
+                final_priority = weight * quality_boost
+
                 feedback = Feedback(
                     user_id=user.id,
                     feedback_type=feedback_type,
                     content=content,
                     status="pending",
-                    priority_score=weight,  # FB-002: Subscription tier weight
+                    priority_score=final_priority,  # FB-002 + QS-003: Subscription tier weight * quality boost
                     created_at=datetime.utcnow()
                 )
 

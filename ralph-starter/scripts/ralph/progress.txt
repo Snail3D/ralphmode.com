@@ -4194,3 +4194,50 @@ Generic (too vague):
 - 300 seconds (5 min) is good balance between "rare but not too rare"
 
 ---
+
+## Iteration [QS-003] - 2026-01-10
+**Task**: [QS-003] User Quality Score Tracking
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `user_quality_tracker.py` module for tracking user quality scores
+- Quality score is calculated as rolling average of all user's feedback quality scores
+- Automatic updates when feedback is scored (integrated into `feedback_scorer.py`)
+- Priority boost system: >85 = 1.5x boost, >70 = 1.2x boost, <40 = flagged for review
+- Priority boosts applied when feedback is collected (integrated into `feedback_collector.py`)
+- Added `/mystatus` command to show user quality score, tier, boost percentage, and feedback queue status
+- Quality tiers: Excellent (>85), Good (>70), Average (40-70), Needs Improvement (<40)
+
+### Files changed
+- `user_quality_tracker.py` (NEW) - Quality tracking module
+- `feedback_scorer.py` - Integrated user quality updates when scoring feedback
+- `feedback_collector.py` - Integrated priority boost when collecting feedback
+- `ralph_bot.py` - Added /mystatus command handler and database imports
+- `test_qs003.py` (NEW) - Test suite for QS-003
+- `scripts/ralph/prd.json` - Marked QS-003 as complete
+
+### Learnings
+- User quality score is a powerful engagement mechanism - users see immediate feedback
+- The rolling average approach is fair - one bad feedback doesn't destroy reputation
+- Priority boost multiplication (subscription_weight * quality_boost) creates compound effect
+- The /mystatus command provides transparency and gamification
+- Quality tiers with emoji and descriptions make scores more understandable
+- Flagging users with <40 score helps identify spam/low-effort submissions
+- Integration points: scoring (update average), collection (apply boost), display (show status)
+
+### Technical Patterns
+- Singleton pattern for tracker instance (performance optimization)
+- Graceful degradation with try/except imports (optional feature)
+- Database queries use SQLAlchemy's func.avg() for efficient calculation
+- Tier thresholds match acceptance criteria exactly (>85, >70, <40)
+- Boost multipliers are simple floats for easy priority calculations
+- Quality stats dict provides all data needed for /mystatus display
+
+### Integration with other tasks
+- **FB-002** (Subscription Tiers): Quality boost multiplies subscription weight
+- **QS-001** (Quality Scoring): Provides the scores that feed into user average
+- **QS-002** (AI Assessment): LLM scores also contribute to user average
+- **FQ-003** (Feedback Status): /mystatus shows both quality and queue status
+- **PR-001** (Priority Algorithm): Quality boost will be input to priority calculation
+
+---

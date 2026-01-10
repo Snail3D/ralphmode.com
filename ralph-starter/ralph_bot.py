@@ -94,6 +94,14 @@ except ImportError:
     SUBSCRIPTION_MANAGER_AVAILABLE = False
     logging.warning("FB-002: Subscription manager not available - subscription features disabled")
 
+# QS-003 & FQ-003: Import database for /mystatus command
+try:
+    from database import get_db, User, Feedback
+    DATABASE_AVAILABLE = True
+except ImportError:
+    DATABASE_AVAILABLE = False
+    logging.warning("Database not available - /mystatus command will be disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -4320,6 +4328,86 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
 
+    async def mystatus_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /mystatus command - FQ-003: Show user's feedback queue status and quality score (QS-003)."""
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        try:
+            with get_db() as db:
+                # Get user
+                user = db.query(User).filter(User.telegram_id == telegram_id).first()
+                if not user:
+                    await update.message.reply_text(
+                        "You haven't submitted any feedback yet. Use /feedback to get started!",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+                # QS-003: Get quality stats
+                quality_stats = None
+                try:
+                    from user_quality_tracker import get_user_quality_tracker
+                    tracker = get_user_quality_tracker()
+                    quality_stats = tracker.get_user_quality_stats(user.id)
+                except Exception as e:
+                    logger.error(f"Failed to get quality stats: {e}")
+
+                # Build status message
+                status_parts = ["*Your Feedback Status*\n"]
+
+                # QS-003: Quality Score Section
+                if quality_stats:
+                    status_parts.append(f"{quality_stats['tier_emoji']} *Quality Score: {quality_stats['quality_score']:.1f}/100* ({quality_stats['tier']})")
+                    status_parts.append(f"{quality_stats['description']}\n")
+
+                    if quality_stats['boost_percentage'] > 0:
+                        status_parts.append(f"🚀 Priority Boost: +{quality_stats['boost_percentage']}%")
+                    elif quality_stats['flagged']:
+                        status_parts.append(f"⚠️ _Your feedback needs improvement to earn priority boosts._")
+
+                    status_parts.append(f"\n📊 Feedback Stats:")
+                    status_parts.append(f"  • Total submitted: {quality_stats['total_feedback']}")
+                    status_parts.append(f"  • Scored: {quality_stats['scored_feedback']}")
+                else:
+                    status_parts.append(f"📊 Quality Score: {user.quality_score:.1f}/100")
+
+                # FQ-003: Feedback Queue Status
+                status_parts.append(f"\n📋 *Your Feedback Queue*:")
+
+                # Count feedback by status
+                pending = db.query(Feedback).filter(
+                    Feedback.user_id == user.id,
+                    Feedback.status == "pending"
+                ).count()
+
+                in_progress = db.query(Feedback).filter(
+                    Feedback.user_id == user.id,
+                    Feedback.status == "in_progress"
+                ).count()
+
+                completed = db.query(Feedback).filter(
+                    Feedback.user_id == user.id,
+                    Feedback.status == "completed"
+                ).count()
+
+                status_parts.append(f"  • ⏳ Pending: {pending}")
+                status_parts.append(f"  • 🔨 In Progress: {in_progress}")
+                status_parts.append(f"  • ✅ Completed: {completed}")
+
+                # Subscription tier
+                status_parts.append(f"\n💎 Tier: {user.subscription_tier.title()}")
+
+                status_message = "\n".join(status_parts)
+                await update.message.reply_text(status_message, parse_mode="Markdown")
+
+        except Exception as e:
+            logger.error(f"Failed to get feedback status for user {telegram_id}: {e}")
+            await update.message.reply_text(
+                "Sorry, I couldn't retrieve your status. Please try again later.",
+                parse_mode="Markdown"
+            )
+
     async def report_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /report command - Ralph delivers the end-of-session report."""
         user_id = update.effective_user.id
@@ -4647,6 +4735,7 @@ _Grab some popcorn..._
         # Handlers
         app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CommandHandler("status", self.status_command))
+        app.add_handler(CommandHandler("mystatus", self.mystatus_command))  # QS-003 & FQ-003
         app.add_handler(CommandHandler("report", self.report_command))
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
