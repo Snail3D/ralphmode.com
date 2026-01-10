@@ -493,3 +493,45 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 16 - 2026-01-10
+**Task**: [SEC-001] SQL Injection Prevention
+**Status**: ✅ Complete
+
+### What was implemented
+- Created database.py - secure database layer with SQLAlchemy ORM
+- InputValidator class with SQL injection pattern detection:
+  - 15 regex patterns for common injection techniques
+  - OR 1=1, UNION SELECT, command injection, comment injection
+  - MySQL # comments, parenthesis-based injection
+  - is_safe_string(), sanitize_identifier(), validate_telegram_id(), validate_chat_id()
+- SQLAlchemy ORM models:
+  - User - telegram user info, subscription tier, quality score
+  - BotSession - coding session tracking
+  - Feedback - RLHF feedback loop
+  - RateLimitEntry - rate limit tracking
+- SafeQueries class with documented safe query patterns:
+  - get_user_by_telegram_id() - ORM filter
+  - get_user_by_username() - ORM with validation
+  - search_feedback() - parameterized LIKE
+  - get_user_stats_raw() - text() with named params
+  - create_user() - ORM create with validation
+- SQLInjectionTester for CI/CD:
+  - 15 common injection payloads
+  - test_input_validation() - tests validator catches attacks
+  - test_orm_safety() - tests ORM doesn't break on attacks
+- get_db() context manager for safe session handling
+- All tests pass: 15/15 validation, 15/15 ORM safety
+
+### Files changed
+- database.py (new)
+- scripts/ralph/prd.json (SEC-001 passes: true)
+
+### Learnings
+- SQLAlchemy ORM is the primary defense - always parameterizes queries
+- InputValidator adds defense-in-depth, catches obvious attacks early
+- text() with named parameters for raw SQL when ORM isn't sufficient
+- Never use f-strings or .format() for SQL queries
+- Testing with real injection payloads validates security
+
+---
+
