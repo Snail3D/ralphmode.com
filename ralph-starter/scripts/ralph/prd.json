@@ -2179,7 +2179,7 @@
         "sanitizer.py",
         "patterns.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "BC-004",
@@ -2199,7 +2199,7 @@
         "sanitizer.py",
         "config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "BC-005",
