@@ -6265,3 +6265,72 @@ The translate_to_scene() flow is now:
 4. Output is always broadcast-safe with emotional weight preserved
 
 ---
+
+
+## Iteration 96 - 2026-01-10
+**Task**: [TL-006] Preserve Actual Directive While Translating Display
+**Status**: ✅ Complete
+
+### What was implemented
+- Created command_handler.py module with CommandHandler class
+- Implemented Directive dataclass to encapsulate extracted intent
+- Added DirectiveType enum (question, command_urgent, command_normal, approval, rejection, etc.)
+- Added Priority enum (critical, high, normal, low, none)
+- Implemented extract_directive() to analyze user input BEFORE translation
+- Detection features:
+  - Urgency markers (now, asap, immediately, etc.)
+  - Question detection (?, question words, status checks)
+  - Action keyword extraction (fix, add, remove, deploy, etc.)
+  - Subject extraction (what the directive is about)
+  - Approval/rejection detection (yes/no/stop/cancel)
+  - Emotional intensity based on swears, caps, exclamation marks
+- Integrated into ralph_bot.py handle_text() method
+- Auto-priority detection:
+  - Questions → auto-handled, passed to team immediately
+  - Approvals/Rejections → critical priority, immediate response
+  - Critical urgency (with "now"/"asap") → auto-set to "first" priority
+  - High urgency → suggest "first" but still ask user
+- Ralph responds appropriately based on ACTUAL directive, not just theatrical display
+- Comprehensive test suite demonstrates directive extraction accuracy
+
+### Files changed
+- command_handler.py (new file - core directive extraction logic)
+- ralph_bot.py (integrated directive extraction into handle_text flow)
+- scripts/ralph/prd.json (marked TL-006 as passing)
+
+### Learnings
+- The separation of concerns is critical: translation is for DISPLAY, directive is for ACTION
+- User says "Fix this shit now!" → 
+  - Display shows: *Mr. Worms storms in, jaw clenched* "Fix this now!"
+  - Ralph processes: DirectiveType.COMMAND_URGENT, Priority.CRITICAL, action=["fix"]
+- Questions don't need priority buttons - Ralph just answers them immediately
+- Approvals ("ok", "yes", "approved") trigger immediate acknowledgment
+- Rejections ("stop!", "no", "cancel") halt the current action
+- The directive metadata is stored in boss_queue for later processing
+- This enables natural conversation flow while preserving intent:
+  - User: "What's the status?"
+  - Ralph: "Mr. Worms is asking: 'What's the status?' - Team! Who knows this one?"
+  - (No priority buttons needed - it's clearly a question)
+- High urgency detection helps Ralph auto-suggest priority without being pushy
+- Emotional intensity tracking (mild/moderate/intense) can inform Ralph's response tone
+
+### Key Pattern
+The full TL-006 flow is now:
+1. User sends message: "ralph: Fix this now!"
+2. Extract directive BEFORE translation → DirectiveType.COMMAND_URGENT, Priority.CRITICAL
+3. Auto-detect priority based on directive (critical urgency = "first")
+4. Store directive metadata with order for processing
+5. Ralph responds: "ON IT BOSS! This sounds REALLY importent!"
+6. (Skip priority buttons because priority was auto-detected)
+7. When processing, Ralph uses the ACTUAL directive, not the theatrical display
+
+### Test Results
+Command handler test output shows correct detection:
+- "Fix the login bug now!" → command_urgent, critical priority ✓
+- "What's the status on deployment?" → question, no priority ✓
+- "Add dark mode to the app" → command_normal, normal priority ✓
+- "Okay, approved" → approval, critical priority ✓
+- "Stop! Don't deploy yet" → rejection, critical priority ✓
+- "Great work on the feature!" → feedback, no priority ✓
+
+---

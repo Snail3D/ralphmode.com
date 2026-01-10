@@ -60,6 +60,14 @@ except ImportError:
     TRANSLATION_ENGINE_AVAILABLE = False
     logging.warning("TL-002/TL-003: Translation engine not available - theatrical formatting disabled")
 
+# TL-006: Import command handler for directive extraction
+try:
+    from command_handler import extract_directive, DirectiveType, Priority
+    COMMAND_HANDLER_AVAILABLE = True
+except ImportError:
+    COMMAND_HANDLER_AVAILABLE = False
+    logging.warning("TL-006: Command handler not available - directive extraction disabled")
+
 # BC-001: Import sanitizer for broadcast-safe output
 try:
     from sanitizer import sanitize_for_groq, sanitize_for_telegram, get_sanitizer
@@ -4481,6 +4489,15 @@ _Grab some popcorn..._
                 )
                 return
 
+            # TL-006: Extract directive BEFORE translation (preserve actual intent)
+            directive = None
+            if COMMAND_HANDLER_AVAILABLE:
+                try:
+                    directive = extract_directive(order)
+                    logging.info(f"TL-006: Extracted directive: {directive}")
+                except Exception as e:
+                    logging.error(f"TL-006: Failed to extract directive: {e}")
+
             # Store the order temporarily for priority selection
             if user_id not in self.boss_queue:
                 self.boss_queue[user_id] = []
@@ -4488,19 +4505,92 @@ _Grab some popcorn..._
             # Generate unique order ID for callback
             order_id = f"order_{user_id}_{len(self.boss_queue[user_id])}_{random.randint(1000, 9999)}"
 
-            # Store order with pending priority
-            self.boss_queue[user_id].append({
+            # TL-006: Store order with directive metadata
+            order_data = {
                 "order": order,
                 "order_id": order_id,
                 "time": datetime.now().isoformat(),
-                "priority": "pending"  # Will be set by button click
-            })
+                "priority": "pending"  # Will be set by button click or auto-detected
+            }
+
+            # TL-006: Store the directive for processing (Ralph knows the actual intent)
+            if directive:
+                order_data["directive"] = {
+                    "type": directive.directive_type.value,
+                    "priority": directive.priority.value,
+                    "is_urgent": directive.is_urgent,
+                    "is_question": directive.is_question,
+                    "needs_response": directive.needs_response,
+                    "subject": directive.subject,
+                    "action_keywords": directive.action_keywords,
+                    "emotional_intensity": directive.emotional_intensity
+                }
+
+                # TL-006: Auto-detect priority for questions and urgent commands
+                # Questions don't need priority selection - just answer them
+                if directive.is_question:
+                    order_data["priority"] = "question"  # Special handling
+                # Approvals/rejections are immediate
+                elif directive.directive_type == DirectiveType.APPROVAL:
+                    order_data["priority"] = "approval"
+                elif directive.directive_type == DirectiveType.REJECTION:
+                    order_data["priority"] = "rejection"
+                # Critical urgency auto-sets to first
+                elif directive.priority == Priority.CRITICAL:
+                    order_data["priority"] = "first"
+                # High urgency suggests first, but still asks
+                elif directive.priority == Priority.HIGH:
+                    order_data["priority_suggestion"] = "first"
+
+            self.boss_queue[user_id].append(order_data)
+
+            # TL-006: Check if priority was auto-detected (questions, approvals, critical urgency)
+            if order_data["priority"] in ["question", "approval", "rejection", "first"]:
+                # Auto-handled - Ralph processes it immediately
+                if order_data["priority"] == "question":
+                    # Question - Ralph passes it to the team to answer
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell(f"Mr. Worms is asking: '{order}' - Team! Who knows this one?"),
+                        topic=order[:30] if order else "CEO question",
+                        with_typing=True
+                    )
+                elif order_data["priority"] == "approval":
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell("Got it boss! We're good to go!"),
+                        with_typing=True
+                    )
+                elif order_data["priority"] == "rejection":
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell("Stopping! Everyone stop! Boss says no!"),
+                        with_typing=True
+                    )
+                else:  # "first" - critical urgency
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell(
+                            f"ON IT BOSS! This sounds REALLY importent! "
+                            f"'{order[:50]}{'...' if len(order) > 50 else ''}'"
+                        ),
+                        topic=order[:30] if order else "URGENT",
+                        with_typing=True
+                    )
+                return
 
             # Ralph asks about priority with inline buttons
-            ralph_question = self.ralph_misspell(
-                f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
-                "This sounds importent! How importent is this?"
-            )
+            # TL-006: If high priority suggested, pre-select it in the message
+            if order_data.get("priority_suggestion") == "first":
+                ralph_question = self.ralph_misspell(
+                    f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
+                    "This sounds REALLY importent! Should I do it first?"
+                )
+            else:
+                ralph_question = self.ralph_misspell(
+                    f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
+                    "This sounds importent! How importent is this?"
+                )
 
             await self.send_styled_message(
                 context, chat_id, "Ralph", None, ralph_question,
