@@ -5798,3 +5798,63 @@ Linode (monthly):
 - Changelog URL can be generated from changelog_generator.py
 
 ---
+
+## Iteration 87 - 2026-01-10
+**Task**: SF-001 - Circuit Breaker
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `circuit_breaker.py` module with full circuit breaker pattern
+- Implements three states: CLOSED (normal), OPEN (tripped), HALF_OPEN (future)
+- Tracks consecutive failures with configurable threshold (default: 5)
+- Automatic trip when threshold exceeded
+- Persistent state across restarts (stored in /tmp/ralph_circuit_breaker.json)
+- Admin alerts via Telegram when circuit trips
+- Webhook fallback for alerts if Telegram unavailable
+- Manual reset via `/resume` command (requires admin intervention)
+- Comprehensive logging of all failures for review
+- Failure history tracking (last 20 failures)
+- CLI interface for status checking and testing
+- Synchronous and async operation support
+
+### Acceptance criteria met
+✅ Track consecutive failure count
+✅ 5+ failures: pause loop (circuit trips to OPEN state)
+✅ Alert admin via Telegram/email (Telegram + webhook)
+✅ Require /resume command to restart (manual reset() call)
+✅ Log all failures for review (failure_history + logging)
+
+### Files changed
+- circuit_breaker.py (new file, 450+ lines)
+- scripts/ralph/prd.json (marked SF-001 as passes=True)
+
+### Learnings
+- Circuit breaker pattern prevents cascading failures in distributed systems
+- Persistent state is critical - system must remember trip state across restarts
+- Admin notification is essential - silent failures are dangerous
+- Webhook fallback provides redundancy if primary notification fails
+- Failure history helps diagnose root causes
+- Manual reset requirement prevents auto-recovery from systemic issues
+- State machine pattern (CLOSED/OPEN/HALF_OPEN) is clean and extensible
+- JSON serialization with dataclasses works well for state persistence
+- Global singleton pattern via get_circuit_breaker() simplifies usage
+
+### Integration points
+- build_orchestrator.py should check `cb.is_tripped()` before spawning builds
+- Call `cb.record_failure()` in `_handle_build_failure()` method
+- Call `cb.record_success()` in `_handle_build_success()` method
+- Add /resume command handler to ralph_bot.py that calls `cb.reset()`
+- Environment variables:
+  - CIRCUIT_BREAKER_THRESHOLD (default: 5)
+  - ADMIN_TELEGRAM_ID (for alerts)
+  - ADMIN_ALERT_WEBHOOK (fallback)
+
+### Testing
+- Verified failure tracking increments correctly
+- Verified circuit trips at threshold
+- Verified success resets consecutive failures counter
+- Verified manual reset transitions OPEN → CLOSED
+- Verified state persistence across instances
+- CLI commands (status, reset, test-trip) all working
+
+---
