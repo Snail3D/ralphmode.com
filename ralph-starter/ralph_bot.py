@@ -666,6 +666,7 @@ class RalphBot:
         self.last_ralph_moment: Dict[int, datetime] = {}  # Track when last Ralph moment happened
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
         self.last_bonus_banter: Dict[int, datetime] = {}  # RM-005: Track when last bonus banter happened
+        self.last_deleted_message: Dict[int, datetime] = {}  # RM-006: Track when last deleted message happened
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
         self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
         self.message_counter = 0  # Counter for unique message IDs
@@ -828,6 +829,22 @@ class RalphBot:
                         self.last_bonus_banter[user_id] = now
                         # Trigger bonus banter in background (don't block current message)
                         asyncio.create_task(self.bonus_banter_moment(context, chat_id))
+
+                # RM-006: Deleted Message Simulation Easter Egg (5-10% chance)
+                # Worker types something then "deletes" it - Ralph might notice
+                if name != "Ralph" and name in self.DEV_TEAM:
+                    user_id = chat_id  # In DM, chat_id == user_id
+
+                    # Check if enough time has passed since last deleted message (at least 8 minutes)
+                    now = datetime.now()
+                    last_deleted = self.last_deleted_message.get(user_id)
+                    time_since_last = (now - last_deleted).total_seconds() if last_deleted else 9999
+
+                    # 7.5% chance (middle of 5-10% range) and at least 8 minutes since last one
+                    if random.random() < 0.075 and time_since_last > 480:
+                        self.last_deleted_message[user_id] = now
+                        # Trigger deleted message in background (don't block current message)
+                        asyncio.create_task(self.deleted_message_moment(context, chat_id, name))
 
                 return True
             except Exception as e:
@@ -1939,6 +1956,115 @@ class RalphBot:
             context, chat_id, whisperer, whisperer_data.get('title'),
             random.choice(cover_ups)
         )
+
+    async def deleted_message_moment(self, context, chat_id: int, worker_name: str):
+        """Easter egg: Worker types message then 'deletes' it. Ralph might notice.
+
+        RM-006: Deleted Message Simulation
+        Triggered randomly (5-10% chance) during active sessions.
+        Creates illusion of catching a worker trying to hide something.
+        """
+        worker_data = self.DEV_TEAM[worker_name]
+
+        # Embarrassing or gossipy things workers might type then delete
+        deleted_messages = [
+            "I still don't understand what a closure i--",
+            "Why is Ralph always eating glue tho--",
+            "Honestly this code is kinda mes--",
+            "Does anyone else think this feature is point--",
+            "My cat just walked across the keybo--",
+            "Wait, are we supposed to be testing thi--",
+            "I might have broken something in produ--",
+            "Is it just me or does this seem overenginee--",
+            "I need coffee so bad right no--",
+            "Ralph's code is... actually not ba-- wait",
+            "This would be easier if we just use--",
+            "I'm not sure I understand what the CEO wan--",
+        ]
+
+        # Show the message being typed
+        message_text = random.choice(deleted_messages)
+        full_text = self.format_character_message(worker_name, worker_data['title'], message_text)
+
+        # Send original message
+        sent_msg = await context.bot.send_message(
+            chat_id=chat_id,
+            text=full_text,
+            parse_mode="Markdown"
+        )
+
+        # Short pause - just enough to read it
+        await asyncio.sleep(random.uniform(1.0, 2.0))
+
+        # 50/50 chance: strikethrough OR [deleted]
+        if random.random() < 0.5:
+            # Use strikethrough
+            deleted_text = self.format_character_message(
+                worker_name,
+                worker_data['title'],
+                f"~{message_text}~"
+            )
+        else:
+            # Use [deleted]
+            deleted_text = self.format_character_message(
+                worker_name,
+                worker_data['title'],
+                "_[message deleted]_"
+            )
+
+        # Edit the message to show it's deleted
+        try:
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=sent_msg.message_id,
+                text=deleted_text,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.warning(f"Could not edit message for deletion effect: {e}")
+            # Fallback: send new message
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=deleted_text,
+                parse_mode="Markdown"
+            )
+
+        # 40% chance Ralph notices and reacts
+        if random.random() < 0.4:
+            await asyncio.sleep(self.timing.interruption())
+
+            ralph_reactions = [
+                "What did that say?",
+                "Hey, I saw that!",
+                "What'd you just delete?",
+                "I seen that message!",
+                "You can't un-type that!",
+                "My eyes work, you know!",
+                "What were you gonna say?",
+            ]
+
+            await self.rapid_banter_send(
+                context, chat_id, "Ralph", None,
+                self.ralph_misspell(random.choice(ralph_reactions))
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Worker plays innocent
+            worker_responses = [
+                "Nothing sir!",
+                "Just a typo, boss!",
+                "Finger slipped!",
+                "Autocorrect, you know how it is!",
+                "Technical difficulties!",
+                "Nothing important!",
+                "I didn't say anything!",
+                "Must've been a glitch!",
+            ]
+
+            await self.rapid_banter_send(
+                context, chat_id, worker_name, worker_data.get('title'),
+                random.choice(worker_responses)
+            )
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
