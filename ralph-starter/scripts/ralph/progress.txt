@@ -5721,3 +5721,39 @@ Linode (monthly):
 - **Production todo**: Use key management service (AWS KMS, Azure Key Vault)
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: NT-002 Build Started Notification
+**Status**: ✅ Complete
+
+### What was implemented
+- Created notification_service.py module with build started notification functionality
+- Integrated notification service into build_orchestrator.py
+- Sends Telegram message when build status changes to "in_progress"
+- Calculates estimated completion time based on feedback type and priority score
+- Includes link to live stream (WB-002) or dashboard fallback
+- In-character messaging from Ralph with signature misspellings (werking, bilding, importent, etc.)
+- Synchronous wrapper for calling from non-async context (build_orchestrator daemon)
+
+### Files changed
+- notification_service.py (new file)
+- build_orchestrator.py (added import and notification call in _spawn_build)
+
+### Learnings
+- Build orchestrator runs as separate daemon process, needs sync wrapper for async Telegram bot
+- Notification should happen AFTER status update to "in_progress" but BEFORE actual build spawn
+- Used feedback.user.telegram_id relationship to get user's Telegram ID from feedback object
+- Ralph's misspellings need to be consistent across all modules (extracted pattern from ralph_bot.py)
+- ETA calculation should be reasonable - don't oversell speed, builds take time
+- Notification failures should NOT block the build process (wrapped in try/except)
+- Stream URL is constructed from BUILD_DASHBOARD_URL env var + feedback_id
+- Added optional NOTIFICATION_SERVICE_AVAILABLE flag for graceful degradation if module missing
+
+### Pattern for notifications
+1. Check if notification service available
+2. Get telegram_id from feedback.user relationship
+3. Construct stream URL if WebSocket server available
+4. Call send_build_started_sync() with all required params
+5. Log success/failure but don't block on errors
+
+---
