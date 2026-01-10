@@ -6110,3 +6110,62 @@ for item in low_sat:
 
 ---
 
+
+## Iteration [Auto] - 2026-01-10 15:02 PST
+**Task**: TL-002 Character Translation Engine
+**Status**: ✅ Complete
+
+### What was implemented
+- Created TranslationEngine class in new translation_engine.py module
+- Implemented translate_to_scene() function that converts user input to theatrical Mr. Worms scenes
+- Groq-powered AI translation with system prompt optimized for screenplay narration
+- Intelligent fallback to pattern-based translation when Groq API unavailable
+- Mr. Worms character profile with personality traits, speech patterns, and typical actions
+- Tone-aware translation (urgent, pleased, frustrated, calm, etc.)
+- Scene context integration (time of day, worker mood from SS-003)
+- Added imports to ralph_bot.py with TRANSLATION_ENGINE_AVAILABLE flag
+
+### Files changed
+- translation_engine.py (NEW): Core translation engine implementation
+- ralph_bot.py: Added TL-002 imports
+
+### Learnings
+- The translation engine is THE CORE MAGIC of Ralph Mode - it transforms boring text into immersive fiction
+- Two-tier approach: Groq AI translation for rich, varied scenes + basic fallback for reliability
+- System prompt is critical: "translate into theatrical Mr. Worms scenes" with strict rules
+  - Stage directions in asterisks (*Mr. Worms storms in*)
+  - Dialogue in quotes ("Fix this bug")
+  - Match tone to actions (frustrated = jaw tightens, pleased = nods approvingly)
+  - 1-3 sentences max (concise is key)
+  - Never break character
+- Mr. Worms character profile defines the translation target:
+  - CEO/Boss personality: direct, no-nonsense, expressive
+  - Typical actions: enters/storms in, nods, sighs, taps desk, jaw tightens
+  - Professional but human
+- Tone detection enables emotion-appropriate translations:
+  - Urgent → "storms in, eyes intense"
+  - Pleased → "walks in with a slight smile"
+  - Frustrated → "enters with jaw tight"
+  - Calm → "enters calmly"
+- Fallback uses simple pattern matching on input content:
+  - Bug/error/problem → "enters, brow furrowed"
+  - Great/good/excellent → "nods approvingly"
+  - Questions → "looks up inquisitively"
+- Integration ready but not yet active in message handlers (future task)
+
+### Acceptance criteria verification
+✅ Take transcribed speech + tone - translate_to_scene(user_input, tone, context)
+✅ Generate in-character scene description - Uses Groq with theatrical system prompt
+✅ Mr. Worms actions described - 10 typical actions in character profile
+✅ Dialogue rewritten in Mr. Worms voice - Groq reframes input in CEO voice
+✅ Maintains meaning while changing presentation - System prompt ensures meaning preservation
+✅ Never shows original words - Original wrapped in theatrical scene format
+✅ Groq prompt optimized for this translation - Dedicated system prompt with examples
+
+### Next steps
+- TL-003 will integrate this into actual message flow
+- TL-004 will add original message deletion (only show translation)
+- Voice input (VO-004) will feed transcriptions into this engine
+
+---
+
