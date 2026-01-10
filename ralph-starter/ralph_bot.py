@@ -4572,8 +4572,31 @@ _Drop a zip file to get started!_
         discovery questions for the CEO.
         """
         user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         doc = update.message.document
+
+        # MU-004: Check user tier for document uploads
+        if USER_MANAGER_AVAILABLE:
+            try:
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                # Only Tier 1 (Owner) and Tier 2 (Power Users) can upload documents
+                if not user_tier.can_control_build:
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell(
+                            "Whoa! Only Mr. Worms and Power Users can upload files!\n\n"
+                            "If you're helping out, ask for the /password to become a Power User!"
+                        ),
+                        with_typing=True
+                    )
+                    logging.info(f"MU-004: Blocked document from {user_tier.display_name} user {telegram_id}")
+                    return
+
+                logging.info(f"MU-004: Document from {user_tier.display_name} user {telegram_id}")
+            except Exception as e:
+                logging.error(f"MU-004: Error checking tier for document: {e}")
 
         # Check if it's a zip file
         if not doc.file_name.endswith('.zip'):
@@ -5059,31 +5082,62 @@ _Grab some popcorn..._
             )
             return
 
-        # VO-001: Check if user can type text (admin/owner or Tier 1/2)
-        can_type_text = False
-        user_tier = None
+        # MU-004: Check user tier for input restrictions
+        user_tier_obj = None
+        can_control_build = False
+        can_chat = False
 
-        # Check if admin/owner
-        if TELEGRAM_ADMIN_ID and str(telegram_id) == str(TELEGRAM_ADMIN_ID):
-            can_type_text = True
-            user_tier = 1  # Mr. Worms (admin/owner)
-        # Check subscription tier for Power Users
-        elif DATABASE_AVAILABLE:
+        if USER_MANAGER_AVAILABLE:
             try:
-                with get_db() as db:
-                    user_obj = db.query(User).filter(User.telegram_id == telegram_id).first()
-                    if user_obj:
-                        # Tier 1 = admin/owner (already checked above)
-                        # Tier 2 = Power Users (priority, enterprise subscriptions)
-                        if user_obj.subscription_tier in ["priority", "enterprise"]:
-                            can_type_text = True
-                            user_tier = 2  # Power User
+                user_tier_obj = self.user_manager.get_user_tier(telegram_id)
+                can_control_build = user_tier_obj.can_control_build
+                can_chat = user_tier_obj.can_chat
+                logging.info(f"MU-004: User {telegram_id} tier: {user_tier_obj.display_name}")
             except Exception as e:
-                logging.error(f"VO-001: Error checking user tier: {e}")
+                logging.error(f"MU-004: Error checking user tier: {e}")
+                # Fallback: admin/owner check
+                if TELEGRAM_ADMIN_ID and str(telegram_id) == str(TELEGRAM_ADMIN_ID):
+                    can_control_build = True
+                    can_chat = True
+        else:
+            # Fallback: admin/owner check
+            if TELEGRAM_ADMIN_ID and str(telegram_id) == str(TELEGRAM_ADMIN_ID):
+                can_control_build = True
+                can_chat = True
+
+        # MU-004: Tier 4 (Viewers) - Messages ignored politely
+        if user_tier_obj and user_tier_obj == UserTier.TIER_4_VIEWER:
+            # Send a polite message explaining they're in view-only mode
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                self.ralph_misspell(
+                    "Hi! You're in viewer mode right now - you can watch us work but can't send messages yet!\n\n"
+                    "Want to join in? Use /password if you have the power user code, or contact the boss to get upgraded!"
+                ),
+                with_typing=True
+            )
+            logging.info(f"MU-004: Blocked Tier 4 (Viewer) user {telegram_id}")
+            return
+
+        # MU-004: Tier 3 (Chatters) - Can chat but not direct build
+        is_build_directive = text.lower().startswith("ralph:")
+        if user_tier_obj and user_tier_obj == UserTier.TIER_3_CHATTER and is_build_directive:
+            # Allow chat but block build directives
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                self.ralph_misspell(
+                    "Hey! I love talking to you, but right now only Mr. Worms and the Power Users can tell me what to build!\n\n"
+                    "You can still chat with us though - just don't start with 'Ralph:' and we can have a conversation!\n\n"
+                    "Want to control the build? Use /password to upgrade to Power User!"
+                ),
+                with_typing=True
+            )
+            logging.info(f"MU-004: Blocked build directive from Tier 3 (Chatter) user {telegram_id}")
+            return
 
         # VO-001: If user can type text and didn't start with "Ralph:", translate to scene
         # This makes text input theatrical like voice input would be
-        if can_type_text and not text.lower().startswith("ralph:"):
+        if can_control_build and not text.lower().startswith("ralph:"):
             # Translate text to theatrical scene using translation engine
             if TRANSLATION_ENGINE_AVAILABLE:
                 try:
@@ -5108,7 +5162,7 @@ _Grab some popcorn..._
                         parse_mode="Markdown"
                     )
 
-                    logging.info(f"VO-001: Translated text to scene for tier {user_tier} user")
+                    logging.info(f"VO-001: Translated text to scene for tier {user_tier_obj.display_name if user_tier_obj else 'Unknown'} user")
                 except Exception as e:
                     logging.error(f"VO-001: Failed to translate text to scene: {e}")
                     # If translation fails, just continue with normal text handling
@@ -5269,6 +5323,29 @@ _Grab some popcorn..._
         chat_id = update.message.chat_id
         caption = update.message.caption or ""
 
+        # MU-004: Check user tier for voice input
+        if USER_MANAGER_AVAILABLE:
+            try:
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                # Tier 4 (Viewers) - Block voice messages
+                if user_tier == UserTier.TIER_4_VIEWER:
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell(
+                            "Hi! You're in viewer mode - you can watch but can't send voice messages yet!\n\n"
+                            "Use /password to upgrade to Power User!"
+                        ),
+                        with_typing=True
+                    )
+                    logging.info(f"MU-004: Blocked voice from Tier 4 user {telegram_id}")
+                    return
+
+                # Tier 3 (Chatters) - Allow voice chat but will be filtered for build directives later
+                logging.info(f"MU-004: Voice from {user_tier.display_name} user {telegram_id}")
+            except Exception as e:
+                logging.error(f"MU-004: Error checking tier for voice: {e}")
+
         # Show typing indicator while processing
         await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
@@ -5388,6 +5465,28 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
         caption = update.message.caption or ""
+
+        # MU-004: Check user tier for photo uploads
+        if USER_MANAGER_AVAILABLE:
+            try:
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                # Tier 4 (Viewers) - Block photo uploads
+                if user_tier == UserTier.TIER_4_VIEWER:
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None,
+                        self.ralph_misspell(
+                            "Hi! You're in viewer mode - you can watch but can't send pictures yet!\n\n"
+                            "Use /password to upgrade to Power User!"
+                        ),
+                        with_typing=True
+                    )
+                    logging.info(f"MU-004: Blocked photo from Tier 4 user {telegram_id}")
+                    return
+
+                logging.info(f"MU-004: Photo from {user_tier.display_name} user {telegram_id}")
+            except Exception as e:
+                logging.error(f"MU-004: Error checking tier for photo: {e}")
 
         # Check if this is feedback
         if "feedback" in caption.lower() and FEEDBACK_COLLECTOR_AVAILABLE:

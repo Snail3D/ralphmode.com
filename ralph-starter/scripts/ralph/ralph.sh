@@ -121,8 +121,8 @@ ${SUMMARY}
   # Auto-deploy to server so YouTube audience sees changes live
   deploy_to_server
 
-  # Check for completion signal
-  if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+  # Check for completion signal (must be on its own line, not just mentioned in text)
+  if echo "$OUTPUT" | grep -q "^<promise>COMPLETE</promise>$"; then
     echo ""
     echo "╔═══════════════════════════════════════════════════════════╗"
     echo "║  Ralph completed all tasks!                               ║"

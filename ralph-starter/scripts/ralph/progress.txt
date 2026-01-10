@@ -7072,3 +7072,31 @@ DELETE_ORIGINAL_MESSAGES=true
 - Method is non-blocking - generates quotes instantly from cached analysis
 
 ---
+
+## Iteration [Latest] - 2026-01-10
+**Task**: [MU-004] Tier-Based Input Restrictions
+**Status**: ✅ Complete
+
+### What was implemented
+- Integrated UserManager tier system into all input handlers (text, voice, document, photo)
+- Tier 4 (Viewers) - Messages blocked politely with upgrade path explanation
+- Tier 3 (Chatters) - Can chat but build directives ("Ralph:") are blocked
+- Tier 2 (Power Users) - Can control build and chat
+- Tier 1 (Owner) - Full control
+- Clear, in-character feedback messages explaining restrictions
+- Upgrade path via /password command prominently mentioned
+- All restrictions logged for monitoring
+
+### Files changed
+- ralph_bot.py (handle_text, handle_voice, handle_document, handle_photo)
+- scripts/ralph/prd.json (marked MU-004 as complete)
+
+### Learnings
+- The UserManager was already implemented and working - just needed integration
+- Tier checking needs to happen at the very start of each handler before any processing
+- Feedback messages should be in Ralph's voice and helpful, not punitive
+- Each input type (text, voice, documents, photos) needs appropriate tier restrictions
+- Tier 3 users can chat but can't issue build directives - important distinction
+- UserTier enum has helpful properties like can_control_build and can_chat
+
+---

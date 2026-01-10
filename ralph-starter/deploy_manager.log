@@ -1,0 +1,4 @@
+2026-01-10 16:13:34,807 [WARNING] MU-001: POWER_USER_PASSWORD not set - power user authentication disabled
+2026-01-10 16:13:34,808 [WARNING] MU-001: TELEGRAM_OWNER_ID not set - no owner configured
+2026-01-10 16:13:34,808 [INFO] MU-001: User tier system initialized
+2026-01-10 16:13:34,808 [INFO] MU-003: Character manager initialized
