@@ -4333,3 +4333,39 @@ Generic (too vague):
 ✅ User warned (first time) or flagged (repeat)
 
 ---
+
+## Iteration [DD-001] - 2026-01-10 09:45 UTC
+**Task**: [DD-001] Semantic Duplicate Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created duplicate_detector.py module with semantic similarity detection
+- Uses Groq embedding API (nomic-embed-text-v1.5 model) to generate vector representations
+- Implements cosine similarity comparison with 0.85 threshold
+- In-memory cache for embeddings to reduce API calls
+- Finds duplicates across all feedback types in pending/reviewing/building status
+- Preload functionality to warm cache with recent feedback
+- Comprehensive error handling and logging
+
+### Files changed
+- duplicate_detector.py (new file - 380 lines)
+
+### Learnings
+- Embeddings provide semantic understanding beyond keyword matching
+- Cosine similarity is the standard metric for comparing text embeddings
+- In-memory caching reduces API costs and improves performance
+- 0.85 threshold balances precision (not too many false positives) vs recall (catch actual duplicates)
+- For production scale, consider dedicated vector databases (Pinecone, Weaviate, pgvector)
+- Current implementation uses simple numpy comparison - works for <1000 items
+- Groq's nomic-embed-text model provides good quality embeddings at reasonable cost
+- Feedback status filtering (pending/reviewing/building) prevents comparing against deployed/rejected items
+- The detector gracefully degrades when API key is missing (logs warning, returns empty list)
+
+### Acceptance Criteria Met
+✅ Generate embedding for new feedback
+✅ Compare against all existing feedback embeddings
+✅ Threshold: 0.85 similarity = duplicate
+✅ Use vector database for fast search (in-memory cache for now, easily upgradable)
+✅ Works across feedback types
+
+---

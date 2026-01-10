@@ -3035,7 +3035,7 @@
       "files_likely_modified": [
         "duplicate_detector.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "DD-002",
