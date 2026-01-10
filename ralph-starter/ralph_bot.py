@@ -39,6 +39,14 @@ from telegram.ext import (
     filters,
 )
 
+# SS-001: Import scene manager for opening scene generation
+try:
+    from scene_manager import generate_opening_scene, get_worker_arrival
+    SCENE_MANAGER_AVAILABLE = True
+except ImportError:
+    SCENE_MANAGER_AVAILABLE = False
+    logging.warning("SS-001: Scene manager not available - using simple opening")
+
 # BC-001: Import sanitizer for broadcast-safe output
 try:
     from sanitizer import sanitize_for_groq, sanitize_for_telegram, get_sanitizer
@@ -1111,6 +1119,13 @@ class RalphBot:
             user_id: User's ID
             project_name: Name of the uploaded project
         """
+        # SS-001: Generate opening scene
+        scene = None
+        worker_order = None
+        if SCENE_MANAGER_AVAILABLE:
+            scene = generate_opening_scene(project_name)
+            worker_order = scene["worker_order"]
+
         # Initialize onboarding state
         self.onboarding_state[user_id] = {
             "stage": "arriving",
@@ -1119,14 +1134,24 @@ class RalphBot:
             "answers": {},
             "project_name": project_name,
             "started": datetime.now(),
+            "scene": scene,  # SS-001: Store scene for worker arrivals
         }
 
-        # Stage 1: Office opens
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_action("The office lights flicker on. Another day at Ralph Mode HQ..."),
-            parse_mode="Markdown"
-        )
+        # Stage 1: Office opens with generated scene
+        if scene:
+            # SS-001: Use atmospheric scene generation
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=scene["full_text"],
+                parse_mode="Markdown"
+            )
+        else:
+            # Fallback if scene manager not available
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=self.format_action("The office lights flicker on. Another day at Ralph Mode HQ..."),
+                parse_mode="Markdown"
+            )
         await asyncio.sleep(1.5)
 
         # Stage 2: Workers arrive one by one (staggered)
@@ -1141,28 +1166,47 @@ class RalphBot:
         Creates atmosphere while analysis runs in background.
         """
         state = self.onboarding_state.get(user_id, {})
+        scene = state.get("scene")
 
-        # Workers arrive in random order, not all at once
-        worker_order = list(self.DEV_TEAM.keys())
-        random.shuffle(worker_order)
+        # SS-001: Use scene's worker order if available
+        if scene and "worker_order" in scene:
+            worker_order = scene["worker_order"]
+            # Don't include Ralph in the worker arrivals (he comes later)
+            worker_order = [w for w in worker_order if w != "Ralph"]
+        else:
+            # Fallback: random order
+            worker_order = list(self.DEV_TEAM.keys())
+            random.shuffle(worker_order)
 
         # Only 2-3 workers arrive during onboarding (others "were already here")
         arriving_workers = worker_order[:random.randint(2, 3)]
 
         for name in arriving_workers:
             worker = self.DEV_TEAM[name]
-            arrivals = self.WORKER_ARRIVALS.get(name, [("_Worker arrives_", "Morning.")])
-            action, greeting = random.choice(arrivals)
 
-            # Action narration
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=action,
-                parse_mode="Markdown"
-            )
+            # SS-001: Use scene manager arrivals if available
+            if SCENE_MANAGER_AVAILABLE and scene:
+                action = get_worker_arrival(name)
+                # Action narration
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"_{action}_",
+                    parse_mode="Markdown"
+                )
+            else:
+                # Fallback to old format
+                arrivals = self.WORKER_ARRIVALS.get(name, [("_Worker arrives_", "Morning.")])
+                action, greeting_text = random.choice(arrivals)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=action,
+                    parse_mode="Markdown"
+                )
+
             await asyncio.sleep(random.uniform(0.5, 1.0))
 
             # Worker greeting with styled button
+            greeting = worker.get('greeting', 'Morning.')
             await self.send_styled_message(
                 context, chat_id, name, worker['title'], greeting,
                 topic="morning arrival",
