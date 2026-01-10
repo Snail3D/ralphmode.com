@@ -5157,3 +5157,72 @@ python build_orchestrator.py
 ✅ Version preference stored per user/group - Stored per user in database
 
 ---
+
+## Iteration - 2026-01-10
+**Task**: [WB-001] Website Version Display
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `/api/versions` endpoint to `api_server.py` for website version display
+- Endpoint returns stable, beta, and alpha versions with full metadata:
+  * Version number (e.g., "1.2.0")
+  * Release date (ISO format)
+  * Changelog link (e.g., "/changelog#1.2.0")
+  * Download link (e.g., "/download/ralph-starter-1.2.0.zip")
+- Version categorization logic:
+  * Stable: Versions 1.0.0+ without beta/alpha tags
+  * Beta: Versions with "beta" in the version string
+  * Alpha: Versions 0.x.y or with "alpha" in the version string
+- Integrated with existing VersionManager and ChangelogGenerator
+- Returns current version from VERSION file
+- Created test script to verify endpoint logic
+
+### Files changed
+- `api_server.py` - Added get_versions() endpoint handler
+- `test_versions_endpoint.py` (NEW) - Test script for endpoint verification
+
+### Learnings
+- **Version history integration**: Used ChangelogGenerator.get_version_history() to retrieve all releases
+- **Semantic versioning conventions**: Applied standard semver rules for categorization
+- **Flask routing patterns**: Added new endpoint with proper decorators (rate limiting, security)
+- **Data structure design**: Returned nullable fields for beta/alpha if not available
+- **Testing approach**: Created standalone test script to verify logic before deployment
+- **API design**: Followed existing patterns in api_server.py for consistency
+
+### Architecture decisions
+1. **Version categorization**: Used semantic versioning conventions (0.x.y = alpha, 1.x.y = stable)
+2. **Null handling**: Return null for beta/alpha if no versions exist in those channels
+3. **Current version**: Always include current version from VERSION file for reference
+4. **Changelog links**: Use anchor links to CHANGELOG.md sections for each version
+5. **Download links**: Generate predictable URLs based on version number
+6. **Security**: Applied rate limiting to prevent API abuse
+
+### Acceptance criteria verification
+✅ API endpoint: /api/versions - Created at api_server.py:657
+✅ Returns: stable, beta, alpha versions - All three channels included in response
+✅ Each has: number, date, changelog link - Full metadata structure implemented
+✅ Download links for each version - Generated for all version types
+✅ Auto-updates on new release - Pulls from VersionHistory database which updates on release
+
+### Test results
+```json
+{
+  "success": true,
+  "stable": {
+    "version": "1.2.0",
+    "date": "2026-01-10T19:15:26.386575",
+    "changelog_url": "/changelog#1.2.0",
+    "download_url": "/download/ralph-starter-1.2.0.zip"
+  },
+  "beta": null,
+  "alpha": {
+    "version": "0.4.0",
+    "date": "2026-01-10T19:15:31.864043",
+    "changelog_url": "/changelog#0.4.0",
+    "download_url": "/download/ralph-starter-0.4.0.zip"
+  },
+  "current": "0.4.0"
+}
+```
+
+---
