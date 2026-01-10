@@ -5559,3 +5559,59 @@ Linode (monthly):
 - Cooldown periods prevent Easter eggs from feeling spammy
 
 ---
+## Iteration [Latest] - 2026-01-10
+**Task**: [WB-003] Public Build Status Dashboard
+**Status**: ✅ Complete
+
+### What was implemented
+- Added GET /api/build-status endpoint to api_server.py
+- Public endpoint (no auth) for real-time build queue monitoring
+- Returns queue depth (items waiting to build)
+- Returns current build task (in-progress feedback item)
+- Returns recent deployments (last 10 deployed items)
+- Calculates and returns build success rate percentage
+- Rate limited via SEC-011 protection
+- Real-time updates by querying database on each request
+
+### Files changed
+- api_server.py (added /api/build-status endpoint)
+- scripts/ralph/prd.json (marked WB-003 as passes: true)
+
+### Learnings
+- WB-003 is a Website Integration task, part of ralphmode.com infrastructure
+- Build status is tracked in Feedback table with statuses: queued, in_progress, deployed_staging, deployed_production, rejected
+- BuildOrchestrator from build_orchestrator.py manages build lifecycle
+- Success rate = (deployed items / total completed items) * 100
+- Public endpoints still need rate limiting even without auth (prevent abuse)
+
+### Technical patterns discovered
+- Flask endpoint pattern: @app.route + @rate_limit_ip decorator
+- Database query pattern: use get_db() context manager for session handling
+- Status filtering: .filter(Feedback.status.in_(['status1', 'status2']))
+- Order by descending: .order_by(Feedback.updated_at.desc())
+- Count queries: .count() for simple aggregations
+- JSON response pattern: return jsonify({...}) for API endpoints
+- Error handling: try/except with logger.error and proper error response
+- Timestamp formatting: datetime.isoformat() for ISO 8601 strings
+
+### API response structure
+```json
+{
+  "success": true,
+  "queue_depth": 0,
+  "current_build": {
+    "feedback_id": 123,
+    "type": "feature",
+    "started_at": "2026-01-10T12:00:00",
+    "priority_score": 8.5
+  },
+  "recent_deployments": [...],
+  "build_success_rate": 95.5,
+  "total_builds": 100,
+  "successful_builds": 95,
+  "timestamp": "2026-01-10T12:00:00"
+}
+```
+
+---
+
