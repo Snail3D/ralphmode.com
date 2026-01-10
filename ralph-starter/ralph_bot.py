@@ -1520,6 +1520,114 @@ class RalphBot:
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "thinking")
 
+    async def handle_satisfaction_feedback(self, query, context, user_id: int, data: str):
+        """
+        AN-001: Handle user satisfaction feedback (thumbs up/down).
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User's ID
+            data: Callback data (e.g., "sat_up_123" or "sat_down_123")
+        """
+        from database import get_db, User, Feedback, UserSatisfaction
+
+        await query.answer()
+
+        # Parse the callback data: "sat_up_123" or "sat_down_123"
+        parts = data.split("_")
+        if len(parts) != 3:
+            logger.error(f"AN-001: Invalid satisfaction callback data: {data}")
+            return
+
+        satisfaction_type = parts[1]  # "up" or "down"
+        feedback_id = int(parts[2])
+        satisfied = (satisfaction_type == "up")
+
+        try:
+            with get_db() as db:
+                # Get the user from database
+                user = db.query(User).filter(User.telegram_id == user_id).first()
+                if not user:
+                    await query.edit_message_text("Error: User not found in database.")
+                    return
+
+                # Check if feedback exists
+                feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+                if not feedback:
+                    await query.edit_message_text("Error: Feedback not found.")
+                    return
+
+                # Check if user already rated this feedback
+                existing = db.query(UserSatisfaction).filter(
+                    UserSatisfaction.user_id == user.id,
+                    UserSatisfaction.feedback_id == feedback_id
+                ).first()
+
+                if existing:
+                    # Update existing rating
+                    existing.satisfied = satisfied
+                    existing.created_at = datetime.utcnow()
+                    logger.info(f"AN-001: Updated satisfaction for feedback {feedback_id} by user {user_id}: {satisfied}")
+                else:
+                    # Create new satisfaction entry
+                    satisfaction_entry = UserSatisfaction(
+                        user_id=user.id,
+                        feedback_id=feedback_id,
+                        satisfied=satisfied
+                    )
+                    db.add(satisfaction_entry)
+                    logger.info(f"AN-001: Recorded satisfaction for feedback {feedback_id} by user {user_id}: {satisfied}")
+
+                db.commit()
+
+            # Generate Ralph's response based on satisfaction
+            if satisfied:
+                responses = [
+                    "🎉 Yay! I'm so happy you like it Mr. Worms!\n\nMe and my team did our bestest!",
+                    "👍 That makes me feel all warm and fuzzy inside!\n\nI'm gonna tell the team you're happy!",
+                    "🌟 Oh boy! You're pleased! That's the best feeling!\n\nWe worked real hard on this one!",
+                    "💪 Yes! We did good!\n\nI'll make sure to tell everyone you said nice things!",
+                    "🏆 This is going on the fridge at home!\n\nThanks for the encouragement Mr. Worms!"
+                ]
+            else:
+                responses = [
+                    "😔 Oh no... I thought we did good on this one.\n\nWanna tell me what needs work? Just send a message!",
+                    "🤔 Dang it... okay, we can make it better!\n\nWhat would help? Send me your thoughts!",
+                    "😓 Sorry Mr. Worms... my team tried real hard.\n\nLet us know what to fix and we'll get right on it!",
+                    "😞 That's disappointing... but I appreciate your honesty!\n\nTell me what's wrong and we'll do better!",
+                    "😕 Aw man... well, nobody's perfect I guess.\n\nSend feedback on what needs improving and we'll handle it!"
+                ]
+
+            import random
+            response = self.ralph_misspell(random.choice(responses))
+
+            # Update the message to remove buttons and show response
+            original_text = query.message.text or query.message.caption
+            updated_text = f"{original_text}\n\n{response}"
+
+            try:
+                await query.edit_message_text(
+                    text=updated_text,
+                    parse_mode="Markdown",
+                    disable_web_page_preview=False
+                )
+            except Exception as e:
+                logger.error(f"AN-001: Failed to edit message: {e}")
+                # Fallback: send as new message
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=response,
+                    parse_mode="Markdown"
+                )
+
+        except Exception as e:
+            logger.error(f"AN-001: Error handling satisfaction feedback: {e}", exc_info=True)
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text="Oops! Something went wrong recording your feedback. Sorry about that!"
+            )
+
     async def _finish_onboarding(self, context, chat_id: int, user_id: int, skipped: bool = False):
         """Finish onboarding and transition to analysis results.
 
@@ -3952,6 +4060,11 @@ _Drop a zip file to get started!_
         query = update.callback_query
         user_id = query.from_user.id
         data = query.data
+
+        # AN-001: Handle satisfaction feedback (thumbs up/down)
+        if data.startswith("sat_"):
+            await self.handle_satisfaction_feedback(query, context, user_id, data)
+            return
 
         # Handle tap on shoulder (styled button messages)
         if data.startswith("tap_"):

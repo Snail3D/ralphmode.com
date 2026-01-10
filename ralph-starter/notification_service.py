@@ -11,7 +11,7 @@ import logging
 import asyncio
 from typing import Optional
 from datetime import datetime, timedelta
-from telegram import Bot
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 
 logger = logging.getLogger(__name__)
@@ -264,7 +264,6 @@ class NotificationService:
                 f"\n"
                 f"Thank you for making Ralph Mode better! Your sugestion really helpt.\n\n"
                 f"*How did we do?*\n"
-                f"👍 Great! / 👎 Needs work\n\n"
             )
 
             # Ralph's signature sign-offs (vary for freshness)
@@ -278,16 +277,25 @@ class NotificationService:
             import random
             sign_off = random.choice(sign_offs)
 
-            base_message += f"— Ralph 👷\n_{sign_off}_"
+            base_message += f"\n— Ralph 👷\n_{sign_off}_"
 
             # Apply Ralph's misspellings
             message = self._ralph_misspell(base_message)
+
+            # AN-001: Create inline keyboard with thumbs up/down buttons
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("👍 Great!", callback_data=f"sat_up_{feedback_id}"),
+                    InlineKeyboardButton("👎 Needs work", callback_data=f"sat_down_{feedback_id}")
+                ]
+            ])
 
             # Send the notification
             await self.bot.send_message(
                 chat_id=user_id,
                 text=message,
                 parse_mode="Markdown",
+                reply_markup=keyboard,
                 disable_web_page_preview=False  # Show link preview for changelog
             )
 

@@ -366,6 +366,34 @@ class RateLimitEntry(Base):
         return f"<RateLimitEntry(identifier={self.identifier[:8]}..., action={self.action})>"
 
 
+class UserSatisfaction(Base):
+    """
+    AN-001: User Satisfaction Tracking
+
+    Tracks user satisfaction after deployed fixes.
+    Used for RLHF improvement and quality metrics.
+    """
+
+    __tablename__ = "user_satisfaction"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    feedback_id = Column(Integer, ForeignKey("feedback.id"), nullable=False, index=True)
+    satisfied = Column(Boolean, nullable=False)  # True = thumbs up, False = thumbs down
+    created_at = Column(DateTime, default=datetime.utcnow)
+    comment = Column(Text, nullable=True)  # Optional user comment about satisfaction
+
+    # Indexes for analytics queries
+    __table_args__ = (
+        Index("idx_satisfaction_feedback", "feedback_id"),
+        Index("idx_satisfaction_user", "user_id", "created_at"),
+    )
+
+    def __repr__(self):
+        emoji = "👍" if self.satisfied else "👎"
+        return f"<UserSatisfaction(feedback_id={self.feedback_id}, satisfied={emoji})>"
+
+
 # =============================================================================
 # Database Session Management
 # =============================================================================
