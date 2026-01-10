@@ -4241,3 +4241,47 @@ Generic (too vague):
 - **PR-001** (Priority Algorithm): Quality boost will be input to priority calculation
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [SP-001] Spam Pattern Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created feedback_screener.py with SpamDetector class
+- Implemented gibberish detection using entropy analysis (checks character-level entropy, repeated chars, vowel/consonant ratio)
+- Implemented repeated submission detection with 24-hour lookback using content hashing
+- Implemented promotional content detection (keywords, URLs, suspicious patterns)
+- Implemented off-topic detection using Ralph Mode keyword analysis (lenient for general feedback)
+- Auto-reject functionality that updates feedback status to "rejected" with reason
+- Admin logging to logs/spam_rejections.log for manual review
+- Integrated with feedback_collector.py (returns -2 for spam, -1 for rate limit)
+- Updated ralph_bot.py to handle spam rejection with in-character Ralph responses
+- Added rejection_reason and rejected_at fields to Feedback database model
+- Created test_spam_detector.py with comprehensive test cases
+
+### Files changed
+- feedback_screener.py (new): 428 lines of spam detection logic
+- feedback_collector.py: Added spam screening before feedback storage
+- ralph_bot.py: Handle -2 return code with friendly spam rejection message
+- database.py: Added rejection_reason and rejected_at columns to Feedback model
+- test_spam_detector.py (new): Test suite for validation
+
+### Learnings
+- Entropy analysis is effective for gibberish detection (threshold 2.5 works well)
+- Content hashing (SHA-256) provides efficient duplicate detection
+- Off-topic detection should be lenient - users saying "great bot!" is valid even without Ralph keywords
+- Multiple detection methods (gibberish, promotional, off-topic) provide comprehensive coverage
+- Logging spam rejections allows admins to catch false positives and improve detection
+- Return codes (-2 spam, -1 rate limit, >0 success) provide clean error handling
+- Database schema changes need migration (new columns not automatically created)
+- Test-driven approach validates detection patterns before deployment
+
+### Acceptance Criteria Met
+✅ Detect gibberish (entropy analysis)
+✅ Detect repeated submissions (same text)
+✅ Detect promotional content (URLs, ads)
+✅ Detect off-topic (not about Ralph Mode)
+✅ Auto-reject with reason
+✅ Log for admin review
+
+---
