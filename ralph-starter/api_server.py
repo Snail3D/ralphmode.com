@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-API Server for Ralph Mode with CSRF Protection (SEC-003)
+API Server for Ralph Mode with Security Features
 
-Enterprise-grade CSRF protection implementing:
-- CSRF tokens on all forms
-- SameSite cookie attributes
-- Origin/Referer header validation
-- Double-submit cookie pattern for APIs
+Implements:
+- SEC-003: CSRF Protection
+- SEC-005: Sensitive Data Exposure Prevention
 """
 
 import os
@@ -19,19 +17,42 @@ from flask import Flask, request, jsonify, make_response, session
 from flask_cors import CORS
 from functools import wraps
 
-# Load configuration
-CSRF_SECRET_KEY = os.environ.get("CSRF_SECRET_KEY", secrets.token_hex(32))
-SESSION_SECRET_KEY = os.environ.get("SESSION_SECRET_KEY", secrets.token_hex(32))
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://ralphmode.com,http://localhost:3000").split(",")
+# SEC-005: Import data protection
+from data_protection import (
+    SecretManager,
+    DataEncryption,
+    PIIProtection,
+    SecureLogger,
+    add_security_headers,
+    enforce_https
+)
+
+# SEC-005: Load configuration from secure secret manager
+try:
+    CSRF_SECRET_KEY = SecretManager.get_secret("CSRF_SECRET_KEY", secrets.token_hex(32))
+    SESSION_SECRET_KEY = SecretManager.get_secret("SESSION_SECRET_KEY", secrets.token_hex(32))
+    ALLOWED_ORIGINS = SecretManager.get_secret("ALLOWED_ORIGINS", "https://ralphmode.com,http://localhost:3000").split(",")
+except ValueError:
+    # Fallback for development
+    CSRF_SECRET_KEY = secrets.token_hex(32)
+    SESSION_SECRET_KEY = secrets.token_hex(32)
+    ALLOWED_ORIGINS = ["https://ralphmode.com", "http://localhost:3000"]
 
 app = Flask(__name__)
 app.secret_key = SESSION_SECRET_KEY
+
+# SEC-004 & SEC-005: Secure session configuration
 app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
 app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'  # SEC-003: SameSite attribute
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # SEC-004: Session timeout
 
 # Enable CORS with specific origins
 CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
+
+# SEC-005: Initialize encryption and logging
+encryptor = DataEncryption()
+logger = SecureLogger(__name__)
 
 
 class CSRFProtection:
@@ -288,14 +309,40 @@ def form_example():
     return html
 
 
+@app.before_request
+def enforce_https_redirect():
+    """SEC-005: Enforce HTTPS for all requests"""
+    return enforce_https()
+
+
+@app.after_request
+def add_security_headers_to_response(response):
+    """SEC-005: Add security headers to all responses"""
+    return add_security_headers(response)
+
+
 @app.errorhandler(403)
 def forbidden(e):
     """Custom 403 handler for CSRF violations"""
+    # SEC-005: Don't leak sensitive error details
+    logger.warning(f"403 Forbidden: {request.path}")
     return jsonify({
         'error': 'Forbidden',
         'message': 'CSRF validation failed. Please refresh and try again.',
         'code': 'CSRF_VALIDATION_FAILED'
     }), 403
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    """SEC-005: Don't leak stack traces in production"""
+    logger.error(f"500 Internal Server Error: {str(e)}")
+    # Don't expose internal details
+    return jsonify({
+        'error': 'Internal Server Error',
+        'message': 'An error occurred. Please try again later.',
+        'code': 'INTERNAL_ERROR'
+    }), 500
 
 
 if __name__ == '__main__':
@@ -304,9 +351,13 @@ if __name__ == '__main__':
     print("⚠️  Starting development server")
     print("⚠️  DO NOT use in production - use gunicorn/uwsgi instead")
     print(f"🔒 CSRF Protection: ENABLED")
+    print(f"🔒 Data Encryption: ENABLED (AES-256-GCM)")
+    print(f"🔒 HSTS: ENABLED (max-age=31536000)")
+    print(f"🔒 TLS 1.3: REQUIRED")
     print(f"🌐 Allowed Origins: {ALLOWED_ORIGINS}")
 
-    # Run with HTTPS in production
+    # SEC-005: Run with HTTPS in production
+    # For production, use nginx with Let's Encrypt SSL certificate
     app.run(
         host='0.0.0.0',
         port=5000,

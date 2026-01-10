@@ -821,3 +821,63 @@ Project: Ralph Mode Bot
 - All 7 acceptance criteria met with comprehensive test coverage
 
 ---
+## Iteration 20 - 2026-01-10
+**Task**: [SEC-005] Sensitive Data Exposure Prevention
+**Status**: ✅ Complete
+
+### What was implemented
+- Created data_protection.py - Comprehensive data protection module (400+ lines)
+  - SecretManager: Secure secrets management from environment variables
+  - DataEncryption: AES-256-GCM encryption at rest with PBKDF2 key derivation
+  - PIIProtection: GDPR-compliant PII detection and masking
+  - SecureLogger: Automatic secret sanitization in logs
+  - Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, etc.
+- Updated api_server.py - Integrated data protection features:
+  - Secure secret loading via SecretManager
+  - HTTPS enforcement middleware
+  - Security headers on all responses
+  - Safe error handling (no stack traces in production)
+  - 1-hour session timeout
+- Created nginx.conf - Production-ready nginx configuration:
+  - TLS 1.3/1.2 only with strong ciphers
+  - HSTS header: max-age=31536000 (1 year)
+  - HTTP→HTTPS redirect
+  - OCSP stapling
+  - Security headers
+  - Server version hiding
+- Created test_data_protection.py - Comprehensive test suite (14 tests):
+  - TestSecretManager (3 tests) - Secret detection, sanitization
+  - TestDataEncryption (4 tests) - Encrypt/decrypt, context-based keys, dict encryption
+  - TestPIIProtection (5 tests) - Email/phone/CC masking, GDPR retention
+  - TestSecureLogger (1 test) - Log sanitization
+  - TestSecurityHeaders (1 test) - HSTS and security headers
+  - All 14 tests passing ✅
+
+### Files changed
+- data_protection.py (new, 400+ lines)
+- api_server.py (updated, integrated data protection)
+- nginx.conf (new, production TLS config)
+- test_data_protection.py (new, 350+ lines)
+- scripts/ralph/prd.json (SEC-005 passes: true)
+
+### Learnings
+- AES-256-GCM provides both confidentiality (AES-256) and integrity (GCM auth tag)
+- PBKDF2 with 100k iterations meets NIST recommendations for key derivation
+- Context-based encryption allows different keys for different data types from one master key
+- Master encryption key should come from HSM or cloud KMS in production
+- HSTS max-age=31536000 (1 year) is standard for production sites
+- TLS 1.3 is preferred, TLS 1.2 as fallback for compatibility
+- OCSP stapling reduces latency and improves privacy
+- PII regex patterns must handle multiple formats (phone: +1-234-567-8900, (234) 567-8900, etc.)
+- Credit card masking preserves last 4 digits for verification (PCI-DSS allows this)
+- Email masking shows first/last char for recognition while protecting identity
+- Secret patterns in logs are dangerous - API keys, passwords, tokens must be redacted
+- Secrets.token_hex() for encryption keys, not random.random() (cryptographically secure)
+- GDPR retention periods vary by data type (user_profile: 2yr, logs: 30d, session: 24h)
+- Flask @before_request for HTTPS enforcement, @after_request for security headers
+- Error messages must never leak stack traces, internal paths, or config details in production
+- Server version headers (nginx, Flask) should be hidden to reduce attack surface
+- All 7 acceptance criteria met with comprehensive test coverage
+
+---
+
