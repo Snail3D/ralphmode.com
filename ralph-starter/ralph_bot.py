@@ -107,6 +107,14 @@ except ImportError:
     def validate_llm_output(text): return (text, [])
     def check_rate_limit(): return (True, None)
     def record_api_call(model, input_tokens=0, output_tokens=0): pass
+
+# VO-002: Import voice handler for voice message transcription
+try:
+    from voice_handler import get_voice_handler
+    VOICE_HANDLER_AVAILABLE = True
+except ImportError:
+    VOICE_HANDLER_AVAILABLE = False
+    logging.warning("VO-002: Voice handler not available - voice messages will not be transcribed")
     def get_fallback_response(context="general"): return "Service unavailable"
     def get_security_stats(): return {}
     logging.warning("SEC-029: LLM security module not available - protection disabled")
@@ -4845,52 +4853,85 @@ _Grab some popcorn..._
         )
 
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle voice messages - FB-001: Support voice feedback."""
-        # Check if this is feedback (caption contains 'feedback')
+        """Handle voice messages - VO-002: Process voice as primary input with transcription."""
+        user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
         caption = update.message.caption or ""
-        if "feedback" in caption.lower() and FEEDBACK_COLLECTOR_AVAILABLE:
-            user_id = update.effective_user.id
-            telegram_id = update.effective_user.id
-            chat_id = update.message.chat_id
 
-            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+        # Show typing indicator while processing
+        await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
-            # Collect voice feedback
-            collector = get_feedback_collector(self.groq_api_key)
-            feedback_id = await collector.collect_voice_feedback(
-                update, context, user_id, telegram_id
-            )
+        # VO-002: Transcribe voice message if handler available
+        if VOICE_HANDLER_AVAILABLE:
+            voice_handler = get_voice_handler(self.groq_api_key)
+            transcribed_text = await voice_handler.transcribe_voice(update, context)
 
-            if feedback_id:
-                ralph_response = self.ralph_misspell(
-                    f"I heard your voice message! I wrote down what you said! "
-                    f"Feedback #{feedback_id}. Listening is my favoritest!"
-                )
-                await self.send_styled_message(
-                    context, chat_id, "Ralph", None, ralph_response,
-                    topic="voice feedback received",
-                    with_typing=True
-                )
+            if transcribed_text:
+                logger.info(f"VO-002: Transcribed voice: {transcribed_text}")
 
-                # NT-001: Send notification for voice feedback
-                await self._send_feedback_notification(
-                    context, chat_id, feedback_id, telegram_id
-                )
+                # Create a synthetic text message to process through existing handle_text
+                # This allows voice messages to be treated like text input
+                original_text = update.message.text
+                update.message.text = transcribed_text
+
+                # Call the existing text handler
+                await self.handle_text(update, context)
+
+                # Restore original text (shouldn't matter but good practice)
+                update.message.text = original_text
+
             else:
+                # Transcription failed
                 error_response = self.ralph_misspell(
                     "I couldn't hear you very good! Can you try again? My ears are funny sometimes."
                 )
                 await self.send_styled_message(
                     context, chat_id, "Ralph", None, error_response,
-                    topic="voice feedback error",
+                    topic="voice transcription failed",
                     with_typing=True
                 )
+
         else:
-            await update.message.reply_text(
-                "🎤 Voice commands coming soon! For now, type your message or use `Boss: [message]`\n\n"
-                "💡 Tip: Send voice with caption 'feedback' to submit voice feedback!",
-                parse_mode="Markdown"
-            )
+            # Voice handler not available - fall back to old behavior
+            # Check if this is feedback (caption contains 'feedback')
+            if "feedback" in caption.lower() and FEEDBACK_COLLECTOR_AVAILABLE:
+                # Collect voice feedback
+                collector = get_feedback_collector(self.groq_api_key)
+                feedback_id = await collector.collect_voice_feedback(
+                    update, context, user_id, telegram_id
+                )
+
+                if feedback_id:
+                    ralph_response = self.ralph_misspell(
+                        f"I heard your voice message! I wrote down what you said! "
+                        f"Feedback #{feedback_id}. Listening is my favoritest!"
+                    )
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None, ralph_response,
+                        topic="voice feedback received",
+                        with_typing=True
+                    )
+
+                    # NT-001: Send notification for voice feedback
+                    await self._send_feedback_notification(
+                        context, chat_id, feedback_id, telegram_id
+                    )
+                else:
+                    error_response = self.ralph_misspell(
+                        "I couldn't hear you very good! Can you try again? My ears are funny sometimes."
+                    )
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None, error_response,
+                        topic="voice feedback error",
+                        with_typing=True
+                    )
+            else:
+                await update.message.reply_text(
+                    "🎤 Voice commands coming soon! For now, type your message or use `Boss: [message]`\n\n"
+                    "💡 Tip: Send voice with caption 'feedback' to submit voice feedback!",
+                    parse_mode="Markdown"
+                )
 
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle photo uploads (visual references) - FB-001: Support screenshot feedback."""
