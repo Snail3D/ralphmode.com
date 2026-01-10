@@ -3425,3 +3425,40 @@ tar -czf build.tar.gz --sort=name --mtime='1970-01-01' *.py requirements.txt req
 **Next Task**: FB-001 - Feedback command handler (beginning RLHF self-building system)
 
 ---
+
+## Iteration 31 - 2026-01-10
+**Task**: [FB-001] Feedback Command Handler
+**Status**: ✅ Complete
+
+### What was implemented
+- Created feedback_collector.py module with complete feedback collection system
+- Implemented /feedback command handler in Telegram bot
+- Added support for text feedback via command arguments
+- Added support for voice message feedback (with transcription placeholder)
+- Added support for screenshot feedback with caption extraction
+- Implemented automatic feedback type classification (bug, feature, improvement, praise, general)
+- Integrated with existing database.py Feedback model
+- Added Ralph-style in-character confirmations for all feedback types
+- Included user feedback statistics tracking
+
+### Files changed
+- feedback_collector.py (new)
+- ralph_bot.py (updated with /feedback command and handlers)
+
+### Learnings
+- Feedback collection is the foundation of the RLHF self-building system
+- The FeedbackCollector class handles all feedback sources (text, voice, screenshots)
+- Voice transcription needs Groq Whisper API integration (placeholder for now)
+- Screenshot feedback stores file_id for future reference
+- Feedback type classification uses simple keyword matching (can be enhanced with AI later)
+- Ralph's responses maintain character while confirming feedback receipt
+- Database already had Feedback model from SEC-001 implementation - reused successfully
+- All feedback gets user_id, telegram_id, type, content, timestamp automatically
+
+### Next Steps
+- FB-002: Subscription gate (check Builder/Priority tier before accepting feedback)
+- FB-003: Feedback types classification (may need AI enhancement)
+- Voice transcription integration with Groq Whisper API
+- Screenshot OCR/analysis for extracting context
+
+---
