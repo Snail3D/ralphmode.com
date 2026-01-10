@@ -6455,3 +6455,52 @@ Text-to-scene translation flow:
   * Comprehensive input support ✓
 
 ---
+
+## Iteration - 2026-01-10 19:30
+**Task**: RM-008 - Background Office Chatter
+**Status**: ✅ Complete
+
+### What was implemented
+- Added background office chatter that triggers randomly during quiet moments in conversations
+- Workers have side conversations in italics (e.g., "_(In background) Gomer to Stool: 'Want a donut?'_")
+- Implemented as async background task that doesn't block main conversation flow
+- Uses existing BACKGROUND_CHATTER list with 4 conversation templates
+- 8% trigger chance with 10-minute cooldown to keep it subtle and atmospheric
+
+### Files changed
+- ralph_bot.py:
+  * Added `self.last_background_chatter` tracker in __init__ (line 736)
+  * Added trigger logic in send_styled_message method (lines 918-932)
+  * Created background_office_chatter async method (lines 2302-2321)
+- scripts/ralph/prd.json: Marked RM-008 as passing
+
+### Learnings
+- The bot already had a BACKGROUND_CHATTER list at line 1128 with 4 conversation tuples
+- Easter egg pattern is consistent: tracker dict → trigger check in send_styled_message → async background method
+- Other easter eggs (RM-005 Bonus Banter, RM-006 Deleted Message) use similar patterns with different timings
+- Background tasks use asyncio.create_task() to not block main conversation flow
+- Italic formatting in Markdown creates perfect visual distinction for background vs. foreground dialogue
+- Timing is critical: 10-minute cooldown ensures chatter feels like genuine quiet moments, not spam
+- 8% chance strikes balance between too rare (never see it) and too common (annoying)
+
+### Key Pattern
+Background chatter flow:
+1. Any character message sent via send_styled_message triggers chance check
+2. Check if 10+ minutes passed since last chatter (quiet moment indicator)
+3. 8% random chance + time check = trigger
+4. Create async task for background_office_chatter (non-blocking)
+5. Method picks random conversation from BACKGROUND_CHATTER
+6. Short delay (0.5-1s) for better comedic timing
+7. Send in italics with "(In background)" prefix
+8. Main conversation continues unaffected
+
+### Test Results
+- Python syntax validation passes ✓
+- py_compile runs successfully with no errors ✓
+- Implementation follows acceptance criteria:
+  * Background comments in italics ✓
+  * Don't interrupt main conversation flow ✓
+  * Add life to 'office' feeling ✓
+  * Triggered randomly during quiet moments ✓
+
+---
