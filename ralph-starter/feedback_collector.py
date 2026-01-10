@@ -24,7 +24,7 @@ from telegram import Update, File
 from telegram.ext import ContextTypes
 
 from database import get_db, Feedback, User, InputValidator
-from rate_limiter import check_feedback_rate_limits
+from rate_limiter import check_feedback_rate_limits, check_user_rate_limits
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class FeedbackCollector:
 
                     if not allowed:
                         logger.warning(
-                            f"Rate limit exceeded for user {telegram_id} "
+                            f"IP rate limit exceeded for user {telegram_id} "
                             f"({error_metadata['limit_type']} limit: {error_metadata['limit']})"
                         )
                         # Store error metadata for caller to use in friendly message
@@ -155,6 +155,24 @@ class FeedbackCollector:
                             metadata = {}
                         metadata['rate_limit_error'] = error_metadata
                         return -1  # Signal rate limit exceeded
+
+                # RL-002: Check user-based rate limits (separate from IP)
+                # Both IP and user limits must pass
+                allowed_user, error_metadata_user = check_user_rate_limits(
+                    user_id=str(user.id),
+                    subscription_tier=user.subscription_tier
+                )
+
+                if not allowed_user:
+                    logger.warning(
+                        f"User rate limit exceeded for user {telegram_id} "
+                        f"(tier: {user.subscription_tier}, {error_metadata_user['limit_type']} limit: {error_metadata_user['limit']})"
+                    )
+                    # Store error metadata for caller to use in friendly message
+                    if metadata is None:
+                        metadata = {}
+                    metadata['rate_limit_error'] = error_metadata_user
+                    return -1  # Signal rate limit exceeded
 
                 # Create feedback entry
                 # FB-002: Use subscription weight as base priority_score

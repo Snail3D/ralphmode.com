@@ -64,6 +64,15 @@ class RateLimitConfig:
     # RL-001: Priority tier multiplier (2x limits)
     PRIORITY_MULTIPLIER = 2
 
+    # RL-002: Feedback endpoints (per user)
+    # Builder tier: 10/hour, 50/day
+    FEEDBACK_BUILDER_PER_HOUR = 10
+    FEEDBACK_BUILDER_PER_DAY = 50
+
+    # Priority tier: 20/hour, 100/day (2x builder limits)
+    FEEDBACK_PRIORITY_PER_HOUR = 20
+    FEEDBACK_PRIORITY_PER_DAY = 100
+
     # Admin endpoints (per admin user)
     ADMIN_PER_USER_MINUTE = 100
     ADMIN_PER_USER_HOUR = 1000
@@ -603,6 +612,77 @@ def check_feedback_rate_limits(
             'limit': daily_limit,
             'retry_after': metadata_daily['retry_after'],
             'message': f"You've reached the daily feedback limit ({daily_limit}/day). Try again tomorrow!"
+        }
+
+    return True, None
+
+
+def check_user_rate_limits(
+    user_id: str,
+    subscription_tier: str = "free"
+) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """
+    RL-002: Check user-based rate limits for feedback submissions.
+
+    Checks both hourly and daily limits based on subscription tier.
+    This is SEPARATE from IP limits - both must pass.
+
+    Args:
+        user_id: User identifier (telegram_id or internal user_id)
+        subscription_tier: User's subscription tier (free, builder, builder+, priority, enterprise)
+
+    Returns:
+        Tuple of (is_allowed, error_metadata)
+        - is_allowed: True if request is within limits
+        - error_metadata: Dict with error info if blocked, None otherwise
+    """
+    tier_lower = subscription_tier.lower()
+
+    # RL-002: Determine limits based on tier
+    # Builder/Builder+: 10/hour, 50/day
+    # Priority/Enterprise: 20/hour, 100/day
+    # Free: Same as IP limits (5/hour, 20/day) - already enforced by IP check
+    if tier_lower in ["builder", "builder+", "builder plus"]:
+        hourly_limit = RateLimitConfig.FEEDBACK_BUILDER_PER_HOUR
+        daily_limit = RateLimitConfig.FEEDBACK_BUILDER_PER_DAY
+    elif tier_lower in ["priority", "enterprise"]:
+        hourly_limit = RateLimitConfig.FEEDBACK_PRIORITY_PER_HOUR
+        daily_limit = RateLimitConfig.FEEDBACK_PRIORITY_PER_DAY
+    else:
+        # Free tier - no additional user limits beyond IP limits
+        # Return early to avoid double-limiting free users
+        return True, None
+
+    # Check hourly limit
+    allowed_hourly, metadata_hourly = RateLimiter.check_rate_limit(
+        identifier=user_id,
+        limit=hourly_limit,
+        window=RateLimitConfig.WINDOW_HOUR,
+        scope='feedback_user_hour'
+    )
+
+    if not allowed_hourly:
+        return False, {
+            'limit_type': 'hourly',
+            'limit': hourly_limit,
+            'retry_after': metadata_hourly['retry_after'],
+            'message': f"You've reached your hourly feedback limit ({hourly_limit}/hour). Try again in {metadata_hourly['retry_after']} seconds."
+        }
+
+    # Check daily limit
+    allowed_daily, metadata_daily = RateLimiter.check_rate_limit(
+        identifier=user_id,
+        limit=daily_limit,
+        window=RateLimitConfig.WINDOW_DAY,
+        scope='feedback_user_day'
+    )
+
+    if not allowed_daily:
+        return False, {
+            'limit_type': 'daily',
+            'limit': daily_limit,
+            'retry_after': metadata_daily['retry_after'],
+            'message': f"You've reached your daily feedback limit ({daily_limit}/day). Try again tomorrow!"
         }
 
     return True, None
