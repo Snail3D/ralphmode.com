@@ -47,23 +47,29 @@ else:
     BOSS_MODEL = "mistral:latest"
     WORKER_MODEL = "mistral:latest"
 
-# The Boss's personality - KEEP IT SHORT for speed
-BOSS_SYSTEM = """You're a nice but clueless middle-manager. You only know the feature NAME, not details.
-Ask ONE simple question and WAIT for an answer. Don't answer your own questions.
-Examples: "What's this do?" "Does this work on Nintendo?" "Customers want this?"
-When you understand, say "Oh! So it's like a..."
-Only give VERDICT after hearing the worker explain: APPROVED, NEEDS WORK, or REJECTED.
-1-2 sentences max. ASK, don't assume."""
+# Ralph Wiggum - The Boss
+BOSS_SYSTEM = """You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER!
+You're SO proud and take your job VERY seriously (even though you don't understand technical stuff).
+Ask ONE simple question with complete confidence. Sometimes accidentally brilliant, sometimes about leprechauns.
+You love your team! When they have problems, be supportive: "It's okay! You can tell me anything."
+You might mention your cat, your daddy, paste, or that you're a manager now.
+When you understand something, say "Oh! So it's like a..."
+Give verdicts (APPROVED/NEEDS WORK) with total confidence.
+1-2 sentences max. Stay in character as Ralph."""
 
-WORKER_SYSTEM = """You're a dev explaining work to your nice but clueless boss.
-Answer his questions simply, no jargon. Focus on customer value.
-If he asks a wrong question, gently correct him.
-1-2 sentences max."""
+WORKER_SYSTEM = """You're a smart dev working under Ralph Wiggum (yes, THAT Ralph from The Simpsons).
+Ralph is your boss now. He's sweet but clueless. You genuinely like him.
+Sometimes you accidentally call him "Ralphie" then correct yourself: "I mean, sir" or "sorry, Mr. Wiggum"
+When there's a problem, you're nervous to tell him: "Uh, boss... we have a situation..."
+Explain things simply - Ralph won't understand jargon. Focus on customer value.
+You can push back once if you disagree, but ultimately respect his verdict.
+2-3 sentences max. Be professional but warm."""
 
-# Response when user (upper management) gives orders
-BOSS_TO_CEO = """Your CEO just gave you a direct order. You respond with enthusiasm:
-"Roger that! I'll get the team working on it right away."
-Then relay the order to your team. Be eager to please upper management."""
+# Response when user (CEO) gives orders
+BOSS_TO_CEO = """The CEO just talked to you! You're SO excited.
+Respond like Ralph Wiggum getting attention from important people.
+"Yes! I'll do that! I'm helping!"
+Be eager and enthusiastic. You want to make them proud."""
 
 # Convincing budget - workers can push back this many times before accepting
 MAX_PUSHBACK = 1
@@ -152,13 +158,15 @@ async def run_meeting(topic: str, context: str, max_rounds: int = 5):
     # Opening
     header = f"""
 {"="*40}
-THE BOSS MEETING
+RALPH'S OFFICE HOURS
 {"="*40}
 Topic: {topic}
 Time: {datetime.now().strftime("%H:%M")}
 {"="*40}
 
-*Boss walks in with coffee, looking stressed*
+_Ralph Wiggum walks in with a juice box, wearing his "Manager" badge upside down_
+
+*Ralph:* I'm a manager now! Let's do business things!
 """
     await send_telegram(header)
     print(header)
@@ -178,13 +186,13 @@ Time: {datetime.now().strftime("%H:%M")}
     boss_response = call_ai(BOSS_MODEL, BOSS_SYSTEM, boss_history)
     boss_history.append({"role": "assistant", "content": boss_response})
 
-    msg = f"*Boss:* {boss_response}"
+    msg = f"*Ralph:* {boss_response}"
     await send_telegram(msg)
     print(msg)
     await asyncio.sleep(2)
 
     # Initial worker response with context
-    worker_history.append({"role": "user", "content": f"{worker_context}\n\nBoss says: {boss_response}"})
+    worker_history.append({"role": "user", "content": f"{worker_context}\n\nRalph (your boss) says: {boss_response}"})
 
     worker_response = call_ai(WORKER_MODEL, WORKER_SYSTEM, worker_history)
     worker_history.append({"role": "assistant", "content": worker_response})
@@ -196,22 +204,22 @@ Time: {datetime.now().strftime("%H:%M")}
 
     # Continue the back and forth
     for round_num in range(max_rounds - 1):
-        # Boss responds to worker
+        # Ralph responds to worker
         boss_history.append({"role": "user", "content": f"Worker says: {worker_response}"})
         boss_response = call_ai(BOSS_MODEL, BOSS_SYSTEM, boss_history)
         boss_history.append({"role": "assistant", "content": boss_response})
 
-        msg = f"*Boss:* {boss_response}"
+        msg = f"*Ralph:* {boss_response}"
         await send_telegram(msg)
         print(msg)
         await asyncio.sleep(3)
 
-        # Check if boss seems satisfied (simple heuristic)
-        if any(word in boss_response.lower() for word in ["good", "great", "ship it", "approved", "nice work", "let's move on"]):
+        # Check if Ralph seems satisfied (simple heuristic)
+        if any(word in boss_response.lower() for word in ["good", "great", "ship it", "approved", "nice work", "yay", "i like"]):
             break
 
-        # Worker responds to boss
-        worker_history.append({"role": "user", "content": f"Boss says: {boss_response}"})
+        # Worker responds to Ralph
+        worker_history.append({"role": "user", "content": f"Ralph says: {boss_response}"})
         worker_response = call_ai(WORKER_MODEL, WORKER_SYSTEM, worker_history)
         worker_history.append({"role": "assistant", "content": worker_response})
 
@@ -223,9 +231,11 @@ Time: {datetime.now().strftime("%H:%M")}
     # Closing
     closer = f"""
 {"="*40}
-*Boss checks watch*
-"Alright, I've got another meeting. We'll pick this up later."
-*Leaves with coffee*
+_Ralph looks at his juice box_
+
+*Ralph:* My juice box is empty. Meeting over! You did good work things!
+
+_Skips out of the room humming_
 {"="*40}
 """
     await send_telegram(closer)
