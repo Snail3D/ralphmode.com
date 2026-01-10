@@ -70,3 +70,21 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 4 - 2026-01-09
+**Story**: [US-2.4] Create quick start section
+**Status**: Complete
+
+### What was implemented
+- 3 step quick start guide
+- Step 1: Download and extract with curl commands
+- Step 2: Edit PRD with JSON example
+- Step 3: Run ralph.sh
+- Syntax highlighting with colored spans for comments, keys, strings, bools
+- Secondary CTA download button
+
+### Learnings
+- Colored spans for syntax highlighting (comment, key, string, bool classes)
+- Preformatted code blocks with horizontal scroll overflow
+
+---
+

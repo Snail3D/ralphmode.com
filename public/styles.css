@@ -331,6 +331,91 @@ body {
     font-size: 0.875em;
 }
 
+/* Quick Start Section */
+.quick-start {
+    padding: 6rem 2rem;
+    background: var(--bg-card);
+}
+
+.quick-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.quick-step {
+    background: var(--bg-dark);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.quick-step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.quick-step-num {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.quick-step h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.code-block {
+    padding: 1.5rem;
+    overflow-x: auto;
+}
+
+.code-block pre {
+    margin: 0;
+}
+
+.code-block code {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+
+.code-block .comment {
+    color: #6b7280;
+}
+
+.code-block .key {
+    color: #93c5fd;
+}
+
+.code-block .string {
+    color: #86efac;
+}
+
+.code-block .bool {
+    color: #fca5a5;
+}
+
+.cta-section {
+    margin-top: 3rem;
+    text-align: center;
+}
+
 /* Responsive */
 @media (min-width: 768px) {
     .hero {

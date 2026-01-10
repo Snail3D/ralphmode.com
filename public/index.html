@@ -118,5 +118,69 @@
             </div>
         </div>
     </section>
+
+    <!-- Quick Start Section -->
+    <section class="quick-start" id="quick-start">
+        <div class="section-container">
+            <h2>Quick Start</h2>
+            <p class="section-intro">
+                Get Ralph running in under 2 minutes.
+            </p>
+
+            <div class="quick-steps">
+                <div class="quick-step">
+                    <div class="quick-step-header">
+                        <span class="quick-step-num">1</span>
+                        <h3>Download and extract</h3>
+                    </div>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Download the starter kit</span>
+curl -LO https://ralphmode.com/ralph-starter.zip
+unzip ralph-starter.zip
+cd ralph-starter</code></pre>
+                    </div>
+                </div>
+
+                <div class="quick-step">
+                    <div class="quick-step-header">
+                        <span class="quick-step-num">2</span>
+                        <h3>Edit your PRD</h3>
+                    </div>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Open prd.json and add your user stories</span>
+{
+  <span class="key">"stories"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="string">"US-1"</span>,
+      <span class="key">"title"</span>: <span class="string">"Add login page"</span>,
+      <span class="key">"passes"</span>: <span class="bool">false</span>
+    }
+  ]
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="quick-step">
+                    <div class="quick-step-header">
+                        <span class="quick-step-num">3</span>
+                        <h3>Run Ralph</h3>
+                    </div>
+                    <div class="code-block">
+                        <pre><code><span class="comment"># Start the autonomous loop</span>
+./ralph.sh
+
+<span class="comment"># Go to sleep. Wake up to shipped code.</span></code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <a href="ralph-starter.zip" class="download-btn">
+                    <span class="download-icon">&#8595;</span>
+                    Download Ralph Starter Kit
+                </a>
+            </div>
+        </div>
+    </section>
 </body>
 </html>
