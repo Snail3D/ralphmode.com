@@ -217,6 +217,54 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.boss_queue: Dict[int, list] = {}  # Queued messages for boss
         self.gif_chance = 0.3  # 30% chance to send a GIF after messages
+        self.token_history: Dict[int, List[int]] = {}  # Track tokens per user
+
+    # ==================== TOKEN AWARENESS ====================
+
+    def track_tokens(self, user_id: int, tokens: int):
+        """Track token usage for a user."""
+        if user_id not in self.token_history:
+            self.token_history[user_id] = []
+        self.token_history[user_id].append(tokens)
+        # Keep last 20 entries
+        self.token_history[user_id] = self.token_history[user_id][-20:]
+
+    def get_ralph_token_observation(self, user_id: int, current_tokens: int) -> Optional[str]:
+        """Ralph notices token usage patterns and comments like a manager."""
+        history = self.token_history.get(user_id, [])
+
+        if len(history) < 2:
+            return None  # Not enough data yet
+
+        avg_tokens = sum(history[:-1]) / len(history[:-1])
+        last_tokens = history[-1] if history else 0
+
+        observations = []
+
+        # Compare to average
+        if current_tokens > avg_tokens * 1.5:
+            observations = [
+                f"Wow, that was {current_tokens} words! That's way more than usual! *scribbles in notebook* I'm putting a gold star next to your name.",
+                f"Hmmm, {current_tokens} words... that's a lot more than before! Are you okay? Do you need juice?",
+                f"*squints at paper* {current_tokens}... that's bigger than last time! My daddy says bigger is better. Unless it's vegetables.",
+                f"You used {current_tokens} words! That's like... *counts fingers* ...MORE! I'm writing this down.",
+            ]
+        elif current_tokens < avg_tokens * 0.5:
+            observations = [
+                f"Only {current_tokens} words? That was fast! Are you a wizard? I knew a wizard once. He was a leprechaun.",
+                f"Wow, {current_tokens} words! So quick! I'm gonna tell my cat about you.",
+                f"*looks impressed* {current_tokens}! That's way less than before! Efficiency! I learned that word yesterday.",
+                f"Speedy! {current_tokens} words! My daddy says 'time is money' but I don't know where to spend it.",
+            ]
+        elif len(history) >= 5 and all(t > avg_tokens for t in history[-3:]):
+            observations = [
+                "I noticed you've been using more words lately. *taps head* Manager brain! I see patterns!",
+                "The numbers are going up! That's good, right? Unless it's bad. Is it bad?",
+            ]
+
+        if observations:
+            return random.choice(observations)
+        return None
 
     # ==================== GIF SUPPORT ====================
 
@@ -412,13 +460,21 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
         ]
         return self.call_groq(BOSS_MODEL, messages, max_tokens=150)
 
-    def call_worker(self, message: str, context: str = "", worker_name: str = None) -> tuple:
-        """Get response from a specific team member. Returns (name, title, response)."""
+    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False) -> tuple:
+        """Get response from a specific team member. Returns (name, title, response, tokens)."""
         # Pick a random team member if none specified
         if worker_name is None:
             worker_name = random.choice(list(self.DEV_TEAM.keys()))
 
         worker = self.DEV_TEAM[worker_name]
+
+        # Efficiency guidance based on Ralph's feedback
+        efficiency_note = ""
+        if efficiency_mode:
+            efficiency_note = """
+IMPORTANT: Ralph just noticed you used a lot of words. He's watching!
+Be MORE CONCISE this time. Get to the point. Ralph appreciates brevity.
+1-2 sentences MAX. Prove you can be efficient!"""
 
         messages = [
             {"role": "system", "content": f"""{worker['personality']}
@@ -430,11 +486,13 @@ Explain technical things simply - Ralph won't understand jargon.
 Focus on customer value. Be patient with his weird questions.
 You can push back once if you disagree, but ultimately respect his verdict.
 {context}
+{efficiency_note}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
         ]
-        response = self.call_groq(WORKER_MODEL, messages, max_tokens=200)
-        return (worker_name, worker['title'], response)
+        response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
+        token_count = len(response.split())  # Rough word count as proxy
+        return (worker_name, worker['title'], response, token_count)
 
     def get_worker_greeting(self, worker_name: str = None) -> tuple:
         """Get a worker's greeting. Returns (name, title, greeting)."""
@@ -769,11 +827,18 @@ _The team nods in unison._
 
         await asyncio.sleep(2)
 
+        # Check if workers should be in efficiency mode (Ralph complained last time)
+        efficiency_mode = session.get("efficiency_mode", False)
+
         # Worker responds - pick a random team member
-        name, title, worker_response = self.call_worker(
+        name, title, worker_response, token_count = self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
-            context=f"Project: {session.get('project_name')}"
+            context=f"Project: {session.get('project_name')}",
+            efficiency_mode=efficiency_mode
         )
+
+        # Track tokens
+        self.track_tokens(user_id, token_count)
 
         await context.bot.send_message(
             chat_id=chat_id,
@@ -785,6 +850,24 @@ _The team nods in unison._
         worker_mood = self.detect_mood_worker(worker_response)
         if self.should_send_gif():
             await self.send_worker_gif(context, chat_id, worker_mood)
+
+        # Ralph might notice the token usage
+        ralph_observation = self.get_ralph_token_observation(user_id, token_count)
+        if ralph_observation:
+            await asyncio.sleep(2)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"*Ralph:* {ralph_observation}",
+                parse_mode="Markdown"
+            )
+            # Next time, workers will be more efficient!
+            if token_count > 50:  # If it was a lot
+                session["efficiency_mode"] = True
+            else:
+                session["efficiency_mode"] = False
+
+            if self.should_send_gif():
+                await self.send_ralph_gif(context, chat_id, "thinking")
 
         # Continue the session...
         await context.bot.send_message(
