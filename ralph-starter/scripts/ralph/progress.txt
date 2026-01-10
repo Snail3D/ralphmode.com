@@ -4946,3 +4946,45 @@ python build_orchestrator.py
 - Future enhancements: blue-green deployment, rollback automation, deployment metrics dashboard
 
 ---
+
+## Iteration 6 - 2026-01-10
+**Task**: [DP-002] Canary Deployment
+**Status**: ✅ Complete
+
+### What was implemented
+- Added CanaryStatus enum for deployment status tracking (OBSERVING, HEALTHY, UNHEALTHY, PROMOTED, ROLLED_BACK)
+- Added MetricsSnapshot dataclass with error_rate and avg_latency_ms properties for metrics tracking
+- Added CanaryDeploymentResult dataclass to track canary deployment outcomes
+- Implemented deploy_to_canary() method that:
+  - Collects baseline metrics from production before deployment
+  - Deploys to canary server (port 8002)
+  - Runs health checks on canary
+  - Observes for 30 minutes with per-minute checks
+  - Compares canary error rate to baseline (threshold: 2x)
+  - Auto-promotes to production if healthy
+  - Auto-rollbacks if error rate exceeds threshold
+- Implemented helper methods:
+  - _deploy_to_canary_server() for deploying and starting canary service
+  - _run_canary_health_checks() for health verification
+  - _collect_metrics() for reading metrics from JSON file
+  - _observe_canary_deployment() for 30-minute monitoring with minute-by-minute checks
+  - _promote_canary_to_production() for syncing canary to production and restarting service
+  - _rollback_canary() for stopping canary service
+  - record_request_metric() for recording request latency and errors per environment
+- Updated main() CLI with --stage canary option and detailed output formatting
+- Updated module docstring to document both DP-001 and DP-002
+
+### Files changed
+- deploy_manager.py
+
+### Learnings
+- Canary deployments for Telegram bots work differently than web services - no load balancer needed
+- Traffic splitting is handled at the application level via metrics file tracking
+- The 5% traffic routing is implicit - canary gets traffic while monitoring, then promoted to 100%
+- Baseline metrics collection is critical before canary deployment for comparison
+- Observation period should check frequently (every minute) to catch issues early
+- Error rate threshold of 2x baseline is the key metric for auto-rollback decision
+- Keeping previous version running during observation allows instant rollback
+- Metrics tracking via JSON file is simple and effective for this use case
+
+---
