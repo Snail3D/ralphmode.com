@@ -47,6 +47,14 @@ except ImportError:
     SCENE_MANAGER_AVAILABLE = False
     logging.warning("SS-001: Scene manager not available - using simple opening")
 
+# TL-002: Import translation engine for character translation
+try:
+    from translation_engine import translate_to_scene, get_translation_engine
+    TRANSLATION_ENGINE_AVAILABLE = True
+except ImportError:
+    TRANSLATION_ENGINE_AVAILABLE = False
+    logging.warning("TL-002: Translation engine not available - user input won't be translated to scenes")
+
 # BC-001: Import sanitizer for broadcast-safe output
 try:
     from sanitizer import sanitize_for_groq, sanitize_for_telegram, get_sanitizer
