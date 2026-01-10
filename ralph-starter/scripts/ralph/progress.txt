@@ -7225,3 +7225,42 @@ DELETE_ORIGINAL_MESSAGES=true
 
 ---
 
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [RM-012] Worker Personality Consistency
+**Status**: ✅ Complete
+
+### What was implemented
+- Audited all worker dialogue for personality consistency
+- Enhanced Mona's tap responses to include signature phrases ("Actually", "The data suggests")
+- Updated all 40 CODEBASE_LEARNING_QUOTES to use character-specific catchphrases:
+  * Stool: Added "lowkey", "literally", "yo" throughout
+  * Gomer: Added "D'oh!", "Mmm..." to maintain lovable oaf personality
+  * Mona: Added "Actually", "The data suggests" for overachiever style
+  * Gus: Added "I've seen this before", "Trust me", "Kids these days" for grizzled veteran tone
+- Verified all workers maintain distinct, adult personalities with appropriate vocabulary
+
+### Files changed
+- ralph_bot.py (lines 1097-1102, 1232-1289)
+- scripts/ralph/prd.json (marked RM-012 as passes: true)
+
+### Learnings
+- Worker personalities are defined in DEV_TEAM dict but need to be consistently applied in ALL dialogue
+- Three key areas for personality consistency:
+  1. AI-generated responses (uses personality prompt - already good)
+  2. Hardcoded tap responses (generate_tap_response function)
+  3. Canned dialogue (CODEBASE_LEARNING_QUOTES, BACKGROUND_CHATTER, etc.)
+- Signature phrases are critical for immediate character recognition:
+  * Stool's "lowkey" and "literally" = instant millennial vibe
+  * Gomer's "D'oh!" and "Mmm..." = Homer Simpson connection clear
+  * Mona's "Actually..." = overachiever who always has insights
+  * Gus's "I've seen this before" = battle-scarred veteran wisdom
+- Adult vocabulary maintained - no childish language, professional concerns
+
+### Pattern discovered
+When adding any new worker dialogue, always:
+1. Check DEV_TEAM[name]['personality'] for signature phrases
+2. Include at least one signature phrase per quote/response
+3. Maintain adult tone - these are professionals with quirks, not cartoons
+
+---

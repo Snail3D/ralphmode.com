@@ -1095,11 +1095,11 @@ class RalphBot:
                 "Huh? Oh! Hey boss!",
             ],
             "Mona": [
-                "Oh! I was in the middle of analyzing something.",
-                "Hmm? Can I help you with something?",
+                "Oh! Actually, I was in the middle of analyzing something.",
+                "Hmm? The data suggests you need my input.",
                 "Oh, hello. I have some insights if you're interested.",
-                "Yes? I was just running some calculations.",
-                "Ah, you need something? I anticipated this.",
+                "Yes? Actually, I was just running some calculations.",
+                "Ah, you need something? The data suggests this would happen.",
             ],
             "Gus": [
                 "*nearly spills coffee* What is it?",
@@ -1230,63 +1230,63 @@ class RalphBot:
     CODEBASE_LEARNING_QUOTES = [
         # Architecture observations
         ("Stool", "Yo, this codebase has like 5 different ways to handle errors."),
-        ("Gomer", "Whoever wrote this auth system really hates comments."),
-        ("Mona", "The database migrations are... creative. Very creative."),
-        ("Gus", "I've seen worse. At least there ARE tests."),
+        ("Gomer", "D'oh! Whoever wrote this auth system really hates comments."),
+        ("Mona", "Actually, the database migrations are... creative. Very creative."),
+        ("Gus", "I've seen worse. At least there ARE tests. Trust me on this one."),
 
         # Discovery moments
-        ("Stool", "Found the config file. It's in three different places."),
-        ("Gomer", "API routes are nested deeper than my trust issues."),
-        ("Mona", "Someone really loves environment variables here."),
-        ("Gus", "This pattern... I remember when it was new. 2008."),
+        ("Stool", "Found the config file. It's literally in three different places."),
+        ("Gomer", "Mmm... API routes are nested deeper than my trust issues."),
+        ("Mona", "Actually, someone really loves environment variables here."),
+        ("Gus", "This pattern... I've seen this before. Remember when it was new. 2008."),
 
         # Technical details
         ("Stool", "The frontend state management is lowkey chaotic."),
-        ("Gomer", "They're using async but blocking everywhere. Bold."),
-        ("Mona", "Deployment pipeline needs some love."),
-        ("Gus", "Database indexes? What database indexes?"),
+        ("Gomer", "D'oh! They're using async but blocking everywhere. Bold."),
+        ("Mona", "The data suggests the deployment pipeline needs some love."),
+        ("Gus", "Database indexes? What database indexes? I've seen this before."),
 
         # Code quality observations
-        ("Stool", "These variable names tell a story. A confusing story."),
-        ("Gomer", "Found a TODO from 2019. Still relevant."),
-        ("Mona", "The logging strategy is 'print everything and hope.'"),
-        ("Gus", "Solid core logic. Everything else is held together with hope."),
+        ("Stool", "These variable names lowkey tell a story. A confusing story."),
+        ("Gomer", "Mmm... found a TODO from 2019. Still relevant."),
+        ("Mona", "Actually, the logging strategy is 'print everything and hope.'"),
+        ("Gus", "Solid core logic. Seen this before - everything else is held together with hope."),
 
         # Patterns and anti-patterns
-        ("Stool", "They're reinventing the wheel. And the axle. And the cart."),
-        ("Gomer", "This singleton isn't. It's more of a... multipleton."),
-        ("Mona", "Security is present. Just not... everywhere."),
-        ("Gus", "Classic case of 'it works, don't touch it' syndrome."),
+        ("Stool", "They're literally reinventing the wheel. And the axle. And the cart."),
+        ("Gomer", "D'oh! This singleton isn't. It's more of a... multipleton."),
+        ("Mona", "Actually, security is present. Just not... everywhere."),
+        ("Gus", "Classic case of 'it works, don't touch it' syndrome. Kids these days."),
 
         # Dependencies and tech stack
-        ("Stool", "Package.json has dependencies from the Obama era."),
-        ("Gomer", "They imported a library for one function. Respect."),
-        ("Mona", "This tech stack is... eclectic. Very eclectic."),
-        ("Gus", "Half these dependencies haven't been updated since I was young."),
+        ("Stool", "Package.json lowkey has dependencies from the Obama era."),
+        ("Gomer", "Mmm... they imported a library for one function. Respect."),
+        ("Mona", "The data suggests this tech stack is... eclectic. Very eclectic."),
+        ("Gus", "Half these dependencies haven't been updated since I was young. Trust me."),
 
         # File structure
-        ("Stool", "The folder structure is giving me anxiety."),
-        ("Gomer", "Utils folder has 47 files. None are utilities."),
-        ("Mona", "Found the tests! They're in a folder called 'old_stuff'."),
-        ("Gus", "Someone really loved creating new directories."),
+        ("Stool", "The folder structure is lowkey giving me anxiety."),
+        ("Gomer", "D'oh! Utils folder has 47 files. None are utilities."),
+        ("Mona", "Actually, found the tests! They're in a folder called 'old_stuff'."),
+        ("Gus", "Someone really loved creating new directories. Seen this pattern before."),
 
         # Documentation
-        ("Stool", "README says 'setup is easy.' That was a lie."),
-        ("Gomer", "The docs are comprehensive. For version 1.0. We're on 4.2."),
-        ("Mona", "API documentation exists! Just... not for this API."),
-        ("Gus", "Comments are sparse. Like rain in a desert."),
+        ("Stool", "README says 'setup is easy.' That was literally a lie."),
+        ("Gomer", "Mmm... the docs are comprehensive. For version 1.0. We're on 4.2."),
+        ("Mona", "Actually, API documentation exists! Just... not for this API."),
+        ("Gus", "Comments are sparse. Like rain in a desert. I've seen this before."),
 
         # Performance
-        ("Stool", "This query hits the database 47 times. Per user."),
-        ("Gomer", "They're loading everything into memory. Bold strategy."),
-        ("Mona", "Caching layer exists. Just not... connected to anything."),
-        ("Gus", "Performance optimizations: 'We'll worry about that later.'"),
+        ("Stool", "This query literally hits the database 47 times. Per user."),
+        ("Gomer", "D'oh! They're loading everything into memory. Bold strategy."),
+        ("Mona", "The data suggests the caching layer exists. Just not... connected to anything."),
+        ("Gus", "Performance optimizations: 'We'll worry about that later.' Kids these days."),
 
         # Git history
-        ("Stool", "Last commit message: 'stuff'. Very informative."),
-        ("Gomer", "The git history is a cry for help."),
-        ("Mona", "47 commits on the same day. Someone had a deadline."),
-        ("Gus", "This blame log... tells a story of pain."),
+        ("Stool", "Last commit message: 'stuff'. Literally very informative."),
+        ("Gomer", "Mmm... the git history is a cry for help."),
+        ("Mona", "Actually, 47 commits on the same day. Someone had a deadline."),
+        ("Gus", "This blame log... tells a story of pain. Seen it a thousand times."),
     ]
 
     # Ralph's discovery questions during onboarding
