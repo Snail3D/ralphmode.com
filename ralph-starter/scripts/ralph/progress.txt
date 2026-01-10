@@ -6562,3 +6562,60 @@ Ralph Moment trigger flow:
   * Not too frequent - special occasions ✓
 
 ---
+## Iteration - 2026-01-10 16:30
+**Task**: [VO-002] Allow Only Voice Messages
+**Status**: ✅ Complete
+
+### What was implemented
+- Created voice_handler.py module with VoiceHandler class
+- Integrated Groq Whisper API (whisper-large-v3) for voice transcription
+- Voice messages now transcribed and processed as text input through existing handle_text flow
+- Added intent extraction for boss_message, command, feedback, and general intents
+- Support for multiple Telegram audio formats (.ogg, .mp3, .m4a, .wav, .opus)
+- Async HTTP handling with aiohttp for Whisper API calls
+- Graceful fallback when voice handler unavailable
+
+### Files changed
+- voice_handler.py (new file - 190 lines)
+  * VoiceHandler class with transcribe_voice method
+  * Groq Whisper API integration via aiohttp
+  * Intent extraction from transcribed text
+  * get_voice_handler factory function
+- ralph_bot.py
+  * Added VO-002 import block for voice_handler (lines 111-117)
+  * Updated handle_voice method to transcribe and process voice messages (lines 4855-4934)
+  * Voice transcription creates synthetic text message for existing handle_text processing
+  * Maintains backward compatibility with feedback-based voice handling
+- requirements.txt
+  * Added aiohttp>=3.9.0 for async HTTP requests
+
+### Learnings
+- Groq API supports Whisper transcription via /audio/transcriptions endpoint
+- Using whisper-large-v3 model for best quality
+- Multipart form data needed: file, model, response_format, language
+- Voice messages download as .ogg files from Telegram
+- Reusing existing handle_text flow is cleaner than duplicating logic
+- Synthetic message approach: update.message.text = transcribed_text then call handle_text
+- Intent extraction helps route voice to appropriate handlers (feedback, commands, general)
+- Error handling critical: transcription can fail (bad audio, API issues)
+- Ralph's misspellings work perfectly for error messages ("couldn't hear you very good")
+
+### Key Pattern
+Voice message flow:
+1. User sends voice message → handle_voice triggered
+2. Download voice file to temp location (.ogg format)
+3. Call Groq Whisper API with multipart form data
+4. Receive transcribed text in JSON response
+5. Set update.message.text = transcribed_text (synthetic message)
+6. Call existing handle_text method
+7. All existing text handling logic works (boss commands, feedback, etc.)
+8. Clean up temp file
+
+### Acceptance Criteria Met
+✓ Voice messages accepted and processed
+✓ Transcription via Whisper (Groq API)
+✓ Transcribed text used for intent detection
+✓ Original voice message can be deleted after processing (temp file cleanup)
+✓ Handle various audio formats Telegram supports
+
+---

@@ -2418,7 +2418,7 @@
         "ralph_bot.py",
         "voice_handler.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "VO-003",
