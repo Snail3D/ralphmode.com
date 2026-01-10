@@ -2841,3 +2841,55 @@ Check priority_order for next incomplete task
 Check priority_order for next incomplete task (SEC-025 - Security Alerting)
 
 ---
+
+## Iteration (Ralph Agent) - 2026-01-10
+**Task**: SEC-025 Security Alerting
+**Status**: ✅ Complete
+
+### What was implemented
+- Comprehensive real-time security monitoring system
+- Failed login tracking (5+ attempts = alert, 10+ = brute force attack)
+- Privilege escalation detection (always alert on unauthorized access)
+- SQL injection attempt detection (immediate alert, 3+ = coordinated attack)
+- Unusual API pattern detection (100+ requests/minute threshold)
+- Admin account creation monitoring (always CRITICAL severity)
+- Multi-channel alerting: Telegram, Email, Slack, PagerDuty
+- Severity-based routing (INFO → Telegram only, CRITICAL → all channels)
+- Alert throttling to prevent spam (5 alerts per 5-minute window)
+- 24/7 on-call rotation support via PagerDuty integration
+- Batch event analysis with automated threat intelligence and recommendations
+- SecurityMonitoringMiddleware for easy application integration
+
+### Files changed
+- monitoring.py (new): 623-line threat detection and pattern analysis system
+- test_security_monitoring.py (new): 464-line comprehensive test suite (16/16 passing)
+- security_alerts.py (already existed): Multi-channel alert delivery system
+
+### Learnings
+- Alert fatigue is real - tuned thresholds are critical for production use
+- Failed login tracking by IP is more reliable than by user_id for brute force detection
+- SQL injection should trigger immediate alert (zero tolerance policy)
+- Privilege escalation attempts escalate to CRITICAL on repeated attempts
+- Admin account creation always warrants CRITICAL alert (high-risk event)
+- Alert throttling prevents spam from coordinated attacks (same alert type grouped)
+- Multi-channel routing ensures right people get notified based on severity
+- PagerDuty integration enables 24/7 incident response coverage
+- Middleware pattern makes security monitoring easy to integrate into existing apps
+- Pattern analysis helps identify coordinated attacks vs isolated incidents
+- Event tracking with time windows enables sophisticated threat detection
+- Cleanup of old events prevents memory leaks in long-running processes
+
+### Acceptance Criteria Met
+✅ Alert on 5+ failed logins from same IP (threshold configurable)
+✅ Alert on privilege escalation attempts (always alert, escalate on repeat)
+✅ Alert on SQL injection attempts (immediate alert, coordinated attack detection)
+✅ Alert on unusual API patterns (100+ req/min threshold)
+✅ Alert on new admin account creation (always CRITICAL)
+✅ PagerDuty/Slack integration (full multi-channel support)
+✅ 24/7 on-call rotation (PagerDuty schedule integration)
+✅ Alert fatigue minimized (tuned thresholds, throttling, severity routing)
+
+### Next Task
+Check priority_order for next incomplete task (SEC-028 - Telegram Bot Security)
+
+---
