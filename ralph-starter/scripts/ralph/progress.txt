@@ -5226,3 +5226,79 @@ python build_orchestrator.py
 ```
 
 ---
+
+## Iteration - 2026-01-10
+**Task**: [WB-002] Live Build Stream
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `websocket_server.py` with Flask-SocketIO for real-time build streaming
+- WebSocket endpoint with room-based subscriptions (clients subscribe to specific build IDs)
+- Real-time terminal output streaming with line-by-line emission
+- Build status updates at key stages:
+  * `pending` - Build queued
+  * `in_progress` - Build running
+  * `testing` - Running test suite
+  * `deploying` - Deploying to staging
+  * `complete` - Build successful
+  * `failed` - Build failed with error message
+- Progress tracking with current task display
+- Comprehensive output sanitization system:
+  * API keys, tokens, Bearer auth redacted
+  * Passwords and credentials removed
+  * Environment variables with secrets sanitized
+  * SSH keys and database URLs with credentials protected
+  * Regex-based pattern matching with 100% test coverage
+- Integration with `build_orchestrator.py`:
+  * Non-blocking output reading using `select()`
+  * Real-time stdout/stderr streaming
+  * Status emissions at build lifecycle events
+  * Graceful handling when WebSocket server unavailable
+- Event handlers for client connection/disconnection
+- Test suite with sanitization verification (9/9 tests passed)
+
+### Files changed
+- `build_orchestrator.py` - Added WebSocket streaming integration
+- `websocket_server.py` (NEW) - WebSocket server implementation
+- `test_websocket_stream.py` (NEW) - Test suite for streaming and sanitization
+
+### Learnings
+- **WebSocket patterns**: Flask-SocketIO provides easy WebSocket integration with Flask
+- **Room-based messaging**: Clients can subscribe to specific build streams using rooms
+- **Output sanitization**: Regex patterns can effectively redact sensitive data from logs
+- **Non-blocking I/O**: `select()` allows reading process output without blocking
+- **Graceful degradation**: Optional dependencies should fail gracefully with helpful error messages
+- **Security best practices**: Never log secrets, always sanitize before transmission
+- **Real-time streaming**: Read output line-by-line and emit immediately for responsiveness
+
+### Architecture decisions
+1. **Flask-SocketIO over raw WebSocket**: Simpler integration with existing Flask stack
+2. **Room-based subscriptions**: Scale to multiple concurrent builds without broadcast spam
+3. **Regex-based sanitization**: Flexible pattern matching for various secret formats
+4. **Non-blocking reads**: Use select() to avoid hanging on stdout/stderr reads
+5. **Optional dependency**: WebSocket server doesn't break existing functionality if unavailable
+6. **Status-driven updates**: Explicit status events (testing, deploying) vs. guessing from output
+7. **Separate sanitizer class**: Reusable component for output cleaning
+
+### Acceptance criteria verification
+✅ WebSocket endpoint for build stream - Created with Flask-SocketIO at websocket_server.py
+✅ Real-time terminal output - Line-by-line streaming with emit_build_output()
+✅ Show current task being built - emit_build_progress() with task description
+✅ Show progress (tests running, deploying, etc) - Status updates for all build stages
+✅ Sanitize output (no secrets) - OutputSanitizer with 9/9 test pass rate
+
+### Dependencies required
+```
+pip install flask flask-socketio flask-cors
+```
+
+### Usage example
+```python
+from websocket_server import get_build_stream_server
+
+server = get_build_stream_server()
+server.emit_build_output(feedback_id=123, output="Building...")
+server.emit_build_status(feedback_id=123, status='in_progress', message='Running tests')
+```
+
+---
