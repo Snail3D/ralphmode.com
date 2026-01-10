@@ -5107,6 +5107,27 @@ _Grab some popcorn..._
             self.idle_chatter_task[user_id].cancel()
             del self.idle_chatter_task[user_id]
 
+        # AC-003: Check user cooldown (rate limiting per user)
+        if ADMIN_HANDLER_AVAILABLE:
+            from admin_handler import check_user_cooldown, record_user_message
+
+            is_allowed, seconds_remaining = check_user_cooldown(user_id)
+            if not is_allowed:
+                # User is in cooldown - send friendly in-character response
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None,
+                    self.ralph_misspell(
+                        f"Whoa there, buddy! You gotta wait {seconds_remaining} more seconds before your next message.\n\n"
+                        f"The boss set a cooldown period - company policy, ya know!"
+                    ),
+                    with_typing=True
+                )
+                logging.info(f"AC-003: Blocked message from user {user_id} (cooldown: {seconds_remaining}s remaining)")
+                return
+
+            # Record this message for cooldown tracking
+            record_user_message(user_id)
+
         # FB-003: Check if user is in feedback collection mode
         if context.user_data.get('feedback_state') == 'awaiting_content':
             feedback_type = context.user_data.get('feedback_type')
@@ -5355,6 +5376,101 @@ _Grab some popcorn..._
             parse_mode="Markdown"
         )
 
+    async def handle_admin_cooldown_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int):
+        """AC-003: Parse and execute cooldown command from voice input.
+
+        Examples:
+            "set cooldown 5 minutes"  (applies to all non-admins)
+            "set cooldown for user 123456789 30 seconds"
+            "set cooldown 5 minutes for user 123456789"
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            command_text: The command text (after admin trigger phrase)
+            admin_user_id: The admin's user ID
+        """
+        import re
+        from admin_handler import USER_COOLDOWNS
+
+        try:
+            # Parse the command using regex
+            # Pattern 1: "set cooldown X minutes/seconds for user Y"
+            # Pattern 2: "set cooldown for user Y X minutes/seconds"
+            # Pattern 3: "set cooldown X minutes/seconds" (apply to all non-admins)
+
+            command_lower = command_text.lower().strip()
+
+            # Extract user ID if specified
+            user_id_match = re.search(r'(?:for user|user)\s+(\d+)', command_lower)
+            target_user_id = int(user_id_match.group(1)) if user_id_match else None
+
+            # Extract duration and unit
+            duration_match = re.search(r'(\d+)\s*(minute|second|hour)s?', command_lower)
+
+            if not duration_match:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Could not parse cooldown duration.\n\n"
+                         "Examples:\n"
+                         "• 'set cooldown 5 minutes'\n"
+                         "• 'set cooldown for user 123456789 30 seconds'\n"
+                         "• 'set cooldown 2 hours for user 987654321'"
+                )
+                logging.warning(f"AC-003: Could not parse duration from command: {command_text}")
+                return
+
+            duration = int(duration_match.group(1))
+            unit = duration_match.group(2)
+
+            # Convert to seconds
+            if unit == 'minute':
+                cooldown_seconds = duration * 60
+                unit_display = 'minutes'
+            elif unit == 'second':
+                cooldown_seconds = duration
+                unit_display = 'seconds'
+            elif unit == 'hour':
+                cooldown_seconds = duration * 3600
+                unit_display = 'hours'
+            else:
+                cooldown_seconds = duration
+                unit_display = 'seconds'
+
+            # Set cooldown
+            if target_user_id:
+                # Set for specific user
+                USER_COOLDOWNS[target_user_id] = {
+                    'cooldown_seconds': cooldown_seconds,
+                    'last_message_time': None
+                }
+
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text=f"✅ **Cooldown Set**\n\n"
+                         f"User `{target_user_id}` can now only message once every **{duration} {unit_display}**."
+                )
+
+                logging.info(
+                    f"AC-003: Cooldown set for user {target_user_id}: {duration} {unit_display} "
+                    f"({cooldown_seconds}s) by admin {admin_user_id} via voice"
+                )
+            else:
+                # Could apply to all non-admins, but for now just inform admin
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Please specify a user ID.\n\n"
+                         "Example: 'set cooldown for user 123456789 5 minutes'"
+                )
+                logging.warning(f"AC-003: No user ID specified in cooldown command: {command_text}")
+
+        except Exception as e:
+            logging.error(f"AC-003: Error handling cooldown command: {e}", exc_info=True)
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text=f"❌ Error setting cooldown: {str(e)}"
+            )
+
     async def process_admin_voice_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, transcription: str):
         """AC-001/AC-002: Process admin voice commands (never shown in chat).
 
@@ -5428,15 +5544,16 @@ _Grab some popcorn..._
         except Exception as e:
             logging.error(f"AC-002: Failed to send private confirmation to admin: {e}")
 
-        # AC-001: Route to admin handler
-        # For now, we log the command and acknowledge silently
-        # Future enhancement: parse and execute specific admin commands
+        # AC-001/AC-003: Route to admin handler and parse commands
+        # Parse and execute specific admin commands
+        command_lower = command_text.lower().strip()
 
-        # Silent acknowledgment - no chat message sent
-        # The command is logged but user gets no feedback in chat
-        # This maintains the "invisible moderation" principle
-
-        logging.info(f"AC-001: Admin voice command processed silently: {command_text[:100]}")
+        # AC-003: Parse "set cooldown X minutes/seconds" command
+        if 'set cooldown' in command_lower or 'cooldown' in command_lower:
+            await self.handle_admin_cooldown_command(update, context, command_text, user_id)
+        else:
+            # Log other commands for future implementation
+            logging.info(f"AC-001: Admin voice command processed silently (no handler): {command_text[:100]}")
 
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle voice messages - VO-004: Full voice-to-intent pipeline with tone analysis."""
@@ -5467,6 +5584,27 @@ _Grab some popcorn..._
                 logging.info(f"MU-004: Voice from {user_tier.display_name} user {telegram_id}")
             except Exception as e:
                 logging.error(f"MU-004: Error checking tier for voice: {e}")
+
+        # AC-003: Check user cooldown (rate limiting per user)
+        if ADMIN_HANDLER_AVAILABLE:
+            from admin_handler import check_user_cooldown, record_user_message
+
+            is_allowed, seconds_remaining = check_user_cooldown(user_id)
+            if not is_allowed:
+                # User is in cooldown - send friendly in-character response
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None,
+                    self.ralph_misspell(
+                        f"Hold on there! You gotta wait {seconds_remaining} more seconds before your next message.\n\n"
+                        f"The boss put a timer on ya - nothing personal!"
+                    ),
+                    with_typing=True
+                )
+                logging.info(f"AC-003: Blocked voice from user {user_id} (cooldown: {seconds_remaining}s remaining)")
+                return
+
+            # Record this message for cooldown tracking
+            record_user_message(user_id)
 
         # Show typing indicator while processing
         await context.bot.send_chat_action(chat_id=chat_id, action="typing")

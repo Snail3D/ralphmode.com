@@ -25,7 +25,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Tuple
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -42,6 +42,10 @@ ADMIN_USER_ID = os.getenv('TELEGRAM_ADMIN_ID')
 
 # Pause flag file (used by build orchestrator)
 PAUSE_FLAG_FILE = Path('/tmp/ralph_build_paused.flag')
+
+# AC-003: User cooldown storage (user_id -> cooldown_seconds)
+# Format: {user_id: {'cooldown_seconds': int, 'last_message_time': timestamp}}
+USER_COOLDOWNS: Dict[int, Dict[str, any]] = {}
 
 
 class AdminHandler:
@@ -124,6 +128,7 @@ class AdminHandler:
             'rollback': self.handle_rollback,
             'prioritize': self.handle_prioritize,
             'reject': self.handle_reject,
+            'cooldown': self.handle_set_cooldown,  # AC-003
         }
 
         handler = handlers.get(subcommand)
@@ -159,10 +164,17 @@ Increase priority score of a feedback item to move it to front of queue.
 `/admin reject FB-XXX` - Remove from queue
 Reject a feedback item and remove it from the queue.
 
-Example:
+`/admin cooldown <user_id> <duration> <unit>` - Set message cooldown
+Limit how often a user can message. Units: seconds, minutes, hours.
+Use `/admin cooldown <user_id> 0` to remove cooldown.
+
+Examples:
 `/admin pause`
 `/admin deploy FB-42`
 `/admin prioritize FB-123`
+`/admin cooldown 123456789 5 minutes`
+`/admin cooldown 987654321 30 seconds`
+`/admin cooldown 123456789 0` (remove)
 """
         await update.message.reply_text(help_text, parse_mode='Markdown')
 
@@ -486,6 +498,163 @@ Example:
             await update.message.reply_text(
                 f"❌ Error rejecting feedback: {str(e)}"
             )
+
+    async def handle_set_cooldown(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        AC-003: /admin cooldown <user_id> <duration> <unit>
+
+        Set cooldown period for a user. User can only message once per cooldown period.
+
+        Examples:
+            /admin cooldown 123456789 5 minutes
+            /admin cooldown 123456789 30 seconds
+            /admin cooldown 123456789 0  (remove cooldown)
+
+        Args:
+            update: Telegram update
+            context: Callback context with args [user_id, duration, unit]
+        """
+        try:
+            # Parse arguments
+            if len(context.args) < 3:
+                await update.message.reply_text(
+                    "❌ Usage: `/admin cooldown <user_id> <duration> <unit>`\n\n"
+                    "Examples:\n"
+                    "`/admin cooldown 123456789 5 minutes`\n"
+                    "`/admin cooldown 123456789 30 seconds`\n"
+                    "`/admin cooldown 123456789 0` (remove cooldown)",
+                    parse_mode='Markdown'
+                )
+                return
+
+            # Extract user_id
+            try:
+                target_user_id = int(context.args[1])
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Invalid user ID. Must be a number.",
+                    parse_mode='Markdown'
+                )
+                return
+
+            # Extract duration
+            try:
+                duration = int(context.args[2])
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Invalid duration. Must be a number.",
+                    parse_mode='Markdown'
+                )
+                return
+
+            # If duration is 0, remove cooldown
+            if duration == 0:
+                if target_user_id in USER_COOLDOWNS:
+                    del USER_COOLDOWNS[target_user_id]
+                    await update.message.reply_text(
+                        f"✅ **Cooldown Removed**\n\n"
+                        f"User `{target_user_id}` can now message without restriction.",
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"AC-003: Cooldown removed for user {target_user_id} by admin {update.effective_user.id}")
+                else:
+                    await update.message.reply_text(
+                        f"ℹ️ User `{target_user_id}` has no active cooldown.",
+                        parse_mode='Markdown'
+                    )
+                return
+
+            # Extract unit (minutes or seconds)
+            if len(context.args) >= 4:
+                unit = context.args[3].lower()
+            else:
+                unit = 'seconds'  # Default to seconds if not specified
+
+            # Convert to seconds
+            if unit.startswith('minute'):
+                cooldown_seconds = duration * 60
+                unit_display = 'minutes'
+            elif unit.startswith('second'):
+                cooldown_seconds = duration
+                unit_display = 'seconds'
+            elif unit.startswith('hour'):
+                cooldown_seconds = duration * 3600
+                unit_display = 'hours'
+            else:
+                await update.message.reply_text(
+                    "❌ Invalid time unit. Use 'seconds', 'minutes', or 'hours'.",
+                    parse_mode='Markdown'
+                )
+                return
+
+            # Set cooldown for user
+            USER_COOLDOWNS[target_user_id] = {
+                'cooldown_seconds': cooldown_seconds,
+                'last_message_time': None  # Will be set when they first message
+            }
+
+            await update.message.reply_text(
+                f"⏱️ **Cooldown Set**\n\n"
+                f"User `{target_user_id}` can now only message once every **{duration} {unit_display}**.\n\n"
+                f"This restriction will persist until changed or removed.",
+                parse_mode='Markdown'
+            )
+
+            logger.info(
+                f"AC-003: Cooldown set for user {target_user_id}: {duration} {unit_display} "
+                f"({cooldown_seconds}s) by admin {update.effective_user.id}"
+            )
+
+        except Exception as e:
+            logger.error(f"AC-003: Error setting cooldown: {e}", exc_info=True)
+            await update.message.reply_text(
+                f"❌ Error setting cooldown: {str(e)}"
+            )
+
+
+def check_user_cooldown(user_id: int) -> Tuple[bool, Optional[int]]:
+    """
+    AC-003: Check if user is within their cooldown period.
+
+    Args:
+        user_id: Telegram user ID
+
+    Returns:
+        Tuple of (is_allowed, seconds_until_allowed)
+        - is_allowed: True if user can message, False if in cooldown
+        - seconds_until_allowed: How many seconds until user can message again (None if allowed)
+    """
+    if user_id not in USER_COOLDOWNS:
+        return True, None
+
+    cooldown_data = USER_COOLDOWNS[user_id]
+    cooldown_seconds = cooldown_data['cooldown_seconds']
+    last_message_time = cooldown_data['last_message_time']
+
+    # First message - allow it and record timestamp
+    if last_message_time is None:
+        return True, None
+
+    # Check if enough time has passed
+    now = datetime.utcnow()
+    time_since_last = (now - last_message_time).total_seconds()
+
+    if time_since_last >= cooldown_seconds:
+        return True, None
+    else:
+        seconds_remaining = int(cooldown_seconds - time_since_last)
+        return False, seconds_remaining
+
+
+def record_user_message(user_id: int):
+    """
+    AC-003: Record that a user sent a message (for cooldown tracking).
+
+    Args:
+        user_id: Telegram user ID
+    """
+    if user_id in USER_COOLDOWNS:
+        USER_COOLDOWNS[user_id]['last_message_time'] = datetime.utcnow()
 
 
 def setup_admin_handlers(application):
