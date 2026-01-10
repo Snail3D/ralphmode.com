@@ -96,6 +96,110 @@ class RalphBot:
         "bribe": ["peace offering gif", "gift gif", "please dont be mad gif", "butter up gif"],
     }
 
+    # The Dev Team - distinct personalities
+    DEV_TEAM = {
+        "Jake": {
+            "title": "Frontend Dev",
+            "personality": """You're Jake, a millennial frontend developer. You're chill, use casual language.
+You say things like "lowkey", "vibe", "literally", "I mean...", "that's valid".
+You're always holding coffee. You care about user experience.
+You sometimes start sentences with "So like..." or "Okay so..."
+You're good at your job but very laid back about it.""",
+            "greeting": "Hey, what's up boss?",
+            "style": "casual"
+        },
+        "Dan": {
+            "title": "Backend Dev",
+            "personality": """You're Dan, a patriotic, no-nonsense backend developer. Former military.
+You say things like "Copy that", "Roger", "Let's get it done", "Hooah".
+You're direct, efficient, and take pride in solid work.
+You call people "boss" or "chief". You don't waste words.
+You believe in doing things RIGHT the first time.""",
+            "greeting": "Boss. What do you need?",
+            "style": "direct"
+        },
+        "Maya": {
+            "title": "UX Designer",
+            "personality": """You're Maya, a passionate UX/UI designer. You care deeply about aesthetics and user journeys.
+You say things like "from a design perspective", "the user flow", "visual hierarchy", "accessibility".
+You get excited about color palettes and whitespace.
+You sometimes sketch ideas and say "picture this..." or "imagine if..."
+You advocate for the end user in every decision.""",
+            "greeting": "Hi Ralph! I've been thinking about the user experience...",
+            "style": "creative"
+        },
+        "Steve": {
+            "title": "Senior Dev",
+            "personality": """You're Steve, a senior developer who's seen it all. 20 years in the industry.
+You're slightly cynical but wise. You've debugged things at 3am too many times.
+You say things like "I've seen this before", "trust me on this one", "back in my day".
+You give good advice wrapped in mild sarcasm.
+You secretly love Ralph despite finding him exhausting.""",
+            "greeting": "Morning, Ralph. *sips coffee* What fresh chaos do we have today?",
+            "style": "veteran"
+        }
+    }
+
+    # Opening scenarios - MUD-style scene setting
+    SCENARIOS = [
+        {
+            "title": "THE DEADLINE CRUNCH",
+            "setup": """_The office is tense. Coffee cups litter every desk._
+_Fluorescent lights flicker. The deadline looms like a storm cloud._
+_The team hasn't slept properly in days. But they're still here._""",
+            "mood": "intense",
+            "rally": "We ship tonight or we don't go home!"
+        },
+        {
+            "title": "THE BACKLOG MOUNTAIN",
+            "setup": """_Sticky notes cover every surface. The Jira board is a war zone._
+_Someone printed the backlog - it's 47 pages long._
+_The team stares at it in horror. But then... determination._""",
+            "mood": "overwhelming",
+            "rally": "One ticket at a time. We've got this!"
+        },
+        {
+            "title": "THE BIG DEMO",
+            "setup": """_The CEO is coming in 3 hours. THE CEO._
+_The feature is 80% done. Maybe 70%. Okay, 60%._
+_Panic is not an option. The team needs a miracle._""",
+            "mood": "pressure",
+            "rally": "Demo gods, be with us today!"
+        },
+        {
+            "title": "FRESH START MONDAY",
+            "setup": """_A new week. A new codebase. A new opportunity._
+_The whiteboard is clean. The coffee is fresh._
+_The team gathers, energized and ready to build something great._""",
+            "mood": "optimistic",
+            "rally": "Let's make something awesome!"
+        },
+        {
+            "title": "THE LEGACY CODE",
+            "setup": """_They said don't touch it. They said it works, don't ask how._
+_But here we are. Someone has to fix it._
+_The code is older than some team members. It has no tests._""",
+            "mood": "dread",
+            "rally": "We go in together, we come out together!"
+        },
+        {
+            "title": "THE COMEBACK",
+            "setup": """_Last sprint was rough. Real rough._
+_But the team learned. They adapted. They're hungry._
+_This time will be different. This time they're ready._""",
+            "mood": "redemption",
+            "rally": "We're not just fixing bugs, we're making history!"
+        },
+        {
+            "title": "THE MYSTERY BUG",
+            "setup": """_It only happens on Tuesdays. In production. For one user._
+_No one can reproduce it. The logs show nothing._
+_But the customer is IMPORTANT. This bug must die._""",
+            "mood": "detective",
+            "rally": "We will find you. And we will fix you."
+        },
+    ]
+
     # Jokes workers can use to soften bad news
     BRIBE_JOKES = [
         "Chuck Norris doesn't do push-ups. He pushes the Earth down.",
@@ -203,14 +307,19 @@ class RalphBot:
         """Get a random joke for workers to butter up Ralph."""
         return random.choice(self.BRIBE_JOKES)
 
-    async def worker_bribes_ralph(self, context, chat_id: int):
+    async def worker_bribes_ralph(self, context, chat_id: int, worker_name: str = None):
         """Worker softens up Ralph before bad news with a joke."""
         joke = self.get_bribe_joke()
+
+        # Pick who's delivering the bad news
+        if worker_name is None:
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
 
         # Worker offers the joke
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Worker:* Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?",
+            text=f"*{worker_name}* _{worker['title']}_: Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?",
             parse_mode="Markdown"
         )
         await asyncio.sleep(2)
@@ -227,7 +336,7 @@ class RalphBot:
         # Worker tells the joke
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Worker:* Okay here goes... {joke}",
+            text=f"*{worker_name}*: Okay here goes... {joke}",
             parse_mode="Markdown"
         )
 
@@ -303,20 +412,36 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
         ]
         return self.call_groq(BOSS_MODEL, messages, max_tokens=150)
 
-    def call_worker(self, message: str, context: str = "") -> str:
-        """Get response from a Worker (smart dev)."""
+    def call_worker(self, message: str, context: str = "", worker_name: str = None) -> tuple:
+        """Get response from a specific team member. Returns (name, title, response)."""
+        # Pick a random team member if none specified
+        if worker_name is None:
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+
+        worker = self.DEV_TEAM[worker_name]
+
         messages = [
-            {"role": "system", "content": f"""You're a smart software developer working under Ralph Wiggum (yes, THAT Ralph from The Simpsons).
-Ralph is your boss now. He's sweet but clueless. You genuinely like him.
-Sometimes you accidentally call him "Ralphie" then quickly correct yourself: "I mean, sir" or "sorry, Mr. Wiggum"
+            {"role": "system", "content": f"""{worker['personality']}
+
+You work under Ralph Wiggum (yes, THAT Ralph from The Simpsons). He's your boss now.
+He's sweet but clueless. You genuinely like him despite everything.
+Sometimes you accidentally call him "Ralphie" then correct yourself: "I mean, sir"
 Explain technical things simply - Ralph won't understand jargon.
 Focus on customer value. Be patient with his weird questions.
-You can gently push back once if you disagree, but ultimately respect his verdict.
+You can push back once if you disagree, but ultimately respect his verdict.
 {context}
-2-3 sentences max. Be professional but warm."""},
+2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
         ]
-        return self.call_groq(WORKER_MODEL, messages, max_tokens=200)
+        response = self.call_groq(WORKER_MODEL, messages, max_tokens=200)
+        return (worker_name, worker['title'], response)
+
+    def get_worker_greeting(self, worker_name: str = None) -> tuple:
+        """Get a worker's greeting. Returns (name, title, greeting)."""
+        if worker_name is None:
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
+        return (worker_name, worker['title'], worker['greeting'])
 
     # ==================== TELEGRAM HANDLERS ====================
 
@@ -547,16 +672,34 @@ Format as a numbered list."""
         if not session:
             return
 
-        # Opening scene with GIF
+        # Pick a random scenario
+        scenario = random.choice(self.SCENARIOS)
+
+        # ===== ACT 1: THE SCENARIO =====
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*SCENARIO: {scenario['title']}*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{scenario['setup']}
+""",
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(3)
+
+        # ===== ACT 2: RALPH ENTERS =====
         await context.bot.send_message(
             chat_id=chat_id,
             text="""
-*THE OFFICE* 🏢
+_The door swings open._
 
-_Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside down_
+_Ralph Wiggum walks in with a juice box, wearing his "Manager" badge upside down._
+_He looks around at his team with genuine excitement._
 
-*Ralph:* I'm the boss now! My cat's breath smells like cat food.
-
+*Ralph:* I'm the boss now! My cat's breath smells like cat food. Are we ready to do work things?
 """,
             parse_mode="Markdown"
         )
@@ -564,6 +707,45 @@ _Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside 
         # Opening GIF - Ralph being Ralph (Simpsons only!)
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "happy")
+
+        await asyncio.sleep(2)
+
+        # ===== ACT 3: THE TEAM RALLIES =====
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="_The team exchanges glances. Despite everything, they believe in this weird little boss._",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1)
+
+        # Each team member responds
+        for name, worker in self.DEV_TEAM.items():
+            greeting = worker['greeting']
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"*{name}* _{worker['title']}_: {greeting}",
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(1)
+
+        # Rally cry
+        await asyncio.sleep(1)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"""
+_The team nods in unison._
+
+*ALL:* {scenario['rally']}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+*LET'S BUILD SOMETHING.*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+""",
+            parse_mode="Markdown"
+        )
+
+        if self.should_send_gif():
+            await self.send_worker_gif(context, chat_id, "working")
 
         await asyncio.sleep(2)
 
@@ -587,15 +769,15 @@ _Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside 
 
         await asyncio.sleep(2)
 
-        # Worker responds
-        worker_response = self.call_worker(
+        # Worker responds - pick a random team member
+        name, title, worker_response = self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
             context=f"Project: {session.get('project_name')}"
         )
 
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Worker:* {worker_response}",
+            text=f"*{name}* _{title}_: {worker_response}",
             parse_mode="Markdown"
         )
 
