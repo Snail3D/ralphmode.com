@@ -17,13 +17,21 @@
 - **IP**: 69.164.201.191
 - **SSH**: `ssh root@69.164.201.191`
 - **Password**: See `.env` file (LINODE_PASSWORD)
+- **OS**: Ubuntu 24.04 LTS
 - **Web root**: `/var/www/ralphmode.com/`
+- **nginx config**: `/etc/nginx/sites-available/ralphmode.com`
 
 ⚠️ **PUBLIC REPO** - Never commit passwords. Use `.env` for secrets.
 
-### GoDaddy DNS
+### SSL Setup (after DNS configured)
+```bash
+certbot --nginx -d ralphmode.com -d www.ralphmode.com
+```
+
+### GoDaddy DNS (needs manual setup)
 - A record: @ → 69.164.201.191
 - A record: www → 69.164.201.191
+- **Status**: Not yet configured (domain currently points elsewhere)
 
 ## Key Files
 
@@ -70,4 +78,4 @@ cd /var/www/ralphmode.com && git pull
 
 ---
 
-*Last updated: 2026-01-09*
+*Last updated: 2026-01-10*
