@@ -289,6 +289,7 @@ class Feedback(Base):
     upvote_count = Column(Integer, default=0, nullable=False)  # DD-002: Track duplicate merges as upvotes
     rejection_reason = Column(Text, nullable=True)  # SP-001: Reason for spam/duplicate rejection
     rejected_at = Column(DateTime, nullable=True)  # SP-001: When feedback was rejected
+    consecutive_failures = Column(Integer, default=0, nullable=False)  # BO-003: Track consecutive build failures
 
     # Relationships
     user = relationship("User", back_populates="feedback")

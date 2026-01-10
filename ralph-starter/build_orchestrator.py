@@ -464,6 +464,17 @@ class BuildOrchestrator:
         logger.info(f"Build SUCCESS for feedback_id={context.feedback_id}")
 
         try:
+            # BO-003: Reset consecutive failures on success
+            feedback = db.query(Feedback).filter(Feedback.id == context.feedback_id).first()
+            if feedback:
+                if feedback.consecutive_failures > 0:
+                    logger.info(
+                        f"Resetting consecutive_failures for feedback_id={context.feedback_id} "
+                        f"from {feedback.consecutive_failures} to 0"
+                    )
+                    feedback.consecutive_failures = 0
+                    db.commit()
+
             queue = get_feedback_queue(db)
             queue.update_status(context.feedback_id, "testing")
 
@@ -475,7 +486,7 @@ class BuildOrchestrator:
 
     def _handle_build_failure(self, context: BuildContext, db: Session, reason: str):
         """
-        Handle build failure.
+        BO-003: Handle build failure with enhanced failure tracking.
 
         Args:
             context: Build context
@@ -485,14 +496,138 @@ class BuildOrchestrator:
         logger.error(f"Build FAILED for feedback_id={context.feedback_id}: {reason}")
 
         try:
-            queue = get_feedback_queue(db)
-            queue.update_status(context.feedback_id, "rejected", reason)
+            # Get feedback item
+            feedback = db.query(Feedback).filter(Feedback.id == context.feedback_id).first()
+
+            if not feedback:
+                logger.error(f"Feedback {context.feedback_id} not found")
+                self.builds_failed += 1
+                self.current_build = None
+                return
+
+            # BO-003: Increment consecutive failures
+            feedback.consecutive_failures += 1
+            consecutive_failures = feedback.consecutive_failures
+
+            # BO-003: Log detailed failure info
+            logger.error(
+                f"Build failure details: feedback_id={context.feedback_id}, "
+                f"consecutive_failures={consecutive_failures}, "
+                f"type={context.feedback_type}, "
+                f"reason={reason}"
+            )
+
+            # BO-003: Reduce priority score by 50%
+            if feedback.priority_score:
+                old_priority = feedback.priority_score
+                feedback.priority_score = feedback.priority_score * 0.5
+                logger.info(
+                    f"Reduced priority score for feedback_id={context.feedback_id}: "
+                    f"{old_priority:.2f} -> {feedback.priority_score:.2f}"
+                )
+
+            # Update feedback status
+            feedback.status = "queued"  # Return to queue with reduced priority
+            feedback.updated_at = datetime.utcnow()
+            feedback.rejection_reason = reason
+
+            db.commit()
+
+            # BO-003: Alert admin after 3+ consecutive failures
+            if consecutive_failures >= 3:
+                self._alert_admin_consecutive_failures(context.feedback_id, consecutive_failures, reason)
+
+            # BO-003: Pause build loop after 5+ consecutive failures
+            if consecutive_failures >= 5:
+                logger.critical(
+                    f"PAUSING BUILD LOOP: feedback_id={context.feedback_id} has {consecutive_failures} "
+                    f"consecutive failures. Manual intervention required."
+                )
+                self._pause_build_loop(context.feedback_id, consecutive_failures, reason)
 
             self.builds_failed += 1
             self.current_build = None
 
         except Exception as e:
             logger.error(f"Error handling build failure: {e}", exc_info=True)
+
+    def _alert_admin_consecutive_failures(self, feedback_id: int, consecutive_failures: int, reason: str):
+        """
+        BO-003: Alert admin about consecutive failures.
+
+        Args:
+            feedback_id: Feedback ID
+            consecutive_failures: Number of consecutive failures
+            reason: Failure reason
+        """
+        admin_id = os.getenv('TELEGRAM_ADMIN_ID')
+
+        if not admin_id:
+            logger.warning("TELEGRAM_ADMIN_ID not set, cannot alert admin")
+            return
+
+        try:
+            # Log the alert (actual Telegram notification would require bot integration)
+            alert_message = (
+                f"🚨 BUILD FAILURE ALERT 🚨\n\n"
+                f"Feedback ID: {feedback_id}\n"
+                f"Consecutive Failures: {consecutive_failures}\n"
+                f"Reason: {reason}\n\n"
+                f"Action required: Review feedback item and resolve build issues."
+            )
+
+            logger.warning(f"ADMIN ALERT: {alert_message}")
+
+            # TODO: Send actual Telegram message to admin
+            # This would require access to the bot instance, which runs in a different process
+            # For now, we log the alert and write to a file that can be monitored
+
+            alert_file = Path('/tmp/ralph_admin_alerts.log')
+            with open(alert_file, 'a') as f:
+                f.write(f"{datetime.utcnow().isoformat()} - {alert_message}\n\n")
+
+            logger.info(f"Admin alert written to {alert_file}")
+
+        except Exception as e:
+            logger.error(f"Error alerting admin: {e}", exc_info=True)
+
+    def _pause_build_loop(self, feedback_id: int, consecutive_failures: int, reason: str):
+        """
+        BO-003: Pause build loop after 5+ consecutive failures.
+
+        Args:
+            feedback_id: Feedback ID
+            consecutive_failures: Number of consecutive failures
+            reason: Failure reason
+        """
+        try:
+            # Create a pause file that the orchestrator checks
+            pause_file = Path('/tmp/ralph_build_paused.flag')
+
+            pause_data = {
+                'paused_at': datetime.utcnow().isoformat(),
+                'feedback_id': feedback_id,
+                'consecutive_failures': consecutive_failures,
+                'reason': reason,
+                'message': (
+                    f"Build loop paused due to {consecutive_failures} consecutive failures "
+                    f"on feedback_id={feedback_id}. Manual intervention required."
+                )
+            }
+
+            with open(pause_file, 'w') as f:
+                json.dump(pause_data, f, indent=2)
+
+            logger.critical(f"Build loop PAUSED. Pause file created at {pause_file}")
+
+            # Stop the orchestrator
+            self.running = False
+
+            # Alert admin
+            self._alert_admin_consecutive_failures(feedback_id, consecutive_failures, reason)
+
+        except Exception as e:
+            logger.error(f"Error pausing build loop: {e}", exc_info=True)
 
 
 def start_daemon(use_docker: bool = True):
