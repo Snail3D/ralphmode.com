@@ -431,3 +431,36 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 14 - 2026-01-10
+**Task**: [RM-024] Mid-Session Progress Reports to CEO
+**Status**: ✅ Complete
+
+### What was implemented
+- Added tracking fields to init_quality_metrics():
+  - last_progress_report_task - task count when last report was given
+  - last_reported_milestone - last milestone reported (25, 50, 75)
+- Created should_give_progress_report() function:
+  - Triggers at 25%, 50%, and 75% completion milestones
+  - Skips if report was given in last 3 tasks (no spam)
+  - Requires at least 4 tasks total (short sessions don't need reports)
+  - Tracks which milestones have been reported
+- Created maybe_give_progress_report() async function:
+  - Called after each task completion
+  - Ralph announces: "Mr. Worms! I have a progress report!"
+  - Shows mini progress bar (8 chars)
+  - Displays: tasks done, remaining, ETA, blockers if any
+  - Ralph adds a fun summary comment
+  - Different excitement levels for 25/50/75%
+- Updated show_task_completion() to call maybe_give_progress_report()
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- 3-task cooldown prevents report spam
+- Mini progress bar (8 chars) fits better in reports
+- Ralph's milestone excitement varies: "started good!", "at the middle!", "almost there!"
+- ETA adds real value to progress reports
+
+---
+

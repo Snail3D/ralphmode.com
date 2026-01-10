@@ -2003,6 +2003,8 @@ class RalphBot:
             "task_durations": [],  # List of task durations in seconds for ETA calculation
             "current_task_start": None,  # When current task started
             "last_progress_shown": None,  # When progress bar was last shown
+            "last_progress_report_task": 0,  # Task count when last report was given
+            "last_reported_milestone": 0,  # Last milestone reported (25, 50, 75)
         }
 
     def track_task_identified(self, user_id: int, task_title: str, priority: str = "medium"):
@@ -2246,6 +2248,155 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
 
         # Show progress bar after delay
         await self.show_progress_bar(context, chat_id, user_id, delay=5.0)
+
+        # Check if we should give a mid-session progress report
+        await self.maybe_give_progress_report(context, chat_id, user_id)
+
+    def should_give_progress_report(self, user_id: int) -> bool:
+        """Check if it's time for a mid-session progress report.
+
+        Reports trigger at 25%, 50%, and 75% completion, but not if:
+        - A report was given in the last 3 tasks
+        - There are fewer than 4 tasks total (too short)
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            True if a report should be given
+        """
+        if user_id not in self.quality_metrics:
+            return False
+
+        m = self.quality_metrics[user_id]
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+        last_report_task = m.get("last_progress_report_task", 0)
+
+        # Need at least 4 tasks for meaningful reports
+        if tasks_total < 4:
+            return False
+
+        # Don't report if we just reported (within last 3 tasks)
+        if tasks_done - last_report_task < 3:
+            return False
+
+        # Calculate completion percentage
+        pct = (tasks_done / tasks_total) * 100
+
+        # Check if we're at a milestone (25%, 50%, 75%)
+        milestones = [25, 50, 75]
+        last_reported_milestone = m.get("last_reported_milestone", 0)
+
+        for milestone in milestones:
+            if pct >= milestone and last_reported_milestone < milestone:
+                return True
+
+        return False
+
+    async def maybe_give_progress_report(self, context, chat_id: int, user_id: int):
+        """Give a mid-session progress report if we're at a milestone.
+
+        Ralph summarizes progress to Mr. Worms at key milestones.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+        """
+        if not self.should_give_progress_report(user_id):
+            return
+
+        m = self.quality_metrics[user_id]
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+        pct = (tasks_done / tasks_total) * 100
+
+        # Update tracking
+        m["last_progress_report_task"] = tasks_done
+
+        # Determine which milestone we're at
+        if pct >= 75:
+            milestone = 75
+            milestone_text = "three-quarters"
+            ralph_excitement = "We're almost there!"
+        elif pct >= 50:
+            milestone = 50
+            milestone_text = "halfway"
+            ralph_excitement = "We're at the middle part!"
+        else:
+            milestone = 25
+            milestone_text = "quarter"
+            ralph_excitement = "We started good!"
+
+        m["last_reported_milestone"] = milestone
+
+        # Wait a bit before the report
+        await asyncio.sleep(2.0)
+
+        # Ralph announces the report
+        announcement = self.ralph_misspell(
+            f"Mr. Worms! Mr. Worms! I have a progress report! "
+            f"We're {milestone_text} done! {ralph_excitement}"
+        )
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, announcement,
+            topic="progress report",
+            with_typing=True
+        )
+
+        await asyncio.sleep(1.5)
+
+        # Build the mini report
+        session = self.active_sessions.get(user_id, {})
+        blockers = m.get("blockers_hit", 0) - m.get("blockers_resolved", 0)
+
+        # Mini progress bar
+        progress_bar = self.format_progress_bar(tasks_done, tasks_total, bar_length=8)
+
+        # Build report content
+        report_lines = [
+            f"📊 *Progress Report* ({milestone}%)",
+            "",
+            progress_bar,
+            "",
+            f"✅ Done: {tasks_done} tasks",
+            f"📋 Remaining: {tasks_total - tasks_done} tasks",
+        ]
+
+        # Add ETA if available
+        eta_str, completion_time = self.calculate_eta(user_id)
+        if completion_time:
+            report_lines.append(f"⏳ ETA: {eta_str} (~{completion_time.strftime('%I:%M %p')})")
+
+        # Add blocker warning if any
+        if blockers > 0:
+            report_lines.append(f"⚠️ Blockers: {blockers}")
+
+        report_text = "\n".join(report_lines)
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=report_text,
+            parse_mode="Markdown"
+        )
+
+        # Ralph's summary comment
+        await asyncio.sleep(1.0)
+        summary_options = [
+            "The team is werking very hard! I can hear their keyboards clicking!",
+            "My daddy would be proud of how much we did!",
+            "Even my cat couldn't do this much work! She mostly sleeps.",
+            "We're making good progress! Like a turtle but faster!",
+        ]
+        ralph_summary = self.ralph_misspell(random.choice(summary_options))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_summary,
+            topic="progress summary",
+            with_typing=True
+        )
 
     # ==================== SESSION HISTORY (Ralph remembers everything) ====================
 

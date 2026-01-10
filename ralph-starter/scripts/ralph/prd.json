@@ -380,7 +380,7 @@
         "Include mini progress bar in report"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-025",
@@ -840,6 +840,163 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": true
+    },
+    {
+      "id": "RM-053",
+      "category": "Overhear Mode",
+      "title": "Idle Codebase Chatter System",
+      "description": "Between tasks/iterations, workers have ongoing group chat discussions about the codebase. User 'overhears' these conversations. Texting pace - 1-2 sentences at a time, natural pauses between messages. Like a MUD or group chat.",
+      "acceptance_criteria": [
+        "Idle chatter triggers when no active task is running",
+        "Messages come at texting pace (5-15 seconds apart)",
+        "Each message is 1-2 sentences MAX - conversational, not info dumps",
+        "Workers discuss what they just learned about the codebase",
+        "Feels like overhearing a group chat at the water cooler",
+        "Chatter pauses when user sends a message",
+        "Resumes after ~10 seconds of user silence"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-054",
+      "category": "Overhear Mode",
+      "title": "Codebase Exploration Discussions",
+      "description": "Workers explore and discuss the codebase structure, patterns, and how things connect. Educational content delivered through natural conversation. User learns by overhearing.",
+      "acceptance_criteria": [
+        "Topics: file structure, dependencies, patterns, 'why is this here?'",
+        "Stool: 'Yo, check out this component structure...'",
+        "Gomer: 'Mmm, that connects to the API over here...'",
+        "Mona: 'Actually, if you trace the data flow...'",
+        "Gus: 'Seen this pattern before. It's for...'",
+        "Conversations build understanding naturally",
+        "Technical accuracy - actually explains real code relationships",
+        "Tailored to the SPECIFIC codebase they analyzed"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-055",
+      "category": "Overhear Mode",
+      "title": "Explain Like Ralph is 5",
+      "description": "Workers explain complex concepts to Ralph in simple terms. Ralph asks dumb questions. This teaches the user through the metaphor of explaining to a confused boss. Educational AND entertaining.",
+      "acceptance_criteria": [
+        "Worker starts explaining something technical",
+        "Ralph: 'Wait wait wait... so the thingy goes into the other thingy?'",
+        "Worker: 'Yes boss, exactly! The API sends data to the frontend...'",
+        "Ralph: 'And then what happens to my buttons?'",
+        "Workers patiently re-explain in simpler terms",
+        "Ralph occasionally 'gets it' triumphantly: 'OH! Like when I eat paste and it goes in my tummy!'",
+        "Educational AND entertaining - user learns by watching"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-056",
+      "category": "Overhear Mode",
+      "title": "Interrupt and Resume Flow",
+      "description": "User can tap any worker anytime to ask questions. After user goes quiet, workers naturally resume their sidebar conversation where they left off.",
+      "acceptance_criteria": [
+        "User tap = immediate attention from that worker",
+        "Worker: 'Oh hey Mr. Worms! What's up?'",
+        "User asks question about what they were discussing",
+        "Worker answers helpfully, in character",
+        "After ~10 seconds silence, another worker: 'Anyway, as I was saying...'",
+        "Conversation resumes naturally where they left off",
+        "User never feels like they're interrupting rudely",
+        "Workers always happy to explain to the boss"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-057",
+      "category": "Overhear Mode",
+      "title": "MUD-Style Presence System",
+      "description": "Create the feeling of a MUD (Multi-User Dungeon). Workers are 'present' in the space. User can see who's around, what they're doing, interact naturally.",
+      "acceptance_criteria": [
+        "Workers have 'status': chatting, working, thinking, coffee break",
+        "Occasional status updates: '_Gus refills his coffee_'",
+        "User can 'look around' to see who's present",
+        "Workers react to each other: 'Hey Stool, you see this?'",
+        "Spatial feeling - workers move around conceptually",
+        "Group chat energy but with physical presence hints",
+        "Commands like 'Who's here?' get answered naturally"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-058",
+      "category": "Overhear Mode",
+      "title": "Codebase Summary Generation",
+      "description": "During idle time, workers collaboratively build a mental model of the codebase. They can be asked 'How does X work?' and explain based on their exploration.",
+      "acceptance_criteria": [
+        "Track codebase_insights dict with discoveries",
+        "Workers add insights as they 'explore': 'Found the auth logic!'",
+        "User can ask: 'How does the login work?'",
+        "Relevant worker explains based on stored insights",
+        "If unknown: 'Hmm, haven't looked at that yet. Lemme check...'",
+        "Insights persist through session",
+        "Workers build on each other's discoveries"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-059",
+      "category": "Overhear Mode",
+      "title": "Question Prompts from Workers",
+      "description": "Workers occasionally invite the user into the conversation. Makes user feel included, not just eavesdropping.",
+      "acceptance_criteria": [
+        "5-10% chance workers ask user a question",
+        "Questions about the codebase: 'Did you write this part?'",
+        "Questions about intent: 'What were you going for here?'",
+        "User answer gets incorporated into discussion",
+        "If no answer in 30 sec, worker: 'No worries, we'll figure it out'",
+        "Makes user feel like part of the team",
+        "Not intrusive - just occasional inclusion"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-060",
+      "category": "Overhear Mode",
+      "title": "Byte-Sized Learning Chunks",
+      "description": "Information delivered in tiny digestible pieces. Never more than 2 sentences. Let it breathe. User absorbs naturally over time instead of info overload.",
+      "acceptance_criteria": [
+        "STRICT: Max 2 sentences per message",
+        "Technical info spread across multiple messages",
+        "Natural pauses between info chunks (5-15 sec)",
+        "Worker 1: 'So this file handles all the routes.'",
+        "Worker 2: 'Yeah, and it imports from...'",
+        "[pause]",
+        "Worker 1: 'Right, the middleware over there.'",
+        "User never feels overwhelmed",
+        "Information sticks because it's conversational"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-061",
+      "category": "Overhear Mode",
+      "title": "Voice Input from CEO",
+      "description": "User can send voice messages to chime into the conversation. Telegram voice messages get transcribed and treated as user input. Talk to your dev team!",
+      "acceptance_criteria": [
+        "Handle Telegram voice messages",
+        "Transcribe using Groq Whisper API (fast!)",
+        "Treat transcribed text as normal user message",
+        "Workers respond naturally to voice input",
+        "Acknowledge the voice: 'Oh! Mr. Worms is calling!'",
+        "Works seamlessly with tap-on-shoulder flow",
+        "User can literally talk to their dev team"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
     }
   ],
 
