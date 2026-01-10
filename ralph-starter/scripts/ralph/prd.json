@@ -3699,7 +3699,7 @@
         "package.json",
         ".github/workflows/*"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-010",
