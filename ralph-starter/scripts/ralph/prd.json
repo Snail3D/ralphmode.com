@@ -3123,9 +3123,9 @@
       ],
       "files_likely_modified": [
         "feedback_queue.py",
-        "db_schema.sql"
+        "database.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "FQ-002",

@@ -4599,3 +4599,73 @@ Generic (too vague):
 
 ---
 
+
+## Iteration 6 - 2026-01-10 11:36:59
+**Task**: [FQ-001] Feedback Queue Database
+**Status**: ✅ Complete
+
+### What was implemented
+- Created feedback_queue.py module with FeedbackQueue class:
+  - Uses existing Feedback model from database.py (reused existing schema)
+  - Provides queue management on top of ORM layer
+  - Context manager support for automatic session management
+- Implemented queue management methods:
+  - add_feedback(): Add new feedback to queue with validation
+  - update_status(): Update feedback status with state machine validation
+  - score_feedback(): Auto-calculate quality and priority scores (integrates PR-001/PR-002)
+  - get_next_high_priority(): Get next HIGH priority item for Ralph to work on
+  - get_queue_by_status(): Get all items with specific status
+  - get_user_feedback(): Get all feedback for a user
+  - get_queue_stats(): Get queue statistics by status
+- Implemented FQ-002 status state machine:
+  - STATUS_TRANSITIONS dict defines valid state changes
+  - States: pending → screening → scored → queued → in_progress → testing → deployed
+  - Can transition to 'rejected' from any state (terminal state)
+  - Validates transitions before updating status
+- Created comprehensive test suite in test_feedback_queue.py:
+  - test_add_feedback: Verify feedback creation
+  - test_status_transitions: Verify state machine works correctly
+  - test_score_feedback: Verify PR-001/PR-002 integration
+  - test_get_next_high_priority: Verify priority-based item picking
+  - test_queue_stats: Verify queue statistics
+  - All tests passing successfully
+
+### Files changed
+- feedback_queue.py: New module with FeedbackQueue class and queue management
+- test_feedback_queue.py: New test file with comprehensive test coverage
+- scripts/ralph/prd.json: Marked FQ-001 as passes=true
+
+### Learnings
+- Reused existing Feedback model from database.py (already had all required fields)
+- State machine validation prevents invalid status transitions
+- score_feedback() automatically integrates quality scoring (QS-001) and priority scoring (PR-001/PR-002)
+- Uses default values for impact/frequency/urgency (5.0 medium) until LLM analysis is implemented
+- User tier from subscription_tier field (builder=1.0, priority=2.0 weight)
+- Context manager pattern makes queue usage clean and safe
+- get_next_high_priority() filters by score > 7 (HIGH tier threshold from PR-002)
+- Feedback table already has status field, quality_score, priority_score - perfect for queue
+- InputValidator uses is_safe_string() not is_safe_text() or is_safe_integer()
+
+### Integration points
+- database.py: Uses existing Feedback and User models
+- feedback_scorer.py: Integrates QS-001, PR-001, PR-002 for scoring
+- PR-001: Calculates priority scores automatically
+- PR-002: Uses HIGH tier threshold (>7) for priority picking
+- QS-001: Calculates quality scores when scoring feedback
+- FQ-002: Implements status state machine (completed as part of FQ-001)
+- FQ-003: get_user_feedback() enables /mystatus command
+- BO-001: get_next_high_priority() will be used by build orchestrator
+- Ralph: Will use queue to pick next item to work on
+
+### Next steps for production
+1. Implement FQ-002 state transition events/hooks
+2. Implement FQ-003 /mystatus command in ralph_bot.py
+3. Add LLM-based impact/frequency/urgency estimation (replace hardcoded 5.0)
+4. Add assigned_at and completed_at timestamps to Feedback model
+5. Create queue dashboard UI (WB-003)
+6. Integrate with Ralph's main loop to pick from queue
+7. Add webhook/notification on status changes
+8. Add queue metrics and monitoring
+
+---
+
