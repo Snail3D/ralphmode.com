@@ -750,6 +750,7 @@ class RalphBot:
         self.message_counter = 0  # Counter for unique message IDs
         self.onboarding_state: Dict[int, Dict] = {}  # Track onboarding progress per user
         self.pending_analysis: Dict[int, asyncio.Task] = {}  # Track background analysis tasks
+        self.recent_responses: Dict[int, List[str]] = {}  # RM-010: Track last 10 responses per user for freshness
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
@@ -2896,6 +2897,64 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
 
         return (eta_str, completion_time)
 
+    # ==================== FRESH RESPONSE TRACKING (RM-010) ====================
+
+    def track_response(self, user_id: int, response: str, character_name: str = ""):
+        """Track a response to avoid repetition.
+
+        Args:
+            user_id: The user ID
+            response: The full response text
+            character_name: Name of the character (Ralph, Stool, etc.) for context
+        """
+        if user_id not in self.recent_responses:
+            self.recent_responses[user_id] = []
+
+        # Store response with timestamp and character
+        self.recent_responses[user_id].append({
+            "text": response.lower().strip(),
+            "character": character_name,
+            "time": datetime.now(),
+            "opener": response[:50].lower().strip() if len(response) > 0 else ""
+        })
+
+        # Keep only last 10 responses
+        self.recent_responses[user_id] = self.recent_responses[user_id][-10:]
+
+    def get_freshness_prompt(self, user_id: int, character_name: str = "") -> str:
+        """Generate a freshness prompt based on recent responses.
+
+        Args:
+            user_id: The user ID
+            character_name: Name of the character responding
+
+        Returns:
+            A prompt snippet to encourage fresh responses
+        """
+        if user_id not in self.recent_responses or not self.recent_responses[user_id]:
+            return ""
+
+        recent = self.recent_responses[user_id]
+
+        # Get recent responses from this character
+        character_recent = [r for r in recent if r["character"] == character_name]
+
+        # Collect recent openers to avoid
+        recent_openers = [r["opener"] for r in recent[-5:]]
+        openers_text = ", ".join([f'"{o}"' for o in recent_openers if o])
+
+        prompt = f"""
+FRESHNESS REQUIREMENT:
+- Your last few responses started with: {openers_text}
+- DO NOT repeat these sentence structures or openers
+- Vary your vocabulary and phrasing significantly
+- Each response should feel unique and spontaneous
+- Classic quotes are fine but use them SPARINGLY (not every time)
+- Mix up how you express yourself - different intros, different structures
+- Stay in character but be FRESH with your delivery"""
+
+        return prompt
+
     def format_elapsed_time(self, start_time: datetime) -> str:
         """Format elapsed time since session start.
 
@@ -3646,13 +3705,14 @@ If asked about something you didn't observe, honestly say you don't know."""},
             logger.error(f"SEC-029: Unexpected error in call_groq: {e}")
             return get_fallback_response("general")
 
-    def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "") -> str:
+    def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "", user_id: int = None) -> str:
         """Get response from Ralph Wiggum, the boss.
 
         Args:
             message: The prompt/situation for Ralph to respond to
             apply_misspellings: Whether to apply Ralph's dyslexia misspellings (default True)
             tone_context: TL-001: Optional tone context from voice analysis
+            user_id: Optional user ID for response freshness tracking (RM-010)
 
         Returns:
             Ralph's response, with misspellings applied if enabled
@@ -3672,6 +3732,12 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
         if tone_context:
             system_content += f"\n\n{tone_context}"
 
+        # RM-010: Add freshness prompt to avoid repetitive responses
+        if user_id is not None:
+            freshness_prompt = self.get_freshness_prompt(user_id, "Ralph")
+            if freshness_prompt:
+                system_content += f"\n\n{freshness_prompt}"
+
         messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": message}
@@ -3682,12 +3748,17 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
         if apply_misspellings:
             response = self.ralph_misspell(response)
 
+        # RM-010: Track this response for freshness
+        if user_id is not None:
+            self.track_response(user_id, response, "Ralph")
+
         return response
 
-    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general") -> tuple:
+    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None) -> tuple:
         """Get response from a specific team member. Returns (name, title, response, tokens).
 
         task_type can be: "general", "code", "analysis", "review" - affects quality emphasis
+        user_id: Optional user ID for response freshness tracking (RM-010)
         """
         # Pick a random team member if none specified
         if worker_name is None:
@@ -3727,6 +3798,11 @@ When reviewing:
 - Suggest specific improvements with examples
 - Acknowledge what's done well too"""
 
+        # RM-010: Get freshness prompt to avoid repetitive responses
+        freshness_prompt = ""
+        if user_id is not None:
+            freshness_prompt = self.get_freshness_prompt(user_id, worker_name)
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -3744,11 +3820,17 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {task_guidance}
 {context}
 {efficiency_note}
+{freshness_prompt}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
         ]
         response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
         token_count = len(response.split())  # Rough word count as proxy
+
+        # RM-010: Track this response for freshness
+        if user_id is not None:
+            self.track_response(user_id, response, worker_name)
+
         return (worker_name, worker['title'], response, token_count)
 
     def check_work_quality(self, response: str, task_type: str = "general") -> dict:

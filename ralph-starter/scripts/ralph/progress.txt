@@ -6864,3 +6864,32 @@ DELETE_ORIGINAL_MESSAGES=true
 
 ---
 
+
+## Iteration 5 - 2026-01-10
+**Task**: [RM-010] Fresh Response System
+**Status**: ✅ Complete
+
+### What was implemented
+- Added self.recent_responses tracking dict to __init__ for per-user response history
+- Created track_response(user_id, response, character_name) method to store last 10 responses
+- Created get_freshness_prompt(user_id, character_name) to generate freshness guidance
+- Updated call_worker() to accept optional user_id parameter and include freshness prompt
+- Updated call_boss() to accept optional user_id parameter and include freshness prompt
+- Freshness prompts show recent openers and explicitly tell AI to vary sentence structures
+- Automatic tracking of responses after each AI call to build history
+- Tracks response text, character name, timestamp, and opening 50 characters
+
+### Files changed
+- ralph_bot.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Tracking recent responses (last 10) gives enough context to avoid repetition without being too memory-heavy
+- Storing the "opener" (first 50 chars) is key for detecting same sentence structures
+- Including character name in tracking allows per-character freshness (Ralph varies from his own history, Stool from his, etc.)
+- The freshness prompt works best when it shows WHAT to avoid (recent openers) rather than just saying "be fresh"
+- Making user_id optional preserves backward compatibility while enabling the feature where available
+- Classic quotes should be allowed but used sparingly - the prompt encourages mixing it up
+- This pattern (track recent → generate avoidance prompt → include in system message) can be reused for other freshness features
+
+---
