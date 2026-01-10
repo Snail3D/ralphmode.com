@@ -5019,3 +5019,50 @@ python build_orchestrator.py
 - Production keeps running during entire canary lifecycle - zero downtime approach
 
 ---
+
+## Iteration 8 - 2026-01-10
+**Task**: [VM-001] Semantic Version Numbering
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive version_manager.py with semantic versioning support
+- Implemented Version dataclass:
+  - Semantic version representation (MAJOR.MINOR.PATCH)
+  - parse() static method for parsing version strings (supports "v" prefix)
+  - increment() method for version bumping by change type
+  - String representation methods
+- Implemented ChangeType enum (MAJOR, MINOR, PATCH) for type-safe version bumping
+- Created VersionManager class:
+  - Finds git repository root automatically
+  - Reads/writes VERSION file in project root
+  - get_current_version() with default fallback to 0.1.0
+  - increment_version() with optional git commit and tag creation
+  - set_version() for manual version setting
+  - get_change_type_from_feedback_type() to map feedback types to version bumps
+- Implemented git integration:
+  - Auto-commits VERSION file with "chore: Bump version to X.Y.Z" message
+  - Creates annotated git tags (v{version}) with "Release X.Y.Z" message
+  - Graceful handling of git errors (version still saved if git operations fail)
+- Created CLI with actions:
+  - get: Display current version
+  - increment: Bump version by change type
+  - set: Set version explicitly
+  - Flags: --no-tag, --no-commit for fine control
+- Backed up existing version_manager.py (was for DD-003) as version_manager_dd003_backup.py
+- Created VERSION file initialized to 0.3.0
+
+### Files changed
+- version_manager.py (completely rewritten for VM-001)
+- VERSION (created)
+- version_manager_dd003_backup.py (backup)
+
+### Learnings
+- Semantic versioning is straightforward: MAJOR.MINOR.PATCH
+- Version bumping rules are clear: MAJOR for breaking, MINOR for features, PATCH for fixes
+- Git tags should be annotated (-a flag) for best practices
+- VERSION file should be in project root for easy access
+- The old version_manager.py was for DD-003 (duplicate detection), completely different purpose
+- Feedback types map naturally to version bumps: feature_request -> MINOR, bug_report -> PATCH
+- Git operations should be optional and fail gracefully (version can be tracked even without git)
+
+---
