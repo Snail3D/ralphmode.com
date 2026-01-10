@@ -44,6 +44,14 @@ from deploy_manager import DeployManager, DeploymentResult
 # WB-002: Import WebSocket server for live build streaming
 from websocket_server import get_build_stream_server, BuildStreamServer
 
+# NT-002: Import notification service for build started notifications
+try:
+    from notification_service import get_notification_service
+    NOTIFICATION_SERVICE_AVAILABLE = True
+except ImportError:
+    NOTIFICATION_SERVICE_AVAILABLE = False
+    logging.warning("NT-002: Notification service not available - build notifications disabled")
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -68,6 +76,9 @@ BUILD_TIMEOUT = 7200
 DOCKER_IMAGE = 'ralph-build:latest'
 DOCKER_BUILD_DIR = Path(__file__).parent
 REPO_URL = os.getenv('RALPH_REPO_URL', 'https://github.com/Snail3D/ralphmode.com.git')
+
+# WB-003: Build dashboard URL (for NT-002 notifications)
+BUILD_DASHBOARD_URL = os.getenv('BUILD_DASHBOARD_URL', 'https://ralphmode.com/builds')
 
 
 @dataclass
@@ -292,6 +303,35 @@ class BuildOrchestrator:
             # Update status to in_progress
             queue = get_feedback_queue(db)
             queue.update_status(feedback.id, "in_progress")
+
+            # NT-002: Send build started notification to user
+            if NOTIFICATION_SERVICE_AVAILABLE:
+                try:
+                    # Get stream URL if WebSocket server is available (WB-002)
+                    stream_url = None
+                    if self.stream_server:
+                        # Build stream URL for this specific build
+                        stream_url = f"{BUILD_DASHBOARD_URL}/stream/{feedback.id}"
+
+                    # Get user's telegram_id from feedback.user relationship
+                    telegram_id = feedback.user.telegram_id if feedback.user else None
+
+                    if telegram_id:
+                        notification_service = get_notification_service()
+                        notification_service.send_build_started_sync(
+                            user_id=telegram_id,
+                            feedback_id=feedback.id,
+                            feedback_type=feedback.feedback_type,
+                            content_preview=feedback.content,
+                            priority_score=feedback.priority_score,
+                            stream_url=stream_url
+                        )
+                        logger.info(f"NT-002: Sent build started notification for feedback_id={feedback.id}")
+                    else:
+                        logger.warning(f"NT-002: No telegram_id found for feedback_id={feedback.id}")
+                except Exception as e:
+                    # Don't fail the build if notification fails
+                    logger.error(f"NT-002: Failed to send build started notification: {e}")
 
             # Create task file for Ralph
             task_file = self._create_task_file(build_context)
