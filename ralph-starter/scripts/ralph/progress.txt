@@ -881,3 +881,75 @@ Project: Ralph Mode Bot
 
 ---
 
+
+## Iteration 21 - 2026-01-10
+**Task**: [SEC-006] Broken Access Control Prevention
+**Status**: ✅ Complete
+
+### What was implemented
+- Created rbac.py - Enterprise-grade RBAC system (700+ lines)
+  - Role definitions: 8 roles (GUEST → USER → BUILDER → BUILDER_PLUS → PRIORITY → MODERATOR → ADMIN → SUPERADMIN)
+  - Permission definitions: 26 granular permissions (resource.action format)
+  - Role-permission mapping: Each role has specific permission set
+  - RBACManager: Core RBAC logic (assign roles, check permissions, manage resources)
+  - Resource ownership tracking: Per-resource ownership verification
+  - Subscription tier enforcement: Maps subscriptions to roles
+  - Decorators: @require_permission, @require_role, @require_ownership, @require_subscription
+- Updated api_server.py - Integrated RBAC into all endpoints:
+  - Authentication helpers: get_current_user_id(), @require_auth
+  - Permission decorators: @require_api_permission, @require_api_role
+  - Resource access decorator: @require_resource_access (ownership + permissions)
+  - Protected endpoints:
+    - POST /api/feedback - requires FEEDBACK_CREATE permission
+    - GET /api/feedback/<id> - requires view permission
+    - PUT /api/feedback/<id> - requires ownership or edit_any permission
+    - DELETE /api/feedback/<id> - requires ownership or delete_any permission
+    - GET /api/admin/users - requires ADMIN role
+    - PUT /api/admin/users/<id>/role - requires ADMIN role + superadmin for admin assignment
+  - Subscription tier checks for priority feedback
+  - Resource ownership tracking on creation
+  - Secure logging of access attempts
+- Created test_rbac.py - Comprehensive test suite (12 tests):
+  - Test 1: Role assignment and retrieval
+  - Test 2: Permission checking
+  - Test 3: Resource ownership tracking
+  - Test 4: Horizontal access control (users can only access own resources)
+  - Test 5: Vertical privilege escalation prevention
+  - Test 6: Admin bypass for resource access
+  - Test 7: Subscription tier enforcement
+  - Test 8: Role hierarchy
+  - Test 9: @require_permission decorator
+  - Test 10: @require_role decorator
+  - Test 11: @require_ownership decorator
+  - Test 12: @require_subscription decorator
+  - All 12 tests passing ✅
+
+### Files changed
+- rbac.py (new, 700+ lines)
+- api_server.py (updated, added RBAC integration)
+- test_rbac.py (new, 450+ lines)
+- scripts/ralph/prd.json (SEC-006 passes: true)
+
+### Learnings
+- RBAC should be fine-grained (resource.action format: feedback.edit_own vs feedback.edit_any)
+- Role hierarchy simplifies permission checks (higher roles inherit lower role capabilities)
+- Ownership checks prevent horizontal privilege escalation (user A can't edit user B's data)
+- Admin bypass is necessary for moderation but must be logged
+- Subscription tiers map cleanly to roles (builder → BUILDER role → BUILDER permissions)
+- Vertical privilege escalation prevention requires role checks on sensitive operations
+- Only SUPERADMIN should be able to create other ADMINs (prevents admin takeover)
+- Resource ownership must be set at creation time, not after
+- Decorators compose well (@csrf_protect + @require_auth + @require_permission)
+- Decorator order matters: auth first, then permission/role/ownership checks
+- Permission denied should return 403 Forbidden (not 404 to avoid info disclosure)
+- Auth required should return 401 Unauthorized with clear error message
+- Each API endpoint should have exactly one permission check (not multiple nested checks)
+- Permission strings in enums prevent typos and provide IDE autocomplete
+- In-memory storage is fine for MVP, use database for production (users, roles, resources)
+- Resource ownership should be per-resource-type (feedback vs session vs user data)
+- can_access_resource() combines ownership + permission checks in one function
+- Admin functions should verify role on EVERY request (not just at login)
+- Session-based auth (get_current_user_id) integrates with existing SEC-004 auth
+- All 7 acceptance criteria met with comprehensive test coverage
+
+---
