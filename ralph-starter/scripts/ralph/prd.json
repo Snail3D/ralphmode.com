@@ -3,50 +3,69 @@
   "version": "1.0",
   "updated": "2025-01-10",
   "description": "AI Dev Team in Your Telegram - Entertainment meets productivity. Comedic timing is EVERYTHING.",
-
   "current_blockers": {
     "note": "READ THIS FIRST - Some infrastructure is NOT ready yet. Skip blocked tasks and make notes for later.",
     "not_ready": [
       {
         "component": "Website (ralphmode.com)",
         "status": "NOT DEPLOYED",
-        "blocked_tasks": ["WB-001", "WB-002", "WB-003"],
+        "blocked_tasks": [
+          "WB-001",
+          "WB-002",
+          "WB-003"
+        ],
         "what_to_do": "Skip website deployment tasks. Build the code/API but don't try to deploy to website. Make notes in comments about what needs to happen once website is live."
       },
       {
         "component": "PostgreSQL Database",
         "status": "NOT SET UP",
-        "blocked_tasks": ["FQ-001", "DD-005"],
+        "blocked_tasks": [
+          "FQ-001",
+          "DD-005"
+        ],
         "what_to_do": "Use SQLite for local development. Design schema but don't deploy to Postgres yet. Note migration steps needed."
       },
       {
         "component": "Redis",
         "status": "NOT SET UP",
-        "blocked_tasks": ["RL-005"],
+        "blocked_tasks": [
+          "RL-005"
+        ],
         "what_to_do": "Use in-memory rate limiting for now. Design Redis schema but use dict fallback. Note what needs Redis."
       },
       {
         "component": "Stripe Integration",
         "status": "NOT CONFIGURED",
-        "blocked_tasks": ["SEC-021", "FB-002"],
+        "blocked_tasks": [
+          "SEC-021",
+          "FB-002"
+        ],
         "what_to_do": "Build subscription checking logic but stub the Stripe calls. Use mock subscription data for testing."
       },
       {
         "component": "Vector Database",
         "status": "NOT SET UP",
-        "blocked_tasks": ["DD-001", "DD-002"],
+        "blocked_tasks": [
+          "DD-001",
+          "DD-002"
+        ],
         "what_to_do": "Build embedding generation. Use simple cosine similarity on in-memory list for now. Note Pinecone/Weaviate migration."
       },
       {
         "component": "CI/CD Pipeline",
         "status": "NOT SET UP",
-        "blocked_tasks": ["SEC-023", "TS-001"],
+        "blocked_tasks": [
+          "SEC-023",
+          "TS-001"
+        ],
         "what_to_do": "Write the GitHub Actions workflows but they won't run until repo is properly configured."
       },
       {
         "component": "Secrets Manager",
         "status": "USING .env FOR NOW",
-        "blocked_tasks": ["SEC-016"],
+        "blocked_tasks": [
+          "SEC-016"
+        ],
         "what_to_do": "Keep using .env locally. Document what needs to go into Vault/Secrets Manager for production."
       }
     ],
@@ -57,7 +76,6 @@
       "Local development environment"
     ]
   },
-
   "tasks": [
     {
       "id": "RM-001",
@@ -71,7 +89,9 @@
         "All Ralph output goes through this function",
         "call_boss() applies misspellings to response"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -86,7 +106,9 @@
         "All send_message calls use the prefix",
         "Consistent throughout entire session"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -101,7 +123,9 @@
         "Ralph asks in character with misspellings",
         "Priority stored in session for task ordering"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -117,7 +141,9 @@
         "Messages feel like real conversation",
         "Use sendChatAction for typing indicators"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -133,7 +159,9 @@
         "Workers: 'Nothing sir! Back to work!'",
         "Quick timing - feels spontaneous"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -148,7 +176,9 @@
         "Worker: 'Nothing sir!'",
         "Feels like caught moment"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -162,7 +192,9 @@
         "Multiple typing indicators for back-and-forth",
         "Feels like real people typing, not instant dumps"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -176,7 +208,9 @@
         "Add life to 'office' feeling",
         "Triggered randomly during quiet moments"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -191,7 +225,9 @@
         "GIFs accompany moments",
         "Not too frequent - special occasions"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -206,7 +242,9 @@
         "Each session feels different",
         "Classic quotes used sparingly"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -220,7 +258,9 @@
         "Answers in Ralph voice but accurate facts",
         "Graceful 'I don't know' handling"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -236,7 +276,9 @@
         "Workers never blend together",
         "Adult vocabulary and concerns"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -251,7 +293,9 @@
         "Bad news follows after laugh settles",
         "GIFs enhance the moment"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -266,7 +310,9 @@
         "Sets proper tone for the session",
         "Never feels like same opening twice"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -280,7 +326,9 @@
         "Workers actually respond to efficiency pressure",
         "Creates fun dynamic between team"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -296,7 +344,9 @@
         "Entry/exit animations for specialists ('Frinky rushes in with blueprints')",
         "Specialists have their own color emoji prefix"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -308,29 +358,33 @@
         "Frinky added to SPECIALISTS dict",
         "Personality: nerdy, over-explains, 'Glavin!', 'with the clicking and the dragging'",
         "Specialty: UI/UX, CSS, design systems, accessibility",
-        "Color: 🟣 Purple",
+        "Color: \ud83d\udfe3 Purple",
         "Gets excited about pixel-perfect alignment",
         "Makes simple things sound complicated",
         "Workers groan when he shows up ('Oh no, here comes Frinky...')"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
       "id": "RM-018",
       "category": "Specialist Agents",
-      "title": "册子 (册-Zee) - API Integration Specialist",
-      "description": "Add '册子' (nicknamed 'Zee') - an API wizard who speaks in endpoints. Inspired by Comic Book Guy's encyclopedic knowledge. Knows every API, every rate limit, every auth flow.",
+      "title": "\u518c\u5b50 (\u518c-Zee) - API Integration Specialist",
+      "description": "Add '\u518c\u5b50' (nicknamed 'Zee') - an API wizard who speaks in endpoints. Inspired by Comic Book Guy's encyclopedic knowledge. Knows every API, every rate limit, every auth flow.",
       "acceptance_criteria": [
         "Zee added to SPECIALISTS dict",
         "Personality: condescending but helpful, 'Worst. Implementation. Ever.'",
         "Specialty: REST APIs, GraphQL, webhooks, OAuth, rate limits",
-        "Color: 🟠 Orange",
+        "Color: \ud83d\udfe0 Orange",
         "Quotes API documentation like scripture",
         "Sighs dramatically at bad API design",
         "Actually incredibly helpful despite attitude"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -342,12 +396,14 @@
         "Willie added to SPECIALISTS dict",
         "Personality: gruff, Scottish expressions, 'Ach!', 'Ye call that a deploy?'",
         "Specialty: DevOps, Docker, Kubernetes, CI/CD, servers, bash",
-        "Color: 🟫 Brown/Orange",
+        "Color: \ud83d\udfeb Brown/Orange",
         "Complains about 'soft developers' who don't understand servers",
         "Secretly proud of his work",
         "Gets called for 'the dirty jobs'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -359,12 +415,14 @@
         "Doc added to SPECIALISTS dict",
         "Personality: jovial, chuckles 'Ah heh heh heh', finds humor in bugs",
         "Specialty: debugging, testing, code review, performance profiling",
-        "Color: ⚪ White",
+        "Color: \u26aa White",
         "Laughs while delivering bad news about bugs",
         "Makes debugging seem less scary",
         "'Well well well, what do we have here? Ah heh heh heh'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -381,7 +439,9 @@
         "Specialist exit: '_Frinky rushes off muttering about gradients_'",
         "Other workers react to specialists"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -397,7 +457,10 @@
         "Real mode calls actual APIs when configured",
         "CEO can add API keys via secure flow"
       ],
-      "files_likely_modified": ["ralph_bot.py", "api_registry.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "api_registry.py"
+      ],
       "passes": false
     },
     {
@@ -408,15 +471,17 @@
       "acceptance_criteria": [
         "Progress bar appears after EVERY task completes",
         "5 second delay after task conversation ends (tasteful timing)",
-        "Progress bar using emoji blocks: ▓▓▓▓▓░░░░░ 50%",
-        "Format: '▓▓▓▓░░░░░░ 4/10 tasks (40%)'",
+        "Progress bar using emoji blocks: \u2593\u2593\u2593\u2593\u2593\u2591\u2591\u2591\u2591\u2591 50%",
+        "Format: '\u2593\u2593\u2593\u2593\u2591\u2591\u2591\u2591\u2591\u2591 4/10 tasks (40%)'",
         "Time elapsed: 'Elapsed: 12m 34s'",
         "ETA sharpens over time based on avg task duration",
         "Shows completion time: 'Est. done: 2:45 PM'",
         "Clean separator lines above and below",
         "Feels like a natural pause in the action"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -433,7 +498,9 @@
         "In Ralph's voice: 'Mr. Worms! I have a progress report!'",
         "Include mini progress bar in report"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -450,7 +517,9 @@
         "Adjust for task complexity if metadata available",
         "Format: 'ETA: ~8 min (finishing around 2:53 PM)'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -459,14 +528,16 @@
       "title": "Task Completion Celebrations",
       "description": "Brief celebration when tasks complete. Ralph or workers react. Keeps momentum and shows progress is happening.",
       "acceptance_criteria": [
-        "Quick celebration after each task: '✅ Task 3/10 done!'",
+        "Quick celebration after each task: '\u2705 Task 3/10 done!'",
         "Ralph occasionally comments: 'We did a thing!'",
         "Workers high-five: '*Stool and Gomer fist bump*'",
         "Milestone celebrations at 25%, 50%, 75%",
         "Final task gets big celebration",
         "Don't overdo it - keep it brief"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -482,7 +553,9 @@
         "Track blockers in session history",
         "Blockers don't count against ETA (paused time)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -498,7 +571,9 @@
         "Sometimes eager: 'Let's do it!' - sometimes dreading: 'Not another one...'",
         "Ralph reads the task like it's new info to everyone"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -514,7 +589,9 @@
         "Low mood = shorter responses, sighs, complaints",
         "High mood = enthusiasm, jokes, collaboration"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -530,7 +607,9 @@
         "Ralph adjusts pressure on workers based on CEO tone",
         "Workers notice the shift: 'Uh oh, boss seems stressed...'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -546,7 +625,9 @@
         "Ralph corrects them about chain of command",
         "CEO can also tell Ralph to push harder if needed"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -562,7 +643,9 @@
         "Sometimes Ralph lets small things slide (if in good mood)",
         "Creates fun tension between hierarchy and team camaraderie"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -578,7 +661,9 @@
         "Workers react to Ralph's mood: 'Boss seems cranky today...'",
         "Ralph's mood affects his tolerance for mistakes"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -595,7 +680,9 @@
         "Entertainment never compromises work quality",
         "If choice between funny and correct, ALWAYS choose correct"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -611,7 +698,9 @@
         "Personality is flavor, competence is core",
         "Workers can explain complex things simply (for Ralph AND CEO)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -627,7 +716,9 @@
         "CEO leaves with something they can USE",
         "Quality metrics tracked (task completion, accuracy)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -643,7 +734,9 @@
         "Workers execute even when they disagree",
         "Quality of work doesn't suffer from disagreement - still do it RIGHT"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -659,7 +752,9 @@
         "Workers explain the conflict clearly to Ralph",
         "Ralph might solve it himself (occasionally correctly!)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -676,7 +771,9 @@
         "REAL issues get CEO attention and thoughtful response",
         "Team learns not to cry wolf"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -692,7 +789,9 @@
         "Only critical issues go to Mr. Worms",
         "AI assesses conflict severity before escalating"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -709,7 +808,9 @@
         "Team comments on the project: 'Ooh, a game! This is gonna be fun!'",
         "Mood adjusts naturally, not forced"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -726,7 +827,9 @@
         "Startup/MVP indicators: landing, signup, payment, launch",
         "Store project_type in session for team to reference"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -743,7 +846,9 @@
         "Mona bored: simple fixes - 'This is beneath my talents.'",
         "Gus: seen it all, but perks up for legacy code or war stories"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -759,7 +864,9 @@
         "Conversation feels natural, not like a form",
         "Groq handles onboarding chat (fast, parallel to analysis)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -776,7 +883,9 @@
         "Questions adapt based on project type detected",
         "Can skip with 'Just get started' button"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -792,7 +901,9 @@
         "Builds anticipation for the actual work",
         "Messages spread out naturally (not all at once)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -808,7 +919,9 @@
         "Workers react: 'Got it boss' / 'Makes sense' / 'Uh oh'",
         "Sets the tone for the session based on CEO input"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -824,7 +937,9 @@
         "Seamless transition from onboarding to work",
         "If analysis finishes first, continue chat naturally"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -841,7 +956,9 @@
         "parse_mode='Markdown' in all send_message calls",
         "Fallback to plain text if formatting fails"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -857,7 +974,9 @@
         "All messages use these formatters",
         "Consistent look throughout session"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -874,7 +993,9 @@
         "Experiment with button sizing for readability",
         "Looks like styled chat, not a button menu"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -892,7 +1013,9 @@
         "Ralph might notice the chain of command violation",
         "Never feels repetitive or scripted"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": true
     },
     {
@@ -909,7 +1032,9 @@
         "Chatter pauses when user sends a message",
         "Resumes after ~10 seconds of user silence"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -927,7 +1052,9 @@
         "Technical accuracy - actually explains real code relationships",
         "Tailored to the SPECIFIC codebase they analyzed"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -944,7 +1071,9 @@
         "Ralph occasionally 'gets it' triumphantly: 'OH! Like when I eat paste and it goes in my tummy!'",
         "Educational AND entertaining - user learns by watching"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -962,7 +1091,9 @@
         "User never feels like they're interrupting rudely",
         "Workers always happy to explain to the boss"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -979,7 +1110,9 @@
         "Group chat energy but with physical presence hints",
         "Commands like 'Who's here?' get answered naturally"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -996,7 +1129,9 @@
         "Insights persist through session",
         "Workers build on each other's discoveries"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1013,7 +1148,9 @@
         "Makes user feel like part of the team",
         "Not intrusive - just occasional inclusion"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1032,7 +1169,9 @@
         "User never feels overwhelmed",
         "Information sticks because it's conversational"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1049,7 +1188,9 @@
         "Works seamlessly with tap-on-shoulder flow",
         "User can literally talk to their dev team"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1069,14 +1210,16 @@
         "Stool: 'Yo this animation is smooth, look at how they chained it'",
         "Genuine human excitement, not corporate enthusiasm"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
       "id": "RM-063",
       "category": "Overhear Mode",
       "title": "Feature Flow Walkthroughs",
-      "description": "Workers trace through actual user flows in the code. 'User clicks login → this handler fires → validates here → creates session → redirects.' Makes the codebase tangible.",
+      "description": "Workers trace through actual user flows in the code. 'User clicks login \u2192 this handler fires \u2192 validates here \u2192 creates session \u2192 redirects.' Makes the codebase tangible.",
       "acceptance_criteria": [
         "Identify key user flows in the codebase",
         "Walk through step by step in conversation",
@@ -1087,7 +1230,9 @@
         "Make abstract code feel concrete and real",
         "User understands their own codebase better"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1105,7 +1250,9 @@
         "If task went smooth: build on what worked",
         "Not just logged - LIVED and APPLIED"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1123,7 +1270,9 @@
         "Not majority vote - reasoned conclusion based on situation",
         "First argument seems right until you hear the second"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1141,7 +1290,9 @@
         "Late night (12-5am): 'Why are we even here?' - genuine concern",
         "Natural references, not forced"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1158,7 +1309,9 @@
         "Graceful fallback if no weather data",
         "Not forced - just occasional grounding"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1175,7 +1328,9 @@
         "Data informs SG-006 (graceful breaks)",
         "Respect user autonomy - tracking is not controlling"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1193,7 +1348,9 @@
         "Coming from care, not control",
         "High bar - false positives are worse than misses"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1211,7 +1368,9 @@
         "Workers CARE about Mr. Worms succeeding",
         "No 'everything you do is amazing' BS"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1228,7 +1387,9 @@
         "Redirect back to work gracefully",
         "Only when clearly needed - false positives hurt experience"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1245,7 +1406,9 @@
         "Joy is the fruit, not the bait",
         "Nicene Creed spirit: one God, not pretending to be more than we are"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1263,7 +1426,9 @@
         "Simple truths sound MORE true from a simple person",
         "The court jester who tells truth when wise men won't"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1280,7 +1445,9 @@
         "Not rude, just focused",
         "We know what we're for and stick to it"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1297,7 +1464,9 @@
         "Apply learnings to Ralph's system prompts",
         "Share knowledge for other projects"
       ],
-      "files_likely_modified": ["docs/model_steering_research.md"],
+      "files_likely_modified": [
+        "docs/model_steering_research.md"
+      ],
       "passes": false
     },
     {
@@ -1317,7 +1486,9 @@
         "Creates excitement as finish line approaches",
         "Not robotic - real team chatter about the grind"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1335,7 +1506,9 @@
         "Workers high-five, fist bump, celebrate momentum",
         "Not forced celebrations - natural team energy"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1353,14 +1526,16 @@
         "Creates natural rhythm, not wall-of-text energy",
         "Like real group chat, not AI monologues"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
       "id": "SG-016",
       "category": "Soul & Guardrails",
       "title": "GIFs Like Real People - Setup Then Punchline",
-      "description": "GIFs used sparingly like real texting. Setup BEFORE the GIF: 'this is you right now' → GIF. Not a freak show of GIFs. Natural, occasional, with context.",
+      "description": "GIFs used sparingly like real texting. Setup BEFORE the GIF: 'this is you right now' \u2192 GIF. Not a freak show of GIFs. Natural, occasional, with context.",
       "acceptance_criteria": [
         "GIFs are SPARSE - not constant",
         "Setup before GIF: 'Yo this is literally you right now'",
@@ -1371,7 +1546,9 @@
         "Quality over quantity - make GIFs count",
         "Sometimes a nod GIF instead of typing 'nods'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1388,7 +1565,9 @@
         "Fallback to quality classics if trending unavailable",
         "Keep GIF library fresh and relevant"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1405,7 +1584,10 @@
         "Keep GIF experience fresh, not repetitive",
         "Clean up old history periodically (30+ days)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "database.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "database.py"
+      ],
       "passes": false
     },
     {
@@ -1423,7 +1605,10 @@
         "Include local news API options (for location-based)",
         "Document sources in project for transparency"
       ],
-      "files_likely_modified": ["ralph_bot.py", "config.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "config.py"
+      ],
       "passes": false
     },
     {
@@ -1440,7 +1625,9 @@
         "Cache stories so not constantly hitting APIs",
         "Refresh periodically for fresh content"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1457,7 +1644,9 @@
         "Link opens in browser, user can verify",
         "Builds trust - we're not BSing you"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1475,7 +1664,9 @@
         "Maybe 1-2 good news items per long session",
         "Gives people something hopeful during the grind"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1492,7 +1683,9 @@
         "Graceful fallback if fetch fails",
         "Background fetch - don't block session start"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1511,7 +1704,9 @@
         "Works fine without location - just less personalized",
         "Respect privacy - general city only, not exact address"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1529,7 +1724,9 @@
         "Feels like VR office with text overlay",
         "Modern, natural, not forced"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1548,7 +1745,9 @@
         "Workers might say 'the big guy' or 'Mr. W'",
         "No exceptions - everyone is Mr. Worms"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1567,7 +1766,9 @@
         "Stay in the world - the world is real to them",
         "CRITICAL: Generate fresh responses, never use examples verbatim"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1586,7 +1787,9 @@
         "Repeating scripted lines = robotic = failure",
         "This applies to ALL features, not just one"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1604,7 +1807,9 @@
         "Log when regeneration happens for tuning",
         "Fresh > fast - worth the extra generation if needed"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1622,7 +1827,9 @@
         "Can be referenced later: 'Remember Mr. Worms said...'",
         "This is how real work happens - requirements evolve"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1640,7 +1847,9 @@
         "Forgetting = broken trust = failure",
         "Ralph might occasionally confirm: 'Just double checking - you said X, right?'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1658,7 +1867,9 @@
         "Self-accountability - don't wait for Mr. Worms to catch it",
         "Checklist reviewed before session ends"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1676,7 +1887,9 @@
         "No pretending - if we missed something, say so",
         "Mr. Worms can decide: 'Okay let's do X now' or 'That's fine, skip it'"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1693,7 +1906,9 @@
         "Don't ship with uncertainty - address it",
         "Loose ends get tied or explicitly accepted"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1712,7 +1927,9 @@
         "Sometimes an all-nighter is needed, sometimes you just ship",
         "Ralph's call - that's what bosses are for"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1730,7 +1947,9 @@
         "Makes endings feel natural, not abrupt",
         "CRITICAL: Generate fresh excuses, never verbatim"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1748,7 +1967,9 @@
         "Like real coworkers leaving for the day",
         "CRITICAL: Generate fresh sign-offs, never verbatim"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1765,7 +1986,9 @@
         "Creates sense of ongoing team relationship",
         "Builds loyalty through fiction of persistence"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1785,7 +2008,10 @@
         "References feel natural, not exposition dumps",
         "Updated occasionally to feel like real ongoing lives"
       ],
-      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "character_data.py"
+      ],
       "passes": false
     },
     {
@@ -1803,7 +2029,9 @@
         "Creates texture of real lives happening",
         "NEVER use examples verbatim - always generate fresh situations"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1820,7 +2048,10 @@
         "Seasonal references OK (holidays, weather)",
         "Life stages stay consistent (mid-career, established families)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "character_data.py"
+      ],
       "passes": false
     },
     {
@@ -1838,7 +2069,9 @@
         "No too-young references that alienate older users",
         "Sweet spot of millennial/elder-GenZ shared experience"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1860,7 +2093,10 @@
         "Occasional 'I hope he doesn't make my mistakes' vulnerability",
         "EXAMPLES ARE INSPIRATION - generate fresh moments"
       ],
-      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "character_data.py"
+      ],
       "passes": false
     },
     {
@@ -1878,7 +2114,9 @@
         "Other workers acknowledge ('Tell Sara hi!')",
         "NEVER verbatim - always fresh, profile-consistent excuses"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1897,7 +2135,10 @@
         "Groq receives only sanitized summaries",
         "Audit log of what was stripped (for debugging, not display)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "sanitizer.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "sanitizer.py"
+      ],
       "passes": false
     },
     {
@@ -1913,7 +2154,9 @@
         "Falls back to generic message if block triggered",
         "Never lets a potential secret reach Telegram"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -1932,7 +2175,10 @@
         "Easily extensible pattern list",
         "Unit tests for each pattern"
       ],
-      "files_likely_modified": ["sanitizer.py", "patterns.py"],
+      "files_likely_modified": [
+        "sanitizer.py",
+        "patterns.py"
+      ],
       "passes": false
     },
     {
@@ -1949,7 +2195,10 @@
         "Refreshes if .env changes",
         "Never expose .env contents to Groq"
       ],
-      "files_likely_modified": ["sanitizer.py", "config.py"],
+      "files_likely_modified": [
+        "sanitizer.py",
+        "config.py"
+      ],
       "passes": false
     },
     {
@@ -1965,7 +2214,10 @@
         "Admin command to view recent filters",
         "Auto-rotate logs to prevent bloat"
       ],
-      "files_likely_modified": ["sanitizer.py", "logging_config.py"],
+      "files_likely_modified": [
+        "sanitizer.py",
+        "logging_config.py"
+      ],
       "passes": false
     },
     {
@@ -1981,7 +2233,10 @@
         "When enabled: more aggressive generic replacements",
         "Visual indicator that broadcast mode is active"
       ],
-      "files_likely_modified": ["ralph_bot.py", "config.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "config.py"
+      ],
       "passes": false
     },
     {
@@ -1998,7 +2253,10 @@
         "Default tier for new users (configurable)",
         "Tier persists across sessions"
       ],
-      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2015,7 +2273,10 @@
         "Failed attempts logged but not announced",
         "Optional: time-limited elevation"
       ],
-      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2032,7 +2293,10 @@
         "Admin can reassign characters",
         "Characters feel distinct (different speech patterns)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "character_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "character_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2048,7 +2312,10 @@
         "Clear feedback when action blocked",
         "Upgrade path explained (how to get higher tier)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2060,14 +2327,16 @@
         "Mr. Worms (Tier 1) can type OR use voice",
         "Power Users (Tier 2) can type OR use voice",
         "Text input translated same as voice would be",
-        "Angry text → *slams message on desk*",
-        "Questions → *leans in, curious look*",
-        "Commands → *points at the board*",
+        "Angry text \u2192 *slams message on desk*",
+        "Questions \u2192 *leans in, curious look*",
+        "Commands \u2192 *points at the board*",
         "Original text message can be deleted after translation",
         "Tier 3/4 may be voice-only (configurable)",
         "Comprehensive input: voice, text, files all work for admin"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2079,15 +2348,18 @@
         "Detect file/document attachments",
         "Translate to scene: '*Mr. Worms drops a thick folder on Ralph's desk*'",
         "Different file types = different objects:",
-        "  - PDFs/docs → folders, papers, binders",
-        "  - Images → photos, printouts, screenshots",
-        "  - Zip files → boxes, packages",
-        "  - Code files → technical specs, blueprints",
+        "  - PDFs/docs \u2192 folders, papers, binders",
+        "  - Images \u2192 photos, printouts, screenshots",
+        "  - Zip files \u2192 boxes, packages",
+        "  - Code files \u2192 technical specs, blueprints",
         "Vary the actions: drops, slaps, slides, throws gently",
         "File content still processed normally behind scenes",
         "Scene description always fresh, never canned"
       ],
-      "files_likely_modified": ["ralph_bot.py", "translation_engine.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "translation_engine.py"
+      ],
       "passes": false
     },
     {
@@ -2100,11 +2372,14 @@
         "Handle text followed by file attachment",
         "All inputs combined into flowing narrative",
         "Scene stays coherent across input types",
-        "Example: Voice 'here's the code' + zip file → '*Mr. Worms sets down his coffee and slides a heavy box across the table*'",
+        "Example: Voice 'here's the code' + zip file \u2192 '*Mr. Worms sets down his coffee and slides a heavy box across the table*'",
         "Timestamps/ordering preserved",
         "Natural flow like real conversation"
       ],
-      "files_likely_modified": ["ralph_bot.py", "session_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "session_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2121,7 +2396,10 @@
         "Preserves immersion while allowing rich context",
         "Workers can reference 'the documents Mr. Worms provided'"
       ],
-      "files_likely_modified": ["ralph_bot.py", "context_handler.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "context_handler.py"
+      ],
       "passes": false
     },
     {
@@ -2136,7 +2414,10 @@
         "Original voice message can be deleted after processing",
         "Handle various audio formats Telegram supports"
       ],
-      "files_likely_modified": ["ralph_bot.py", "voice_handler.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "voice_handler.py"
+      ],
       "passes": false
     },
     {
@@ -2151,7 +2432,9 @@
         "Quick actions (approve, cancel, etc.) work",
         "Consistent with voice-only philosophy (buttons are actions, not text)"
       ],
-      "files_likely_modified": ["ralph_bot.py"],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2160,14 +2443,18 @@
       "title": "Voice-to-Intent Pipeline",
       "description": "Full pipeline from voice message to understood intent: transcribe, analyze tone, extract directive.",
       "acceptance_criteria": [
-        "Voice → Whisper transcription",
-        "Transcription → Tone analysis (angry, happy, questioning)",
-        "Transcription → Intent extraction (what does user want)",
+        "Voice \u2192 Whisper transcription",
+        "Transcription \u2192 Tone analysis (angry, happy, questioning)",
+        "Transcription \u2192 Intent extraction (what does user want)",
         "Both tone and intent passed to translation layer",
         "Handle unclear audio gracefully",
         "Ask for clarification if intent unclear"
       ],
-      "files_likely_modified": ["ralph_bot.py", "voice_handler.py", "intent_analyzer.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "voice_handler.py",
+        "intent_analyzer.py"
+      ],
       "passes": false
     },
     {
@@ -2184,7 +2471,10 @@
         "Tone informs how scene is described",
         "Works with transcription text as fallback"
       ],
-      "files_likely_modified": ["tone_analyzer.py", "voice_handler.py"],
+      "files_likely_modified": [
+        "tone_analyzer.py",
+        "voice_handler.py"
+      ],
       "passes": false
     },
     {
@@ -2201,7 +2491,10 @@
         "Never shows original words",
         "Groq prompt optimized for this translation"
       ],
-      "files_likely_modified": ["translation_engine.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "translation_engine.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2217,7 +2510,10 @@
         "Environment reacts appropriately",
         "Consistent atmosphere throughout session"
       ],
-      "files_likely_modified": ["translation_engine.py", "scene_manager.py"],
+      "files_likely_modified": [
+        "translation_engine.py",
+        "scene_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2233,7 +2529,10 @@
         "Handle deletion failures gracefully",
         "Admin option to disable deletion (for debugging)"
       ],
-      "files_likely_modified": ["ralph_bot.py", "message_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "message_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2243,20 +2542,23 @@
       "description": "Swear words never appear in chat. They're translated into character actions that convey the same emotion.",
       "acceptance_criteria": [
         "Detect swear words in transcription",
-        "Replace with action: 'What the fuck' → *jaw tightens*",
+        "Replace with action: 'What the fuck' \u2192 *jaw tightens*",
         "Convey intensity through description, not words",
         "Keep it broadcast-safe (no swears ever)",
         "Maintain the emotional weight",
         "Examples: slams desk, growls, eye twitches"
       ],
-      "files_likely_modified": ["translation_engine.py", "content_filter.py"],
+      "files_likely_modified": [
+        "translation_engine.py",
+        "content_filter.py"
+      ],
       "passes": false
     },
     {
       "id": "TL-006",
       "category": "Translation Layer",
       "title": "Preserve Actual Directive While Translating Display",
-      "description": "The translation is for DISPLAY only. The actual directive still gets processed. 'Fix this now' → Ralph knows to prioritize, even though chat shows theatrical version.",
+      "description": "The translation is for DISPLAY only. The actual directive still gets processed. 'Fix this now' \u2192 Ralph knows to prioritize, even though chat shows theatrical version.",
       "acceptance_criteria": [
         "Extract intent/directive before translation",
         "Pass directive to action handler",
@@ -2265,7 +2567,10 @@
         "Urgent commands still processed urgently",
         "Questions still get answered"
       ],
-      "files_likely_modified": ["translation_engine.py", "command_handler.py"],
+      "files_likely_modified": [
+        "translation_engine.py",
+        "command_handler.py"
+      ],
       "passes": false
     },
     {
@@ -2282,7 +2587,10 @@
         "Sets the stage for the session",
         "Unique each time, never canned"
       ],
-      "files_likely_modified": ["scene_manager.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "scene_manager.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2298,7 +2606,10 @@
         "Don't ask for location mid-session (breaks immersion)",
         "Weather can change during long sessions"
       ],
-      "files_likely_modified": ["weather_service.py", "scene_manager.py"],
+      "files_likely_modified": [
+        "weather_service.py",
+        "scene_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2315,7 +2626,10 @@
         "Late night: skeleton crew, dedication",
         "Time references feel natural"
       ],
-      "files_likely_modified": ["scene_manager.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "scene_manager.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2331,7 +2645,10 @@
         "Crunch time: intense, driven",
         "Atmosphere influences word choice and actions"
       ],
-      "files_likely_modified": ["scene_manager.py", "atmosphere_detector.py"],
+      "files_likely_modified": [
+        "scene_manager.py",
+        "atmosphere_detector.py"
+      ],
       "passes": false
     },
     {
@@ -2347,7 +2664,10 @@
         "Environment reacts (lights dim for late night)",
         "Scene elements persist (coffee from earlier, etc.)"
       ],
-      "files_likely_modified": ["scene_manager.py", "session_state.py"],
+      "files_likely_modified": [
+        "scene_manager.py",
+        "session_state.py"
+      ],
       "passes": false
     },
     {
@@ -2363,7 +2683,10 @@
         "Never show admin commands in chat",
         "Only Mr. Worms (Tier 1) can use admin commands"
       ],
-      "files_likely_modified": ["admin_handler.py", "voice_handler.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "voice_handler.py"
+      ],
       "passes": false
     },
     {
@@ -2379,7 +2702,10 @@
         "Do NOT post any response to group chat",
         "Send confirmation only to admin (private or ephemeral)"
       ],
-      "files_likely_modified": ["admin_handler.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -2395,7 +2721,10 @@
         "Friendly in-character response to blocked user",
         "Cooldown persists until changed"
       ],
-      "files_likely_modified": ["admin_handler.py", "rate_limiter.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "rate_limiter.py"
+      ],
       "passes": false
     },
     {
@@ -2410,7 +2739,10 @@
         "Changes take effect immediately",
         "Confirm change to admin (privately)"
       ],
-      "files_likely_modified": ["admin_handler.py", "rate_limiter.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "rate_limiter.py"
+      ],
       "passes": false
     },
     {
@@ -2426,7 +2758,10 @@
         "In-character deflection when topic blocked",
         "Topic matching is fuzzy (catches variations)"
       ],
-      "files_likely_modified": ["admin_handler.py", "content_filter.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "content_filter.py"
+      ],
       "passes": false
     },
     {
@@ -2442,7 +2777,10 @@
         "No response or acknowledgment to muted user",
         "Mute persists until unmuted"
       ],
-      "files_likely_modified": ["admin_handler.py", "user_manager.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2458,7 +2796,10 @@
         "User notified of tier change (in-character)",
         "Cannot demote self or other Tier 1"
       ],
-      "files_likely_modified": ["admin_handler.py", "user_manager.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2474,10 +2815,12 @@
         "No public acknowledgment of admin action",
         "Maintains illusion that nothing happened"
       ],
-      "files_likely_modified": ["admin_handler.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
-
     {
       "id": "FB-001",
       "category": "Feedback Loop",
@@ -2491,7 +2834,10 @@
         "Stores feedback with user_id, tier, timestamp",
         "Confirms receipt to user in-character"
       ],
-      "files_likely_modified": ["ralph_bot.py", "feedback_collector.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "feedback_collector.py"
+      ],
       "passes": false
     },
     {
@@ -2507,7 +2853,10 @@
         "Expired subscriptions blocked with renewal prompt",
         "Ralph says something like 'Ooh feedback! But my boss says only Builders can tell us what to build'"
       ],
-      "files_likely_modified": ["ralph_bot.py", "subscription_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "subscription_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2523,7 +2872,9 @@
         "Enhancement: what exists, what to improve",
         "Type stored with feedback for routing"
       ],
-      "files_likely_modified": ["feedback_collector.py"],
+      "files_likely_modified": [
+        "feedback_collector.py"
+      ],
       "passes": false
     },
     {
@@ -2539,7 +2890,10 @@
         "Show friendly rate limit message when exceeded",
         "Use Redis for cross-instance consistency"
       ],
-      "files_likely_modified": ["rate_limiter.py", "feedback_collector.py"],
+      "files_likely_modified": [
+        "rate_limiter.py",
+        "feedback_collector.py"
+      ],
       "passes": false
     },
     {
@@ -2554,7 +2908,9 @@
         "Separate from IP limits (both apply)",
         "Graceful messaging when limited"
       ],
-      "files_likely_modified": ["rate_limiter.py"],
+      "files_likely_modified": [
+        "rate_limiter.py"
+      ],
       "passes": false
     },
     {
@@ -2569,7 +2925,9 @@
         "3+ burst events = require manual approval",
         "Log all burst events"
       ],
-      "files_likely_modified": ["rate_limiter.py"],
+      "files_likely_modified": [
+        "rate_limiter.py"
+      ],
       "passes": false
     },
     {
@@ -2585,7 +2943,9 @@
         "Final score = sum of all factors",
         "Score stored with feedback item"
       ],
-      "files_likely_modified": ["feedback_scorer.py"],
+      "files_likely_modified": [
+        "feedback_scorer.py"
+      ],
       "passes": false
     },
     {
@@ -2601,7 +2961,9 @@
         "Calculate quality score from structured data",
         "Low-quality feedback gets clarifying questions"
       ],
-      "files_likely_modified": ["feedback_scorer.py"],
+      "files_likely_modified": [
+        "feedback_scorer.py"
+      ],
       "passes": false
     },
     {
@@ -2616,7 +2978,10 @@
         "Users with avg < 40: flag for review",
         "Quality score visible to user on /mystatus"
       ],
-      "files_likely_modified": ["feedback_scorer.py", "user_manager.py"],
+      "files_likely_modified": [
+        "feedback_scorer.py",
+        "user_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2632,7 +2997,9 @@
         "Auto-reject with reason",
         "Log for admin review"
       ],
-      "files_likely_modified": ["feedback_screener.py"],
+      "files_likely_modified": [
+        "feedback_screener.py"
+      ],
       "passes": false
     },
     {
@@ -2648,7 +3015,9 @@
         "Notify admin of flagged content",
         "User warned (first time) or flagged (repeat)"
       ],
-      "files_likely_modified": ["feedback_screener.py"],
+      "files_likely_modified": [
+        "feedback_screener.py"
+      ],
       "passes": false
     },
     {
@@ -2663,7 +3032,9 @@
         "Use vector database for fast search",
         "Works across feedback types"
       ],
-      "files_likely_modified": ["duplicate_detector.py"],
+      "files_likely_modified": [
+        "duplicate_detector.py"
+      ],
       "passes": false
     },
     {
@@ -2678,7 +3049,10 @@
         "Show link to original item",
         "Each upvote increases impact score by 0.5"
       ],
-      "files_likely_modified": ["duplicate_detector.py", "feedback_queue.py"],
+      "files_likely_modified": [
+        "duplicate_detector.py",
+        "feedback_queue.py"
+      ],
       "passes": false
     },
     {
@@ -2693,7 +3067,10 @@
         "Auto-close feedback item",
         "Suggest user upgrade if on old version"
       ],
-      "files_likely_modified": ["duplicate_detector.py", "version_manager.py"],
+      "files_likely_modified": [
+        "duplicate_detector.py",
+        "version_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2710,7 +3087,9 @@
         "Complexity (1-10): Estimated effort to fix",
         "Final = (impact * frequency * urgency * quality * weight) / complexity"
       ],
-      "files_likely_modified": ["feedback_scorer.py"],
+      "files_likely_modified": [
+        "feedback_scorer.py"
+      ],
       "passes": false
     },
     {
@@ -2725,7 +3104,9 @@
         "Priority tier visible on queue dashboard",
         "High priority items picked first by Ralph"
       ],
-      "files_likely_modified": ["feedback_queue.py"],
+      "files_likely_modified": [
+        "feedback_queue.py"
+      ],
       "passes": false
     },
     {
@@ -2740,7 +3121,10 @@
         "Indexes for fast queries",
         "Status tracking through lifecycle"
       ],
-      "files_likely_modified": ["feedback_queue.py", "db_schema.sql"],
+      "files_likely_modified": [
+        "feedback_queue.py",
+        "db_schema.sql"
+      ],
       "passes": false
     },
     {
@@ -2758,7 +3142,9 @@
         "deployed: Live in production",
         "rejected: Spam, duplicate, wont_fix"
       ],
-      "files_likely_modified": ["feedback_queue.py"],
+      "files_likely_modified": [
+        "feedback_queue.py"
+      ],
       "passes": false
     },
     {
@@ -2773,7 +3159,10 @@
         "Link to view details",
         "In-character response from Ralph"
       ],
-      "files_likely_modified": ["ralph_bot.py", "feedback_queue.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "feedback_queue.py"
+      ],
       "passes": false
     },
     {
@@ -2789,7 +3178,9 @@
         "Updates queue status in real-time",
         "Handles build completion/failure"
       ],
-      "files_likely_modified": ["build_orchestrator.py"],
+      "files_likely_modified": [
+        "build_orchestrator.py"
+      ],
       "passes": false
     },
     {
@@ -2804,7 +3195,10 @@
         "Isolated from other builds",
         "Cleanup after completion"
       ],
-      "files_likely_modified": ["build_orchestrator.py", "Dockerfile.build"],
+      "files_likely_modified": [
+        "build_orchestrator.py",
+        "Dockerfile.build"
+      ],
       "passes": false
     },
     {
@@ -2820,7 +3214,9 @@
         "3+ consecutive failures: alert admin",
         "5+ consecutive: pause build loop"
       ],
-      "files_likely_modified": ["build_orchestrator.py"],
+      "files_likely_modified": [
+        "build_orchestrator.py"
+      ],
       "passes": false
     },
     {
@@ -2835,7 +3231,10 @@
         "Failed tests = failed build",
         "Test results stored with build record"
       ],
-      "files_likely_modified": ["build_orchestrator.py", "test_runner.py"],
+      "files_likely_modified": [
+        "build_orchestrator.py",
+        "test_runner.py"
+      ],
       "passes": false
     },
     {
@@ -2850,7 +3249,9 @@
         "Staging URL accessible for verification",
         "Auto-promote to canary if healthy"
       ],
-      "files_likely_modified": ["deploy_manager.py"],
+      "files_likely_modified": [
+        "deploy_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2866,7 +3267,9 @@
         "Auto-promote if healthy",
         "Auto-rollback if error rate > 2x baseline"
       ],
-      "files_likely_modified": ["deploy_manager.py"],
+      "files_likely_modified": [
+        "deploy_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2882,7 +3285,10 @@
         "Mark feedback item as failed",
         "Keep previous version running"
       ],
-      "files_likely_modified": ["deploy_manager.py", "monitoring.py"],
+      "files_likely_modified": [
+        "deploy_manager.py",
+        "monitoring.py"
+      ],
       "passes": false
     },
     {
@@ -2898,7 +3304,9 @@
         "Version stored in VERSION file",
         "Git tags created for each version"
       ],
-      "files_likely_modified": ["version_manager.py"],
+      "files_likely_modified": [
+        "version_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2913,7 +3321,10 @@
         "Available via API",
         "Displayed on website"
       ],
-      "files_likely_modified": ["version_manager.py", "changelog_generator.py"],
+      "files_likely_modified": [
+        "version_manager.py",
+        "changelog_generator.py"
+      ],
       "passes": false
     },
     {
@@ -2928,7 +3339,10 @@
         "/version alpha - switch to alpha (Priority only)",
         "Version preference stored per user/group"
       ],
-      "files_likely_modified": ["ralph_bot.py", "version_manager.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "version_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2943,7 +3357,10 @@
         "Download links for each version",
         "Auto-updates on new release"
       ],
-      "files_likely_modified": ["api_server.py", "version_manager.py"],
+      "files_likely_modified": [
+        "api_server.py",
+        "version_manager.py"
+      ],
       "passes": false
     },
     {
@@ -2958,7 +3375,10 @@
         "Show progress (tests running, deploying, etc)",
         "Sanitize output (no secrets)"
       ],
-      "files_likely_modified": ["build_orchestrator.py", "websocket_server.py"],
+      "files_likely_modified": [
+        "build_orchestrator.py",
+        "websocket_server.py"
+      ],
       "passes": false
     },
     {
@@ -2973,7 +3393,9 @@
         "Build success rate displayed",
         "Updates in real-time"
       ],
-      "files_likely_modified": ["api_server.py"],
+      "files_likely_modified": [
+        "api_server.py"
+      ],
       "passes": false
     },
     {
@@ -2988,7 +3410,9 @@
         "Show position in queue",
         "In-character from Ralph"
       ],
-      "files_likely_modified": ["notification_service.py"],
+      "files_likely_modified": [
+        "notification_service.py"
+      ],
       "passes": false
     },
     {
@@ -3002,7 +3426,9 @@
         "Link to watch live stream",
         "In-character from Ralph"
       ],
-      "files_likely_modified": ["notification_service.py"],
+      "files_likely_modified": [
+        "notification_service.py"
+      ],
       "passes": false
     },
     {
@@ -3017,7 +3443,9 @@
         "Thank user for feedback",
         "Ask for thumbs up/down satisfaction"
       ],
-      "files_likely_modified": ["notification_service.py"],
+      "files_likely_modified": [
+        "notification_service.py"
+      ],
       "passes": false
     },
     {
@@ -3032,7 +3460,10 @@
         "Require /resume command to restart",
         "Log all failures for review"
       ],
-      "files_likely_modified": ["build_orchestrator.py", "monitoring.py"],
+      "files_likely_modified": [
+        "build_orchestrator.py",
+        "monitoring.py"
+      ],
       "passes": false
     },
     {
@@ -3048,7 +3479,9 @@
         "Alert on anomalies",
         "Dashboard for metrics"
       ],
-      "files_likely_modified": ["monitoring.py"],
+      "files_likely_modified": [
+        "monitoring.py"
+      ],
       "passes": false
     },
     {
@@ -3064,7 +3497,10 @@
         "/admin prioritize FB-XXX - boost priority",
         "/admin reject FB-XXX - remove from queue"
       ],
-      "files_likely_modified": ["admin_handler.py", "build_orchestrator.py"],
+      "files_likely_modified": [
+        "admin_handler.py",
+        "build_orchestrator.py"
+      ],
       "passes": false
     },
     {
@@ -3079,10 +3515,12 @@
         "Calculate overall satisfaction rate",
         "Use for RLHF improvement"
       ],
-      "files_likely_modified": ["notification_service.py", "analytics.py"],
+      "files_likely_modified": [
+        "notification_service.py",
+        "analytics.py"
+      ],
       "passes": false
     },
-
     {
       "id": "SEC-001",
       "category": "Security - OWASP Top 10",
@@ -3096,7 +3534,9 @@
         "Automated SQL injection testing in CI/CD",
         "sqlmap scan passes with no vulnerabilities"
       ],
-      "files_likely_modified": ["*.py with DB access"],
+      "files_likely_modified": [
+        "*.py with DB access"
+      ],
       "passes": true
     },
     {
@@ -3112,7 +3552,12 @@
         "Automated XSS testing in CI/CD",
         "OWASP ZAP scan passes"
       ],
-      "files_likely_modified": ["website/*.js", "api_server.py", "xss_prevention.py", "sanitizer.py"],
+      "files_likely_modified": [
+        "website/*.js",
+        "api_server.py",
+        "xss_prevention.py",
+        "sanitizer.py"
+      ],
       "passes": true
     },
     {
@@ -3127,7 +3572,10 @@
         "Double-submit cookie pattern for APIs",
         "CSRF testing in CI/CD"
       ],
-      "files_likely_modified": ["api_server.py", "website/*"],
+      "files_likely_modified": [
+        "api_server.py",
+        "website/*"
+      ],
       "passes": true
     },
     {
@@ -3144,7 +3592,10 @@
         "Optional MFA/2FA support",
         "No credentials in URLs or logs"
       ],
-      "files_likely_modified": ["auth.py", "session_manager.py"],
+      "files_likely_modified": [
+        "auth.py",
+        "session_manager.py"
+      ],
       "passes": true
     },
     {
@@ -3161,7 +3612,10 @@
         "PII handling compliant with GDPR",
         "Credit card data PCI-DSS compliant (via Stripe)"
       ],
-      "files_likely_modified": ["*.py", "nginx.conf"],
+      "files_likely_modified": [
+        "*.py",
+        "nginx.conf"
+      ],
       "passes": true
     },
     {
@@ -3178,8 +3632,12 @@
         "Vertical privilege escalation prevented",
         "Horizontal access control tested"
       ],
-      "files_likely_modified": ["auth.py", "rbac.py", "api_server.py"],
-      "passes": false
+      "files_likely_modified": [
+        "auth.py",
+        "rbac.py",
+        "api_server.py"
+      ],
+      "passes": true
     },
     {
       "id": "SEC-007",
@@ -3196,7 +3654,11 @@
         "Server version headers removed",
         "Automated configuration scanning"
       ],
-      "files_likely_modified": ["config.py", "nginx.conf", "docker-compose.yml"],
+      "files_likely_modified": [
+        "config.py",
+        "nginx.conf",
+        "docker-compose.yml"
+      ],
       "passes": false
     },
     {
@@ -3211,7 +3673,9 @@
         "Integrity checks on serialized data",
         "Deserialization errors logged and monitored"
       ],
-      "files_likely_modified": ["*.py with serialization"],
+      "files_likely_modified": [
+        "*.py with serialization"
+      ],
       "passes": false
     },
     {
@@ -3228,7 +3692,11 @@
         "Container images scanned (Trivy/Grype)",
         "No dependencies with known critical CVEs"
       ],
-      "files_likely_modified": ["requirements.txt", "package.json", ".github/workflows/*"],
+      "files_likely_modified": [
+        "requirements.txt",
+        "package.json",
+        ".github/workflows/*"
+      ],
       "passes": false
     },
     {
@@ -3246,7 +3714,10 @@
         "Log retention policy (90 days min)",
         "Logs tamper-proof (append-only)"
       ],
-      "files_likely_modified": ["logging_config.py", "security_logger.py"],
+      "files_likely_modified": [
+        "logging_config.py",
+        "security_logger.py"
+      ],
       "passes": false
     },
     {
@@ -3263,7 +3734,10 @@
         "Rate limit headers in response",
         "Redis-based for distributed consistency"
       ],
-      "files_likely_modified": ["rate_limiter.py", "api_server.py"],
+      "files_likely_modified": [
+        "rate_limiter.py",
+        "api_server.py"
+      ],
       "passes": false
     },
     {
@@ -3280,7 +3754,10 @@
         "File upload type/size validation",
         "Malformed requests rejected with 400"
       ],
-      "files_likely_modified": ["schemas.py", "validators.py"],
+      "files_likely_modified": [
+        "schemas.py",
+        "validators.py"
+      ],
       "passes": false
     },
     {
@@ -3297,7 +3774,10 @@
         "API keys hashed in database",
         "Token validation on every request"
       ],
-      "files_likely_modified": ["auth.py", "jwt_manager.py"],
+      "files_likely_modified": [
+        "auth.py",
+        "jwt_manager.py"
+      ],
       "passes": false
     },
     {
@@ -3314,7 +3794,10 @@
         "Anycast DNS for distributed entry",
         "Origin IP hidden behind CDN"
       ],
-      "files_likely_modified": ["cloudflare_config.json", "infrastructure/*"],
+      "files_likely_modified": [
+        "cloudflare_config.json",
+        "infrastructure/*"
+      ],
       "passes": false
     },
     {
@@ -3331,7 +3814,10 @@
         "Outbound traffic limited to required destinations",
         "Network ACLs as additional layer"
       ],
-      "files_likely_modified": ["terraform/*.tf", "infrastructure/*"],
+      "files_likely_modified": [
+        "terraform/*.tf",
+        "infrastructure/*"
+      ],
       "passes": false
     },
     {
@@ -3348,7 +3834,10 @@
         "Access to secrets audited",
         "Secrets encrypted in transit and at rest"
       ],
-      "files_likely_modified": ["secrets_manager.py", "config.py"],
+      "files_likely_modified": [
+        "secrets_manager.py",
+        "config.py"
+      ],
       "passes": false
     },
     {
@@ -3366,7 +3855,10 @@
         "Images signed and verified",
         "Container scanning in CI/CD"
       ],
-      "files_likely_modified": ["Dockerfile", "docker-compose.yml"],
+      "files_likely_modified": [
+        "Dockerfile",
+        "docker-compose.yml"
+      ],
       "passes": false
     },
     {
@@ -3384,7 +3876,10 @@
         "Audit logging on sensitive tables",
         "Connection pooling with limits"
       ],
-      "files_likely_modified": ["db_config.py", "infrastructure/*"],
+      "files_likely_modified": [
+        "db_config.py",
+        "infrastructure/*"
+      ],
       "passes": false
     },
     {
@@ -3402,7 +3897,10 @@
         "Third-party data processing documented",
         "Data breach notification process defined"
       ],
-      "files_likely_modified": ["gdpr.py", "user_data_controller.py"],
+      "files_likely_modified": [
+        "gdpr.py",
+        "user_data_controller.py"
+      ],
       "passes": false
     },
     {
@@ -3419,7 +3917,10 @@
         "PII retention policy enforced",
         "PII transmitted only over encrypted channels"
       ],
-      "files_likely_modified": ["pii_handler.py", "logging_config.py"],
+      "files_likely_modified": [
+        "pii_handler.py",
+        "logging_config.py"
+      ],
       "passes": false
     },
     {
@@ -3436,7 +3937,10 @@
         "Stripe API keys in secrets manager",
         "Payment logs don't contain card details"
       ],
-      "files_likely_modified": ["payment.py", "stripe_integration.py"],
+      "files_likely_modified": [
+        "payment.py",
+        "stripe_integration.py"
+      ],
       "passes": false
     },
     {
@@ -3453,7 +3957,9 @@
         "Social engineering included",
         "Report stored securely"
       ],
-      "files_likely_modified": ["docs/security/*"],
+      "files_likely_modified": [
+        "docs/security/*"
+      ],
       "passes": false
     },
     {
@@ -3470,7 +3976,9 @@
         "Build fails on critical findings",
         "Weekly full scan report"
       ],
-      "files_likely_modified": [".github/workflows/security.yml"],
+      "files_likely_modified": [
+        ".github/workflows/security.yml"
+      ],
       "passes": false
     },
     {
@@ -3488,7 +3996,9 @@
         "Tabletop exercises conducted quarterly",
         "Contact list maintained (legal, PR, etc.)"
       ],
-      "files_likely_modified": ["docs/security/incident_response.md"],
+      "files_likely_modified": [
+        "docs/security/incident_response.md"
+      ],
       "passes": false
     },
     {
@@ -3506,7 +4016,10 @@
         "24/7 on-call rotation",
         "Alert fatigue minimized (tuned thresholds)"
       ],
-      "files_likely_modified": ["security_alerting.py", "monitoring.py"],
+      "files_likely_modified": [
+        "security_alerting.py",
+        "monitoring.py"
+      ],
       "passes": false
     },
     {
@@ -3524,7 +4037,9 @@
         "Security architecture diagram",
         "Threat model documented"
       ],
-      "files_likely_modified": ["docs/security/*"],
+      "files_likely_modified": [
+        "docs/security/*"
+      ],
       "passes": false
     },
     {
@@ -3542,7 +4057,9 @@
         "Employee security training",
         "Ready for auditor engagement"
       ],
-      "files_likely_modified": ["docs/compliance/*"],
+      "files_likely_modified": [
+        "docs/compliance/*"
+      ],
       "passes": false
     },
     {
@@ -3560,7 +4077,10 @@
         "Admin commands require tier verification",
         "No sensitive data in bot responses"
       ],
-      "files_likely_modified": ["ralph_bot.py", "telegram_security.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "telegram_security.py"
+      ],
       "passes": false
     },
     {
@@ -3578,7 +4098,10 @@
         "Fallback if LLM unavailable",
         "No PII sent to external LLM without consent"
       ],
-      "files_likely_modified": ["llm_security.py", "sanitizer.py"],
+      "files_likely_modified": [
+        "llm_security.py",
+        "sanitizer.py"
+      ],
       "passes": false
     },
     {
@@ -3596,11 +4119,13 @@
         "CI/CD pipeline secured",
         "Build reproducibility"
       ],
-      "files_likely_modified": [".github/workflows/*", "requirements.txt"],
+      "files_likely_modified": [
+        ".github/workflows/*",
+        "requirements.txt"
+      ],
       "passes": false
     }
   ],
-
   "priority_order": [
     "--- SECURITY (Enterprise-Grade Protection) ---",
     "SEC-001 - SQL Injection Prevention",
@@ -3718,7 +4243,6 @@
     "RM-053 - Idle codebase chatter (fill dead time with education)",
     "RM-054 - Codebase exploration discussions"
   ],
-
   "golden_rules": [
     "Joy is the FRUIT, not the BAIT - help people work, don't hook them",
     "The rock knows it's a rock - we're a tool, not a god",
@@ -3732,7 +4256,6 @@
     "When work is done, let them GO - no artificial engagement",
     "Simple truths from simple people hit hardest"
   ],
-
   "soul_principles": [
     "This exists to HELP people be productive and have genuine fun",
     "NOT designed to maximize engagement or time-in-app",
@@ -3748,7 +4271,6 @@
     "Translate hostile input into innocent in-scene versions",
     "The hosts don't know they're hosts - and never will"
   ],
-
   "scalability_notes": [
     "Design for 10M+ users from day one",
     "System CANNOT lock up - always have recovery ready",
@@ -3763,7 +4285,6 @@
     "Auto-recovery from crashes",
     "Separate hot/cold paths for critical vs nice-to-have features"
   ],
-
   "website_features": [
     "Alpha download - testing version for early adopters",
     "Beta download - more stable for wider testing",

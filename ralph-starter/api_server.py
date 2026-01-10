@@ -5,6 +5,7 @@ API Server for Ralph Mode with Security Features
 Implements:
 - SEC-003: CSRF Protection
 - SEC-005: Sensitive Data Exposure Prevention
+- SEC-006: Broken Access Control Prevention
 """
 
 import os
@@ -25,6 +26,17 @@ from data_protection import (
     SecureLogger,
     add_security_headers,
     enforce_https
+)
+
+# SEC-006: Import RBAC
+from rbac import (
+    RBACManager,
+    Role,
+    Permission,
+    require_permission,
+    require_role,
+    require_ownership,
+    require_subscription
 )
 
 # SEC-005: Load configuration from secure secret manager
@@ -205,6 +217,155 @@ def csrf_protect(f):
     return decorated_function
 
 
+# =============================================================================
+# SEC-006: RBAC Helper Functions
+# =============================================================================
+
+def get_current_user_id() -> Optional[str]:
+    """
+    Get the current authenticated user ID from session.
+
+    Returns:
+        User ID if authenticated, None otherwise
+    """
+    return session.get('user_id')
+
+
+def require_auth(f):
+    """
+    Decorator to require authentication.
+
+    Usage:
+        @app.route('/api/protected', methods=['GET'])
+        @require_auth
+        def protected_endpoint():
+            user_id = get_current_user_id()
+            # Your code here
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({
+                'error': 'Authentication required',
+                'code': 'AUTH_REQUIRED'
+            }), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_api_permission(permission: Permission):
+    """
+    Decorator to require specific permission for API endpoints.
+
+    Usage:
+        @app.route('/api/feedback', methods=['POST'])
+        @require_auth
+        @require_api_permission(Permission.FEEDBACK_CREATE)
+        def create_feedback():
+            # Only users with FEEDBACK_CREATE permission can access
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_current_user_id()
+            if not user_id:
+                return jsonify({
+                    'error': 'Authentication required',
+                    'code': 'AUTH_REQUIRED'
+                }), 401
+
+            if not RBACManager.has_permission(user_id, permission):
+                logger.warning(f"User {user_id} denied access - missing permission: {permission.value}")
+                return jsonify({
+                    'error': 'Insufficient permissions',
+                    'code': 'PERMISSION_DENIED',
+                    'required_permission': permission.value
+                }), 403
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_api_role(role: Role):
+    """
+    Decorator to require specific role for API endpoints.
+
+    Usage:
+        @app.route('/api/admin/users', methods=['GET'])
+        @require_auth
+        @require_api_role(Role.ADMIN)
+        def list_users():
+            # Only admins can access
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_current_user_id()
+            if not user_id:
+                return jsonify({
+                    'error': 'Authentication required',
+                    'code': 'AUTH_REQUIRED'
+                }), 401
+
+            if not RBACManager.has_role(user_id, role):
+                logger.warning(f"User {user_id} denied access - insufficient role (required: {role.value})")
+                return jsonify({
+                    'error': 'Insufficient role',
+                    'code': 'ROLE_REQUIRED',
+                    'required_role': role.value
+                }), 403
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_resource_access(resource_type: str, resource_id_param: str, action: str):
+    """
+    Decorator to require resource access (ownership or permission).
+
+    Usage:
+        @app.route('/api/feedback/<feedback_id>', methods=['PUT'])
+        @require_auth
+        @require_resource_access('feedback', 'feedback_id', 'edit')
+        def edit_feedback(feedback_id):
+            # Only owner or users with feedback.edit_any can access
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_current_user_id()
+            if not user_id:
+                return jsonify({
+                    'error': 'Authentication required',
+                    'code': 'AUTH_REQUIRED'
+                }), 401
+
+            # Get resource_id from kwargs (Flask route parameters)
+            resource_id = kwargs.get(resource_id_param)
+            if not resource_id:
+                return jsonify({
+                    'error': 'Resource ID required',
+                    'code': 'RESOURCE_ID_MISSING'
+                }), 400
+
+            # Check if user can access the resource
+            if not RBACManager.can_access_resource(user_id, resource_type, resource_id, action):
+                logger.warning(f"User {user_id} denied access to {resource_type} {resource_id} ({action})")
+                return jsonify({
+                    'error': 'Access denied',
+                    'code': 'ACCESS_DENIED',
+                    'resource_type': resource_type,
+                    'action': action
+                }), 403
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 # API Endpoints
 
 @app.route('/api/csrf-token', methods=['GET'])
@@ -245,26 +406,203 @@ def get_csrf_token():
 
 @app.route('/api/feedback', methods=['POST'])
 @csrf_protect
+@require_auth
+@require_api_permission(Permission.FEEDBACK_CREATE)
 def submit_feedback():
     """
-    Example protected endpoint: Submit feedback
+    Submit feedback endpoint.
 
-    This demonstrates CSRF protection on a state-changing operation.
+    SEC-003: CSRF protected
+    SEC-006: Requires authentication and FEEDBACK_CREATE permission
     """
+    user_id = get_current_user_id()
     data = request.get_json()
 
-    # Process feedback (placeholder)
+    # Validate subscription tier for priority feedback
+    feedback_type = data.get('type', 'feature')
+    if feedback_type == 'priority':
+        if not RBACManager.enforce_subscription_tier(user_id, 'builder_plus'):
+            return jsonify({
+                'error': 'Priority feedback requires Builder+ or Priority subscription',
+                'code': 'SUBSCRIPTION_REQUIRED'
+            }), 403
+
+    # Process feedback
+    feedback_id = secrets.token_hex(8)
     feedback = {
-        'id': secrets.token_hex(8),
+        'id': feedback_id,
         'content': data.get('content', ''),
-        'type': data.get('type', 'feature'),
+        'type': feedback_type,
+        'user_id': user_id,
+        'timestamp': datetime.now().isoformat()
+    }
+
+    # SEC-006: Set resource ownership
+    RBACManager.set_resource_owner('feedback', feedback_id, user_id)
+
+    logger.info(f"Feedback created: {feedback_id} by user {user_id}")
+
+    return jsonify({
+        'success': True,
+        'feedback': feedback
+    }), 201
+
+
+@app.route('/api/feedback/<feedback_id>', methods=['GET'])
+@require_auth
+def get_feedback(feedback_id):
+    """
+    Get feedback by ID.
+
+    SEC-006: User must have permission to view feedback
+    """
+    user_id = get_current_user_id()
+
+    # Check if user can view this feedback
+    if not RBACManager.can_access_resource(user_id, 'feedback', feedback_id, 'view'):
+        return jsonify({
+            'error': 'Access denied',
+            'code': 'ACCESS_DENIED'
+        }), 403
+
+    # Placeholder - would fetch from database
+    feedback = {
+        'id': feedback_id,
+        'content': 'Sample feedback',
+        'type': 'feature',
         'timestamp': datetime.now().isoformat()
     }
 
     return jsonify({
         'success': True,
         'feedback': feedback
-    }), 201
+    })
+
+
+@app.route('/api/feedback/<feedback_id>', methods=['PUT'])
+@csrf_protect
+@require_auth
+@require_resource_access('feedback', 'feedback_id', 'edit')
+def edit_feedback(feedback_id):
+    """
+    Edit feedback.
+
+    SEC-003: CSRF protected
+    SEC-006: User must own the feedback or have edit_any permission
+    """
+    user_id = get_current_user_id()
+    data = request.get_json()
+
+    # Update feedback (placeholder)
+    feedback = {
+        'id': feedback_id,
+        'content': data.get('content', ''),
+        'type': data.get('type', 'feature'),
+        'user_id': user_id,
+        'updated_at': datetime.now().isoformat()
+    }
+
+    logger.info(f"Feedback edited: {feedback_id} by user {user_id}")
+
+    return jsonify({
+        'success': True,
+        'feedback': feedback
+    })
+
+
+@app.route('/api/feedback/<feedback_id>', methods=['DELETE'])
+@csrf_protect
+@require_auth
+@require_resource_access('feedback', 'feedback_id', 'delete')
+def delete_feedback(feedback_id):
+    """
+    Delete feedback.
+
+    SEC-003: CSRF protected
+    SEC-006: User must own the feedback or have delete_any permission
+    """
+    user_id = get_current_user_id()
+
+    # Delete feedback (placeholder)
+    logger.info(f"Feedback deleted: {feedback_id} by user {user_id}")
+
+    return jsonify({
+        'success': True,
+        'message': 'Feedback deleted'
+    })
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@require_auth
+@require_api_role(Role.ADMIN)
+def list_users():
+    """
+    List all users (admin only).
+
+    SEC-006: Only admins can access this endpoint
+    """
+    user_id = get_current_user_id()
+
+    # Placeholder - would fetch from database
+    users = [
+        {'id': 'user1', 'role': 'user', 'email': 'user1@example.com'},
+        {'id': 'user2', 'role': 'builder', 'email': 'user2@example.com'},
+    ]
+
+    logger.info(f"User list accessed by admin {user_id}")
+
+    return jsonify({
+        'success': True,
+        'users': users
+    })
+
+
+@app.route('/api/admin/users/<target_user_id>/role', methods=['PUT'])
+@csrf_protect
+@require_auth
+@require_api_role(Role.ADMIN)
+def change_user_role(target_user_id):
+    """
+    Change user role (admin only).
+
+    SEC-003: CSRF protected
+    SEC-006: Only admins can change roles
+    """
+    user_id = get_current_user_id()
+    data = request.get_json()
+
+    new_role_str = data.get('role')
+    if not new_role_str:
+        return jsonify({
+            'error': 'Role required',
+            'code': 'ROLE_MISSING'
+        }), 400
+
+    try:
+        new_role = Role(new_role_str)
+    except ValueError:
+        return jsonify({
+            'error': 'Invalid role',
+            'code': 'ROLE_INVALID'
+        }), 400
+
+    # Prevent privilege escalation: only superadmin can create other admins
+    if new_role in [Role.ADMIN, Role.SUPERADMIN]:
+        if RBACManager.get_role(user_id) != Role.SUPERADMIN:
+            return jsonify({
+                'error': 'Only superadmin can assign admin roles',
+                'code': 'PRIVILEGE_ESCALATION_PREVENTED'
+            }), 403
+
+    # Update role
+    RBACManager.assign_role(target_user_id, new_role)
+
+    logger.info(f"User {target_user_id} role changed to {new_role_str} by admin {user_id}")
+
+    return jsonify({
+        'success': True,
+        'message': f'User role updated to {new_role_str}'
+    })
 
 
 @app.route('/api/health', methods=['GET'])
