@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Translation Engine - TL-002 & TL-003: Character Translation & Scene-Contextualized Output
+Translation Engine - TL-002 & TL-003 & TL-005: Character Translation & Scene-Contextualized Output
 
 TL-002: Translates user speech/text into theatrical Mr. Worms character actions and dialogue.
 TL-003: Formats ALL bot output within the established scene context.
+TL-005: Swear Word to Action Translation - broadcast-safe emotional expression.
 
 The user says X, the chat shows a scene-based theatrical version.
 Bot responses include actions, atmosphere, and stay within the fiction.
@@ -13,7 +14,8 @@ This is THE CORE MAGIC of Ralph Mode - turning plain text into immersive fiction
 
 import os
 import logging
-from typing import Dict, Optional, Tuple
+import re
+from typing import Dict, Optional, Tuple, List
 from groq import Groq
 
 # Import scene context if available
@@ -24,6 +26,60 @@ except ImportError:
     SCENE_MANAGER_AVAILABLE = False
     def get_time_of_day_context():
         return {"time_key": "afternoon", "energy": "neutral", "worker_mood": "working", "description": ""}
+
+
+# TL-005: Swear Word Detection and Translation
+# Pattern-based detection for common profanity (case-insensitive)
+SWEAR_PATTERNS = [
+    # F-word and variations
+    (r'\bfuck(?:ing|ed|er|s)?\b', 'intense'),
+    # S-word and variations
+    (r'\bshit(?:ty|tier|s)?\b', 'moderate'),
+    # Other common profanity
+    (r'\bdamn(?:ed|s|ing)?\b', 'mild'),
+    (r'\bhell\b', 'mild'),
+    (r'\bass(?:hole|es)?\b', 'moderate'),
+    (r'\bbitch(?:es|y|ing)?\b', 'moderate'),
+    (r'\bbastard(?:s)?\b', 'moderate'),
+    (r'\bcrap(?:py|s)?\b', 'mild'),
+    # Multi-word deity-based profanity
+    (r'\bjesus christ\b', 'mild'),
+    (r'\bgod ?damn(?:it|ed)?\b', 'mild'),
+]
+
+# Intensity to action mapping - conveys emotion without profanity
+INTENSITY_ACTIONS = {
+    'intense': [
+        'jaw clenches tight',
+        'fist slams on desk',
+        'eyes blaze with intensity',
+        'face flushes red',
+        'jaw tightens, knuckles white',
+        'teeth grind audibly',
+        'veins pulse at temples',
+        'hands ball into fists'
+    ],
+    'moderate': [
+        'jaw tightens',
+        'eyes narrow sharply',
+        'face hardens',
+        'lips press into thin line',
+        'brow furrows deeply',
+        'nostrils flare',
+        'shoulders tense',
+        'hand slaps desk'
+    ],
+    'mild': [
+        'sighs heavily',
+        'shakes head',
+        'runs hand through hair',
+        'pinches bridge of nose',
+        'exhales slowly',
+        'closes eyes briefly',
+        'jaw sets',
+        'taps desk impatiently'
+    ]
+}
 
 
 class TranslationEngine:
@@ -42,6 +98,101 @@ class TranslationEngine:
             self.client = None
         else:
             self.client = Groq(api_key=self.groq_api_key)
+
+        # TL-005: Compile swear patterns for efficiency
+        self.swear_regex = [
+            (re.compile(pattern, re.IGNORECASE), intensity)
+            for pattern, intensity in SWEAR_PATTERNS
+        ]
+
+    def detect_swear_words(self, text: str) -> List[Tuple[str, str, str]]:
+        """
+        TL-005: Detect swear words in text and return matches with intensity.
+
+        Args:
+            text: The text to scan for profanity
+
+        Returns:
+            List of tuples: (matched_word, intensity, position_info)
+        """
+        matches = []
+        for regex, intensity in self.swear_regex:
+            for match in regex.finditer(text):
+                matched_word = match.group(0)
+                matches.append((matched_word, intensity, match.span()))
+
+        # Sort by position (earliest first)
+        matches.sort(key=lambda x: x[2][0])
+        return matches
+
+    def translate_swear_to_action(self, intensity: str, context_text: str = "") -> str:
+        """
+        TL-005: Translate swear word intensity to physical action.
+
+        Args:
+            intensity: The emotional intensity ('intense', 'moderate', 'mild')
+            context_text: Optional context to help choose appropriate action
+
+        Returns:
+            A physical action description that conveys the emotion
+        """
+        import random
+
+        actions = INTENSITY_ACTIONS.get(intensity, INTENSITY_ACTIONS['moderate'])
+
+        # Use random.choice for variety (not verbatim same action)
+        return random.choice(actions)
+
+    def sanitize_swear_words(self, text: str, translate_to_actions: bool = True) -> Tuple[str, List[str]]:
+        """
+        TL-005: Remove swear words from text and optionally provide action alternatives.
+
+        Args:
+            text: The text to sanitize
+            translate_to_actions: If True, suggest actions to replace emotional weight
+
+        Returns:
+            Tuple of (sanitized_text, list_of_suggested_actions)
+        """
+        matches = self.detect_swear_words(text)
+
+        if not matches:
+            return text, []
+
+        # Build sanitized version by replacing swears
+        sanitized = text
+        actions = []
+        offset = 0
+
+        for matched_word, intensity, (start, end) in matches:
+            # Adjust positions for previous replacements
+            adjusted_start = start + offset
+            adjusted_end = end + offset
+
+            # Replace swear with empty space (removing it entirely)
+            replacement = ""
+            sanitized = sanitized[:adjusted_start] + replacement + sanitized[adjusted_end:]
+
+            # Update offset
+            offset += len(replacement) - (end - start)
+
+            # Generate action to convey the emotion
+            if translate_to_actions:
+                action = self.translate_swear_to_action(intensity, text)
+                actions.append(action)
+
+        # Clean up extra whitespace and orphaned articles
+        sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+
+        # Remove orphaned "the" at start or after "what/where/when/why/how"
+        sanitized = re.sub(r'\b(what|where|when|why|how)\s+the\s+(?=\w)', r'\1 ', sanitized, flags=re.IGNORECASE)
+        sanitized = re.sub(r'^the\s+(?=\w)', '', sanitized, flags=re.IGNORECASE)
+
+        # Clean up punctuation issues (comma at start, etc.)
+        sanitized = re.sub(r'^[,;]\s*', '', sanitized)
+        sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+
+        return sanitized, actions
 
     # Mr. Worms character profile
     MR_WORMS_PROFILE = {
@@ -94,15 +245,18 @@ class TranslationEngine:
         if not user_input or not user_input.strip():
             return "*Mr. Worms enters, looks around expectantly*"
 
+        # TL-005: Sanitize swear words and get suggested actions
+        sanitized_input, swear_actions = self.sanitize_swear_words(user_input, translate_to_actions=True)
+
         # If no Groq client, fall back to basic formatting
         if not self.client:
-            return self._basic_translation(user_input, tone)
+            return self._basic_translation(sanitized_input, tone, swear_actions)
 
         # Get scene context
         scene_context = self._get_scene_context(context)
 
-        # Build Groq prompt
-        prompt = self._build_translation_prompt(user_input, tone, scene_context)
+        # Build Groq prompt (using sanitized input)
+        prompt = self._build_translation_prompt(sanitized_input, tone, scene_context, swear_actions)
 
         try:
             # Call Groq for translation
@@ -127,7 +281,7 @@ class TranslationEngine:
 
         except Exception as e:
             logging.error(f"TL-002: Groq translation failed: {e}")
-            return self._basic_translation(user_input, tone)
+            return self._basic_translation(sanitized_input, tone, swear_actions)
 
     def _get_system_prompt(self) -> str:
         """Get the system prompt for Groq translation."""
@@ -143,6 +297,8 @@ Rules:
 5. Never break character or mention the translation
 6. The meaning MUST stay the same - just the presentation changes
 7. Make it feel like reading a screenplay
+8. BROADCAST-SAFE: Never include profanity - use physical actions instead (jaw tightens, fist slams desk, etc.)
+9. If suggested actions are provided, incorporate them to show emotional intensity
 
 Mr. Worms character:
 - CEO/Boss type
@@ -161,19 +317,30 @@ Input: "Great work on the feature!"
 Output: *Mr. Worms leans back, nodding with approval*
 "Excellent work on that feature, team."
 
+Example (with emotional intensity):
+Input: "This is taking way too long" + Suggested action: "jaw clenches tight"
+Output: *Mr. Worms bursts in, jaw clenched tight*
+"This is taking way too long."
+
 Now translate user input into Mr. Worms theatrical scenes."""
 
     def _build_translation_prompt(
         self,
         user_input: str,
         tone: Optional[str],
-        scene_context: Dict
+        scene_context: Dict,
+        swear_actions: Optional[List[str]] = None
     ) -> str:
         """Build the translation prompt for Groq."""
         parts = [f"User message: {user_input}"]
 
         if tone:
             parts.append(f"Detected tone: {tone}")
+
+        # TL-005: Include suggested actions from swear word translation
+        if swear_actions:
+            actions_str = ", ".join(swear_actions)
+            parts.append(f"Suggested actions (emotional intensity): {actions_str}")
 
         if scene_context.get("time_key"):
             parts.append(f"Time of day: {scene_context['time_key']} ({scene_context.get('worker_mood', '')})")
@@ -204,13 +371,21 @@ Now translate user input into Mr. Worms theatrical scenes."""
             "description": ""
         }
 
-    def _basic_translation(self, user_input: str, tone: Optional[str]) -> str:
+    def _basic_translation(
+        self,
+        user_input: str,
+        tone: Optional[str],
+        swear_actions: Optional[List[str]] = None
+    ) -> str:
         """
         Fallback translation when Groq is unavailable.
         Simple pattern-based formatting.
         """
-        # Determine action based on tone or input
-        action = self._infer_action(user_input, tone)
+        # TL-005: Use swear action if available, otherwise infer from tone/input
+        if swear_actions and len(swear_actions) > 0:
+            action = swear_actions[0]  # Use the first suggested action
+        else:
+            action = self._infer_action(user_input, tone)
 
         # Format as scene
         return f"*Mr. Worms {action}*\n\"{user_input}\""
@@ -379,7 +554,7 @@ def add_scene_atmosphere(message: str) -> str:
 
 if __name__ == "__main__":
     # Test the translation engine
-    print("Testing Translation Engine (TL-002)...\n")
+    print("Testing Translation Engine (TL-002 & TL-005)...\n")
     print("=" * 60)
 
     test_inputs = [
@@ -398,5 +573,34 @@ if __name__ == "__main__":
         print("-" * 60)
 
         translation = engine.translate_to_scene(user_input, tone)
+        print(translation)
+        print("=" * 60)
+
+    # TL-005: Test swear word translation
+    print("\n\nTesting TL-005: Swear Word to Action Translation...\n")
+    print("=" * 60)
+
+    swear_test_inputs = [
+        ("What the fuck is taking so long", "frustrated"),
+        ("This shit doesn't work", "frustrated"),
+        ("Damn it, we have another bug", "frustrated"),
+        ("Fix this fucking login issue", "urgent"),
+        ("Hell, that was fast!", "pleased"),
+    ]
+
+    for user_input, tone in swear_test_inputs:
+        print(f"\nOriginal Input: {user_input}")
+        print(f"Tone: {tone}")
+        print("-" * 60)
+
+        # Show sanitization process
+        sanitized, actions = engine.sanitize_swear_words(user_input)
+        print(f"Sanitized: {sanitized}")
+        print(f"Suggested Actions: {actions}")
+        print()
+
+        # Show final translation
+        translation = engine.translate_to_scene(user_input, tone)
+        print("Final Translation:")
         print(translation)
         print("=" * 60)
