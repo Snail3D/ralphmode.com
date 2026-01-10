@@ -350,3 +350,48 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 12 - 2026-01-10
+**Task**: [RM-004] Timing Manager for Comedy + [RM-025] Smart ETA (already done)
+**Status**: ✅ Complete
+
+### What was implemented
+- Created ComedicTiming class with timing presets:
+  - RAPID_BANTER: 0.3-0.7s (quick exchanges)
+  - NORMAL_RESPONSE: 0.8-1.5s (standard replies)
+  - DRAMATIC_PAUSE: 2.0-3.0s (anticipation)
+  - INTERRUPTION: 0.1-0.3s (cuts in)
+  - PUNCHLINE_SETUP: 1.0-1.5s (before punchlines)
+  - REALIZATION: 1.5-2.5s ("Wait a minute...")
+  - AWKWARD_SILENCE: 2.5-4.0s (uncomfortable moments)
+- Static methods for each timing type:
+  - rapid_banter()
+  - normal()
+  - dramatic_pause()
+  - interruption()
+  - punchline_setup()
+  - realization()
+  - awkward_silence()
+  - for_message_length(text) - scales with message length
+- Added RalphBot.timing reference to ComedicTiming
+- Created async helper methods in RalphBot:
+  - rapid_banter_send() - quick message with rapid timing
+  - dramatic_reveal() - message after dramatic pause
+  - interruption_send() - very quick cut-in
+  - punchline_delivery() - setup + pause + punchline
+  - awkward_moment() - action + long pause
+  - rapid_exchange() - sequence of quick messages
+  - shh_moment() - caught gossiping scenario
+- Also confirmed RM-025 (Smart ETA) was already complete from RM-023
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Comedic timing is about contrast - rapid vs dramatic
+- Static methods make timing accessible from anywhere
+- Helper methods combine timing with typing indicators
+- shh_moment() creates fun spontaneous-feeling scenes
+- for_message_length() adapts to content naturally
+
+---
+

@@ -468,6 +468,132 @@ _But the customer is IMPORTANT. This bug must die._""",
         "There are only 10 types of people in the world: those who understand binary and those who don't.",
     ]
 
+
+class ComedicTiming:
+    """Timing system for creating natural, comedic conversation flow.
+
+    Comedic timing is EVERYTHING. This class provides presets for:
+    - Rapid banter (quick exchanges)
+    - Dramatic pauses (build anticipation)
+    - Interruptions (someone cuts in)
+    - Natural conversation flow
+    """
+
+    # Timing presets in seconds
+    RAPID_BANTER = (0.3, 0.7)       # Quick back and forth
+    NORMAL_RESPONSE = (0.8, 1.5)   # Standard reply timing
+    DRAMATIC_PAUSE = (2.0, 3.0)    # Build anticipation
+    INTERRUPTION = (0.1, 0.3)      # Cut someone off
+    PUNCHLINE_SETUP = (1.0, 1.5)   # Before the joke lands
+    REALIZATION = (1.5, 2.5)       # "Wait a minute..."
+    AWKWARD_SILENCE = (2.5, 4.0)   # When something goes wrong
+
+    @staticmethod
+    def rapid_banter() -> float:
+        """Quick back-and-forth timing for banter exchanges.
+
+        Use for: worker jokes, Ralph's quick responses, playful exchanges.
+
+        Returns:
+            Random delay between 0.3-0.7 seconds
+        """
+        return random.uniform(*ComedicTiming.RAPID_BANTER)
+
+    @staticmethod
+    def normal() -> float:
+        """Standard response timing for regular conversation.
+
+        Use for: explanations, task discussions, general dialogue.
+
+        Returns:
+            Random delay between 0.8-1.5 seconds
+        """
+        return random.uniform(*ComedicTiming.NORMAL_RESPONSE)
+
+    @staticmethod
+    def dramatic_pause() -> float:
+        """Dramatic pause to build anticipation before important reveal.
+
+        Use for: before bad news, before punchlines, big announcements.
+
+        Returns:
+            Random delay between 2.0-3.0 seconds
+        """
+        return random.uniform(*ComedicTiming.DRAMATIC_PAUSE)
+
+    @staticmethod
+    def interruption() -> float:
+        """Very quick timing for when someone cuts in mid-sentence.
+
+        Use for: "Wait!" moments, Ralph noticing something, urgent interrupts.
+
+        Returns:
+            Random delay between 0.1-0.3 seconds
+        """
+        return random.uniform(*ComedicTiming.INTERRUPTION)
+
+    @staticmethod
+    def punchline_setup() -> float:
+        """Pause before a joke lands for better comedic effect.
+
+        Use for: before punchline delivery, before Ralph says something absurd.
+
+        Returns:
+            Random delay between 1.0-1.5 seconds
+        """
+        return random.uniform(*ComedicTiming.PUNCHLINE_SETUP)
+
+    @staticmethod
+    def realization() -> float:
+        """Pause for "Wait a minute..." moments of dawning understanding.
+
+        Use for: when someone realizes something, aha moments.
+
+        Returns:
+            Random delay between 1.5-2.5 seconds
+        """
+        return random.uniform(*ComedicTiming.REALIZATION)
+
+    @staticmethod
+    def awkward_silence() -> float:
+        """Long awkward pause for when things go wrong.
+
+        Use for: after mistakes, awkward revelations, uncomfortable moments.
+
+        Returns:
+            Random delay between 2.5-4.0 seconds
+        """
+        return random.uniform(*ComedicTiming.AWKWARD_SILENCE)
+
+    @staticmethod
+    def for_message_length(text: str) -> float:
+        """Calculate appropriate typing/pause time based on message length.
+
+        Longer messages = longer typing time (more realistic).
+
+        Args:
+            text: The message that will be sent
+
+        Returns:
+            Appropriate delay in seconds
+        """
+        length = len(text) if text else 0
+        if length < 30:
+            return random.uniform(0.3, 0.6)
+        elif length < 80:
+            return random.uniform(0.6, 1.2)
+        elif length < 150:
+            return random.uniform(1.0, 1.8)
+        else:
+            return random.uniform(1.5, 2.5)
+
+
+class RalphBot:
+    """The Ralph Mode Telegram Bot."""
+
+    # Reference to ComedicTiming for easy access
+    timing = ComedicTiming
+
     def __init__(self):
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.boss_queue: Dict[int, list] = {}  # Queued messages for boss
@@ -1313,6 +1439,182 @@ _But the customer is IMPORTANT. This bug must die._""",
             await asyncio.sleep(duration)
         except Exception as e:
             logger.warning(f"Typing indicator failed: {e}")
+
+    # ==================== COMEDIC TIMING HELPERS ====================
+
+    async def rapid_banter_send(self, context, chat_id: int, name: str, title: str, message: str, topic: str = None):
+        """Send a message with rapid banter timing for quick exchanges.
+
+        Use for: joke responses, playful back-and-forth, quick reactions.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name
+            title: Character title
+            message: Message content
+            topic: Optional topic for tap responses
+        """
+        await self.send_typing(context, chat_id, self.timing.rapid_banter())
+        await self.send_styled_message(
+            context, chat_id, name, title, message,
+            topic=topic, with_typing=False
+        )
+
+    async def dramatic_reveal(self, context, chat_id: int, name: str, title: str, message: str, topic: str = None):
+        """Send a message after a dramatic pause for impact.
+
+        Use for: bad news, big announcements, important revelations.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name
+            title: Character title
+            message: Message content
+            topic: Optional topic for tap responses
+        """
+        await self.send_typing(context, chat_id, self.timing.dramatic_pause())
+        await self.send_styled_message(
+            context, chat_id, name, title, message,
+            topic=topic, with_typing=False
+        )
+
+    async def interruption_send(self, context, chat_id: int, name: str, title: str, message: str, topic: str = None):
+        """Send a message as an interruption - very quick, cuts in.
+
+        Use for: "Wait!" moments, urgent news, Ralph noticing something.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name
+            title: Character title
+            message: Message content
+            topic: Optional topic for tap responses
+        """
+        await asyncio.sleep(self.timing.interruption())
+        await self.send_styled_message(
+            context, chat_id, name, title, message,
+            topic=topic, with_typing=False
+        )
+
+    async def punchline_delivery(self, context, chat_id: int, name: str, title: str, setup: str, punchline: str, topic: str = None):
+        """Deliver a joke with proper comedic timing (setup, pause, punchline).
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name
+            title: Character title
+            setup: The setup line
+            punchline: The punchline
+            topic: Optional topic for tap responses
+        """
+        # Setup
+        await self.send_styled_message(
+            context, chat_id, name, title, setup,
+            topic=topic, with_typing=True
+        )
+
+        # Pause for effect
+        await asyncio.sleep(self.timing.punchline_setup())
+
+        # Punchline
+        await self.send_styled_message(
+            context, chat_id, name, title, punchline,
+            topic=topic, with_typing=False
+        )
+
+    async def awkward_moment(self, context, chat_id: int, action_text: str):
+        """Create an awkward silence moment (action + long pause).
+
+        Use for: after mistakes, uncomfortable revelations.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            action_text: Action description (e.g., "Everyone stares at Ralph")
+        """
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action(action_text),
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.awkward_silence())
+
+    async def rapid_exchange(self, context, chat_id: int, exchanges: list):
+        """Execute a rapid back-and-forth conversation sequence.
+
+        Perfect for banter between workers or workers and Ralph.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            exchanges: List of tuples: (name, title, message)
+
+        Example:
+            await bot.rapid_exchange(context, chat_id, [
+                ("Stool", "Frontend Dev", "Did you see that?"),
+                ("Gomer", "Backend Dev", "See what?"),
+                ("Stool", "Frontend Dev", "The bug! It moved!"),
+            ])
+        """
+        for name, title, message in exchanges:
+            await self.rapid_banter_send(context, chat_id, name, title, message)
+
+    async def shh_moment(self, context, chat_id: int, whisperer: str, listener: str, secret: str, caught_by: str = "Ralph"):
+        """Create a 'caught gossiping' moment.
+
+        Workers whisper something, get caught, quickly change subject.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            whisperer: Worker who starts the whisper
+            listener: Worker who responds
+            secret: The secret message
+            caught_by: Who catches them (default: Ralph)
+        """
+        whisperer_data = self.DEV_TEAM.get(whisperer, {"title": ""})
+        listener_data = self.DEV_TEAM.get(listener, {"title": ""})
+
+        # Whispered message
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_{whisperer} whispers to {listener}: '{secret}'_",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Someone notices
+        await self.interruption_send(
+            context, chat_id, listener, listener_data.get('title'),
+            f"Shh! {caught_by}!"
+        )
+        await asyncio.sleep(self.timing.interruption())
+
+        # The caught reaction
+        if caught_by == "Ralph":
+            ralph_response = self.ralph_misspell(random.choice([
+                "What are you whispering about? Is it about me?",
+                "I heard my name! Are you talking about paste?",
+                "Secrets? I like secrets! Tell me!",
+            ]))
+            await self.rapid_banter_send(
+                context, chat_id, "Ralph", None, ralph_response
+            )
+
+        # Quick cover-up
+        await asyncio.sleep(self.timing.rapid_banter())
+        await self.rapid_banter_send(
+            context, chat_id, whisperer, whisperer_data.get('title'),
+            random.choice([
+                "Nothing, boss! Just talking about... uh... work stuff!",
+                "We were discussing the, uh, project!",
+                "Nothing important! Back to work!",
+            ])
+        )
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
