@@ -363,7 +363,7 @@
         "Feels like a natural pause in the action"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-024",
@@ -723,7 +723,7 @@
         "Can skip with 'Just get started' button"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-046",
@@ -739,7 +739,7 @@
         "Messages spread out naturally (not all at once)"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-047",
@@ -755,7 +755,7 @@
         "Sets the tone for the session based on CEO input"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-048",
@@ -771,7 +771,7 @@
         "If analysis finishes first, continue chat naturally"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-049",

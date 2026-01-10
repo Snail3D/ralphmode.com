@@ -26,7 +26,7 @@ import logging
 import requests
 import base64
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -1604,7 +1604,10 @@ _But the customer is IMPORTANT. This bug must die._""",
             "blockers_resolved": 0,
             "session_start": datetime.now(),
             "quality_checks_passed": 0,
-            "quality_checks_failed": 0
+            "quality_checks_failed": 0,
+            "task_durations": [],  # List of task durations in seconds for ETA calculation
+            "current_task_start": None,  # When current task started
+            "last_progress_shown": None,  # When progress bar was last shown
         }
 
     def track_task_identified(self, user_id: int, task_title: str, priority: str = "medium"):
@@ -1619,13 +1622,28 @@ _But the customer is IMPORTANT. This bug must die._""",
             "status": "identified"
         })
 
+    def track_task_started(self, user_id: int):
+        """Mark the start of a task for duration tracking."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        self.quality_metrics[user_id]["current_task_start"] = datetime.now()
+
     def track_task_completed(self, user_id: int, task_title: str):
         """Track when a task is completed."""
         if user_id not in self.quality_metrics:
             self.init_quality_metrics(user_id)
-        self.quality_metrics[user_id]["tasks_completed"] += 1
+
+        m = self.quality_metrics[user_id]
+        m["tasks_completed"] += 1
+
+        # Calculate and store task duration
+        if m.get("current_task_start"):
+            duration = (datetime.now() - m["current_task_start"]).total_seconds()
+            m["task_durations"].append(duration)
+            m["current_task_start"] = None
+
         # Update status in actionable items
-        for item in self.quality_metrics[user_id]["actionable_items"]:
+        for item in m["actionable_items"]:
             if item.get("title") == task_title:
                 item["status"] = "completed"
                 break
@@ -1673,6 +1691,166 @@ Issues identified: {len(m['issues_found'])}
 Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']} failed
 """
         return summary
+
+    # ==================== PROGRESS BAR DISPLAY ====================
+
+    def calculate_eta(self, user_id: int) -> tuple:
+        """Calculate estimated time remaining based on task durations.
+
+        Returns:
+            Tuple of (eta_string, estimated_completion_time)
+            eta_string: e.g., "~8 min" or "Calculating..."
+            estimated_completion_time: datetime or None
+        """
+        if user_id not in self.quality_metrics:
+            return ("Calculating...", None)
+
+        m = self.quality_metrics[user_id]
+        durations = m.get("task_durations", [])
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+        tasks_remaining = tasks_total - tasks_done
+
+        if tasks_remaining <= 0:
+            return ("Done!", datetime.now())
+
+        if len(durations) < 2:
+            return ("Calculating...", None)
+
+        # Calculate average duration of completed tasks
+        avg_duration = sum(durations) / len(durations)
+        eta_seconds = avg_duration * tasks_remaining
+
+        # Format ETA
+        if eta_seconds < 60:
+            eta_str = f"~{int(eta_seconds)} sec"
+        elif eta_seconds < 3600:
+            eta_str = f"~{int(eta_seconds / 60)} min"
+        else:
+            hours = int(eta_seconds / 3600)
+            mins = int((eta_seconds % 3600) / 60)
+            eta_str = f"~{hours}h {mins}m"
+
+        # Calculate completion time
+        completion_time = datetime.now() + timedelta(seconds=eta_seconds)
+
+        return (eta_str, completion_time)
+
+    def format_elapsed_time(self, start_time: datetime) -> str:
+        """Format elapsed time since session start.
+
+        Args:
+            start_time: When the session started
+
+        Returns:
+            Formatted string like "12m 34s" or "1h 5m"
+        """
+        elapsed = datetime.now() - start_time
+        total_seconds = int(elapsed.total_seconds())
+
+        if total_seconds < 60:
+            return f"{total_seconds}s"
+        elif total_seconds < 3600:
+            mins = total_seconds // 60
+            secs = total_seconds % 60
+            return f"{mins}m {secs}s"
+        else:
+            hours = total_seconds // 3600
+            mins = (total_seconds % 3600) // 60
+            return f"{hours}h {mins}m"
+
+    async def show_progress_bar(self, context, chat_id: int, user_id: int, delay: float = 5.0):
+        """Show a visual progress bar after task completion.
+
+        Displays progress bar with:
+        - Visual bar: ▓▓▓▓░░░░░░
+        - Task count: 4/10 tasks (40%)
+        - Time elapsed
+        - ETA with estimated completion time
+        - Clean separators
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            user_id: User ID for metrics lookup
+            delay: Seconds to wait before showing (default 5s for tasteful timing)
+        """
+        # Wait for tasteful timing
+        await asyncio.sleep(delay)
+
+        if user_id not in self.quality_metrics:
+            return
+
+        m = self.quality_metrics[user_id]
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+        session_start = m.get("session_start", datetime.now())
+
+        if tasks_total <= 0:
+            return
+
+        # Build the progress display
+        progress_bar = self.format_progress_bar(tasks_done, tasks_total, bar_length=10)
+        elapsed = self.format_elapsed_time(session_start)
+        eta_str, completion_time = self.calculate_eta(user_id)
+
+        # Format completion time if available
+        completion_str = ""
+        if completion_time:
+            completion_str = f"\nEst. done: {completion_time.strftime('%I:%M %p')}"
+
+        progress_text = f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 *Progress*
+{progress_bar}
+
+⏱ Elapsed: {elapsed}
+⏳ ETA: {eta_str}{completion_str}
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=progress_text,
+                parse_mode="Markdown"
+            )
+            m["last_progress_shown"] = datetime.now()
+        except Exception as e:
+            logger.warning(f"Failed to show progress bar: {e}")
+
+    async def show_task_completion(self, context, chat_id: int, user_id: int, task_title: str = None):
+        """Show task completion celebration and progress bar.
+
+        This is called after each task completes. Shows a brief celebration
+        followed by the progress bar after a tasteful delay.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            task_title: Optional title of completed task
+        """
+        if user_id not in self.quality_metrics:
+            return
+
+        m = self.quality_metrics[user_id]
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+
+        # Quick completion message
+        completion_msg = f"✅ Task {tasks_done}/{tasks_total} done!"
+        if task_title:
+            completion_msg = f"✅ *{task_title}* complete! ({tasks_done}/{tasks_total})"
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=completion_msg,
+            parse_mode="Markdown"
+        )
+
+        # Show progress bar after delay
+        await self.show_progress_bar(context, chat_id, user_id, delay=5.0)
 
     # ==================== SESSION HISTORY (Ralph remembers everything) ====================
 

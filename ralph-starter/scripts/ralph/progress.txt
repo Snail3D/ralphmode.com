@@ -309,3 +309,44 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 11 - 2026-01-10
+**Task**: [RM-023] Live Progress Bar Display
+**Status**: ✅ Complete
+
+### What was implemented
+- Added task duration tracking to quality_metrics:
+  - task_durations[] - list of completed task durations in seconds
+  - current_task_start - when current task began
+  - last_progress_shown - when progress was last displayed
+- Created track_task_started() to mark task start time
+- Updated track_task_completed() to calculate and store duration
+- Created calculate_eta() for smart ETA based on average task duration:
+  - Returns "Calculating..." until 2+ tasks complete
+  - Then calculates avg_duration * remaining_tasks
+  - Formats as seconds/minutes/hours appropriately
+  - Returns estimated completion datetime
+- Created format_elapsed_time() for session duration display
+- Created show_progress_bar() with all criteria:
+  - Visual bar: ▓▓▓▓░░░░░░ using format_progress_bar()
+  - Task count: 4/10 tasks (40%)
+  - Time elapsed: "Elapsed: 12m 34s"
+  - ETA: "~8 min" (sharpens over time)
+  - Completion time: "Est. done: 2:45 PM"
+  - Clean ━━━ separator lines
+  - 5 second delay for tasteful timing
+- Created show_task_completion() for task completion celebration
+  - Quick "✅ Task 4/10 done!" message
+  - Then shows progress bar after delay
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- ETA becomes meaningful after 2+ tasks (need data to average)
+- 5 second delay feels natural - not intrusive
+- format_progress_bar() already existed from RM-049/050
+- Tracking task start/end times enables accurate ETA
+- timedelta needed for completion time calculation
+
+---
+
