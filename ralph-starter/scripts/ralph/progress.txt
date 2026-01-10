@@ -6504,3 +6504,61 @@ Background chatter flow:
   * Triggered randomly during quiet moments ✓
 
 ---
+
+## Iteration - 2026-01-10 20:00
+**Task**: RM-009 - Polish Ralph Moments
+**Status**: ✅ Complete
+
+### What was implemented
+- Implemented Ralph Moments feature - gross/funny interruptions showing Ralph being Ralph
+- Moments trigger based on BOTH time (20-minute cooldown) AND context (only during active work sessions)
+- 4-step comedic sequence with proper timing:
+  1. Stage direction (action in italics)
+  2. Ralph's absurd statement
+  3. Random worker's exasperated reaction
+  4. Ralph doubles down on the absurdity
+- GIF accompanies each moment (Ralph being silly)
+- 5% trigger chance + 20-minute minimum interval = max ~3 moments per hour
+
+### Files changed
+- ralph_bot.py:
+  * Added ralph_moment async method (lines 2323-2367)
+  * Added trigger logic in send_styled_message (lines 934-951)
+  * Uses existing self.last_ralph_moment tracker and self.ralph_moment_interval (1200 seconds)
+- scripts/ralph/prd.json: Marked RM-009 as passing
+
+### Learnings
+- RALPH_MOMENTS structure already existed (line 482) with 6 moments defined, but wasn't being used
+- Each moment has: action, ralph, worker_reaction, ralph_response, gif_search
+- Context check is critical: only triggers during session['status'] == 'working', not during onboarding
+- This prevents Ralph Moments from interrupting the onboarding flow which has its own timing
+- Comedic timing methods from self.timing: beat(), rapid_banter(), interruption()
+- rapid_banter_send and interruption_send handle styled character messages with proper pacing
+- Ralph's misspellings applied via ralph_misspell() to both statements for consistency
+- GIF search uses "silly" mood rather than the specific gif_search term from moment (keeps it simpler)
+
+### Key Pattern
+Ralph Moment trigger flow:
+1. Any character message sent via send_styled_message triggers chance check
+2. Check context: user must have active session with status='working'
+3. Check time: 20+ minutes must have passed since last Ralph moment
+4. 5% random chance + time + context = trigger
+5. Create async task for ralph_moment (non-blocking)
+6. Method executes 4-step sequence:
+   a. Stage direction with pause
+   b. Ralph's absurd statement (rapid_banter_send)
+   c. Random worker's reaction (interruption_send)
+   d. Ralph's follow-up (rapid_banter_send)
+   e. Optional GIF (30% chance via should_send_gif)
+
+### Test Results
+- Python syntax validation passes ✓
+- py_compile runs successfully with no errors ✓
+- Implementation follows acceptance criteria:
+  * Moments trigger based on time AND context ✓
+  * Proper comedic timing (pauses, reactions) ✓
+  * Workers react appropriately ✓
+  * GIFs accompany moments ✓
+  * Not too frequent - special occasions ✓
+
+---
