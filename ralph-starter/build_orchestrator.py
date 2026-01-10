@@ -41,6 +41,9 @@ from test_runner import TestRunner, TestResult
 # DP-001: Import deploy manager
 from deploy_manager import DeployManager, DeploymentResult
 
+# WB-002: Import WebSocket server for live build streaming
+from websocket_server import get_build_stream_server, BuildStreamServer
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -106,6 +109,14 @@ class BuildOrchestrator:
 
         # DP-001: Initialize deploy manager
         self.deploy_manager = DeployManager()
+
+        # WB-002: Initialize WebSocket server for live build streaming
+        self.stream_server: Optional[BuildStreamServer] = None
+        try:
+            self.stream_server = get_build_stream_server()
+            logger.info("WebSocket server initialized for build streaming")
+        except Exception as e:
+            logger.warning(f"WebSocket server unavailable: {e}")
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -426,9 +437,25 @@ class BuildOrchestrator:
         logger.info(f"Created task file: {task_file}")
         return task_file
 
+    def _stream_output_line(self, feedback_id: int, line: str):
+        """
+        WB-002: Stream a line of output to WebSocket clients.
+
+        Args:
+            feedback_id: Feedback ID being built
+            line: Output line to stream
+        """
+        if self.stream_server:
+            try:
+                self.stream_server.emit_build_output(feedback_id, line)
+            except Exception as e:
+                logger.error(f"Error streaming output: {e}")
+
     def _monitor_build(self, context: BuildContext, db: Session):
         """
         Monitor a build in progress.
+
+        WB-002: Now streams output in real-time to WebSocket clients.
 
         This is non-blocking - it checks status and returns immediately.
         For long-running builds, the orchestrator will check on next poll.
@@ -440,11 +467,30 @@ class BuildOrchestrator:
         if not context.process:
             return
 
+        # WB-002: Emit build status as in_progress
+        if self.stream_server:
+            self.stream_server.emit_build_status(
+                context.feedback_id,
+                'in_progress',
+                'Building...'
+            )
+
         # Check if process has completed (non-blocking)
         retcode = context.process.poll()
 
         if retcode is None:
-            # Still running
+            # Still running - WB-002: Read and stream output if available
+            if context.process.stdout:
+                try:
+                    # Non-blocking read from stdout
+                    import select
+                    if select.select([context.process.stdout], [], [], 0.1)[0]:
+                        line = context.process.stdout.readline()
+                        if line:
+                            self._stream_output_line(context.feedback_id, line.strip())
+                except Exception as e:
+                    logger.debug(f"Error reading stdout: {e}")
+
             elapsed = (datetime.utcnow() - context.started_at).total_seconds()
 
             # Check for timeout
@@ -457,12 +503,28 @@ class BuildOrchestrator:
             logger.debug(f"Build in progress (feedback_id={context.feedback_id}, elapsed={elapsed:.0f}s)")
 
         elif retcode == 0:
-            # Success!
+            # Success! - WB-002: Read remaining output before success handler
+            if context.process.stdout:
+                try:
+                    for line in context.process.stdout:
+                        self._stream_output_line(context.feedback_id, line.strip())
+                except Exception as e:
+                    logger.error(f"Error reading remaining stdout: {e}")
+
             self._handle_build_success(context, db)
 
         else:
-            # Failure
+            # Failure - WB-002: Stream error output
             stdout, stderr = context.process.communicate()
+            if stdout:
+                for line in stdout.split('\n'):
+                    if line.strip():
+                        self._stream_output_line(context.feedback_id, line.strip())
+            if stderr:
+                for line in stderr.split('\n'):
+                    if line.strip():
+                        self._stream_output_line(context.feedback_id, f"ERROR: {line.strip()}")
+
             error_msg = f"Exit code {retcode}: {stderr[:500]}"
             self._handle_build_failure(context, db, error_msg)
 
@@ -479,6 +541,14 @@ class BuildOrchestrator:
         logger.info(f"Build SUCCESS for feedback_id={context.feedback_id}")
 
         try:
+            # WB-002: Update status to testing
+            if self.stream_server:
+                self.stream_server.emit_build_status(
+                    context.feedback_id,
+                    'testing',
+                    'Running test suite...'
+                )
+
             # TS-001: Run test suite after successful build
             logger.info(f"Running test suite for feedback_id={context.feedback_id}")
             test_result = self.test_runner.run_tests()
@@ -508,6 +578,14 @@ class BuildOrchestrator:
                     feedback.consecutive_failures = 0
                     db.commit()
 
+            # WB-002: Update status to deploying
+            if self.stream_server:
+                self.stream_server.emit_build_status(
+                    context.feedback_id,
+                    'deploying',
+                    'Deploying to staging...'
+                )
+
             # DP-001: Deploy to staging on test pass
             logger.info(f"Deploying to staging for feedback_id={context.feedback_id}")
             deploy_result = self.deploy_manager.deploy_to_staging(context.feedback_id)
@@ -528,6 +606,14 @@ class BuildOrchestrator:
             queue = get_feedback_queue(db)
             queue.update_status(context.feedback_id, "deployed_staging")
 
+            # WB-002: Update status to complete
+            if self.stream_server:
+                self.stream_server.emit_build_status(
+                    context.feedback_id,
+                    'complete',
+                    f'Build complete! Deployed to staging at {deploy_result.staging_url}'
+                )
+
             self.builds_completed += 1
             self.current_build = None
 
@@ -544,6 +630,14 @@ class BuildOrchestrator:
             reason: Failure reason
         """
         logger.error(f"Build FAILED for feedback_id={context.feedback_id}: {reason}")
+
+        # WB-002: Update status to failed
+        if self.stream_server:
+            self.stream_server.emit_build_status(
+                context.feedback_id,
+                'failed',
+                f'Build failed: {reason}'
+            )
 
         try:
             # Get feedback item
