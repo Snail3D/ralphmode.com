@@ -3112,8 +3112,8 @@
         "Automated XSS testing in CI/CD",
         "OWASP ZAP scan passes"
       ],
-      "files_likely_modified": ["website/*.js", "api_server.py"],
-      "passes": false
+      "files_likely_modified": ["website/*.js", "api_server.py", "xss_prevention.py", "sanitizer.py"],
+      "passes": true
     },
     {
       "id": "SEC-003",

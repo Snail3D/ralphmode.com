@@ -9,13 +9,38 @@ BC-001: Sanitization layer between Claude and Groq
 BC-002: Output filter before Telegram send
 BC-003: Regex patterns for common secrets
 BC-004: .env key name detection
+SEC-002: XSS Prevention (integrated)
 """
 
 import re
 import os
+import html
 import logging
 from typing import List, Tuple, Optional, Set
 from datetime import datetime
+
+# Import XSS prevention utilities
+try:
+    from xss_prevention import (
+        html_escape as xss_html_escape,
+        XSSValidator,
+        escape_for_telegram_markdown,
+        escape_for_telegram_html
+    )
+    XSS_PREVENTION_AVAILABLE = True
+except ImportError:
+    XSS_PREVENTION_AVAILABLE = False
+    # Fallback implementations
+    def xss_html_escape(text):
+        return html.escape(str(text) if text else "", quote=True)
+    class XSSValidator:
+        @staticmethod
+        def is_safe(text):
+            return True
+    def escape_for_telegram_markdown(text):
+        return text
+    def escape_for_telegram_html(text):
+        return html.escape(str(text) if text else "", quote=True)
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +258,93 @@ class Sanitizer:
 
         return True
 
+    # =========================================================================
+    # SEC-002: XSS Prevention Methods
+    # =========================================================================
+
+    def sanitize_xss(self, text: str, context: str = "html") -> str:
+        """
+        SEC-002: Sanitize text to prevent XSS attacks.
+
+        This applies HTML entity encoding to prevent script injection.
+        Use this for any user input that will be displayed in HTML.
+
+        Args:
+            text: The untrusted user input
+            context: Output context - "html", "telegram_markdown", or "telegram_html"
+
+        Returns:
+            XSS-safe string with special characters escaped
+        """
+        if not text:
+            return ""
+
+        # Check for XSS attempts and log
+        if XSS_PREVENTION_AVAILABLE and not XSSValidator.is_safe(text):
+            logger.warning(f"SEC-002: XSS attempt detected in {context}: {text[:100]}...")
+            self._log_sanitization(f"xss_{context}", 1, [{'replacement': '[XSS_BLOCKED]', 'pattern': 'xss_pattern', 'matched_length': len(text)}])
+
+        # Apply context-specific escaping
+        if context == "telegram_markdown":
+            return escape_for_telegram_markdown(text)
+        elif context == "telegram_html":
+            return escape_for_telegram_html(text)
+        else:
+            # Default HTML escaping
+            return xss_html_escape(text)
+
+    def sanitize_full(self, text: str, context: str = "unknown") -> str:
+        """
+        Full sanitization: secrets + XSS prevention.
+
+        This combines both BC (broadcast-safe) and SEC-002 (XSS) protection.
+        Use this for comprehensive sanitization before display.
+
+        Args:
+            text: The untrusted input
+            context: Description of the context
+
+        Returns:
+            Fully sanitized text
+        """
+        if not text:
+            return ""
+
+        # Step 1: Remove secrets (BC-001, BC-002, BC-003, BC-004)
+        sanitized = self.sanitize(text, context=context)
+
+        # Step 2: Escape for XSS (SEC-002)
+        sanitized = self.sanitize_xss(sanitized, context="html")
+
+        return sanitized
+
+    def is_xss_safe(self, text: str) -> bool:
+        """
+        SEC-002: Check if text contains potential XSS payloads.
+
+        Args:
+            text: Text to check
+
+        Returns:
+            True if no XSS patterns detected, False otherwise
+        """
+        if not text:
+            return True
+
+        if XSS_PREVENTION_AVAILABLE:
+            return XSSValidator.is_safe(text)
+
+        # Fallback: basic pattern check
+        dangerous_patterns = [
+            r'<\s*script',
+            r'on\w+\s*=',
+            r'javascript\s*:',
+        ]
+        for pattern in dangerous_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                return False
+        return True
+
     def _log_sanitization(self, context: str, count: int, details: List[dict]) -> None:
         """
         Log what was sanitized for debugging/auditing.
@@ -313,6 +425,22 @@ def is_safe(text: str) -> bool:
     return get_sanitizer().is_safe(text)
 
 
+# SEC-002: XSS convenience functions
+def sanitize_xss(text: str, context: str = "html") -> str:
+    """Convenience function to sanitize text for XSS."""
+    return get_sanitizer().sanitize_xss(text, context)
+
+
+def sanitize_full(text: str, context: str = "unknown") -> str:
+    """Convenience function for full sanitization (secrets + XSS)."""
+    return get_sanitizer().sanitize_full(text, context)
+
+
+def is_xss_safe(text: str) -> bool:
+    """Convenience function to check if text is XSS-safe."""
+    return get_sanitizer().is_xss_safe(text)
+
+
 # =============================================================================
 # TESTING
 # =============================================================================
@@ -329,10 +457,20 @@ if __name__ == "__main__":
         "AWS key AKIAIOSFODNN7EXAMPLE is exposed!",
     ]
 
+    # SEC-002: XSS test strings
+    xss_test_strings = [
+        "<script>alert('xss')</script>",
+        "<img src=x onerror=alert(1)>",
+        "Hello <b>world</b>",
+        "javascript:alert(1)",
+        '<a href="javascript:alert(1)">click</a>',
+        "Normal text without any issues",
+    ]
+
     s = Sanitizer()
 
     print("=" * 60)
-    print("SANITIZER TEST")
+    print("SANITIZER TEST (BC-001 to BC-004: Secrets)")
     print("=" * 60)
 
     for test in test_strings:
@@ -340,3 +478,24 @@ if __name__ == "__main__":
         sanitized = s.sanitize(test)
         print(f"Sanitized: {sanitized}")
         print(f"Is safe: {s.is_safe(test)} -> {s.is_safe(sanitized)}")
+
+    print("\n" + "=" * 60)
+    print("SEC-002: XSS PREVENTION TEST")
+    print("=" * 60)
+
+    for test in xss_test_strings:
+        print(f"\nOriginal: {test}")
+        xss_sanitized = s.sanitize_xss(test, "html")
+        print(f"XSS Sanitized: {xss_sanitized}")
+        print(f"XSS Safe: {s.is_xss_safe(test)} -> {s.is_xss_safe(xss_sanitized)}")
+
+    print("\n" + "=" * 60)
+    print("FULL SANITIZATION TEST (Secrets + XSS)")
+    print("=" * 60)
+
+    combined_test = "<script>alert(sk-1234567890abcdefghijklmnop)</script>"
+    print(f"\nOriginal: {combined_test}")
+    full_sanitized = s.sanitize_full(combined_test, "combined_test")
+    print(f"Full Sanitized: {full_sanitized}")
+    print(f"Original safe: secrets={s.is_safe(combined_test)}, xss={s.is_xss_safe(combined_test)}")
+    print(f"Sanitized safe: secrets={s.is_safe(full_sanitized)}, xss={s.is_xss_safe(full_sanitized)}")
