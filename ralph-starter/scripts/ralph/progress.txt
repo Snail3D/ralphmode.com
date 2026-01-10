@@ -5615,3 +5615,44 @@ Linode (monthly):
 
 ---
 
+
+## Iteration [Latest] - 2026-01-10
+**Task**: [NT-001] Feedback Received Notification
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `_send_feedback_notification()` method to RalphBot class
+- Scores feedback immediately after collection using FeedbackScorer
+- Calculates priority tier (HIGH/MEDIUM/LOW) from priority_score
+- Calculates queue position by counting higher-priority pending feedback
+- Sends in-character notification from Ralph with:
+  - Quality score (0-100) with Ralph's interpretation
+  - Priority tier with emoji and description
+  - Queue position with friendly comment
+- Integrated notification into all feedback collection paths:
+  - Interactive feedback submission (_process_feedback_submission)
+  - Voice feedback (handle_voice)
+  - Screenshot feedback (handle_photo)
+  - Command feedback (feedback_command)
+
+### Files changed
+- ralph_bot.py (added import, new method, 4 call sites)
+- scripts/ralph/prd.json (marked NT-001 as passes: true)
+
+### Learnings
+- Feedback scoring happens synchronously during notification, not on collection
+- FeedbackScorer.score_feedback_by_id() both calculates AND stores quality_score in DB
+- Priority tier calculation uses existing get_priority_tier() from feedback_scorer
+- Queue position is calculated by counting feedback with higher priority_score
+- Ralph's personality shines through in quality/position interpretations
+- Notification is fail-safe - errors are logged but don't break feedback collection
+
+### Code patterns
+- NT-001 notification pattern: score → get tier → calculate position → send
+- Quality score interpretation: 80+ excellent, 60+ good, 40+ okay, <40 needs work
+- Priority tier emojis: 🔴 HIGH, 🟡 MEDIUM, 🟢 LOW
+- Queue position query: .filter(status.in_([...]), priority_score > score).count() + 1
+- In-character messaging: ralph_misspell() for typos, friendly explanations
+
+---
+

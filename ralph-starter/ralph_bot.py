@@ -86,6 +86,14 @@ except ImportError:
     FEEDBACK_COLLECTOR_AVAILABLE = False
     logging.warning("FB-001: Feedback collector not available - feedback features disabled")
 
+# NT-001: Import feedback scorer for quality/priority notification
+try:
+    from feedback_scorer import get_feedback_scorer, get_priority_tier, get_priority_tier_emoji
+    FEEDBACK_SCORER_AVAILABLE = True
+except ImportError:
+    FEEDBACK_SCORER_AVAILABLE = False
+    logging.warning("NT-001: Feedback scorer not available - feedback notifications will be limited")
+
 # FB-002: Import subscription manager
 try:
     from subscription_manager import get_subscription_manager
@@ -4364,6 +4372,11 @@ _Grab some popcorn..._
                     topic="voice feedback received",
                     with_typing=True
                 )
+
+                # NT-001: Send notification for voice feedback
+                await self._send_feedback_notification(
+                    context, chat_id, feedback_id, telegram_id
+                )
             else:
                 error_response = self.ralph_misspell(
                     "I couldn't hear you very good! Can you try again? My ears are funny sometimes."
@@ -4406,6 +4419,11 @@ _Grab some popcorn..._
                     context, chat_id, "Ralph", None, ralph_response,
                     topic="screenshot feedback received",
                     with_typing=True
+                )
+
+                # NT-001: Send notification for screenshot feedback
+                await self._send_feedback_notification(
+                    context, chat_id, feedback_id, telegram_id
                 )
             else:
                 error_response = self.ralph_misspell(
@@ -4601,6 +4619,111 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
 
+    async def _send_feedback_notification(
+        self, context: ContextTypes.DEFAULT_TYPE,
+        chat_id: int, feedback_id: int, telegram_id: int
+    ):
+        """NT-001: Send notification to user after feedback is processed.
+
+        Shows:
+        - Quality score (0-100)
+        - Priority tier (HIGH/MEDIUM/LOW)
+        - Position in queue
+        - In-character from Ralph
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            feedback_id: Feedback database ID
+            telegram_id: Telegram user ID
+        """
+        if not DATABASE_AVAILABLE or not FEEDBACK_SCORER_AVAILABLE:
+            # Can't send full notification without these modules
+            return
+
+        try:
+            # Show typing indicator
+            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+            # Score the feedback
+            scorer = get_feedback_scorer(self.groq_api_key)
+            scores = scorer.score_feedback_by_id(feedback_id)
+
+            if not scores:
+                logger.warning(f"NT-001: Failed to score feedback {feedback_id}")
+                return
+
+            quality_score = scores.get('total', 0)
+
+            # Get feedback from database to check priority_score
+            with get_db() as db:
+                feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+
+                if not feedback:
+                    logger.warning(f"NT-001: Feedback {feedback_id} not found")
+                    return
+
+                priority_score = feedback.priority_score or 0
+
+                # Get priority tier
+                priority_tier = get_priority_tier(priority_score)
+                tier_emoji = get_priority_tier_emoji(priority_tier)
+
+                # Calculate position in queue (count pending/queued feedback with higher priority)
+                queue_position = db.query(Feedback).filter(
+                    Feedback.status.in_(['pending', 'screening', 'scored', 'queued']),
+                    Feedback.priority_score > priority_score
+                ).count() + 1
+
+            # Build in-character notification from Ralph
+            tier_descriptions = {
+                "HIGH": "the really importent pile",
+                "MEDIUM": "the middle pile",
+                "LOW": "the 'we'll get to it' pile"
+            }
+            tier_desc = tier_descriptions.get(priority_tier, "a pile")
+
+            # Ralph's quality score interpretation
+            if quality_score >= 80:
+                quality_comment = "That's a really good feedbak! I can understand it!"
+            elif quality_score >= 60:
+                quality_comment = "That's pretty good feedbak! I think I get it!"
+            elif quality_score >= 40:
+                quality_comment = "That's okay feedbak! I'm trying to understand!"
+            else:
+                quality_comment = "That's... feedbak! My brain is working hard!"
+
+            # Queue position comment
+            if queue_position == 1:
+                queue_comment = "You're at the FRONT of the line! That's the best spot!"
+            elif queue_position <= 5:
+                queue_comment = f"You're #{queue_position} in line! That's pretty close to the front!"
+            elif queue_position <= 20:
+                queue_comment = f"You're #{queue_position} in line! There's {queue_position - 1} people ahead of you!"
+            else:
+                queue_comment = f"You're #{queue_position} in line! That's a lot of feedbak! My team is busy!"
+
+            notification = self.ralph_misspell(
+                f"\n📊 *Feedbak Report for #{feedback_id}*\n\n"
+                f"✨ *Quality Score:* {quality_score:.0f}/100\n"
+                f"{quality_comment}\n\n"
+                f"{tier_emoji} *Priority:* {priority_tier}\n"
+                f"I put this in {tier_desc}!\n\n"
+                f"📍 *Queue Position:* #{queue_position}\n"
+                f"{queue_comment}\n\n"
+                f"I'll make sure the team works on it! My cat's breath smells like cat food!"
+            )
+
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=notification,
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"NT-001: Failed to send feedback notification: {e}")
+            # Don't fail the whole feedback process if notification fails
+
     async def _process_feedback_submission(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE,
         user_id: int, telegram_id: int, chat_id: int,
@@ -4731,6 +4854,11 @@ _Grab some popcorn..._
             # Maybe send a GIF
             if self.should_send_gif():
                 await self.send_ralph_gif(context, chat_id, "happy")
+
+            # NT-001: Send notification with quality score, priority tier, and queue position
+            await self._send_feedback_notification(
+                context, chat_id, feedback_id, telegram_id
+            )
 
         else:
             # Failed to store feedback
@@ -4880,6 +5008,11 @@ _Grab some popcorn..._
             # Maybe send a GIF
             if self.should_send_gif():
                 await self.send_ralph_gif(context, chat_id, "happy")
+
+            # NT-001: Send notification for command feedback
+            await self._send_feedback_notification(
+                context, chat_id, feedback_id, telegram_id
+            )
 
         else:
             # Failed to store feedback
