@@ -3820,7 +3820,7 @@
         "terraform/*.tf",
         "infrastructure/*"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-016",

@@ -5376,3 +5376,148 @@ server.emit_build_status(feedback_id=123, status='in_progress', message='Running
 - Multiple scanning tools: Snyk, Trivy, Grype, Safety, Bandit, Semgrep, CodeQL
 
 ---
+
+## Iteration [SEC-015] - 2026-01-10
+**Task**: [SEC-015] Network Segmentation
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive Terraform infrastructure-as-code for network segmentation
+- Designed 3-tier network architecture (public, private, database subnets)
+- Implemented VPC configuration with proper routing and NAT gateway
+- Created security groups with least-privilege access controls
+- Configured Network ACLs as additional security layer
+- Set up VPC Flow Logs for security monitoring
+- Documented complete architecture and deployment procedures
+
+### Files changed
+- `infrastructure/terraform/README.md` (NEW) - Complete documentation and architecture
+- `infrastructure/terraform/main.tf` (NEW) - Main Terraform configuration
+- `infrastructure/terraform/vpc.tf` (NEW) - VPC, subnets, routing, NAT gateway
+- `infrastructure/terraform/security_groups.tf` (NEW) - Security group rules for all tiers
+- `infrastructure/terraform/network_acls.tf` (NEW) - Network ACL rules for defense in depth
+- `infrastructure/terraform/variables.tf` (NEW) - Configurable input variables
+- `infrastructure/terraform/outputs.tf` (NEW) - Infrastructure outputs and summaries
+- `infrastructure/terraform/terraform.tfvars.example` (NEW) - Example configuration
+- `infrastructure/terraform/.gitignore` (NEW) - Protect sensitive Terraform files
+- `scripts/ralph/prd.json` - Marked SEC-015 as complete
+
+### Learnings
+- **Network segmentation**: Defense in depth with multiple security layers
+  - VPC provides network isolation
+  - Subnets segment by trust level (public/private/database)
+  - Security groups = stateful firewall at instance level
+  - NACLs = stateless firewall at subnet level
+- **Least privilege networking**: Only allow required traffic
+  - Load balancer: Cloudflare IPs only (prevents direct attacks)
+  - App servers: Load balancer + bastion only (no public access)
+  - Database: App servers only, NO internet (complete isolation)
+  - Bastion: Admin IPs only (jump box for SSH access)
+- **Terraform best practices**:
+  - Use variables for configurability
+  - Output values for integration with other systems
+  - Separate files by concern (vpc.tf, security_groups.tf, etc.)
+  - Example files for sensitive configurations
+  - .gitignore to protect state files and secrets
+- **NAT Gateway**: Private subnets need NAT for outbound internet
+  - Required for package updates, API calls
+  - One-way: instances can reach internet, internet can't reach instances
+  - Costs ~$33/month on AWS, but essential for security
+- **Bastion host pattern**: Secure SSH access without exposing servers
+  - Public subnet with restricted IPs
+  - Jump box to reach private/database subnets
+  - Alternative: VPN for team access
+- **VPC Flow Logs**: Essential for security monitoring
+  - Logs all network traffic (accepted & rejected)
+  - Stored in CloudWatch for analysis
+  - Can detect: port scans, data exfiltration, DDoS
+  - Retention policy prevents log bloat
+
+### Architecture decisions
+1. **3-tier architecture**: Public/Private/Database separation
+   - Industry standard for secure applications
+   - Limits blast radius of compromises
+   - Database completely isolated from internet
+2. **Defense in depth**: Security groups + NACLs
+   - Security groups: primary control (stateful, easy to manage)
+   - NACLs: backup layer (stateless, subnet-wide)
+   - Two layers catch misconfigurations
+3. **Cloudflare-only ingress**: Prevent direct server access
+   - All traffic must go through Cloudflare WAF/DDoS protection
+   - Origin IP protected (can't bypass Cloudflare)
+   - Security groups enforce Cloudflare IP whitelist
+4. **Bastion over VPN**: Simpler setup, lower cost
+   - VPN requires additional infrastructure (VPN server, client configs)
+   - Bastion is simple: one instance, SSH keys
+   - Can add VPN later if team scales
+5. **NAT Gateway**: Necessary evil for security
+   - Alternative: Completely offline (can't update packages)
+   - NAT allows outbound only (safer than public IPs)
+   - Consider NAT instance for cost savings (less reliable)
+6. **VPC Flow Logs**: Worth the cost for security visibility
+   - Compliance requirement (SOC 2, PCI-DSS)
+   - Early detection of attacks
+   - Forensics for incident response
+7. **Multi-provider support**: AWS + Linode compatibility
+   - Variables configured for both platforms
+   - AWS has better VPC features (NACLs, Flow Logs)
+   - Linode cheaper but less mature networking
+
+### Acceptance criteria verification
+✅ Public subnet for load balancers only - Implemented in vpc.tf with proper routing
+✅ Private subnet for application servers - Created with NAT for internet access
+✅ Database in isolated subnet (no public access) - NO route to internet gateway
+✅ Security groups with minimal required ports - Defined in security_groups.tf
+✅ No SSH from public internet (bastion/VPN only) - Bastion pattern implemented
+✅ Outbound traffic limited to required destinations - Specific rules per security group
+✅ Network ACLs as additional layer - Configured in network_acls.tf
+
+### Gotchas to avoid
+- **Don't forget to update Cloudflare IP ranges monthly** - They change occasionally
+- **Test bastion access before removing direct SSH** - Can lock yourself out
+- **NAT Gateway costs money when idle** - Consider shutdown for dev environments
+- **Security group rule limits** - AWS has per-SG limits (50 rules)
+- **NACL rule numbers** - Must be unique, increment by 10s for flexibility
+- **Ephemeral ports** - Must allow 1024-65535 for return traffic (stateless NACLs)
+- **VPC Flow Logs cost** - Can be expensive at scale, consider sampling
+- **Terraform state contains secrets** - Never commit .tfstate files
+- **Database subnet needs NO routes** - Even to NAT (complete isolation)
+- **Test connectivity after deployment** - Verify app → database, app → internet
+- **Security groups are stateful, NACLs are not** - Different behavior for return traffic
+
+### Deployment steps
+1. Set up SSH key: `ssh-keygen -t ed25519 -f ~/.ssh/ralph-mode`
+2. Configure variables: `cp terraform.tfvars.example terraform.tfvars`
+3. Update admin IPs with your actual IP address
+4. Initialize Terraform: `terraform init`
+5. Review plan: `terraform plan`
+6. Apply infrastructure: `terraform apply`
+7. Verify connectivity through bastion
+8. Deploy application to private subnet
+9. Configure load balancer to point to app servers
+10. Monitor VPC Flow Logs for anomalies
+
+### Cost estimate
+AWS (monthly):
+- VPC/Subnets/Security Groups: $0 (free)
+- NAT Gateway: ~$33
+- VPC Flow Logs (CloudWatch): ~$5-20 depending on traffic
+- Application servers (t3.medium × 2): ~$60
+- Database server (t3.small): ~$15
+- Bastion (t3.micro): ~$7
+- **Total**: ~$120-150/month
+
+Linode (monthly):
+- VLANs/Firewall: $0 (free)
+- Application servers (4GB × 2): ~$24
+- Database server (2GB): ~$12
+- Bastion (1GB): ~$5
+- **Total**: ~$40-50/month
+
+### References
+- AWS VPC Best Practices: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-best-practices.html
+- Terraform AWS Provider: https://registry.terraform.io/providers/hashicorp/aws/latest/docs
+- Cloudflare IP Ranges: https://www.cloudflare.com/ips/
+- Network Segmentation (NIST): https://csrc.nist.gov/publications/detail/sp/800-125b/final
+
+---
