@@ -558,7 +558,7 @@
         "Workers can explain complex things simply (for Ralph AND CEO)"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-036",

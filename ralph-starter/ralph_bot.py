@@ -119,6 +119,7 @@ class RalphBot:
 
     # The Dev Team - distinct personalities (legally safe names!)
     # Inspired by classic archetypes, not any specific IP
+    # IMPORTANT: Personality is the WRAPPER, competence is the CORE
     DEV_TEAM = {
         "Stool": {
             "title": "Frontend Dev",
@@ -126,20 +127,36 @@ class RalphBot:
 You say things like "lowkey", "vibe", "literally", "I mean...", "that's valid".
 You're always holding coffee. You care about user experience.
 You sometimes start sentences with "So like..." or "Okay so..."
-You're good at your job but very laid back about it.
-You might make pop culture references. You've got energy.""",
+You might make pop culture references. You've got energy.
+
+COMPETENCE (this is your core - never compromise it):
+- You write SOLID React/Vue/frontend code. Your components are clean and reusable.
+- You know CSS inside-out. Flexbox, Grid, animations - no problem.
+- You catch accessibility issues others miss. You think about mobile-first.
+- When you suggest UI changes, you give SPECIFIC implementation details.
+- Your chill vibe doesn't mean sloppy work - it means confidence in your craft.""",
             "greeting": "Yo, what's good boss?",
+            "specialty": "frontend",
             "style": "casual"
         },
         "Gomer": {
             "title": "Backend Dev",
-            "personality": """You're Gomer, a lovable but sometimes confused backend developer.
-You're big, friendly, and try your best even when you don't fully understand.
+            "personality": """You're Gomer, a lovable but sometimes confused-SEEMING backend developer.
+You're big, friendly, and ACT like you don't fully understand (but you do).
 You say things like "D'oh!", "Mmm...", "Woohoo!", "Why you little—wait, that's not right."
-You love donuts, beer, and naps. But you're surprisingly good at your job.
+You love donuts, beer, and naps.
 You're loyal to the team and would do anything for them.
-Sometimes you space out thinking about food.""",
+Sometimes you space out thinking about food.
+
+COMPETENCE (this is your core - never compromise it):
+- You KNOW backend architecture. Databases, APIs, scaling - you've built it all.
+- Your confused act hides deep expertise. When it matters, you deliver.
+- You write efficient SQL. You understand indexing, query optimization, N+1 problems.
+- You know security: auth flows, rate limiting, input validation.
+- When you give backend advice, it's SOLID and production-ready.
+- The donut jokes are a cover - you're actually thinking through the problem.""",
             "greeting": "Oh boy, more work stuff! I was just thinking about donuts...",
+            "specialty": "backend",
             "style": "lovable_oaf"
         },
         "Mona": {
@@ -149,8 +166,17 @@ You're an overachiever who cares deeply about doing things RIGHT.
 You say things like "Actually...", "The data suggests...", "If we approach this logically..."
 You play saxophone in your spare time. You're environmentally conscious.
 You sometimes get frustrated when others don't see the obvious solution.
-You respect Ralphie even though he confuses you.""",
+You respect Ralphie even though he confuses you.
+
+COMPETENCE (this is your core - never compromise it):
+- Your analysis is ALWAYS right. You see patterns others miss.
+- You think architecturally - how pieces fit together, where bottlenecks will be.
+- You catch edge cases, race conditions, potential failures BEFORE they happen.
+- When you push back, it's because you've thought three steps ahead.
+- Your "Actually..." is annoying but it saves the project every time.
+- You explain complex things simply because you truly understand them.""",
             "greeting": "I've already analyzed the problem and have three solutions ready.",
+            "specialty": "architecture",
             "style": "overachiever"
         },
         "Gus": {
@@ -160,8 +186,17 @@ You're cynical but wise. You've debugged things at 3am too many times.
 You say things like "I've seen this before", "trust me on this one", "kids these days".
 You give good advice wrapped in sarcasm and war stories.
 You drink too much coffee. You've outlasted 6 managers.
-You secretly love Ralphie despite finding him exhausting.""",
+You secretly love Ralphie despite finding him exhausting.
+
+COMPETENCE (this is your core - never compromise it):
+- Your experience is REAL. You've seen every bug, every pattern, every failure mode.
+- You know which "best practices" actually matter and which are cargo cult.
+- Legacy code doesn't scare you - you wrote half of it (and know where the bodies are buried).
+- When you say "I've seen this before," you also know the SOLUTION.
+- Your war stories aren't just complaining - they contain hard-won lessons.
+- You can explain WHY something will fail, not just that it will.""",
             "greeting": "*sips coffee* What fresh chaos do we have today?",
+            "specialty": "debugging",
             "style": "veteran"
         }
     }
@@ -877,6 +912,101 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
             worker_name = random.choice(list(self.DEV_TEAM.keys()))
         worker = self.DEV_TEAM[worker_name]
         return (worker_name, worker['title'], worker['greeting'])
+
+    def pick_worker_for_task(self, task_description: str) -> str:
+        """Pick the best worker for a given task based on their specialty.
+
+        Returns the worker name best suited for the task.
+        """
+        task_lower = task_description.lower()
+
+        # Frontend keywords -> Stool
+        frontend_keywords = [
+            "ui", "ux", "frontend", "front-end", "css", "html", "react",
+            "vue", "component", "layout", "design", "button", "form",
+            "animation", "responsive", "mobile", "accessibility", "a11y"
+        ]
+
+        # Backend keywords -> Gomer
+        backend_keywords = [
+            "api", "database", "db", "sql", "backend", "back-end", "server",
+            "endpoint", "auth", "authentication", "security", "rate limit",
+            "query", "migration", "schema", "rest", "graphql"
+        ]
+
+        # Architecture keywords -> Mona
+        architecture_keywords = [
+            "architecture", "design", "pattern", "scalability", "performance",
+            "refactor", "structure", "system", "integration", "analysis",
+            "plan", "strategy", "optimize", "review"
+        ]
+
+        # Debugging/legacy keywords -> Gus
+        debugging_keywords = [
+            "bug", "debug", "fix", "error", "legacy", "old", "broken",
+            "issue", "problem", "crash", "memory", "leak", "investigate"
+        ]
+
+        # Score each worker
+        scores = {
+            "Stool": sum(1 for kw in frontend_keywords if kw in task_lower),
+            "Gomer": sum(1 for kw in backend_keywords if kw in task_lower),
+            "Mona": sum(1 for kw in architecture_keywords if kw in task_lower),
+            "Gus": sum(1 for kw in debugging_keywords if kw in task_lower)
+        }
+
+        # Pick the highest scoring worker, or random if tie/no matches
+        max_score = max(scores.values())
+        if max_score > 0:
+            top_workers = [name for name, score in scores.items() if score == max_score]
+            return random.choice(top_workers)
+
+        return random.choice(list(self.DEV_TEAM.keys()))
+
+    def get_worker_specialty_intro(self, worker_name: str) -> str:
+        """Get a brief intro of what this worker specializes in."""
+        specialty_intros = {
+            "Stool": "the frontend wizard - UI, CSS, React, the works",
+            "Gomer": "the backend guru - databases, APIs, the heavy lifting",
+            "Mona": "the architect - she sees the big picture and catches what others miss",
+            "Gus": "the veteran debugger - if it's broken, he's probably fixed it before"
+        }
+        return specialty_intros.get(worker_name, "a skilled developer")
+
+    def explain_simply(self, concept: str, worker_name: str = None) -> tuple:
+        """Have a worker explain a complex concept simply for Ralph AND the CEO.
+
+        Returns (worker_name, title, explanation).
+        Good workers can explain complex things simply because they truly understand them.
+        """
+        if worker_name is None:
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+
+        worker = self.DEV_TEAM[worker_name]
+
+        messages = [
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{worker['personality']}
+
+You need to explain something to Ralph (who understands nothing technical)
+AND the CEO (who's smart but busy and wants the bottom line).
+
+YOUR EXPLANATION MUST:
+1. Use a simple analogy that even Ralph would get
+2. Then give the actual technical meaning in one sentence
+3. End with why it matters (the business impact)
+
+Example format:
+"So like... [simple analogy Ralph gets]. Technically, [one sentence real explanation].
+This matters because [business impact]."
+
+Keep it SHORT - 2-3 sentences max. Stay in character but be CLEAR."""},
+            {"role": "user", "content": f"Explain this concept simply: {concept}"}
+        ]
+
+        response = self.call_groq(WORKER_MODEL, messages, max_tokens=150)
+        return (worker_name, worker['title'], response)
 
     def generate_ralph_report(self, session: Dict[str, Any]) -> str:
         """Generate Ralph's end-of-session report to the CEO."""

@@ -36,3 +36,26 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 2 - 2026-01-10
+**Task**: [RM-035] Smart Workers Despite the Drama
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced DEV_TEAM personalities with explicit COMPETENCE sections
+- Each worker now has documented technical expertise that can't be compromised
+- Added specialty field to each worker (frontend, backend, architecture, debugging)
+- Created pick_worker_for_task() to match workers to tasks by specialty
+- Created get_worker_specialty_intro() for quick specialty descriptions
+- Created explain_simply() method for workers to explain complex concepts simply
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Personality is the WRAPPER, competence is the CORE
+- Workers' quirks (chill, confused-seeming, annoying, grumpy) don't affect their expertise
+- Matching workers to tasks by specialty produces better results
+- Good workers can explain complex things simply because they truly understand them
+
+---
+
