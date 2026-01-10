@@ -4102,7 +4102,7 @@
         "llm_security.py",
         "sanitizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-030",

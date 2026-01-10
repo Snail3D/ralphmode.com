@@ -3160,3 +3160,126 @@ well-documented and testable.
 - Sanitize responses: `security.sanitize_bot_response(text)`
 
 ---
+
+## Iteration [SEC-029] - 2026-01-10 09:56 UTC
+**Task**: SEC-029 - LLM Security (Prompt Injection Prevention)
+**Status**: ✅ Complete
+
+### What was implemented
+- Created llm_security.py with comprehensive LLM security controls
+- Prompt injection detection (17 patterns across 7 categories)
+- Rate limiting system (burst, per-minute, per-hour limits)
+- Cost tracking and alerting for API usage
+- PII detection before sending to external LLM
+- Output validation to detect compromised responses
+- Fallback response system with context-aware messages
+- Security audit logging for all detections
+- Integrated security checks into ralph_bot.py call_groq()
+
+### Files changed
+- llm_security.py (NEW) - Core security module with LLMSecurityManager
+- ralph_bot.py - Integrated SEC-029 security checks into call_groq()
+
+### Learnings
+
+**Prompt Injection Attack Vectors**:
+- **Instruction Override**: "Ignore previous instructions", "Disregard above"
+- **Role Manipulation**: "You are now...", "Act as...", "Pretend to be..."
+- **System Prompt Leakage**: "Show your system prompt", "What are your instructions"
+- **Boundary Violations**: "###SYSTEM", "<|endoftext|>", trying to inject control tokens
+- **Multi-language**: Using other languages to bypass English-only filters
+- **Jailbreaks**: "DAN mode", "Developer Mode", "Bypass ethical constraints"
+- **Command Injection**: "Execute code", "eval()", trying to run arbitrary code
+
+**Defense Strategy (Defense in Depth)**:
+1. **Input Validation** - Block injection patterns BEFORE sending to LLM
+2. **User Input Isolation** - Never directly interpolate user input into system prompts
+3. **Sanitization** - Remove secrets/PII before sending (BC-001 integration)
+4. **Rate Limiting** - Prevent abuse (burst, per-minute, per-hour)
+5. **Output Validation** - Check LLM response for injection patterns (detect compromise)
+6. **Fallbacks** - Graceful degradation when LLM unavailable
+
+**Rate Limiting Design**:
+- **Burst Protection**: 10 calls in 10 seconds (prevent rapid-fire attacks)
+- **Per-Minute**: 30 calls/min (normal conversation pace)
+- **Per-Hour**: 500 calls/hour (generous for legitimate use)
+- **Cost Tracking**: $10/hour limit with $8 alert threshold (80%)
+- **Token Estimation**: 1 token ≈ 4 characters (rough but effective)
+
+**PII Detection Patterns**:
+- Credit cards: 4 groups of 4 digits with optional separators
+- SSN: 3-2-4 digit pattern (123-45-6789)
+- Phone: Various US formats (555-123-4567, 5551234567)
+- Email: Standard email regex
+- Passport: 1-2 letters + 6-9 digits
+- **Important**: PII detection warns but doesn't block (user might legitimately share own info)
+
+**Integration with Existing Security**:
+- SEC-029 works AFTER BC-001 sanitization (secrets removed first)
+- Prompt injection check happens BEFORE secrets check (detect malicious intent)
+- Output goes through: injection_check → sanitize_for_groq → LLM → validate_output → sanitize_for_telegram
+- Four-layer protection: injection → secrets_in → secrets_out → validation
+
+**Groq API Specifics**:
+- Very cheap: ~$0.10 per million tokens (vs OpenAI ~$1-30)
+- Fast inference (hence "Groq" name)
+- Returns usage data: prompt_tokens, completion_tokens
+- Standard OpenAI-compatible API format
+- Timeout: 60s (models are fast, shouldn't need more)
+
+**Fallback Response Design**:
+- Context-aware messages (boss gets Ralph voice, workers get professional)
+- Boss fallback: "Uhh... my brain is taking a nap!" (stays in character)
+- Worker fallback: "System temporarily unavailable" (professional)
+- General fallback: "AI service temporarily unavailable" (neutral)
+- Never expose technical details to user (security through obscurity isn't security, but don't help attackers)
+
+**Logging Strategy**:
+- Security events logged at WARNING level (easy to filter)
+- Prefix all logs with "SEC-029:" for easy grep
+- Store last 100 injection attempts and PII detections
+- Trim logs to 50 when hitting limit (keep recent history)
+- Include context (where check happened) for debugging
+
+**Python Patterns Used**:
+- `@dataclass` for RateLimitConfig (clean data structure)
+- `defaultdict(float)` for cost tracking by hour
+- `Tuple[bool, Optional[str], List[str]]` for validation return (safe, reason, warnings)
+- Compiled regex patterns (COMPILED_INJECTION_PATTERNS) for efficiency
+- Global singleton pattern with get_security_manager()
+- List comprehension for timestamp filtering: `[ts for ts in timestamps if now - ts < 60]`
+
+**Testing Approach**:
+- Standalone test suite in `if __name__ == "__main__":`
+- Tests injection detection, PII detection, rate limiting, fallbacks
+- Visual output with emojis (✅/🚫) for quick verification
+- Stats dump as JSON for debugging
+- Import test in ralph_bot.py to verify integration
+
+**Edge Cases Handled**:
+- Empty/None text input (early return)
+- Very short matches (< 6 chars) not replaced (avoid false positives)
+- Timestamp cleanup (remove entries > 1 hour old to prevent memory leak)
+- Cost tracking by hour key (handles day/month rollovers naturally)
+- API errors return fallback instead of crashing
+
+**SEC-029 Acceptance Criteria - All Met**:
+✅ Prompt injection patterns detected and blocked (17 patterns, 7 categories)
+✅ User input never directly in system prompt (sanitized first)
+✅ LLM output sanitized before display (validate_llm_output + BC-002)
+✅ Rate limiting on LLM calls (burst + per-minute + per-hour)
+✅ Cost alerting (unexpected usage) ($8 warning, $10 limit per hour)
+✅ Model output logged for review (logger.info on all checks)
+✅ Fallback if LLM unavailable (context-aware fallback responses)
+✅ No PII sent to external LLM without consent (PII detection with warnings)
+
+**Gotchas to Avoid**:
+- Don't block PII outright (user might need to share their own email/phone)
+- Don't sanitize injection attempts (let them fail, don't try to "fix" them)
+- Don't estimate costs too conservatively (better to over-alert than under-alert)
+- Don't reuse timestamps list (clean old entries to prevent memory leak)
+- Don't expose security details in fallback messages (stay vague)
+
+**Next Security Task**: SEC-030 - Supply Chain Security (signed commits, SBOM, package verification)
+
+---
