@@ -76,15 +76,38 @@ logger = logging.getLogger(__name__)
 class RalphBot:
     """The Ralph Mode Telegram Bot."""
 
-    # Ralph-themed GIF search terms for different moods
+    # Ralph gets Simpsons GIFs only
     RALPH_GIFS = {
-        "happy": ["ralph wiggum happy", "simpsons celebrate", "ralph wiggum yay", "excited cartoon"],
-        "confused": ["ralph wiggum confused", "simpsons confused", "thinking cartoon"],
-        "approved": ["thumbs up cartoon", "simpsons approved", "good job cartoon", "ralph wiggum"],
-        "working": ["typing fast", "coding", "simpsons working", "busy cartoon"],
-        "problem": ["this is fine", "simpsons fire", "panic cartoon", "oh no cartoon"],
-        "thinking": ["ralph wiggum thinking", "simpsons thinking", "hmm cartoon"],
+        "happy": ["ralph wiggum happy", "ralph wiggum yay", "simpsons ralph", "ralph simpsons excited"],
+        "confused": ["ralph wiggum confused", "ralph wiggum what", "simpsons ralph confused"],
+        "approved": ["ralph wiggum thumbs up", "simpsons ralph happy", "ralph wiggum good"],
+        "thinking": ["ralph wiggum thinking", "simpsons ralph hmm", "ralph wiggum"],
+        "frustrated": ["ralph wiggum sad", "simpsons ralph upset", "ralph wiggum crying"],
+        "laughing": ["ralph wiggum laughing", "simpsons ralph laugh", "ralph wiggum haha"],
     }
+
+    # Workers get office/work memes (NOT Ralph)
+    WORKER_GIFS = {
+        "working": ["typing fast gif", "coding gif", "programmer working", "office working hard"],
+        "problem": ["this is fine fire", "everything is fine fire", "panic office gif", "stressed office"],
+        "nervous": ["sweating gif", "nervous gif", "awkward gif", "gulp gif"],
+        "explaining": ["let me explain gif", "presentation gif", "whiteboard gif"],
+        "relieved": ["relief gif", "phew gif", "dodged bullet gif"],
+        "bribe": ["peace offering gif", "gift gif", "please dont be mad gif", "butter up gif"],
+    }
+
+    # Jokes workers can use to soften bad news
+    BRIBE_JOKES = [
+        "Chuck Norris doesn't do push-ups. He pushes the Earth down.",
+        "Chuck Norris can divide by zero.",
+        "Chuck Norris counted to infinity. Twice.",
+        "When Chuck Norris enters a room, he doesn't turn the lights on. He turns the dark off.",
+        "Chuck Norris can slam a revolving door.",
+        "Why do programmers prefer dark mode? Because light attracts bugs!",
+        "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'",
+        "Why do Java developers wear glasses? Because they can't C#!",
+        "There are only 10 types of people in the world: those who understand binary and those who don't.",
+    ]
 
     def __init__(self):
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
@@ -93,10 +116,17 @@ class RalphBot:
 
     # ==================== GIF SUPPORT ====================
 
-    def get_gif(self, mood: str = "happy") -> Optional[str]:
-        """Get a random GIF URL from Tenor based on mood."""
+    def get_gif(self, mood: str = "happy", speaker: str = "ralph") -> Optional[str]:
+        """Get a random GIF URL from Tenor. Ralph gets Simpsons, workers get office memes."""
         try:
-            search_terms = self.RALPH_GIFS.get(mood, self.RALPH_GIFS["happy"])
+            if speaker == "ralph":
+                gif_dict = self.RALPH_GIFS
+                default_mood = "happy"
+            else:
+                gif_dict = self.WORKER_GIFS
+                default_mood = "working"
+
+            search_terms = gif_dict.get(mood, gif_dict.get(default_mood, ["funny gif"]))
             query = random.choice(search_terms)
 
             response = requests.get(
@@ -121,29 +151,116 @@ class RalphBot:
         """Random chance to send a GIF."""
         return random.random() < self.gif_chance
 
-    def detect_mood(self, text: str) -> str:
-        """Detect the mood from text to pick appropriate GIF."""
+    def detect_mood_ralph(self, text: str) -> str:
+        """Detect Ralph's mood from his message."""
         text_lower = text.lower()
-        if any(w in text_lower for w in ["approved", "great", "good", "yes", "ship it", "nice", "yay"]):
+        if any(w in text_lower for w in ["approved", "great", "good", "yes", "ship it", "nice", "yay", "i like"]):
             return "approved"
-        elif any(w in text_lower for w in ["problem", "issue", "error", "bug", "broken", "situation"]):
-            return "problem"
-        elif any(w in text_lower for w in ["confused", "what", "huh", "don't understand", "?"]):
+        elif any(w in text_lower for w in ["haha", "funny", "joke", "laugh"]):
+            return "laughing"
+        elif any(w in text_lower for w in ["confused", "what", "huh", "don't understand"]):
             return "confused"
-        elif any(w in text_lower for w in ["working", "implementing", "building", "coding"]):
-            return "working"
-        elif any(w in text_lower for w in ["think", "hmm", "maybe", "consider"]):
+        elif any(w in text_lower for w in ["think", "hmm", "maybe"]):
             return "thinking"
+        elif any(w in text_lower for w in ["sad", "no", "rejected", "bad"]):
+            return "frustrated"
         return "happy"
 
-    async def send_gif(self, context, chat_id: int, mood: str = "happy"):
-        """Send a mood-appropriate GIF to the chat."""
-        gif_url = self.get_gif(mood)
+    def detect_mood_worker(self, text: str) -> str:
+        """Detect worker's mood from their message."""
+        text_lower = text.lower()
+        if any(w in text_lower for w in ["problem", "issue", "error", "bug", "broken", "situation", "bad news"]):
+            return "problem"
+        elif any(w in text_lower for w in ["nervous", "uh", "um", "sorry", "afraid"]):
+            return "nervous"
+        elif any(w in text_lower for w in ["working", "implementing", "building", "coding", "done", "finished"]):
+            return "working"
+        elif any(w in text_lower for w in ["explain", "so basically", "let me"]):
+            return "explaining"
+        elif any(w in text_lower for w in ["phew", "relief", "thankfully", "glad"]):
+            return "relieved"
+        return "working"
+
+    async def send_ralph_gif(self, context, chat_id: int, mood: str = "happy"):
+        """Send a Ralph/Simpsons GIF."""
+        gif_url = self.get_gif(mood, speaker="ralph")
         if gif_url:
             try:
                 await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
             except Exception as e:
-                logger.error(f"Failed to send GIF: {e}")
+                logger.error(f"Failed to send Ralph GIF: {e}")
+
+    async def send_worker_gif(self, context, chat_id: int, mood: str = "working"):
+        """Send a worker/office meme GIF."""
+        gif_url = self.get_gif(mood, speaker="worker")
+        if gif_url:
+            try:
+                await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
+            except Exception as e:
+                logger.error(f"Failed to send worker GIF: {e}")
+
+    def get_bribe_joke(self) -> str:
+        """Get a random joke for workers to butter up Ralph."""
+        return random.choice(self.BRIBE_JOKES)
+
+    async def worker_bribes_ralph(self, context, chat_id: int):
+        """Worker softens up Ralph before bad news with a joke."""
+        joke = self.get_bribe_joke()
+
+        # Worker offers the joke
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Worker:* Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(2)
+
+        # Ralph loves jokes
+        ralph_response = self.call_boss("Someone wants to tell you a joke! You LOVE jokes. Respond excitedly.")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Ralph:* {ralph_response}",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1)
+
+        # Worker tells the joke
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Worker:* Okay here goes... {joke}",
+            parse_mode="Markdown"
+        )
+
+        # Chuck Norris or programming meme GIF
+        if "chuck norris" in joke.lower():
+            gif_url = self.get_gif("bribe", speaker="worker")
+        else:
+            gif_url = self.get_gif("explaining", speaker="worker")
+        if gif_url:
+            try:
+                await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
+            except:
+                pass
+
+        await asyncio.sleep(2)
+
+        # Ralph laughs
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Ralph:* Hahaha! That's a good one! My tummy feels like laughing!",
+            parse_mode="Markdown"
+        )
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "laughing")
+
+        await asyncio.sleep(1)
+
+        # Ralph asks what's up
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"*Ralph:* Okay, what did you want to tell me?",
+            parse_mode="Markdown"
+        )
 
     # ==================== AI CALLS ====================
 
@@ -444,9 +561,9 @@ _Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside 
             parse_mode="Markdown"
         )
 
-        # Opening GIF - Ralph being Ralph
+        # Opening GIF - Ralph being Ralph (Simpsons only!)
         if self.should_send_gif():
-            await self.send_gif(context, chat_id, "happy")
+            await self.send_ralph_gif(context, chat_id, "happy")
 
         await asyncio.sleep(2)
 
@@ -463,10 +580,10 @@ _Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside 
             parse_mode="Markdown"
         )
 
-        # Maybe a confused GIF if Ralph asks a weird question
-        mood = self.detect_mood(boss_response)
+        # Maybe a Ralph GIF based on his mood
+        mood = self.detect_mood_ralph(boss_response)
         if self.should_send_gif():
-            await self.send_gif(context, chat_id, mood)
+            await self.send_ralph_gif(context, chat_id, mood)
 
         await asyncio.sleep(2)
 
@@ -481,6 +598,11 @@ _Ralph Wiggum walks in with a juice box, wearing his new "Manager" badge upside 
             text=f"*Worker:* {worker_response}",
             parse_mode="Markdown"
         )
+
+        # Maybe a worker GIF (office memes, NOT Ralph)
+        worker_mood = self.detect_mood_worker(worker_response)
+        if self.should_send_gif():
+            await self.send_worker_gif(context, chat_id, worker_mood)
 
         # Continue the session...
         await context.bot.send_message(
