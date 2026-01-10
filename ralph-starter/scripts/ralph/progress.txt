@@ -7003,3 +7003,34 @@ DELETE_ORIGINAL_MESSAGES=true
 - Database column added for persistent character storage
 
 ---
+
+## Iteration 108 - 2026-01-10
+**Task**: [RM-053] Idle Codebase Chatter System
+**Status**: ✅ Complete
+
+### What was implemented
+- Added tracking dictionaries: `last_user_message_time` and `idle_chatter_task` to RalphBot __init__
+- Created CODEBASE_LEARNING_QUOTES with 40 conversational snippets (1-2 sentences each)
+- Workers discuss architecture, dependencies, code quality, patterns, docs, performance, etc.
+- Implemented idle_codebase_chatter() async method that runs in background
+- Messages sent at texting pace (5-15 seconds apart) using asyncio.sleep with random intervals
+- Tracks user message timestamps in handle_text() method
+- Auto-pauses idle chatter when user sends any message (task cancellation)
+- Resumes idle chatter after 10+ seconds of user silence
+- Triggers from send_styled_message() when session active and user quiet for 10s
+- Uses styled messages with "💭 Overheard" topic to show it's background conversation
+- Graceful cleanup with try/except/finally for proper task management
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Idle chatter follows same pattern as RM-008 (background chatter) and RM-009 (Ralph moments)
+- Task cancellation with asyncio.CancelledError is the clean way to pause background tasks
+- Texting pace (5-15 seconds) creates natural "overhearing" feeling like MUD/group chat
+- Each quote is standalone - no multi-turn conversations needed for idle chatter
+- 40 quotes provides good variety without overwhelming; covers main codebase discovery areas
+- Using `session.get('status') in ['ready', 'working', 'running']` ensures chatter only during active sessions
+- The 10-second resume threshold prevents chatter from feeling too aggressive
+
+---
