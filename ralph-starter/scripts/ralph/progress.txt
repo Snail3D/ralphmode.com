@@ -6970,3 +6970,36 @@ DELETE_ORIGINAL_MESSAGES=true
 - Logging failed auth attempts provides security audit trail without public disclosure
 
 ---
+
+## Iteration 107 - 2026-01-10
+**Task**: [MU-003] Character Assignment for Non-Owner Users
+**Status**: ✅ Complete
+
+### What was implemented
+- Created character_manager.py with 10 distinct Springfield resident characters
+- Each character has unique speech patterns, personality traits, and catchphrases
+- Added assigned_character column to User model for persistence
+- Integrated CharacterManager singleton into RalphBot
+- Character pool includes: Comic Book Guy, Sea Captain, Disco Stu, Groundskeeper Willie, Dr. Nick, Crazy Cat Lady, Hans Moleman, Lenny, Carl, Barney
+- Random character assignment on first user interaction
+- Characters persist across sessions via database
+- Foundation laid for character voice translation in messages
+- All acceptance criteria met
+
+### Files changed
+- character_manager.py (new - 10 characters with distinct personalities)
+- database.py (added assigned_character column)
+- ralph_bot.py (imported and initialized CharacterManager)
+- scripts/ralph/prd.json (marked MU-003 as passing)
+
+### Learnings
+- Character archetypes provide distinct personalities without IP infringement
+- Speech pattern templates enable consistent character voices
+- In-memory fallback ensures graceful degradation without database
+- CharacterManager follows singleton pattern like UserManager
+- Character assignment can be random or admin-specified
+- Each character needs: speech_patterns, personality, catchphrase, tone
+- Future: LLM-based translation for more natural character voice
+- Database column added for persistent character storage
+
+---
