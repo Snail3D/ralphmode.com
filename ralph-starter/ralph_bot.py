@@ -767,6 +767,8 @@ class RalphBot:
         self.onboarding_state: Dict[int, Dict] = {}  # Track onboarding progress per user
         self.pending_analysis: Dict[int, asyncio.Task] = {}  # Track background analysis tasks
         self.recent_responses: Dict[int, List[str]] = {}  # RM-010: Track last 10 responses per user for freshness
+        self.last_user_message_time: Dict[int, datetime] = {}  # RM-053: Track when user last sent message
+        self.idle_chatter_task: Dict[int, asyncio.Task] = {}  # RM-053: Track idle chatter background task
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -992,6 +994,27 @@ class RalphBot:
                             # Trigger Ralph moment in background (don't block current message)
                             asyncio.create_task(self.ralph_moment(context, chat_id))
 
+                # RM-053: Idle Codebase Chatter (starts after 10 seconds of user silence)
+                # Workers discuss what they learned about the codebase - texting pace
+                user_id = chat_id  # In DM, chat_id == user_id
+                if user_id in self.active_sessions:
+                    session = self.active_sessions[user_id]
+                    # Check if we should trigger idle chatter
+                    # Don't trigger if already running
+                    if user_id not in self.idle_chatter_task:
+                        # Check time since last user message
+                        if user_id in self.last_user_message_time:
+                            time_since_user = (now - self.last_user_message_time[user_id]).total_seconds()
+                        else:
+                            time_since_user = 0
+
+                        # Start idle chatter if 10+ seconds since user's last message
+                        # AND session is running (not just onboarding)
+                        if time_since_user >= 10 and session.get('status') in ['ready', 'working', 'running']:
+                            # Spawn idle chatter task
+                            task = asyncio.create_task(self.idle_codebase_chatter(context, chat_id, user_id))
+                            self.idle_chatter_task[user_id] = task
+
                 return True
             except Exception as e:
                 logger.warning(f"Button styling failed, falling back to text: {e}")
@@ -1191,6 +1214,70 @@ class RalphBot:
         ("Mona", "Gus", "The quarterly reports look promising.", "*grunts* I've seen promising turn to panic before."),
         ("Gomer", "Stool", "Want a donut?", "Nah, trying to eat clean. Maybe just one."),
         ("Gus", "Mona", "Remember that bug in '09?", "The one that took down production for 3 hours? How could I forget?"),
+    ]
+
+    # RM-053: Codebase learning discussions (idle chatter)
+    # Format: (speaker, message) - Short, 1-2 sentences max, conversational
+    CODEBASE_LEARNING_QUOTES = [
+        # Architecture observations
+        ("Stool", "Yo, this codebase has like 5 different ways to handle errors."),
+        ("Gomer", "Whoever wrote this auth system really hates comments."),
+        ("Mona", "The database migrations are... creative. Very creative."),
+        ("Gus", "I've seen worse. At least there ARE tests."),
+
+        # Discovery moments
+        ("Stool", "Found the config file. It's in three different places."),
+        ("Gomer", "API routes are nested deeper than my trust issues."),
+        ("Mona", "Someone really loves environment variables here."),
+        ("Gus", "This pattern... I remember when it was new. 2008."),
+
+        # Technical details
+        ("Stool", "The frontend state management is lowkey chaotic."),
+        ("Gomer", "They're using async but blocking everywhere. Bold."),
+        ("Mona", "Deployment pipeline needs some love."),
+        ("Gus", "Database indexes? What database indexes?"),
+
+        # Code quality observations
+        ("Stool", "These variable names tell a story. A confusing story."),
+        ("Gomer", "Found a TODO from 2019. Still relevant."),
+        ("Mona", "The logging strategy is 'print everything and hope.'"),
+        ("Gus", "Solid core logic. Everything else is held together with hope."),
+
+        # Patterns and anti-patterns
+        ("Stool", "They're reinventing the wheel. And the axle. And the cart."),
+        ("Gomer", "This singleton isn't. It's more of a... multipleton."),
+        ("Mona", "Security is present. Just not... everywhere."),
+        ("Gus", "Classic case of 'it works, don't touch it' syndrome."),
+
+        # Dependencies and tech stack
+        ("Stool", "Package.json has dependencies from the Obama era."),
+        ("Gomer", "They imported a library for one function. Respect."),
+        ("Mona", "This tech stack is... eclectic. Very eclectic."),
+        ("Gus", "Half these dependencies haven't been updated since I was young."),
+
+        # File structure
+        ("Stool", "The folder structure is giving me anxiety."),
+        ("Gomer", "Utils folder has 47 files. None are utilities."),
+        ("Mona", "Found the tests! They're in a folder called 'old_stuff'."),
+        ("Gus", "Someone really loved creating new directories."),
+
+        # Documentation
+        ("Stool", "README says 'setup is easy.' That was a lie."),
+        ("Gomer", "The docs are comprehensive. For version 1.0. We're on 4.2."),
+        ("Mona", "API documentation exists! Just... not for this API."),
+        ("Gus", "Comments are sparse. Like rain in a desert."),
+
+        # Performance
+        ("Stool", "This query hits the database 47 times. Per user."),
+        ("Gomer", "They're loading everything into memory. Bold strategy."),
+        ("Mona", "Caching layer exists. Just not... connected to anything."),
+        ("Gus", "Performance optimizations: 'We'll worry about that later.'"),
+
+        # Git history
+        ("Stool", "Last commit message: 'stuff'. Very informative."),
+        ("Gomer", "The git history is a cry for help."),
+        ("Mona", "47 commits on the same day. Someone had a deadline."),
+        ("Gus", "This blame log... tells a story of pain."),
     ]
 
     # Ralph's discovery questions during onboarding
@@ -2431,6 +2518,64 @@ class RalphBot:
         if self.should_send_gif():
             await asyncio.sleep(self.timing.beat())
             await self.send_ralph_gif(context, chat_id, "silly")
+
+    async def idle_codebase_chatter(self, context, chat_id: int, user_id: int):
+        """RM-053: Idle codebase chatter - Workers discuss what they learned during quiet periods.
+
+        Triggers when no active task running. Messages come at texting pace (5-15 seconds apart).
+        Each message is 1-2 sentences MAX - conversational, not info dumps.
+        Pauses when user sends a message, resumes after 10 seconds of silence.
+        """
+        try:
+            # Don't start if session not active
+            if user_id not in self.active_sessions:
+                return
+
+            # Create a shuffled copy of quotes for this session
+            available_quotes = self.CODEBASE_LEARNING_QUOTES.copy()
+            random.shuffle(available_quotes)
+
+            for speaker, message in available_quotes:
+                # Check if we should stop (user sent message or session ended)
+                if user_id not in self.active_sessions:
+                    break
+                if user_id not in self.idle_chatter_task:
+                    # Task was cancelled (user sent message)
+                    break
+
+                # Check if enough time has passed since last user message (10+ seconds)
+                if user_id in self.last_user_message_time:
+                    time_since_user_message = (datetime.now() - self.last_user_message_time[user_id]).total_seconds()
+                    if time_since_user_message < 10:
+                        # User recently active, pause and wait
+                        await asyncio.sleep(5)
+                        continue
+
+                # Get character data for formatting
+                worker_data = self.DEV_TEAM.get(speaker, {})
+                title = worker_data.get('title', '')
+
+                # Send message in styled format (like overhearing a group chat)
+                await self.send_styled_message(
+                    context, chat_id, speaker, title,
+                    message,
+                    topic="💭 Overheard",
+                    use_buttons=False,  # No buttons for idle chatter
+                    with_typing=True
+                )
+
+                # Wait texting pace before next message (5-15 seconds)
+                await asyncio.sleep(random.uniform(5, 15))
+
+        except asyncio.CancelledError:
+            # Task was cancelled (user sent message), clean up gracefully
+            pass
+        except Exception as e:
+            logging.error(f"RM-053: Error in idle_codebase_chatter: {e}")
+        finally:
+            # Clean up task reference
+            if user_id in self.idle_chatter_task:
+                del self.idle_chatter_task[user_id]
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
@@ -4777,6 +4922,13 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         text = update.message.text
+
+        # RM-053: Track user message timestamp and pause idle chatter
+        self.last_user_message_time[user_id] = datetime.now()
+        if user_id in self.idle_chatter_task:
+            # Pause idle chatter when user sends message
+            self.idle_chatter_task[user_id].cancel()
+            del self.idle_chatter_task[user_id]
 
         # FB-003: Check if user is in feedback collection mode
         if context.user_data.get('feedback_state') == 'awaiting_content':
