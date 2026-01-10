@@ -1,0 +1,38 @@
+# Ralph Progress Log - ralphmode.com
+
+Started: Thu Jan 9 2026
+Project: ralphmode.com Landing Page
+
+---
+
+## Codebase Patterns
+<!-- Add patterns here as discovered -->
+
+- Static site, vanilla HTML/CSS/JS
+- Hosted on Linode with nginx
+- Dark theme, developer aesthetic
+- Files go in public/ directory
+
+---
+
+## Iteration 1 - 2026-01-09
+**Story**: [US-2.1] Create hero section
+**Status**: Complete
+
+### What was implemented
+- Created public/index.html with hero section
+- Created public/styles.css with dark theme styling
+- Headline: "Ship features while you sleep"
+- Subheadline explaining Ralph in one sentence
+- Download button linking to ralph-starter.zip
+- Terminal animation showing Ralph in action
+- Mobile responsive with media queries
+
+### Learnings
+- Infrastructure stories (US-1.1, US-1.2) are blocked - SSH password rejected
+- Proceeded with landing page stories that can be done locally
+- Used CSS variables for consistent theming
+- Added gradient glow effect on accent color
+
+---
+
