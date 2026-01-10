@@ -38,7 +38,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "═══════════════════════════════════════════════════════════"
   echo ""
 
-  # Run Claude Code with Sonnet model, auto-accepting all permissions
+  # Run Claude Code with Sonnet 4.5 (fast, capable), auto-accepting all permissions
   OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --model sonnet --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
 
   # Check for completion signal

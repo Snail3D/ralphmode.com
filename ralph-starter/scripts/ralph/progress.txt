@@ -587,3 +587,59 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 18 - 2026-01-10
+**Task**: [SEC-003] CSRF Protection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created csrf_protection.py - comprehensive CSRF protection module:
+  - CSRFProtection class for token management:
+    - generate_token(session_id) - HMAC-based tokens with timestamp
+    - validate_token(session_id, token) - cryptographic verification
+    - revoke_token(session_id) - logout/cleanup
+    - Uses secrets.token_urlsafe() for randomness
+    - Token expiration (default 1 hour)
+    - Automatic cleanup of old tokens
+  - SecureCookieConfig class for cookie security:
+    - get_settings() - configurable SameSite, HttpOnly, Secure
+    - get_csrf_cookie_settings() - Strict SameSite for CSRF tokens
+    - get_session_cookie_settings() - Lax SameSite for sessions
+    - get_dev_settings() - relaxed settings for localhost
+  - OriginValidator class for header validation:
+    - configure(allowed_origins) - set allowed domains
+    - validate_origin(origin) - check Origin header
+    - validate_referer(referer) - check Referer header
+    - validate_request(origin, referer) - check both
+    - Allows localhost for development
+  - DoubleSubmitCookie class for stateless API protection:
+    - generate_token() - random token for cookie + header
+    - validate(cookie_token, header_token) - constant-time compare
+    - get_cookie_settings() - non-HttpOnly for JS access
+  - TelegramCallbackValidator for Telegram-specific CSRF:
+    - validate_callback() - replay prevention, user auth
+    - generate_secure_callback_data() - HMAC-signed callbacks
+    - validate_secure_callback_data() - signature verification
+  - CSRFTester for CI/CD integration:
+    - test_token_generation() - 5 tests
+    - test_origin_validation() - 4 tests
+    - test_double_submit() - 3 tests
+    - test_telegram_callbacks() - 3 tests
+    - run_all_tests() - comprehensive test suite
+- All 15 CSRF protection tests pass
+
+### Files changed
+- csrf_protection.py (new)
+- scripts/ralph/prd.json (SEC-003 passes: true)
+
+### Learnings
+- CSRF tokens must be tied to session + timestamp for proper security
+- HMAC with constant-time comparison prevents timing attacks
+- SameSite=Strict is best for CSRF cookies, Lax for sessions
+- Origin header is more reliable than Referer (less likely stripped)
+- Double-submit pattern useful for stateless APIs without sessions
+- Telegram callbacks need special handling - HMAC-signed callback_data
+- Token cleanup prevents memory exhaustion on long-running servers
+- Development mode needs separate settings (allow HTTP, localhost)
+
+---
+
