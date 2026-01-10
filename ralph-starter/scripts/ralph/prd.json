@@ -2610,7 +2610,7 @@
         "weather_service.py",
         "scene_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SS-003",

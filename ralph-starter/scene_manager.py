@@ -7,8 +7,19 @@ Each scene is unique, sets the mood, and introduces workers naturally.
 """
 
 import random
+import logging
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+
+# SS-002: Import weather service for real weather integration
+try:
+    from weather_service import get_weather, is_api_configured
+    WEATHER_SERVICE_AVAILABLE = True
+except ImportError:
+    WEATHER_SERVICE_AVAILABLE = False
+    logging.warning("SS-002: Weather service not available - using generated weather only")
+
+logger = logging.getLogger(__name__)
 
 
 class SceneManager:
@@ -210,13 +221,14 @@ class SceneManager:
         ]
     }
 
-    def generate_opening_scene(self, project_name: str = None, boss_tone: str = None) -> Dict[str, Any]:
+    def generate_opening_scene(self, project_name: str = None, boss_tone: str = None, use_real_weather: bool = True) -> Dict[str, Any]:
         """
         Generate a unique opening scene for a session.
 
         Args:
             project_name: Optional project name to reference
             boss_tone: TL-001: Optional tone from voice analysis (angry, happy, urgent, etc.)
+            use_real_weather: SS-002: Whether to use real weather (default: True)
 
         Returns:
             Dictionary with scene elements:
@@ -226,8 +238,22 @@ class SceneManager:
             - mood: Overall mood/atmosphere
             - worker_order: List of workers in arrival order
         """
-        # TL-001: Pick weather based on boss tone if provided
-        if boss_tone:
+        # SS-002: Try to get real weather first if configured
+        weather_key = None
+        real_weather_used = False
+
+        if use_real_weather and WEATHER_SERVICE_AVAILABLE:
+            try:
+                weather_data = get_weather()
+                weather_key = weather_data['type']
+                real_weather_used = weather_data['real']
+                logger.info(f"SS-002: Using {'real' if real_weather_used else 'generated'} weather: {weather_key}")
+            except Exception as e:
+                logger.warning(f"SS-002: Failed to get weather from service: {e}")
+                weather_key = None
+
+        # TL-001: Pick weather based on boss tone if provided (overrides real weather)
+        if boss_tone and not real_weather_used:
             # Map tone to weather/mood
             tone_to_weather = {
                 'angry': 'stormy',
@@ -242,7 +268,9 @@ class SceneManager:
                 'concerned': 'rainy'
             }
             weather_key = tone_to_weather.get(boss_tone.lower(), random.choice(list(self.WEATHER.keys())))
-        else:
+            logger.info(f"TL-001: Boss tone '{boss_tone}' set weather to '{weather_key}'")
+        elif not weather_key:
+            # Fall back to random weather
             weather_key = random.choice(list(self.WEATHER.keys()))
 
         weather_info = self.WEATHER[weather_key]
@@ -310,7 +338,8 @@ class SceneManager:
             "energy": time_info.get("energy", "neutral"),
             "worker_mood": time_info.get("worker_mood", "working"),
             "worker_order": workers + ["Ralph"],  # Ralph always arrives last (he's the manager)
-            "worker_arrivals": self.WORKER_ARRIVALS
+            "worker_arrivals": self.WORKER_ARRIVALS,
+            "real_weather_used": real_weather_used  # SS-002: Track if real weather was used
         }
 
     def get_worker_arrival(self, worker_name: str) -> str:
@@ -350,14 +379,54 @@ class SceneManager:
             "description": random.choice(time_info["descriptions"])
         }
 
+    def get_current_weather(self, force_refresh: bool = False) -> Optional[Dict[str, str]]:
+        """
+        SS-002: Get current weather for mid-session updates.
+
+        This can be used during long sessions to update weather when it changes.
+
+        Args:
+            force_refresh: Force fetch fresh weather from API
+
+        Returns:
+            Dictionary with weather info or None if service unavailable
+        """
+        if not WEATHER_SERVICE_AVAILABLE:
+            logger.warning("SS-002: Weather service not available")
+            return None
+
+        try:
+            weather_data = get_weather(force_refresh=force_refresh)
+            weather_key = weather_data['type']
+            weather_info = self.WEATHER.get(weather_key, self.WEATHER['overcast'])
+
+            return {
+                "type": weather_key,
+                "description": random.choice(weather_info["descriptions"]),
+                "mood": weather_info["mood"],
+                "real": weather_data.get('real', False),
+                "temperature": weather_data.get('temperature'),
+                "location": weather_data.get('location')
+            }
+        except Exception as e:
+            logger.error(f"SS-002: Failed to get current weather: {e}")
+            return None
+
 
 # Global instance for easy import
 _scene_manager = SceneManager()
 
 
-def generate_opening_scene(project_name: str = None, boss_tone: str = None) -> Dict[str, Any]:
-    """Generate an opening scene (convenience function)."""
-    return _scene_manager.generate_opening_scene(project_name, boss_tone)
+def generate_opening_scene(project_name: str = None, boss_tone: str = None, use_real_weather: bool = True) -> Dict[str, Any]:
+    """
+    Generate an opening scene (convenience function).
+
+    Args:
+        project_name: Optional project name
+        boss_tone: Optional boss tone from voice analysis
+        use_real_weather: Whether to use real weather (SS-002)
+    """
+    return _scene_manager.generate_opening_scene(project_name, boss_tone, use_real_weather)
 
 
 def get_worker_arrival(worker_name: str) -> str:
@@ -368,6 +437,19 @@ def get_worker_arrival(worker_name: str) -> str:
 def get_time_of_day_context() -> Dict[str, str]:
     """Get current time of day context (convenience function)."""
     return _scene_manager.get_time_of_day_context()
+
+
+def get_current_weather(force_refresh: bool = False) -> Optional[Dict[str, str]]:
+    """
+    SS-002: Get current weather (convenience function).
+
+    Args:
+        force_refresh: Force fetch fresh weather from API
+
+    Returns:
+        Dictionary with weather info or None if service unavailable
+    """
+    return _scene_manager.get_current_weather(force_refresh)
 
 
 if __name__ == "__main__":
