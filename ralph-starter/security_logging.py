@@ -16,6 +16,14 @@ from dataclasses import dataclass, asdict
 import os
 from secure_deserializer import safe_json_loads, DeserializationError
 
+# SEC-020: Import PII masking for log safety
+try:
+    from pii_handler import PIIMasker, PIIField
+    PII_MASKING_AVAILABLE = True
+except ImportError:
+    PII_MASKING_AVAILABLE = False
+    logging.warning("SEC-020: PII masking not available - logs may contain unmasked PII")
+
 
 # ============================================================================
 # Event Types and Severity Levels
@@ -97,13 +105,39 @@ class SecurityEvent:
     session_id: Optional[str] = None
     request_id: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization"""
-        return asdict(self)
+    def to_dict(self, mask_pii: bool = True) -> Dict[str, Any]:
+        """
+        Convert to dictionary for JSON serialization.
 
-    def to_json(self) -> str:
-        """Convert to JSON string"""
-        return json.dumps(self.to_dict())
+        Args:
+            mask_pii: If True, mask PII fields for safe logging (default: True)
+        """
+        data = asdict(self)
+
+        # SEC-020: Mask PII in logs
+        if mask_pii and PII_MASKING_AVAILABLE:
+            # Mask username
+            if data.get("username"):
+                data["username"] = PIIMasker.mask_string(data["username"])
+
+            # Mask user_id if it looks like a telegram_id
+            if data.get("user_id") and data["user_id"].isdigit():
+                data["user_id"] = PIIMasker.mask_telegram_id(int(data["user_id"]))
+
+            # Mask PII in details dict
+            if isinstance(data.get("details"), dict):
+                data["details"] = PIIMasker.mask_dict(data["details"])
+
+        return data
+
+    def to_json(self, mask_pii: bool = True) -> str:
+        """
+        Convert to JSON string.
+
+        Args:
+            mask_pii: If True, mask PII fields for safe logging (default: True)
+        """
+        return json.dumps(self.to_dict(mask_pii=mask_pii))
 
     def compute_hash(self) -> str:
         """Compute tamper-proof hash of event (for append-only verification)"""

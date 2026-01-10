@@ -54,6 +54,17 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker, Session as SQLSession, relationship
 from sqlalchemy.pool import StaticPool
 
+# SEC-020: Import PII encryption for data at rest
+try:
+    from pii_handler import encrypt_pii, decrypt_pii, PIIField, mask_for_logs
+    PII_ENCRYPTION_AVAILABLE = True
+except ImportError:
+    PII_ENCRYPTION_AVAILABLE = False
+    def encrypt_pii(value): return value
+    def decrypt_pii(value): return value
+    def mask_for_logs(value, field_name=None): return str(value)
+    logging.warning("SEC-020: PII encryption not available - data stored in plaintext")
+
 logger = logging.getLogger(__name__)
 
 # Database configuration
@@ -240,7 +251,36 @@ class User(Base):
     feedback = relationship("Feedback", back_populates="user", lazy="dynamic")
 
     def __repr__(self):
-        return f"<User(telegram_id={self.telegram_id}, username={self.username})>"
+        # SEC-020: Mask PII in repr for safe logging
+        masked_username = mask_for_logs(self.username, PIIField.USERNAME) if self.username else None
+        return f"<User(telegram_id={self.telegram_id}, username={masked_username})>"
+
+    # SEC-020: PII encryption helpers
+    def set_encrypted_first_name(self, value: Optional[str]):
+        """Set first_name with encryption (if available)."""
+        if PII_ENCRYPTION_AVAILABLE and value:
+            self.first_name = encrypt_pii(value)
+        else:
+            self.first_name = value
+
+    def get_decrypted_first_name(self) -> Optional[str]:
+        """Get decrypted first_name (if encrypted)."""
+        if PII_ENCRYPTION_AVAILABLE and self.first_name:
+            return decrypt_pii(self.first_name)
+        return self.first_name
+
+    def set_encrypted_last_name(self, value: Optional[str]):
+        """Set last_name with encryption (if available)."""
+        if PII_ENCRYPTION_AVAILABLE and value:
+            self.last_name = encrypt_pii(value)
+        else:
+            self.last_name = value
+
+    def get_decrypted_last_name(self) -> Optional[str]:
+        """Get decrypted last_name (if encrypted)."""
+        if PII_ENCRYPTION_AVAILABLE and self.last_name:
+            return decrypt_pii(self.last_name)
+        return self.last_name
 
 
 class BotSession(Base):

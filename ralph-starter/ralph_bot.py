@@ -110,6 +110,15 @@ except ImportError:
     DATABASE_AVAILABLE = False
     logging.warning("Database not available - /mystatus command will be disabled")
 
+# SEC-020: Import PII masking for safe logging
+try:
+    from pii_handler import PIIMasker, mask_for_logs, PIIField
+    PII_MASKING_AVAILABLE = True
+except ImportError:
+    PII_MASKING_AVAILABLE = False
+    def mask_for_logs(value, field_name=None): return str(value)
+    logging.warning("SEC-020: PII masking not available - logs may contain unmasked PII")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -4596,7 +4605,9 @@ _Grab some popcorn..._
                 await update.message.reply_text(status_message, parse_mode="Markdown")
 
         except Exception as e:
-            logger.error(f"Failed to get feedback status for user {telegram_id}: {e}")
+            # SEC-020: Mask telegram_id in logs
+            masked_id = mask_for_logs(telegram_id, PIIField.TELEGRAM_ID)
+            logger.error(f"Failed to get feedback status for user {masked_id}: {e}")
             await update.message.reply_text(
                 "Me fail status? That's unpossible! Try again, Mr. Worms.",
                 parse_mode="Markdown"
