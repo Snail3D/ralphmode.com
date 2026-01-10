@@ -7264,3 +7264,44 @@ When adding any new worker dialogue, always:
 3. Maintain adult tone - these are professionals with quirks, not cartoons
 
 ---
+
+## Iteration 13 - 2026-01-10
+**Task**: [AC-008] Silent Execution Confirmation
+**Status**: ✅ Complete
+
+### What was implemented
+- Added _send_private_message() helper method to send private messages to admin
+- Added _send_response() helper method that detects chat type (group vs private)
+- In group chats: admin commands now delete the command message and send private confirmation to admin only
+- In private chats: admin commands send normal replies (already private)
+- Updated all admin command handlers to use _send_response():
+  * handle_pause
+  * handle_resume
+  * handle_deploy
+  * handle_rollback
+  * handle_prioritize
+  * handle_reject
+  * handle_set_cooldown
+- Updated handle_admin_command to delete command messages in group chats
+- Updated _show_admin_help to accept context parameter for private messaging
+
+### Files changed
+- admin_handler.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Telegram bot privacy: delete command messages in groups to hide admin actions from others
+- Use context.bot.send_message(chat_id=user_id) to send private messages
+- update.effective_chat.type determines if chat is 'private', 'group', or 'supergroup'
+- In group chats, silent admin actions maintain the illusion that nothing happened
+- Error handling: gracefully handle message deletion failures (bot may not have permission)
+
+### Pattern discovered
+Admin stealth pattern:
+1. Detect chat type with update.effective_chat.type
+2. If group chat: delete command message with update.message.delete()
+3. Send response privately to admin with context.bot.send_message(chat_id=admin_user_id)
+4. If private chat: normal reply_text is fine (already private)
+5. Maintain illusion that admin action was silent and invisible to other users
+
+---

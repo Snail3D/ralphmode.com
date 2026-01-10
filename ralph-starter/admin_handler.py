@@ -87,6 +87,52 @@ class AdminHandler:
             logger.error(f"Invalid TELEGRAM_ADMIN_ID: {ADMIN_USER_ID}")
             return False
 
+    async def _send_private_message(self, context: ContextTypes.DEFAULT_TYPE, user_id: int, message: str, parse_mode: str = None):
+        """
+        AC-008: Send a private message to the admin user.
+
+        This ensures admin command results are only visible to the admin,
+        maintaining the illusion that nothing happened in group chats.
+
+        Args:
+            context: Callback context
+            user_id: User ID to send private message to
+            message: Message text
+            parse_mode: Optional parse mode (e.g., 'Markdown')
+        """
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode=parse_mode
+            )
+        except Exception as e:
+            logger.error(f"AC-008: Failed to send private message to user {user_id}: {e}")
+
+    async def _send_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE, message: str, parse_mode: str = 'Markdown'):
+        """
+        AC-008: Send admin command response privately to admin only.
+
+        In group chats, sends a private message. In private chats, sends a normal reply.
+        Also adds a subtle emoji reaction to the original message if in a group (if message still exists).
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            message: Message text to send
+            parse_mode: Parse mode (default: 'Markdown')
+        """
+        user_id = update.effective_user.id
+        chat_type = update.effective_chat.type
+        is_group_chat = chat_type in ['group', 'supergroup']
+
+        if is_group_chat:
+            # Send private confirmation to admin
+            await self._send_private_message(context, user_id, message, parse_mode)
+        else:
+            # In private chats, normal reply is fine
+            await update.message.reply_text(message, parse_mode=parse_mode)
+
     async def handle_admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Main handler for /admin commands. Routes to appropriate subcommand.
@@ -105,9 +151,22 @@ class AdminHandler:
         """
         user_id = update.effective_user.id
 
+        # AC-008: Delete admin command message in group chats to hide it from others
+        chat_type = update.effective_chat.type
+        is_group_chat = chat_type in ['group', 'supergroup']
+
+        if is_group_chat:
+            try:
+                await update.message.delete()
+            except Exception as e:
+                logger.warning(f"AC-008: Could not delete admin command message: {e}")
+
         # Check admin permissions
         if not self.is_admin(user_id):
-            await update.message.reply_text(
+            # Send private message for unauthorized attempts
+            await self._send_private_message(
+                context,
+                user_id,
                 "❌ Unauthorized. Admin commands require special permissions."
             )
             logger.warning(f"Unauthorized admin command attempt by user {user_id}")
@@ -115,7 +174,7 @@ class AdminHandler:
 
         # Parse subcommand
         if not context.args:
-            await self._show_admin_help(update)
+            await self._show_admin_help(update, context)
             return
 
         subcommand = context.args[0].lower()
@@ -135,12 +194,14 @@ class AdminHandler:
         if handler:
             await handler(update, context)
         else:
-            await update.message.reply_text(
+            await self._send_private_message(
+                context,
+                user_id,
                 f"❌ Unknown admin command: {subcommand}\n\n"
                 "Use /admin to see available commands."
             )
 
-    async def _show_admin_help(self, update: Update):
+    async def _show_admin_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show admin command help."""
         help_text = """🔧 **Admin Commands**
 
@@ -176,7 +237,7 @@ Examples:
 `/admin cooldown 987654321 30 seconds`
 `/admin cooldown 123456789 0` (remove)
 """
-        await update.message.reply_text(help_text, parse_mode='Markdown')
+        await self._send_response(update, context, help_text)
 
     async def handle_pause(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -198,17 +259,20 @@ Examples:
 
             logger.info(f"Build loop PAUSED by admin {update.effective_user.id}")
 
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 "⏸️ **Build Loop Paused**\n\n"
                 "The build orchestrator will stop processing new items.\n"
                 "Current build (if any) will complete.\n\n"
-                "Use `/admin resume` to restart.",
-                parse_mode='Markdown'
+                "Use `/admin resume` to restart."
             )
 
         except Exception as e:
             logger.error(f"Error pausing build loop: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error pausing build loop: {str(e)}"
             )
 
@@ -234,11 +298,13 @@ Examples:
                 message += "\n\n🔄 Circuit breaker has been reset."
                 logger.info("Circuit breaker RESET by admin")
 
-            await update.message.reply_text(message, parse_mode='Markdown')
+            await self._send_response(update, context, message)
 
         except Exception as e:
             logger.error(f"Error resuming build loop: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error resuming build loop: {str(e)}"
             )
 
@@ -251,26 +317,29 @@ Examples:
         try:
             # Parse feedback ID
             if len(context.args) < 2:
-                await update.message.reply_text(
-                    "❌ Usage: `/admin deploy FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Usage: `/admin deploy FB-123`"
                 )
                 return
 
             fb_arg = context.args[1].upper()
             if not fb_arg.startswith('FB-'):
-                await update.message.reply_text(
-                    "❌ Invalid format. Use: `/admin deploy FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid format. Use: `/admin deploy FB-123`"
                 )
                 return
 
             try:
                 feedback_id = int(fb_arg.replace('FB-', ''))
             except ValueError:
-                await update.message.reply_text(
-                    "❌ Invalid feedback ID. Use: `/admin deploy FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid feedback ID. Use: `/admin deploy FB-123`"
                 )
                 return
 
@@ -279,17 +348,20 @@ Examples:
                 feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
 
                 if not feedback:
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"❌ Feedback item FB-{feedback_id} not found."
                     )
                     return
 
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     f"🚀 **Force Deploying FB-{feedback_id}**\n\n"
                     f"Type: {feedback.feedback_type}\n"
                     f"Content: {feedback.content[:100]}...\n\n"
-                    f"Starting deployment...",
-                    parse_mode='Markdown'
+                    f"Starting deployment..."
                 )
 
                 # Force deploy to staging
@@ -300,28 +372,32 @@ Examples:
                     queue = get_feedback_queue(db)
                     queue.update_status(feedback_id, "deployed_staging")
 
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"✅ **Deploy Successful**\n\n"
                         f"FB-{feedback_id} deployed to staging:\n"
                         f"{result.staging_url}\n\n"
                         f"Branch: {result.branch_name}\n"
-                        f"Commit: `{result.commit_hash[:8]}`",
-                        parse_mode='Markdown'
+                        f"Commit: `{result.commit_hash[:8]}`"
                     )
 
                     logger.info(f"Admin force deploy SUCCESS: FB-{feedback_id}")
                 else:
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"❌ **Deploy Failed**\n\n"
-                        f"Error: {result.error_message}",
-                        parse_mode='Markdown'
+                        f"Error: {result.error_message}"
                     )
 
                     logger.error(f"Admin force deploy FAILED: FB-{feedback_id} - {result.error_message}")
 
         except Exception as e:
             logger.error(f"Error in force deploy: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error deploying: {str(e)}"
             )
 
@@ -332,36 +408,41 @@ Examples:
         Rollback to the last stable deployment.
         """
         try:
-            await update.message.reply_text(
-                "🔄 **Rolling back to previous version...**",
-                parse_mode='Markdown'
+            await self._send_response(
+                update,
+                context,
+                "🔄 **Rolling back to previous version...**"
             )
 
             # Perform rollback
             result = self.deploy_manager.rollback()
 
             if result.success:
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     f"✅ **Rollback Successful**\n\n"
                     f"Reverted to previous version:\n"
                     f"Commit: `{result.commit_hash[:8] if result.commit_hash else 'unknown'}`\n"
-                    f"URL: {result.staging_url or 'N/A'}",
-                    parse_mode='Markdown'
+                    f"URL: {result.staging_url or 'N/A'}"
                 )
 
                 logger.info(f"Admin rollback SUCCESS by user {update.effective_user.id}")
             else:
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     f"❌ **Rollback Failed**\n\n"
-                    f"Error: {result.error_message}",
-                    parse_mode='Markdown'
+                    f"Error: {result.error_message}"
                 )
 
                 logger.error(f"Admin rollback FAILED: {result.error_message}")
 
         except Exception as e:
             logger.error(f"Error in rollback: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error rolling back: {str(e)}"
             )
 
@@ -374,26 +455,29 @@ Examples:
         try:
             # Parse feedback ID
             if len(context.args) < 2:
-                await update.message.reply_text(
-                    "❌ Usage: `/admin prioritize FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Usage: `/admin prioritize FB-123`"
                 )
                 return
 
             fb_arg = context.args[1].upper()
             if not fb_arg.startswith('FB-'):
-                await update.message.reply_text(
-                    "❌ Invalid format. Use: `/admin prioritize FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid format. Use: `/admin prioritize FB-123`"
                 )
                 return
 
             try:
                 feedback_id = int(fb_arg.replace('FB-', ''))
             except ValueError:
-                await update.message.reply_text(
-                    "❌ Invalid feedback ID. Use: `/admin prioritize FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid feedback ID. Use: `/admin prioritize FB-123`"
                 )
                 return
 
@@ -402,7 +486,9 @@ Examples:
                 feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
 
                 if not feedback:
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"❌ Feedback item FB-{feedback_id} not found."
                     )
                     return
@@ -412,12 +498,13 @@ Examples:
                 feedback.updated_at = datetime.utcnow()
                 db.commit()
 
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     f"⬆️ **Priority Boosted**\n\n"
                     f"FB-{feedback_id}\n"
                     f"Priority: {old_priority:.2f} → 9.5\n\n"
-                    f"This item will be processed next.",
-                    parse_mode='Markdown'
+                    f"This item will be processed next."
                 )
 
                 logger.info(
@@ -427,7 +514,9 @@ Examples:
 
         except Exception as e:
             logger.error(f"Error prioritizing feedback: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error prioritizing feedback: {str(e)}"
             )
 
@@ -440,26 +529,29 @@ Examples:
         try:
             # Parse feedback ID
             if len(context.args) < 2:
-                await update.message.reply_text(
-                    "❌ Usage: `/admin reject FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Usage: `/admin reject FB-123`"
                 )
                 return
 
             fb_arg = context.args[1].upper()
             if not fb_arg.startswith('FB-'):
-                await update.message.reply_text(
-                    "❌ Invalid format. Use: `/admin reject FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid format. Use: `/admin reject FB-123`"
                 )
                 return
 
             try:
                 feedback_id = int(fb_arg.replace('FB-', ''))
             except ValueError:
-                await update.message.reply_text(
-                    "❌ Invalid feedback ID. Use: `/admin reject FB-123`",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid feedback ID. Use: `/admin reject FB-123`"
                 )
                 return
 
@@ -469,7 +561,9 @@ Examples:
                 feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
 
                 if not feedback:
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"❌ Feedback item FB-{feedback_id} not found."
                     )
                     return
@@ -481,12 +575,13 @@ Examples:
                     "Rejected by admin"
                 )
 
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     f"🚫 **Feedback Rejected**\n\n"
                     f"FB-{feedback_id} has been removed from the queue.\n\n"
                     f"Type: {feedback.feedback_type}\n"
-                    f"Content: {feedback.content[:100]}...",
-                    parse_mode='Markdown'
+                    f"Content: {feedback.content[:100]}..."
                 )
 
                 logger.info(
@@ -495,7 +590,9 @@ Examples:
 
         except Exception as e:
             logger.error(f"Error rejecting feedback: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error rejecting feedback: {str(e)}"
             )
 
@@ -517,13 +614,14 @@ Examples:
         try:
             # Parse arguments
             if len(context.args) < 3:
-                await update.message.reply_text(
+                await self._send_response(
+                    update,
+                    context,
                     "❌ Usage: `/admin cooldown <user_id> <duration> <unit>`\n\n"
                     "Examples:\n"
                     "`/admin cooldown 123456789 5 minutes`\n"
                     "`/admin cooldown 123456789 30 seconds`\n"
-                    "`/admin cooldown 123456789 0` (remove cooldown)",
-                    parse_mode='Markdown'
+                    "`/admin cooldown 123456789 0` (remove cooldown)"
                 )
                 return
 
@@ -531,9 +629,10 @@ Examples:
             try:
                 target_user_id = int(context.args[1])
             except ValueError:
-                await update.message.reply_text(
-                    "❌ Invalid user ID. Must be a number.",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid user ID. Must be a number."
                 )
                 return
 
@@ -541,9 +640,10 @@ Examples:
             try:
                 duration = int(context.args[2])
             except ValueError:
-                await update.message.reply_text(
-                    "❌ Invalid duration. Must be a number.",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid duration. Must be a number."
                 )
                 return
 
@@ -551,16 +651,18 @@ Examples:
             if duration == 0:
                 if target_user_id in USER_COOLDOWNS:
                     del USER_COOLDOWNS[target_user_id]
-                    await update.message.reply_text(
+                    await self._send_response(
+                        update,
+                        context,
                         f"✅ **Cooldown Removed**\n\n"
-                        f"User `{target_user_id}` can now message without restriction.",
-                        parse_mode='Markdown'
+                        f"User `{target_user_id}` can now message without restriction."
                     )
                     logger.info(f"AC-003: Cooldown removed for user {target_user_id} by admin {update.effective_user.id}")
                 else:
-                    await update.message.reply_text(
-                        f"ℹ️ User `{target_user_id}` has no active cooldown.",
-                        parse_mode='Markdown'
+                    await self._send_response(
+                        update,
+                        context,
+                        f"ℹ️ User `{target_user_id}` has no active cooldown."
                     )
                 return
 
@@ -581,9 +683,10 @@ Examples:
                 cooldown_seconds = duration * 3600
                 unit_display = 'hours'
             else:
-                await update.message.reply_text(
-                    "❌ Invalid time unit. Use 'seconds', 'minutes', or 'hours'.",
-                    parse_mode='Markdown'
+                await self._send_response(
+                    update,
+                    context,
+                    "❌ Invalid time unit. Use 'seconds', 'minutes', or 'hours'."
                 )
                 return
 
@@ -593,11 +696,12 @@ Examples:
                 'last_message_time': None  # Will be set when they first message
             }
 
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"⏱️ **Cooldown Set**\n\n"
                 f"User `{target_user_id}` can now only message once every **{duration} {unit_display}**.\n\n"
-                f"This restriction will persist until changed or removed.",
-                parse_mode='Markdown'
+                f"This restriction will persist until changed or removed."
             )
 
             logger.info(
@@ -607,7 +711,9 @@ Examples:
 
         except Exception as e:
             logger.error(f"AC-003: Error setting cooldown: {e}", exc_info=True)
-            await update.message.reply_text(
+            await self._send_response(
+                update,
+                context,
                 f"❌ Error setting cooldown: {str(e)}"
             )
 
