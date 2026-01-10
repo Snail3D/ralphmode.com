@@ -147,6 +147,10 @@ class Config:
     # CORS settings
     ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'https://ralphmode.com').split(',')
 
+    # BC-006: Broadcast-Safe Mode (extra-strict filtering for live streams)
+    BROADCAST_SAFE = os.getenv('BROADCAST_SAFE', 'False').lower() == 'true'
+    BROADCAST_SAFE_DELAY = float(os.getenv('BROADCAST_SAFE_DELAY', '5.0'))  # Review delay in seconds
+
     @classmethod
     def validate(cls) -> Tuple[bool, List[str]]:
         """
@@ -310,6 +314,9 @@ class Config:
         print(f"  CSRF Key Set:       {'Yes' if cls._get_secret('CSRF_SECRET_KEY') else 'No'}")
         print(f"  Telegram Token Set: {'Yes' if cls._get_secret('TELEGRAM_BOT_TOKEN') else 'No'}")
         print(f"  Groq API Key Set:   {'Yes' if cls._get_secret('GROQ_API_KEY') else 'No'}")
+        print(f"  Broadcast Safe:     {cls.BROADCAST_SAFE}")
+        if cls.BROADCAST_SAFE:
+            print(f"  Review Delay:       {cls.BROADCAST_SAFE_DELAY}s")
         print(f"{'='*60}\n")
 
 

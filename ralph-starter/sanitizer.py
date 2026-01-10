@@ -105,6 +105,36 @@ COMPILED_PATTERNS: List[Tuple[re.Pattern, str]] = [
     for pattern, replacement in SECRET_PATTERNS
 ]
 
+# BC-006: Extra-strict patterns for broadcast-safe mode
+BROADCAST_SAFE_PATTERNS = [
+    # Stricter email filtering
+    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]'),
+
+    # Phone numbers
+    (r'\b(?:\+?1[-.]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b', '[PHONE]'),
+
+    # Credit cards (basic patterns)
+    (r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b', '[CARD_NUMBER]'),
+
+    # SSN-like patterns
+    (r'\b\d{3}-\d{2}-\d{4}\b', '[SSN_PATTERN]'),
+
+    # URLs with credentials
+    (r'https?://[^/\s]+:[^/\s]+@[^\s]+', '[URL_WITH_CREDENTIALS]'),
+
+    # File paths that might expose structure
+    (r'/(?:home|root|Users)/[^\s]+', '[FILE_PATH]'),
+    (r'[A-Z]:\\[^\s]+', '[WIN_PATH]'),
+
+    # Even more aggressive long string filtering
+    (r'\b[a-zA-Z0-9]{32,}\b', '[LONG_STRING]'),
+]
+
+COMPILED_BROADCAST_PATTERNS: List[Tuple[re.Pattern, str]] = [
+    (re.compile(pattern), replacement)
+    for pattern, replacement in BROADCAST_SAFE_PATTERNS
+]
+
 
 class Sanitizer:
     """
@@ -229,10 +259,23 @@ class Sanitizer:
         """
         sanitized = self.sanitize(text, context="telegram_output")
 
-        # Extra check in broadcast-safe mode
+        # BC-006: Extra strict filtering in broadcast-safe mode
         if self.broadcast_safe_mode:
-            # More aggressive filtering - replace any long alphanumeric strings
-            sanitized = re.sub(r'\b[a-zA-Z0-9]{20,}\b', '[REDACTED]', sanitized)
+            replacements = []
+            # Apply broadcast-safe patterns
+            for pattern, replacement in COMPILED_BROADCAST_PATTERNS:
+                matches = pattern.findall(sanitized)
+                for match in matches:
+                    if len(str(match)) > 3:  # Don't replace very short matches
+                        replacements.append({
+                            'pattern': pattern.pattern[:50],
+                            'replacement': replacement,
+                            'matched_length': len(str(match))
+                        })
+                sanitized = pattern.sub(replacement, sanitized)
+
+            if replacements:
+                self._log_sanitization("broadcast_safe_telegram", len(replacements), replacements)
 
         return sanitized
 

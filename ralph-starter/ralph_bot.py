@@ -78,6 +78,18 @@ except ImportError:
     def sanitize_for_telegram(text): return text
     def get_sanitizer(): return None
 
+# BC-006: Import config for broadcast-safe mode settings
+try:
+    from config import Config
+    CONFIG_AVAILABLE = True
+    BROADCAST_SAFE_MODE = Config.BROADCAST_SAFE
+    BROADCAST_SAFE_DELAY = Config.BROADCAST_SAFE_DELAY
+except ImportError:
+    CONFIG_AVAILABLE = False
+    BROADCAST_SAFE_MODE = os.environ.get('BROADCAST_SAFE', 'false').lower() == 'true'
+    BROADCAST_SAFE_DELAY = float(os.environ.get('BROADCAST_SAFE_DELAY', '5.0'))
+    logging.warning("BC-006: Config module not available - using environment variables")
+
 # SEC-029: Import LLM security for prompt injection prevention
 try:
     from llm_security import (
@@ -860,6 +872,8 @@ class RalphBot:
                 full_text = self.format_character_message(name, title, message)
                 # BC-002: Sanitize before sending
                 full_text = self._sanitize_output(full_text)
+                # BC-006: Apply broadcast-safe delay if enabled
+                await self._apply_broadcast_safe_delay()
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=full_text,
@@ -909,6 +923,8 @@ class RalphBot:
             full_text = self.format_character_message(name, title, message)
             # BC-002: Sanitize before sending
             full_text = self._sanitize_output(full_text)
+            # BC-006: Apply broadcast-safe delay if enabled
+            await self._apply_broadcast_safe_delay()
             await context.bot.send_message(
                 chat_id=chat_id,
                 text=full_text,
@@ -922,6 +938,8 @@ class RalphBot:
                 fallback_text = f"{name}: {message}"
                 # BC-002: Sanitize before sending
                 fallback_text = self._sanitize_output(fallback_text)
+                # BC-006: Apply broadcast-safe delay if enabled
+                await self._apply_broadcast_safe_delay()
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=fallback_text
@@ -2471,6 +2489,15 @@ class RalphBot:
 
         return text
 
+    async def _apply_broadcast_safe_delay(self):
+        """BC-006: Apply review delay in broadcast-safe mode.
+
+        This gives humans a buffer to review messages before they're sent,
+        useful for live streaming scenarios.
+        """
+        if BROADCAST_SAFE_MODE and BROADCAST_SAFE_DELAY > 0:
+            await asyncio.sleep(BROADCAST_SAFE_DELAY)
+
     async def safe_send_message(
         self,
         context,
@@ -4001,6 +4028,10 @@ _"I'm a manager now!" - Ralph_
 
 _Drop a zip file to get started!_
 """
+        # BC-006: Add broadcast-safe mode indicator
+        if BROADCAST_SAFE_MODE:
+            welcome += f"\n\n🔴 *BROADCAST-SAFE MODE ACTIVE*\n_Review delay: {BROADCAST_SAFE_DELAY}s | Extra filtering enabled_"
+
         await update.message.reply_text(welcome, parse_mode="Markdown")
 
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -5486,6 +5517,13 @@ Use `/version <type>` to switch!
         app.bot.send_message = sanitized_send_message
         app.bot.edit_message_text = sanitized_edit_message_text
         logger.info("BC-002: Output filter installed - all messages will be sanitized")
+
+        # BC-006: Log broadcast-safe mode status
+        if BROADCAST_SAFE_MODE:
+            logger.warning(f"🔴 BC-006: BROADCAST-SAFE MODE ACTIVE - Review delay: {BROADCAST_SAFE_DELAY}s | Extra filtering enabled")
+            print(f"🔴 BROADCAST-SAFE MODE: {BROADCAST_SAFE_DELAY}s delay + strict filtering")
+        else:
+            logger.info("BC-006: Broadcast-safe mode disabled (normal operation)")
 
         # Handlers
         app.add_handler(CommandHandler("start", self.start))
