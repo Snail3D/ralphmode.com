@@ -2132,3 +2132,82 @@ All 19 tests passing:
 
 ---
 
+
+## Iteration 17 - 2026-01-10
+**Task**: [SEC-017] Container Security
+**Status**: ✅ Complete
+
+### What was implemented
+- Created production-ready Dockerfile with multi-stage build
+  - Uses Python 3.11 slim base image for minimal attack surface
+  - Multi-stage build removes build tools from final image
+  - All files owned by non-root user 'ralph' (UID 1000)
+  - Read-only root filesystem with tmpfs for runtime data
+  - Health checks configured
+
+- Created secure docker-compose.yml configuration
+  - Read-only root filesystem enabled
+  - All Linux capabilities dropped (cap_drop: ALL)
+  - No privileged mode
+  - Security option: no-new-privileges:true
+  - Resource limits to prevent DoS (CPU: 2.0, Memory: 2G)
+  - Isolated bridge network
+  - Logging with rotation (max 10MB, 3 files)
+  - Includes Redis service for rate limiting with same security hardening
+
+- Created .dockerignore to prevent sensitive data in images
+  - Excludes .env files, keys, certificates
+  - Excludes test files, cache, and build artifacts
+  - Prevents secrets in image layers
+
+- Created comprehensive container-security.yml GitHub Actions workflow
+  - Hadolint: Dockerfile linting
+  - Trivy: Vulnerability scanning with SARIF upload
+  - Grype: Additional vulnerability detection
+  - ggshield: Secret detection in image layers
+  - Docker Bench Security: Configuration audit
+  - Cosign: Image signing support (ready for production)
+  - Syft: SBOM generation and scanning
+  - Weekly scheduled scans
+
+- Created CONTAINER_SECURITY.md documentation
+  - Detailed security features and rationale
+  - Resource limits and network configuration
+  - Usage instructions and verification commands
+  - Production deployment checklist
+  - Compliance mapping (CIS, OWASP, PCI-DSS, GDPR, SOC 2)
+
+### Files changed
+- Dockerfile (new)
+- docker-compose.yml (new)
+- .dockerignore (new)
+- .github/workflows/container-security.yml (new)
+- CONTAINER_SECURITY.md (new)
+- scripts/ralph/prd.json (SEC-017 passes: true)
+
+### Learnings
+- Multi-stage builds are essential for minimal production images
+- Read-only root filesystem requires explicit tmpfs mounts for /tmp and logs
+- Dropping ALL capabilities is the most secure default
+- Container scanning should happen at multiple stages: Dockerfile, image, SBOM
+- Resource limits prevent container from consuming all host resources
+- Non-root user must be created in Dockerfile, not relied upon from base image
+- .dockerignore is critical for preventing secrets in image layers
+- GitHub Actions has excellent security scanning integrations (Trivy, Grype, Syft)
+- SBOM generation is becoming a best practice for supply chain security
+- Image signing with Cosign is ready to implement when container registry is set up
+
+### Security Standards Met
+✅ Distroless/minimal base images (Python 3.11 slim)
+✅ Non-root user (UID 1000)
+✅ Read-only root filesystem
+✅ No privileged containers
+✅ All capabilities dropped
+✅ No sensitive data in image layers
+✅ Image signing workflow ready
+✅ Container scanning in CI/CD (6 different scanners)
+
+### Next Task
+According to priority_order, next task is SEC-018 (Database Security)
+
+---
