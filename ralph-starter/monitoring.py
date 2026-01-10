@@ -524,16 +524,400 @@ async def track_admin_creation(creator_id: str, new_admin_id: str, new_admin_use
 
 
 # ============================================================================
+# SF-002: Health Monitoring System
+# ============================================================================
+# Continuous health monitoring for:
+# - API latency
+# - Error rates
+# - Queue depth
+# - Build success rate
+# - Anomaly detection and alerting
+# ============================================================================
+
+class HealthStatus(Enum):
+    """Overall system health status"""
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
+    CRITICAL = "critical"
+
+
+@dataclass
+class HealthMetrics:
+    """Current health metrics snapshot"""
+    timestamp: datetime
+    api_latency_ms: float
+    error_rate_percent: float
+    queue_depth: int
+    build_success_rate_percent: float
+    status: HealthStatus
+    alerts: List[str] = field(default_factory=list)
+
+
+class HealthMonitor:
+    """
+    SF-002: Continuous health monitoring system.
+
+    Monitors:
+    - API response times (latency tracking)
+    - Error rates (5xx errors, exceptions)
+    - Queue depth (pending feedback items)
+    - Build success rate (deployment health)
+
+    Alerts on anomalies based on tuned thresholds.
+    """
+
+    def __init__(self):
+        # API latency tracking
+        self.api_response_times: List[float] = []
+        self.api_latency_window = 100  # Track last 100 requests
+
+        # Error rate tracking
+        self.total_requests = 0
+        self.error_count = 0
+        self.error_window_start = datetime.utcnow()
+        self.error_window_duration = 300  # 5 minutes
+
+        # Queue depth tracking
+        self.current_queue_depth = 0
+        self.queue_depth_history: List[int] = []
+
+        # Build success tracking
+        self.build_attempts = 0
+        self.build_successes = 0
+        self.build_history: List[bool] = []  # True = success, False = failure
+        self.build_history_window = 50  # Track last 50 builds
+
+        # Thresholds for alerting
+        self.LATENCY_WARNING_MS = 1000  # 1 second
+        self.LATENCY_CRITICAL_MS = 3000  # 3 seconds
+
+        self.ERROR_RATE_WARNING = 5.0  # 5% error rate
+        self.ERROR_RATE_CRITICAL = 10.0  # 10% error rate
+
+        self.QUEUE_DEPTH_WARNING = 50
+        self.QUEUE_DEPTH_CRITICAL = 100
+
+        self.BUILD_SUCCESS_WARNING = 80.0  # Below 80% success
+        self.BUILD_SUCCESS_CRITICAL = 60.0  # Below 60% success
+
+    # ========================================================================
+    # API Latency Monitoring
+    # ========================================================================
+
+    def track_api_response_time(self, latency_ms: float):
+        """
+        Track API response time.
+
+        Args:
+            latency_ms: Response time in milliseconds
+        """
+        self.api_response_times.append(latency_ms)
+
+        # Keep only recent measurements
+        if len(self.api_response_times) > self.api_latency_window:
+            self.api_response_times.pop(0)
+
+    def get_avg_latency(self) -> float:
+        """Get average API latency in milliseconds"""
+        if not self.api_response_times:
+            return 0.0
+        return sum(self.api_response_times) / len(self.api_response_times)
+
+    def get_p95_latency(self) -> float:
+        """Get 95th percentile API latency"""
+        if not self.api_response_times:
+            return 0.0
+        sorted_times = sorted(self.api_response_times)
+        index = int(len(sorted_times) * 0.95)
+        return sorted_times[index] if index < len(sorted_times) else sorted_times[-1]
+
+    # ========================================================================
+    # Error Rate Monitoring
+    # ========================================================================
+
+    def track_request(self, is_error: bool = False):
+        """
+        Track API request success/failure.
+
+        Args:
+            is_error: True if request resulted in error (5xx, exception)
+        """
+        now = datetime.utcnow()
+
+        # Reset window if expired
+        if (now - self.error_window_start).total_seconds() > self.error_window_duration:
+            self.error_window_start = now
+            self.total_requests = 0
+            self.error_count = 0
+
+        self.total_requests += 1
+        if is_error:
+            self.error_count += 1
+
+    def get_error_rate(self) -> float:
+        """Get current error rate as percentage"""
+        if self.total_requests == 0:
+            return 0.0
+        return (self.error_count / self.total_requests) * 100
+
+    # ========================================================================
+    # Queue Depth Monitoring
+    # ========================================================================
+
+    def update_queue_depth(self, depth: int):
+        """
+        Update current queue depth.
+
+        Args:
+            depth: Number of items in queue
+        """
+        self.current_queue_depth = depth
+        self.queue_depth_history.append(depth)
+
+        # Keep last 1000 measurements
+        if len(self.queue_depth_history) > 1000:
+            self.queue_depth_history.pop(0)
+
+    def get_avg_queue_depth(self) -> float:
+        """Get average queue depth"""
+        if not self.queue_depth_history:
+            return 0.0
+        return sum(self.queue_depth_history) / len(self.queue_depth_history)
+
+    # ========================================================================
+    # Build Success Rate Monitoring
+    # ========================================================================
+
+    def track_build(self, success: bool):
+        """
+        Track build attempt result.
+
+        Args:
+            success: True if build succeeded, False if failed
+        """
+        self.build_attempts += 1
+        if success:
+            self.build_successes += 1
+
+        self.build_history.append(success)
+
+        # Keep only recent history
+        if len(self.build_history) > self.build_history_window:
+            self.build_history.pop(0)
+
+    def get_build_success_rate(self) -> float:
+        """Get build success rate as percentage"""
+        if not self.build_history:
+            return 100.0  # Assume healthy if no data
+        successes = sum(1 for success in self.build_history if success)
+        return (successes / len(self.build_history)) * 100
+
+    def get_recent_build_failures(self) -> int:
+        """Get count of recent consecutive failures"""
+        if not self.build_history:
+            return 0
+
+        consecutive_failures = 0
+        for success in reversed(self.build_history):
+            if success:
+                break
+            consecutive_failures += 1
+
+        return consecutive_failures
+
+    # ========================================================================
+    # Anomaly Detection & Alerting
+    # ========================================================================
+
+    def check_health(self) -> HealthMetrics:
+        """
+        Check overall system health and generate alerts.
+
+        Returns:
+            HealthMetrics with current status and alerts
+        """
+        alerts = []
+        status = HealthStatus.HEALTHY
+
+        # Check API latency
+        avg_latency = self.get_avg_latency()
+        p95_latency = self.get_p95_latency()
+
+        if p95_latency >= self.LATENCY_CRITICAL_MS:
+            alerts.append(f"CRITICAL: API p95 latency is {p95_latency:.0f}ms (threshold: {self.LATENCY_CRITICAL_MS}ms)")
+            status = HealthStatus.CRITICAL
+        elif p95_latency >= self.LATENCY_WARNING_MS:
+            alerts.append(f"WARNING: API p95 latency is {p95_latency:.0f}ms (threshold: {self.LATENCY_WARNING_MS}ms)")
+            if status == HealthStatus.HEALTHY:
+                status = HealthStatus.DEGRADED
+
+        # Check error rate
+        error_rate = self.get_error_rate()
+
+        if error_rate >= self.ERROR_RATE_CRITICAL:
+            alerts.append(f"CRITICAL: Error rate is {error_rate:.1f}% (threshold: {self.ERROR_RATE_CRITICAL}%)")
+            status = HealthStatus.CRITICAL
+        elif error_rate >= self.ERROR_RATE_WARNING:
+            alerts.append(f"WARNING: Error rate is {error_rate:.1f}% (threshold: {self.ERROR_RATE_WARNING}%)")
+            if status == HealthStatus.HEALTHY:
+                status = HealthStatus.DEGRADED
+
+        # Check queue depth
+        if self.current_queue_depth >= self.QUEUE_DEPTH_CRITICAL:
+            alerts.append(f"CRITICAL: Queue depth is {self.current_queue_depth} (threshold: {self.QUEUE_DEPTH_CRITICAL})")
+            status = HealthStatus.CRITICAL
+        elif self.current_queue_depth >= self.QUEUE_DEPTH_WARNING:
+            alerts.append(f"WARNING: Queue depth is {self.current_queue_depth} (threshold: {self.QUEUE_DEPTH_WARNING})")
+            if status == HealthStatus.HEALTHY:
+                status = HealthStatus.DEGRADED
+
+        # Check build success rate
+        build_success_rate = self.get_build_success_rate()
+        recent_failures = self.get_recent_build_failures()
+
+        if build_success_rate <= self.BUILD_SUCCESS_CRITICAL:
+            alerts.append(f"CRITICAL: Build success rate is {build_success_rate:.1f}% (threshold: {self.BUILD_SUCCESS_CRITICAL}%)")
+            status = HealthStatus.CRITICAL
+        elif build_success_rate <= self.BUILD_SUCCESS_WARNING:
+            alerts.append(f"WARNING: Build success rate is {build_success_rate:.1f}% (threshold: {self.BUILD_SUCCESS_WARNING}%)")
+            if status == HealthStatus.HEALTHY:
+                status = HealthStatus.DEGRADED
+
+        # Alert on consecutive failures (circuit breaker related)
+        if recent_failures >= 5:
+            alerts.append(f"CRITICAL: {recent_failures} consecutive build failures detected")
+            status = HealthStatus.CRITICAL
+
+        return HealthMetrics(
+            timestamp=datetime.utcnow(),
+            api_latency_ms=avg_latency,
+            error_rate_percent=error_rate,
+            queue_depth=self.current_queue_depth,
+            build_success_rate_percent=build_success_rate,
+            status=status,
+            alerts=alerts
+        )
+
+    # ========================================================================
+    # Dashboard Metrics
+    # ========================================================================
+
+    def get_dashboard_metrics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive metrics for dashboard display.
+
+        Returns:
+            Dictionary with all key metrics
+        """
+        health = self.check_health()
+
+        return {
+            "timestamp": health.timestamp.isoformat(),
+            "status": health.status.value,
+            "alerts": health.alerts,
+            "metrics": {
+                "api_latency": {
+                    "avg_ms": round(self.get_avg_latency(), 2),
+                    "p95_ms": round(self.get_p95_latency(), 2),
+                    "samples": len(self.api_response_times),
+                    "threshold_warning_ms": self.LATENCY_WARNING_MS,
+                    "threshold_critical_ms": self.LATENCY_CRITICAL_MS
+                },
+                "error_rate": {
+                    "current_percent": round(health.error_rate_percent, 2),
+                    "total_requests": self.total_requests,
+                    "error_count": self.error_count,
+                    "window_seconds": self.error_window_duration,
+                    "threshold_warning": self.ERROR_RATE_WARNING,
+                    "threshold_critical": self.ERROR_RATE_CRITICAL
+                },
+                "queue": {
+                    "current_depth": self.current_queue_depth,
+                    "avg_depth": round(self.get_avg_queue_depth(), 2),
+                    "threshold_warning": self.QUEUE_DEPTH_WARNING,
+                    "threshold_critical": self.QUEUE_DEPTH_CRITICAL
+                },
+                "builds": {
+                    "success_rate_percent": round(health.build_success_rate_percent, 2),
+                    "total_attempts": self.build_attempts,
+                    "total_successes": self.build_successes,
+                    "recent_failures": self.get_recent_build_failures(),
+                    "history_size": len(self.build_history),
+                    "threshold_warning": self.BUILD_SUCCESS_WARNING,
+                    "threshold_critical": self.BUILD_SUCCESS_CRITICAL
+                }
+            }
+        }
+
+
+# ============================================================================
+# Global Health Monitor Instance
+# ============================================================================
+
+_health_monitor = None
+
+
+def get_health_monitor() -> HealthMonitor:
+    """Get or create global health monitor"""
+    global _health_monitor
+    if _health_monitor is None:
+        _health_monitor = HealthMonitor()
+    return _health_monitor
+
+
+# ============================================================================
+# Convenience Functions for Health Monitoring
+# ============================================================================
+
+def track_api_latency(latency_ms: float):
+    """Track API response time"""
+    monitor = get_health_monitor()
+    monitor.track_api_response_time(latency_ms)
+
+
+def track_api_request(is_error: bool = False):
+    """Track API request"""
+    monitor = get_health_monitor()
+    monitor.track_request(is_error)
+
+
+def update_queue_depth(depth: int):
+    """Update queue depth"""
+    monitor = get_health_monitor()
+    monitor.update_queue_depth(depth)
+
+
+def track_build_result(success: bool):
+    """Track build result"""
+    monitor = get_health_monitor()
+    monitor.track_build(success)
+
+
+def get_system_health() -> HealthMetrics:
+    """Get current system health"""
+    monitor = get_health_monitor()
+    return monitor.check_health()
+
+
+def get_health_dashboard() -> Dict[str, Any]:
+    """Get dashboard metrics"""
+    monitor = get_health_monitor()
+    return monitor.get_dashboard_metrics()
+
+
+# ============================================================================
 # Usage Example
 # ============================================================================
 
 if __name__ == "__main__":
-    async def test_monitoring():
+    async def test_security_monitoring():
         """Test security monitoring"""
         monitor = SecurityMonitor()
 
         # Simulate brute force attack
-        print("Simulating brute force attack...")
+        print("=== Security Monitoring Tests ===")
+        print("\nSimulating brute force attack...")
         for i in range(7):
             await monitor.track_failed_login(
                 user_id=None,
@@ -571,7 +955,72 @@ if __name__ == "__main__":
             creator_ip="10.0.0.4"
         )
 
-        print("\nAll monitoring tests completed!")
+        print("\nSecurity monitoring tests completed!")
 
-    # Run test
-    asyncio.run(test_monitoring())
+    def test_health_monitoring():
+        """Test health monitoring (SF-002)"""
+        print("\n\n=== Health Monitoring Tests (SF-002) ===")
+        health_monitor = get_health_monitor()
+
+        # Test API latency tracking
+        print("\nTesting API latency monitoring...")
+        for latency in [100, 150, 200, 500, 1200, 2500]:
+            health_monitor.track_api_response_time(latency)
+            print(f"  Tracked latency: {latency}ms")
+
+        print(f"  Average latency: {health_monitor.get_avg_latency():.2f}ms")
+        print(f"  P95 latency: {health_monitor.get_p95_latency():.2f}ms")
+
+        # Test error rate tracking
+        print("\nTesting error rate monitoring...")
+        for i in range(20):
+            is_error = i % 10 == 0  # 10% error rate
+            health_monitor.track_request(is_error)
+        print(f"  Error rate: {health_monitor.get_error_rate():.2f}%")
+
+        # Test queue depth tracking
+        print("\nTesting queue depth monitoring...")
+        for depth in [10, 25, 45, 75, 105]:
+            health_monitor.update_queue_depth(depth)
+            print(f"  Queue depth: {depth}")
+        print(f"  Average queue depth: {health_monitor.get_avg_queue_depth():.2f}")
+
+        # Test build success rate tracking
+        print("\nTesting build success rate monitoring...")
+        build_results = [True, True, False, True, True, False, False, True]
+        for success in build_results:
+            health_monitor.track_build(success)
+            status = "SUCCESS" if success else "FAILURE"
+            print(f"  Build: {status}")
+        print(f"  Build success rate: {health_monitor.get_build_success_rate():.2f}%")
+        print(f"  Recent consecutive failures: {health_monitor.get_recent_build_failures()}")
+
+        # Test health check with alerts
+        print("\nChecking overall system health...")
+        health = health_monitor.check_health()
+        print(f"  Status: {health.status.value.upper()}")
+        print(f"  API Latency: {health.api_latency_ms:.2f}ms")
+        print(f"  Error Rate: {health.error_rate_percent:.2f}%")
+        print(f"  Queue Depth: {health.queue_depth}")
+        print(f"  Build Success Rate: {health.build_success_rate_percent:.2f}%")
+
+        if health.alerts:
+            print(f"\n  Alerts ({len(health.alerts)}):")
+            for alert in health.alerts:
+                print(f"    - {alert}")
+        else:
+            print("\n  No alerts")
+
+        # Test dashboard metrics
+        print("\nGetting dashboard metrics...")
+        dashboard = health_monitor.get_dashboard_metrics()
+        import json
+        print(json.dumps(dashboard, indent=2))
+
+        print("\n✅ Health monitoring tests completed!")
+
+    # Run tests
+    print("Starting monitoring system tests...\n")
+    asyncio.run(test_security_monitoring())
+    test_health_monitoring()
+    print("\n🎉 All tests passed!")

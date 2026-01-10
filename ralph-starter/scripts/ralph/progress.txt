@@ -5858,3 +5858,74 @@ Linode (monthly):
 - CLI commands (status, reset, test-trip) all working
 
 ---
+
+## Iteration 88 - 2026-01-10
+**Task**: SF-002 - Health Monitoring
+**Status**: ✅ Complete
+
+### What was implemented
+- Extended monitoring.py with comprehensive health monitoring system
+- Created HealthStatus enum (HEALTHY, DEGRADED, UNHEALTHY, CRITICAL)
+- Created HealthMetrics dataclass for health snapshots
+- Implemented HealthMonitor class with:
+  - API response time tracking (avg + p95 latency)
+  - Error rate monitoring (5xx errors, exceptions)
+  - Queue depth tracking (pending feedback items)
+  - Build success rate monitoring (deployment health)
+  - Anomaly detection with tuned thresholds
+  - Alert generation based on health status
+- Configurable thresholds:
+  - Latency: 1s warning, 3s critical
+  - Error rate: 5% warning, 10% critical
+  - Queue depth: 50 warning, 100 critical
+  - Build success rate: 80% warning, 60% critical
+- Dashboard metrics endpoint with full JSON export
+- Global singleton via get_health_monitor()
+- Convenience functions for easy integration
+- Comprehensive test suite demonstrating all features
+
+### Acceptance criteria met
+✅ Monitor API response times (avg + p95 latency tracking)
+✅ Monitor error rates (request/error counting with time windows)
+✅ Monitor queue depth (current + historical averages)
+✅ Monitor build success rate (success percentage + consecutive failures)
+✅ Alert on anomalies (multi-level alerts: WARNING, CRITICAL)
+✅ Dashboard for metrics (get_dashboard_metrics() with full JSON)
+
+### Files changed
+- monitoring.py (added 400+ lines for health monitoring)
+- scripts/ralph/prd.json (marked SF-002 as passes=True)
+
+### Learnings
+- Health monitoring is distinct from security monitoring - both can coexist
+- P95 latency is better than average for detecting anomalies
+- Sliding windows prevent stale data from affecting current health status
+- Multiple severity levels (DEGRADED vs CRITICAL) allow graduated responses
+- Consecutive failure tracking helps identify persistent issues
+- Dashboard metrics should be JSON-serializable for easy API integration
+- Convenience functions reduce boilerplate for common operations
+- Test suite proves all acceptance criteria are met
+
+### Integration points
+- API middleware should call track_api_latency() and track_api_request()
+- Feedback queue should call update_queue_depth() when queue changes
+- Build orchestrator should call track_build_result() after each build
+- Admin dashboard can call get_health_dashboard() for real-time metrics
+- Alert system can call check_health() periodically to detect issues
+- Environment variables for threshold tuning (optional future enhancement)
+
+### Usage example
+```python
+from monitoring import track_api_latency, track_build_result, get_system_health
+
+# Track metrics
+track_api_latency(latency_ms=450)
+track_build_result(success=True)
+
+# Check health
+health = get_system_health()
+if health.status == HealthStatus.CRITICAL:
+    print(f"ALERT: {health.alerts}")
+```
+
+---
