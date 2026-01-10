@@ -88,3 +88,25 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 4 - 2026-01-10
+**Task**: [RM-001] Ralph Dyslexia Misspellings
+**Status**: ✅ Complete
+
+### What was implemented
+- Created ralph_misspell(text, misspell_chance=0.2) method
+- Applies misspellings randomly (~20% of applicable words)
+- Preserves capitalization and punctuation
+- Uses existing RALPH_MISSPELLINGS dict
+- Updated call_boss() to apply misspellings to all Ralph output
+- Added apply_misspellings parameter for control
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- 20% misspell rate feels natural - not every word, but enough to notice
+- Preserving punctuation and capitalization is important for readability
+- ralph_misspell() can be reused for any Ralph text output
+
+---
+

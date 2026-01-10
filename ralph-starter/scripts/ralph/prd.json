@@ -18,7 +18,7 @@
         "call_boss() applies misspellings to response"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-002",
@@ -772,10 +772,45 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": false
+    },
+    {
+      "id": "RM-049",
+      "category": "Visual Polish",
+      "title": "Rich Telegram Markdown Formatting",
+      "description": "Use Telegram's markdown formatting for beautiful, readable messages. Italics for actions, bold for names, code blocks for technical stuff.",
+      "acceptance_criteria": [
+        "Actions in italics: _Gus sips his coffee thoughtfully_",
+        "Character names in bold: *Ralph:* or **Stool:**",
+        "Code snippets in backticks: `function doThing()`",
+        "Code blocks with triple backticks for longer code",
+        "Emoji used tastefully for visual interest",
+        "parse_mode='Markdown' in all send_message calls",
+        "Fallback to plain text if formatting fails"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-050",
+      "category": "Visual Polish",
+      "title": "Consistent Message Formatting Helpers",
+      "description": "Create helper functions for consistent message formatting. Every message type has a template.",
+      "acceptance_criteria": [
+        "format_character_message(name, text) - adds color + bold name",
+        "format_action(text) - wraps in italics",
+        "format_code(code, language) - proper code blocks",
+        "format_progress_bar(pct, done, total) - visual bar",
+        "All messages use these formatters",
+        "Consistent look throughout session"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
     }
   ],
 
   "priority_order": [
+    "RM-049 - Markdown formatting (beautiful messages)",
+    "RM-050 - Formatting helpers (consistency)",
     "RM-044 - Interactive loading (use wait time wisely!)",
     "RM-045 - Discovery questions (gather context)",
     "RM-046 - Scene building (entertainment during load)",

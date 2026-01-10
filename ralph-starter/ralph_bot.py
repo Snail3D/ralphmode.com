@@ -478,6 +478,55 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
 
+    # ==================== RALPH'S AUTHENTIC VOICE ====================
+
+    def ralph_misspell(self, text: str, misspell_chance: float = 0.2) -> str:
+        """Apply Ralph's dyslexia/misspellings to text.
+
+        Args:
+            text: The text to potentially misspell
+            misspell_chance: Probability (0-1) of misspelling each applicable word (default 20%)
+
+        Returns:
+            Text with Ralph-style misspellings applied randomly
+        """
+        if not text:
+            return text
+
+        words = text.split()
+        result = []
+
+        for word in words:
+            # Check if this word (lowercase, stripped of punctuation) has a misspelling
+            word_clean = word.lower().strip('.,!?;:\'\"()[]{}')
+
+            if word_clean in self.RALPH_MISSPELLINGS:
+                # Only misspell with the given probability
+                if random.random() < misspell_chance:
+                    misspelled = self.RALPH_MISSPELLINGS[word_clean]
+
+                    # Preserve original capitalization
+                    if word[0].isupper():
+                        misspelled = misspelled.capitalize()
+                    if word.isupper():
+                        misspelled = misspelled.upper()
+
+                    # Preserve trailing punctuation
+                    trailing = ""
+                    for char in reversed(word):
+                        if char in '.,!?;:\'\"()[]{}':
+                            trailing = char + trailing
+                        else:
+                            break
+
+                    result.append(misspelled + trailing)
+                else:
+                    result.append(word)
+            else:
+                result.append(word)
+
+        return ' '.join(result)
+
     # ==================== QUALITY METRICS TRACKING ====================
 
     def init_quality_metrics(self, user_id: int):
@@ -863,8 +912,16 @@ If asked about something you didn't observe, honestly say you don't know."""},
             logger.error(f"Groq error: {e}")
             return f"[AI Error: {e}]"
 
-    def call_boss(self, message: str) -> str:
-        """Get response from Ralph Wiggum, the boss."""
+    def call_boss(self, message: str, apply_misspellings: bool = True) -> str:
+        """Get response from Ralph Wiggum, the boss.
+
+        Args:
+            message: The prompt/situation for Ralph to respond to
+            apply_misspellings: Whether to apply Ralph's dyslexia misspellings (default True)
+
+        Returns:
+            Ralph's response, with misspellings applied if enabled
+        """
         messages = [
             {"role": "system", "content": """You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER and you're SO proud.
 Your name is Ralph. Sometimes people call you "Ralphie" by accident.
@@ -877,7 +934,13 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
 1-2 sentences max. Stay in character as Ralph."""},
             {"role": "user", "content": message}
         ]
-        return self.call_groq(BOSS_MODEL, messages, max_tokens=150)
+        response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
+
+        # Apply Ralph's authentic misspellings
+        if apply_misspellings:
+            response = self.ralph_misspell(response)
+
+        return response
 
     def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general") -> tuple:
         """Get response from a specific team member. Returns (name, title, response, tokens).
