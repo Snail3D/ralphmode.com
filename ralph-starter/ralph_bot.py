@@ -733,6 +733,7 @@ class RalphBot:
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
         self.last_bonus_banter: Dict[int, datetime] = {}  # RM-005: Track when last bonus banter happened
         self.last_deleted_message: Dict[int, datetime] = {}  # RM-006: Track when last deleted message happened
+        self.last_background_chatter: Dict[int, datetime] = {}  # RM-008: Track when last background chatter happened
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
         self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
         self.message_counter = 0  # Counter for unique message IDs
@@ -913,6 +914,22 @@ class RalphBot:
                         self.last_deleted_message[user_id] = now
                         # Trigger deleted message in background (don't block current message)
                         asyncio.create_task(self.deleted_message_moment(context, chat_id, name))
+
+                # RM-008: Background Office Chatter (triggered during quiet moments)
+                # Adds life to the 'office' feeling without interrupting main conversation
+                if name in self.DEV_TEAM or name == "Ralph":
+                    user_id = chat_id  # In DM, chat_id == user_id
+
+                    # Check if enough time has passed since last background chatter (at least 10 minutes)
+                    now = datetime.now()
+                    last_chatter = self.last_background_chatter.get(user_id)
+                    time_since_last = (now - last_chatter).total_seconds() if last_chatter else 9999
+
+                    # 8% chance and at least 10 minutes since last one (quiet moments)
+                    if random.random() < 0.08 and time_since_last > 600:
+                        self.last_background_chatter[user_id] = now
+                        # Trigger background chatter in background (don't block current message)
+                        asyncio.create_task(self.background_office_chatter(context, chat_id))
 
                 return True
             except Exception as e:
@@ -2281,6 +2298,27 @@ class RalphBot:
                 context, chat_id, worker_name, worker_data.get('title'),
                 random.choice(worker_responses)
             )
+
+    async def background_office_chatter(self, context, chat_id: int):
+        """Background office chatter to add atmosphere without interrupting main flow.
+
+        RM-008: Background Office Chatter
+        Triggered randomly during quiet moments.
+        Adds life to the 'office' feeling with workers having side conversations.
+        """
+        # Pick a random chatter from the BACKGROUND_CHATTER list
+        chatter = random.choice(self.BACKGROUND_CHATTER)
+        speaker_1, speaker_2, message_1, message_2 = chatter
+
+        # Wait a moment for better timing (quiet moment)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+
+        # Send background chatter in italics to show it's background conversation
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_(In background) {speaker_1} to {speaker_2}: '{message_1}'_\n_{speaker_2}: '{message_2}'_",
+            parse_mode="Markdown"
+        )
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
