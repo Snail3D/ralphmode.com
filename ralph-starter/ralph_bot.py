@@ -4339,7 +4339,7 @@ _Grab some popcorn..._
                 user = db.query(User).filter(User.telegram_id == telegram_id).first()
                 if not user:
                     await update.message.reply_text(
-                        "You haven't submitted any feedback yet. Use /feedback to get started!",
+                        "You haven't submitted any feedback yet, Mr. Worms! Use /feedback to get started!",
                         parse_mode="Markdown"
                     )
                     return
@@ -4353,8 +4353,21 @@ _Grab some popcorn..._
                 except Exception as e:
                     logger.error(f"Failed to get quality stats: {e}")
 
+                # FQ-003: Get all user's feedback items
+                from feedback_queue import get_feedback_queue
+                queue = get_feedback_queue(db)
+                feedback_items = queue.get_user_feedback(user.id)
+
+                # Ralph's greeting
+                ralph_greetings = [
+                    "Hi Mr. Worms! Here's what my team is workin' on:",
+                    "Me and the boys are checkin' your requests, Mr. Worms:",
+                    "Lemme show you what we got, boss:",
+                ]
+                greeting = random.choice(ralph_greetings)
+
                 # Build status message
-                status_parts = ["*Your Feedback Status*\n"]
+                status_parts = [f"*{greeting}*\n"]
 
                 # QS-003: Quality Score Section
                 if quality_stats:
@@ -4372,31 +4385,68 @@ _Grab some popcorn..._
                 else:
                     status_parts.append(f"📊 Quality Score: {user.quality_score:.1f}/100")
 
-                # FQ-003: Feedback Queue Status
-                status_parts.append(f"\n📋 *Your Feedback Queue*:")
+                # FQ-003: Individual Feedback Items
+                if feedback_items:
+                    status_parts.append(f"\n📋 *Your Feedback Items*:\n")
 
-                # Count feedback by status
-                pending = db.query(Feedback).filter(
-                    Feedback.user_id == user.id,
-                    Feedback.status == "pending"
-                ).count()
+                    # Status emoji mapping
+                    status_emoji = {
+                        "pending": "⏳",
+                        "screening": "🔍",
+                        "scored": "📊",
+                        "queued": "📥",
+                        "in_progress": "🔨",
+                        "testing": "🧪",
+                        "deployed": "✅",
+                        "rejected": "❌"
+                    }
 
-                in_progress = db.query(Feedback).filter(
-                    Feedback.user_id == user.id,
-                    Feedback.status == "in_progress"
-                ).count()
+                    # Get queue position for queued items
+                    queued_items = queue.get_queue_by_status("queued", limit=1000)
+                    queue_positions = {item.id: idx + 1 for idx, item in enumerate(queued_items)}
 
-                completed = db.query(Feedback).filter(
-                    Feedback.user_id == user.id,
-                    Feedback.status == "completed"
-                ).count()
+                    for idx, item in enumerate(feedback_items[:10], 1):  # Show max 10
+                        # Truncate content for display
+                        title = item.content[:50] + "..." if len(item.content) > 50 else item.content
+                        emoji = status_emoji.get(item.status, "📝")
 
-                status_parts.append(f"  • ⏳ Pending: {pending}")
-                status_parts.append(f"  • 🔨 In Progress: {in_progress}")
-                status_parts.append(f"  • ✅ Completed: {completed}")
+                        status_parts.append(f"{idx}. {emoji} *{item.status.upper()}*")
+                        status_parts.append(f"   _{title}_")
+
+                        # Show queue position if queued
+                        if item.status == "queued" and item.id in queue_positions:
+                            position = queue_positions[item.id]
+                            status_parts.append(f"   Position in queue: #{position}")
+
+                            # Estimate time to build (rough heuristic: 5 min per item ahead)
+                            est_minutes = position * 5
+                            if est_minutes < 60:
+                                status_parts.append(f"   Estimated wait: ~{est_minutes} min")
+                            else:
+                                est_hours = est_minutes / 60
+                                status_parts.append(f"   Estimated wait: ~{est_hours:.1f} hours")
+
+                        # Show priority score if scored
+                        if item.priority_score:
+                            status_parts.append(f"   Priority: {item.priority_score:.1f}/10")
+
+                        status_parts.append("")  # Blank line between items
+
+                    if len(feedback_items) > 10:
+                        status_parts.append(f"_...and {len(feedback_items) - 10} more items_\n")
+                else:
+                    status_parts.append(f"\n📋 No feedback submitted yet!")
 
                 # Subscription tier
-                status_parts.append(f"\n💎 Tier: {user.subscription_tier.title()}")
+                status_parts.append(f"💎 Tier: {user.subscription_tier.title()}")
+
+                # Ralph's sign-off
+                ralph_signoffs = [
+                    "\n_That's unpossible to mess up! - Ralph_ 🎭",
+                    "\n_Me fail feedbak? That's unpossible! - Ralph_ 🎭",
+                    "\n_I'm a project managerer! - Ralph_ 🎭",
+                ]
+                status_parts.append(random.choice(ralph_signoffs))
 
                 status_message = "\n".join(status_parts)
                 await update.message.reply_text(status_message, parse_mode="Markdown")
@@ -4404,7 +4454,7 @@ _Grab some popcorn..._
         except Exception as e:
             logger.error(f"Failed to get feedback status for user {telegram_id}: {e}")
             await update.message.reply_text(
-                "Sorry, I couldn't retrieve your status. Please try again later.",
+                "Me fail status? That's unpossible! Try again, Mr. Worms.",
                 parse_mode="Markdown"
             )
 
