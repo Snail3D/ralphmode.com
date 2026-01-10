@@ -6939,3 +6939,34 @@ DELETE_ORIGINAL_MESSAGES=true
 - MU-004 will need tier-based input filtering (enforce view-only, chat-only, etc.)
 
 ---
+
+## Iteration 106 - 2026-01-10
+**Task**: [MU-002] /password Authentication for Power Users
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced /password command to be completely hidden from chat
+- Command message deleted immediately after receipt (hide password)
+- All responses sent as private messages to the user (no public confirmation)
+- Failed authentication attempts logged but not announced in chat
+- All acceptance criteria met:
+  - /password [secret] command ✓
+  - Password configured by admin in .env (POWER_USER_PASSWORD) ✓
+  - Successful auth elevates to Tier 2 ✓
+  - Auth message deleted immediately (hidden) ✓
+  - Confirmation sent as private message ✓
+  - Failed attempts logged but not announced ✓
+
+### Files changed
+- ralph_bot.py (updated password_command method)
+- scripts/ralph/prd.json (marked MU-002 as passing)
+
+### Learnings
+- Telegram bot.send_message() can send private messages by using user's telegram_id as chat_id
+- update.message.delete() hides sensitive command from group chats
+- Security best practice: always delete password commands immediately
+- Private message responses keep authentication state hidden from group members
+- Error handling on message deletion prevents crashes if bot lacks permissions
+- Logging failed auth attempts provides security audit trail without public disclosure
+
+---
