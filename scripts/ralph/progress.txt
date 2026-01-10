@@ -102,3 +102,18 @@ Project: ralphmode.com Landing Page
 
 ---
 
+## Iteration 6 - 2026-01-09
+**Story**: [US-4.1] Add footer with credits and links
+**Status**: Complete
+
+### What was implemented
+- Footer with links: Ryan Carson X, snarktank/ralph repo, Claude Code docs
+- Copyright tagline: "Made with Ralph Mode"
+- Subtle border-top separator
+- Hover effects on links
+
+### Learnings
+- Using pipe dividers with low opacity for visual separation
+
+---
+
