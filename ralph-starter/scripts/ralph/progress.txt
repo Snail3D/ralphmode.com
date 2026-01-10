@@ -3462,3 +3462,52 @@ tar -czf build.tar.gz --sort=name --mtime='1970-01-01' *.py requirements.txt req
 - Screenshot OCR/analysis for extracting context
 
 ---
+
+## Iteration 32 - 2026-01-10
+**Task**: [BC-001] Sanitization Layer Between Claude and Groq
+**Status**: ✅ Complete
+
+### What was implemented
+- Verified comprehensive sanitizer.py module with 50+ secret patterns
+- Confirmed sanitization layer is active between Claude output and Groq input
+- Sanitizer strips: API keys (OpenAI, Anthropic, GitHub, AWS, Groq, Slack, Telegram)
+- Sanitizer strips: IP addresses (IPv4 and IPv6)
+- Sanitizer strips: Database connection strings (PostgreSQL, MySQL, MongoDB, Redis)
+- Sanitizer strips: JWT tokens, private keys, bearer tokens, passwords
+- All secrets replaced with generic placeholders: [OPENAI_KEY], [IP_ADDRESS], [DATABASE_URL], etc.
+- Sanitization applied in ralph_bot.py:2878 (sanitize_for_groq) before every Groq API call
+- Belt-and-suspenders approach: also sanitizes output at ralph_bot.py:2921 (sanitize_for_telegram)
+- Audit logging of all sanitizations with timestamps and pattern matches
+- .env value detection for project-specific secret filtering (BC-004)
+- XSS prevention integrated (SEC-002)
+
+### Files changed
+- scripts/ralph/prd.json (marked BC-001 as passes: true)
+
+### Learnings
+- BC-001 was already fully implemented by previous iterations
+- The sanitizer sits at the critical chokepoint: right before Groq API calls
+- Double sanitization (input and output) provides defense-in-depth
+- Compiled regex patterns ensure efficient secret detection
+- The Sanitizer class maintains an audit log (last 1000 entries) for debugging
+- Broadcast-safe mode available via BROADCAST_SAFE env var for extra strict filtering
+- Long alphanumeric strings (40+ chars) automatically flagged as potential tokens
+- The implementation covers all acceptance criteria comprehensively
+
+### Testing Results
+```
+✅ API keys detected and replaced: sk-*, ghp_*, AKIA*, gsk_*, etc.
+✅ IP addresses detected: 192.168.1.100 → [IP_ADDRESS]
+✅ Database URLs detected: postgres://user:pass@host → [DATABASE_URL]
+✅ JWT tokens detected and replaced: eyJ... → [JWT_TOKEN]
+✅ Password patterns detected: password=secret → [PASSWORD_REDACTED]
+✅ .env values detected and filtered: [ENV_SECRET]
+```
+
+### Next Steps
+- BC-002: Output Filter Before Telegram Send (already implemented as part of BC-001)
+- BC-003: Regex patterns for secrets (complete, 50+ patterns)
+- BC-004: .env key detection (complete)
+- Continue with next priority task per prd.json priority_order
+
+---
