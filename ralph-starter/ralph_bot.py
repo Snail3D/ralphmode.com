@@ -476,6 +476,91 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.session_history: Dict[int, List[Dict]] = {}  # Full conversation history for Q&A
         self.last_ralph_moment: Dict[int, datetime] = {}  # Track when last Ralph moment happened
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
+        self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
+
+    # ==================== QUALITY METRICS TRACKING ====================
+
+    def init_quality_metrics(self, user_id: int):
+        """Initialize quality metrics tracking for a session."""
+        self.quality_metrics[user_id] = {
+            "tasks_identified": 0,
+            "tasks_completed": 0,
+            "code_snippets_provided": 0,
+            "actionable_items": [],
+            "issues_found": [],
+            "blockers_hit": 0,
+            "blockers_resolved": 0,
+            "session_start": datetime.now(),
+            "quality_checks_passed": 0,
+            "quality_checks_failed": 0
+        }
+
+    def track_task_identified(self, user_id: int, task_title: str, priority: str = "medium"):
+        """Track when a task is identified."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        self.quality_metrics[user_id]["tasks_identified"] += 1
+        self.quality_metrics[user_id]["actionable_items"].append({
+            "type": "task",
+            "title": task_title,
+            "priority": priority,
+            "status": "identified"
+        })
+
+    def track_task_completed(self, user_id: int, task_title: str):
+        """Track when a task is completed."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        self.quality_metrics[user_id]["tasks_completed"] += 1
+        # Update status in actionable items
+        for item in self.quality_metrics[user_id]["actionable_items"]:
+            if item.get("title") == task_title:
+                item["status"] = "completed"
+                break
+
+    def track_code_provided(self, user_id: int, language: str = "unknown"):
+        """Track when a code snippet is provided."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        self.quality_metrics[user_id]["code_snippets_provided"] += 1
+
+    def track_issue_found(self, user_id: int, issue: str, severity: str = "medium"):
+        """Track when an issue is identified."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        self.quality_metrics[user_id]["issues_found"].append({
+            "issue": issue,
+            "severity": severity,
+            "time": datetime.now().isoformat()
+        })
+
+    def track_quality_check(self, user_id: int, passed: bool):
+        """Track a quality check result."""
+        if user_id not in self.quality_metrics:
+            self.init_quality_metrics(user_id)
+        if passed:
+            self.quality_metrics[user_id]["quality_checks_passed"] += 1
+        else:
+            self.quality_metrics[user_id]["quality_checks_failed"] += 1
+
+    def get_quality_summary(self, user_id: int) -> str:
+        """Get a summary of quality metrics for the session."""
+        if user_id not in self.quality_metrics:
+            return "No quality metrics available."
+
+        m = self.quality_metrics[user_id]
+        completion_rate = 0
+        if m["tasks_identified"] > 0:
+            completion_rate = (m["tasks_completed"] / m["tasks_identified"]) * 100
+
+        summary = f"""📊 *Session Quality Metrics*
+
+Tasks: {m['tasks_completed']}/{m['tasks_identified']} completed ({completion_rate:.0f}%)
+Code snippets provided: {m['code_snippets_provided']}
+Issues identified: {len(m['issues_found'])}
+Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']} failed
+"""
+        return summary
 
     # ==================== SESSION HISTORY (Ralph remembers everything) ====================
 
@@ -973,6 +1058,98 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
         }
         return specialty_intros.get(worker_name, "a skilled developer")
 
+    def generate_actionable_output(self, task: str, context: str, worker_name: str = None) -> dict:
+        """Generate real, actionable output for a task.
+
+        Returns dict with:
+        - worker: name of worker who handled it
+        - summary: brief summary of what was done/recommended
+        - code: any code snippets (if applicable)
+        - next_steps: list of specific next actions
+        - files_affected: list of files to modify
+        """
+        if worker_name is None:
+            worker_name = self.pick_worker_for_task(task)
+
+        worker = self.DEV_TEAM[worker_name]
+
+        messages = [
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{worker['personality']}
+
+You need to provide ACTIONABLE output for a task. The CEO is paying for REAL value.
+
+YOUR OUTPUT MUST INCLUDE:
+1. A brief summary (1-2 sentences) of what you're recommending
+2. Specific next steps (numbered list, 3-5 items)
+3. If code is needed: ACTUAL code snippets, not pseudocode
+4. Files that would need to change
+
+Format your response as:
+SUMMARY: [1-2 sentences]
+
+CODE (if applicable):
+```[language]
+[actual working code]
+```
+
+NEXT STEPS:
+1. [specific action]
+2. [specific action]
+3. [specific action]
+
+FILES: [comma-separated list of files]
+
+Stay in character but prioritize USEFULNESS. The CEO should be able to take this and ACT on it."""},
+            {"role": "user", "content": f"Task: {task}\n\nContext: {context}"}
+        ]
+
+        response = self.call_groq(WORKER_MODEL, messages, max_tokens=600)
+
+        # Parse the response
+        result = {
+            "worker": worker_name,
+            "raw_response": response,
+            "summary": "",
+            "code": None,
+            "next_steps": [],
+            "files_affected": []
+        }
+
+        # Extract sections
+        lines = response.split('\n')
+        current_section = None
+        code_block = []
+        in_code = False
+
+        for line in lines:
+            if line.startswith("SUMMARY:"):
+                current_section = "summary"
+                result["summary"] = line.replace("SUMMARY:", "").strip()
+            elif line.startswith("CODE"):
+                current_section = "code"
+            elif line.startswith("```"):
+                if in_code:
+                    result["code"] = "\n".join(code_block)
+                    code_block = []
+                in_code = not in_code
+            elif in_code:
+                code_block.append(line)
+            elif line.startswith("NEXT STEPS:"):
+                current_section = "next_steps"
+            elif line.startswith("FILES:"):
+                current_section = "files"
+                files_str = line.replace("FILES:", "").strip()
+                result["files_affected"] = [f.strip() for f in files_str.split(",") if f.strip()]
+            elif current_section == "next_steps" and line.strip():
+                # Remove leading numbers and bullets
+                step = line.strip().lstrip("0123456789.-) ").strip()
+                if step:
+                    result["next_steps"].append(step)
+
+        return result
+
     def explain_simply(self, concept: str, worker_name: str = None) -> tuple:
         """Have a worker explain a complex concept simply for Ralph AND the CEO.
 
@@ -1116,12 +1293,22 @@ _He has a crayon-written report in his hands._
 
         await asyncio.sleep(2)
 
-        # Team reactions
+        # Include quality metrics summary
+        quality_summary = self.get_quality_summary(user_id)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=quality_summary,
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(1)
+
+        # Team reactions (using actual team member names)
         reactions = [
-            ("Jake", "Frontend Dev", "That was... actually pretty accurate, Ralphie. I mean sir."),
-            ("Dan", "Backend Dev", "Solid report, boss. Hooah."),
-            ("Maya", "UX Designer", "I love how you mentioned the user experience! *tears up*"),
-            ("Steve", "Senior Dev", "*nods* Not bad, kid. Not bad at all."),
+            ("Stool", "Frontend Dev", "That was... actually pretty accurate, Ralphie. I mean sir."),
+            ("Gomer", "Backend Dev", "Mmm, donuts would go great with that report. Good job boss!"),
+            ("Mona", "Tech Lead", "The data checks out. Surprisingly thorough analysis."),
+            ("Gus", "Senior Dev", "*sips coffee* Not bad, kid. I've seen worse. Much worse."),
         ]
 
         reaction = random.choice(reactions)
@@ -1139,6 +1326,7 @@ _He has a crayon-written report in his hands._
         # Closing with Q&A option
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔍 Dig Deeper - Ask Ralph Questions", callback_data="ask_ralph_mode")],
+            [InlineKeyboardButton("📊 View Quality Metrics", callback_data="view_metrics")],
             [InlineKeyboardButton("✅ Done - End Session", callback_data="end_session")],
         ])
 
@@ -1377,6 +1565,28 @@ Type your question now!
                     parse_mode="Markdown"
                 )
 
+        elif data == "view_metrics":
+            # Show detailed quality metrics
+            quality_summary = self.get_quality_summary(user_id)
+            metrics = self.quality_metrics.get(user_id, {})
+
+            # Build detailed view
+            detailed = f"""{quality_summary}
+
+*Actionable Items:*
+"""
+            for item in metrics.get("actionable_items", [])[:5]:
+                status_icon = "✅" if item.get("status") == "completed" else "⏳"
+                detailed += f"{status_icon} {item.get('title', 'Unknown')}\n"
+
+            if metrics.get("issues_found"):
+                detailed += "\n*Issues Found:*\n"
+                for issue in metrics["issues_found"][:3]:
+                    severity_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(issue.get("severity", "medium"), "🟡")
+                    detailed += f"{severity_icon} {issue.get('issue', 'Unknown')}\n"
+
+            await query.edit_message_text(detailed, parse_mode="Markdown")
+
         elif data == "end_session":
             session = self.active_sessions.get(user_id)
             if session:
@@ -1385,6 +1595,9 @@ Type your question now!
                 # Clear history too
                 if user_id in self.session_history:
                     del self.session_history[user_id]
+                # Clear quality metrics
+                if user_id in self.quality_metrics:
+                    del self.quality_metrics[user_id]
 
                 await query.edit_message_text(
                     f"""

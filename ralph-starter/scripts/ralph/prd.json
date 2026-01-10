@@ -574,7 +574,7 @@
         "Quality metrics tracked (task completion, accuracy)"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-037",
@@ -691,10 +691,94 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": false
+    },
+    {
+      "id": "RM-044",
+      "category": "Onboarding",
+      "title": "Interactive Loading Experience",
+      "description": "While code is being analyzed (takes time), use that time for interactive scene-building and info-gathering. Characters slowly enter, interact, and Ralph asks the user questions about goals.",
+      "acceptance_criteria": [
+        "Analysis runs in background while onboarding happens",
+        "Scene builds slowly - workers trickle in, get coffee, chat",
+        "Ralph asks questions one at a time (not overwhelming)",
+        "Use inline buttons for quick answers when possible",
+        "Conversation feels natural, not like a form",
+        "Groq handles onboarding chat (fast, parallel to analysis)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-045",
+      "category": "Onboarding",
+      "title": "Ralph's Discovery Questions",
+      "description": "Ralph asks Mr. Worms about the project during loading. Gathers context that informs the whole session.",
+      "acceptance_criteria": [
+        "Q1: 'What are we building here, Mr. Worms?'",
+        "Q2: 'What's the most importent thing to get right?'",
+        "Q3: 'Anything we should watch out for?'",
+        "Q4: 'How fast do you need this? Rush job or take our time?'",
+        "Store answers in session context",
+        "Questions adapt based on project type detected",
+        "Can skip with 'Just get started' button"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-046",
+      "category": "Onboarding",
+      "title": "Scene Building During Load",
+      "description": "While waiting, the office scene comes alive. Workers arrive, interact, get settled. Entertainment during loading.",
+      "acceptance_criteria": [
+        "Workers arrive one by one with entrance animations",
+        "Small talk: 'Morning!' 'Coffee's hot today' 'Traffic was brutal'",
+        "Background actions: getting coffee, checking emails, stretching",
+        "Ralph tries to look busy/important",
+        "Builds anticipation for the actual work",
+        "Messages spread out naturally (not all at once)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-047",
+      "category": "Onboarding",
+      "title": "Ralph Briefs the Team",
+      "description": "After gathering info from Mr. Worms, Ralph summarizes it for the team. Highlights key priorities and watch-outs in Ralph's voice.",
+      "acceptance_criteria": [
+        "Ralph calls team to attention: 'Okay everyone, listen up!'",
+        "Summarizes what Mr. Worms said (in Ralph's words, misspellings)",
+        "Highlights: 'The boss says the MOST importent thing is...'",
+        "Warnings: 'And we gotta watch out for...'",
+        "Workers react: 'Got it boss' / 'Makes sense' / 'Uh oh'",
+        "Sets the tone for the session based on CEO input"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-048",
+      "category": "Onboarding",
+      "title": "Parallel Processing Architecture",
+      "description": "Run Groq onboarding chat in parallel with code analysis. When both complete, merge context and begin work.",
+      "acceptance_criteria": [
+        "asyncio.gather() or similar for parallel execution",
+        "Onboarding: Groq-powered fast chat with user",
+        "Analysis: Code parsing runs simultaneously",
+        "Merge: User context + code context combined",
+        "Seamless transition from onboarding to work",
+        "If analysis finishes first, continue chat naturally"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
     }
   ],
 
   "priority_order": [
+    "RM-044 - Interactive loading (use wait time wisely!)",
+    "RM-045 - Discovery questions (gather context)",
+    "RM-046 - Scene building (entertainment during load)",
     "RM-034 - Work quality first (THE FOUNDATION)",
     "RM-035 - Smart workers (competence is core)",
     "RM-036 - Actionable output (real value)",
