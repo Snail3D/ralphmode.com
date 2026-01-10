@@ -821,7 +821,7 @@
         "Looks like styled chat, not a button menu"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-052",
@@ -839,7 +839,7 @@
         "Never feels repetitive or scripted"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     }
   ],
 

@@ -159,3 +159,50 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 7 - 2026-01-10
+**Task**: [RM-051] Conversation as Styled Buttons + [RM-052] Tap on Shoulder
+**Status**: ✅ Complete
+
+### What was implemented
+- Added message_store dict to __init__ for storing full messages keyed by ID
+- Created _generate_message_id() for unique callback IDs
+- Created _truncate_for_button() to preview messages in button text (max 40 chars)
+- Created store_message_for_tap() to store messages for later retrieval
+- Created create_styled_button_row() to render messages as inline buttons
+- Created send_styled_message() - the main method for character dialogue:
+  - Sends full formatted message with tappable button row
+  - Auto-calculates typing duration
+  - Falls back to plain text if buttons fail
+- Created generate_tap_response() with character-specific surprised reactions:
+  - Ralph: "You tapped me! That tickles my brain!"
+  - Stool: "Oh hey! What's up?" (chill)
+  - Gomer: "D'oh! You startled me!" (startled)
+  - Mona: "Oh! I was in the middle of analyzing..." (composed)
+  - Gus: "*nearly spills coffee* What is it?" (gruff)
+- Created handle_tap_on_shoulder() for button click handling:
+  - Worker turns around surprised
+  - Context-aware (knows topic they were discussing)
+  - Ralph might notice chain of command violation (20% chance)
+- Updated handle_callback() to route tap_ callbacks
+- Updated _start_ralph_session() to use styled messages:
+  - Team greetings
+  - Ralph's project review
+  - Worker's project explanation
+  - Ralph's token observations
+- Updated handle_text() Ralph: command responses
+- Updated deliver_ralph_report() team reactions
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Button + full message combo gives visual polish while keeping content visible
+- Tap on shoulder creates fun interactive moments without disrupting flow
+- Topic storage allows context-aware responses when tapped
+- 20% chain of command enforcement adds humor without being annoying
+- Character-specific reactions make each tap feel fresh
+- Memory management (100 message limit) prevents bloat in long sessions
+- Fallback to plain text ensures robustness
+
+---
+

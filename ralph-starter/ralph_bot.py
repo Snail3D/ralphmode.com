@@ -477,6 +477,303 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.last_ralph_moment: Dict[int, datetime] = {}  # Track when last Ralph moment happened
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
+        self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
+        self.message_counter = 0  # Counter for unique message IDs
+
+    # ==================== STYLED BUTTON MESSAGES ====================
+
+    def _generate_message_id(self) -> str:
+        """Generate a unique message ID for button callbacks."""
+        self.message_counter += 1
+        return f"msg_{self.message_counter}_{random.randint(1000, 9999)}"
+
+    def _truncate_for_button(self, text: str, max_len: int = 40) -> str:
+        """Truncate text to fit in a button, adding ellipsis if needed.
+
+        Args:
+            text: Full message text
+            max_len: Maximum characters for button text
+
+        Returns:
+            Truncated text with ellipsis if too long
+        """
+        # Remove markdown formatting for button display
+        clean_text = text.replace('*', '').replace('_', '').replace('`', '')
+        clean_text = ' '.join(clean_text.split())  # Normalize whitespace
+
+        if len(clean_text) <= max_len:
+            return clean_text
+        return clean_text[:max_len - 3] + "..."
+
+    def store_message_for_tap(self, name: str, title: str, message: str, topic: str = None) -> str:
+        """Store a message so it can be retrieved when user taps on it.
+
+        Args:
+            name: Character name (Ralph, Stool, etc.)
+            title: Character's job title
+            message: Full message content
+            topic: Optional topic for context-aware responses
+
+        Returns:
+            The message ID that can be used in callback_data
+        """
+        msg_id = self._generate_message_id()
+        self.message_store[msg_id] = {
+            "name": name,
+            "title": title,
+            "message": message,
+            "topic": topic,
+            "time": datetime.now().isoformat()
+        }
+        # Keep only last 100 messages to prevent memory bloat
+        if len(self.message_store) > 100:
+            oldest_keys = sorted(self.message_store.keys())[:50]
+            for key in oldest_keys:
+                del self.message_store[key]
+        return msg_id
+
+    def create_styled_button_row(self, name: str, title: str = None, message: str = "", topic: str = None) -> tuple:
+        """Create a styled button row for a character message.
+
+        This renders messages as tappable buttons that look like styled chat.
+        Tapping triggers "tap on shoulder" interaction.
+
+        Args:
+            name: Character name (Ralph, Stool, Gomer, Mona, Gus)
+            title: Optional job title
+            message: The message content
+            topic: Optional topic for context-aware tap responses
+
+        Returns:
+            Tuple of (button_text, InlineKeyboardMarkup, msg_id)
+        """
+        emoji = self.CHARACTER_COLORS.get(name, "⚪")
+        preview = self._truncate_for_button(message)
+
+        # Store the full message for tap retrieval
+        msg_id = self.store_message_for_tap(name, title, message, topic)
+
+        # Create button text: emoji + name + preview
+        button_text = f"{emoji} {name}: {preview}"
+
+        # Create keyboard with single button row
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(button_text, callback_data=f"tap_{msg_id}")]
+        ])
+
+        return (button_text, keyboard, msg_id)
+
+    async def send_styled_message(
+        self,
+        context,
+        chat_id: int,
+        name: str,
+        title: str = None,
+        message: str = "",
+        topic: str = None,
+        use_buttons: bool = True,
+        with_typing: bool = True
+    ) -> bool:
+        """Send a character message as a styled button or fallback to text.
+
+        This is the primary method for sending character dialogue.
+        Messages appear as tappable buttons that trigger "tap on shoulder"
+        interactions when clicked.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name (Ralph, Stool, Gomer, Mona, Gus)
+            title: Optional job title
+            message: The message content
+            topic: Optional topic for context-aware tap responses
+            use_buttons: Whether to use button styling (True) or plain text
+            with_typing: Whether to show typing indicator first
+
+        Returns:
+            True if sent successfully, False if fallback was used
+        """
+        # Show typing indicator if requested
+        if with_typing:
+            text_len = len(message) if message else 0
+            if text_len < 50:
+                typing_duration = random.uniform(0.3, 0.7)
+            elif text_len < 150:
+                typing_duration = random.uniform(0.7, 1.5)
+            else:
+                typing_duration = random.uniform(1.5, 2.5)
+            await self.send_typing(context, chat_id, typing_duration)
+
+        # Try button styling first
+        if use_buttons:
+            try:
+                _, keyboard, msg_id = self.create_styled_button_row(name, title, message, topic)
+
+                # Send the full formatted message with the button keyboard
+                full_text = self.format_character_message(name, title, message)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=full_text,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                return True
+            except Exception as e:
+                logger.warning(f"Button styling failed, falling back to text: {e}")
+
+        # Fallback to plain text formatting
+        try:
+            full_text = self.format_character_message(name, title, message)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=full_text,
+                parse_mode="Markdown"
+            )
+            return False
+        except Exception as e:
+            logger.error(f"Failed to send message: {e}")
+            # Last resort: send without markdown
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"{name}: {message}"
+                )
+            except:
+                pass
+            return False
+
+    def generate_tap_response(self, name: str, topic: str = None) -> str:
+        """Generate a fresh "tap on shoulder" response for a character.
+
+        When the CEO taps on a worker, they turn around surprised.
+        Each character responds differently based on their personality.
+
+        Args:
+            name: Character name who was tapped
+            topic: Optional topic they were discussing (for context)
+
+        Returns:
+            A fresh, character-appropriate surprised response
+        """
+        # Character-specific surprised reactions (varied, never canned)
+        reactions_by_character = {
+            "Ralph": [
+                "Oh! Hi! I was just thinking about butterflies!",
+                "You tapped me! That tickles my brain!",
+                "My cat does that too! But with claws!",
+                "Is it time for paste? I hope it's time for paste!",
+                "I saw you! With my eyes!",
+            ],
+            "Stool": [
+                "Oh hey! What's up?",
+                "Yo! Didn't see you there, boss.",
+                "Oh! Lowkey scared me for a sec.",
+                "Hey! Just vibing over here.",
+                "Oh snap! What's good?",
+            ],
+            "Gomer": [
+                "D'oh! You startled me!",
+                "Mmm? Oh! Hi there!",
+                "Woah! Didn't hear you coming!",
+                "Oh boy! Is it donut time?",
+                "Huh? Oh! Hey boss!",
+            ],
+            "Mona": [
+                "Oh! I was in the middle of analyzing something.",
+                "Hmm? Can I help you with something?",
+                "Oh, hello. I have some insights if you're interested.",
+                "Yes? I was just running some calculations.",
+                "Ah, you need something? I anticipated this.",
+            ],
+            "Gus": [
+                "*nearly spills coffee* What is it?",
+                "Huh? Oh. What do you need, kid?",
+                "*sighs* I was almost done with my coffee.",
+                "Yeah? What's the emergency now?",
+                "I've been doing this job longer than you've been alive. What is it?",
+            ],
+        }
+
+        reactions = reactions_by_character.get(name, ["Oh! You tapped me!"])
+        base_reaction = random.choice(reactions)
+
+        # Add topic context if available
+        if topic:
+            topic_additions = [
+                f" Were you curious about {topic}?",
+                f" I was just thinking about {topic}.",
+                f" Did you want to discuss {topic}?",
+            ]
+            if random.random() < 0.4:  # 40% chance to mention topic
+                base_reaction += random.choice(topic_additions)
+
+        return base_reaction
+
+    async def handle_tap_on_shoulder(self, query, context) -> None:
+        """Handle when CEO taps on a worker's message button.
+
+        This creates the "tap on shoulder" interaction - the worker
+        turns around surprised with a fresh, personality-driven response.
+
+        Args:
+            query: The callback query from button press
+            context: Telegram context
+        """
+        user_id = query.from_user.id
+        msg_id = query.data.replace("tap_", "")
+
+        # Retrieve the stored message
+        stored = self.message_store.get(msg_id)
+        if not stored:
+            await query.answer("That conversation has moved on!", show_alert=False)
+            return
+
+        name = stored.get("name", "Worker")
+        title = stored.get("title")
+        topic = stored.get("topic")
+        original_message = stored.get("message", "")
+
+        # Generate a fresh surprised response
+        tap_response = self.generate_tap_response(name, topic)
+
+        # Answer the callback to stop loading indicator
+        await query.answer()
+
+        # Send the tap response
+        chat_id = query.message.chat_id
+
+        # First, show they noticed
+        await self.send_typing(context, chat_id, random.uniform(0.3, 0.8))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_{name} turns around_",
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(random.uniform(0.3, 0.7))
+
+        # Then their response
+        await self.send_styled_message(
+            context, chat_id, name, title,
+            tap_response,
+            topic=topic,
+            with_typing=True
+        )
+
+        # Ralph might notice chain of command violation (20% chance)
+        if name != "Ralph" and random.random() < 0.2:
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+            ralph_notices = [
+                "Hey! Are you talking to my workers? That's MY job!",
+                "Ooh, are we having a meeting? I love meetings!",
+                "I saw that! I'm the boss so I see everything!",
+            ]
+            ralph_response = self.ralph_misspell(random.choice(ralph_notices))
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_response,
+                with_typing=True
+            )
 
     # ==================== CHARACTER FORMATTING ====================
 
@@ -1448,7 +1745,7 @@ _He has a crayon-written report in his hands._
 
         await asyncio.sleep(1)
 
-        # Team reactions (using actual team member names)
+        # Team reactions (using actual team member names) - with styled buttons
         reactions = [
             ("Stool", "Frontend Dev", "That was... actually pretty accurate, Ralphie. I mean sir."),
             ("Gomer", "Backend Dev", "Mmm, donuts would go great with that report. Good job boss!"),
@@ -1457,10 +1754,10 @@ _He has a crayon-written report in his hands._
         ]
 
         reaction = random.choice(reactions)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=self.format_character_message(reaction[0], reaction[1], reaction[2]),
-            parse_mode="Markdown"
+        await self.send_styled_message(
+            context, chat_id, reaction[0], reaction[1], reaction[2],
+            topic="report reaction",
+            with_typing=True
         )
 
         await asyncio.sleep(1)
@@ -1655,10 +1952,15 @@ _Drop a zip file to get started!_
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle button callbacks."""
         query = update.callback_query
-        await query.answer()
-
         user_id = query.from_user.id
         data = query.data
+
+        # Handle tap on shoulder (styled button messages)
+        if data.startswith("tap_"):
+            await self.handle_tap_on_shoulder(query, context)
+            return
+
+        await query.answer()
 
         if data == "generate_prd":
             await query.edit_message_text("🤖 Analyzing code and generating task list...")
@@ -1851,12 +2153,13 @@ _He looks around at his team with genuine excitement._
         )
         await asyncio.sleep(1)
 
-        # Each team member responds
+        # Each team member responds with styled buttons
         for name, worker in self.DEV_TEAM.items():
             greeting = worker['greeting']
-            await self.send_with_typing(
-                context, chat_id,
-                self.format_character_message(name, worker['title'], greeting)
+            await self.send_styled_message(
+                context, chat_id, name, worker['title'], greeting,
+                topic="introduction",
+                with_typing=True
             )
             await asyncio.sleep(0.3)
 
@@ -1888,9 +2191,10 @@ _The team nods in unison._
             "What do you think? Ask the team about it."
         )
 
-        await self.send_with_typing(
-            context, chat_id,
-            self.format_character_message("Ralph", message=boss_response)
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, boss_response,
+            topic="project review",
+            with_typing=True
         )
 
         # Maybe a Ralph GIF based on his mood
@@ -1916,9 +2220,10 @@ _The team nods in unison._
         # Track tokens
         self.track_tokens(user_id, token_count)
 
-        await self.send_with_typing(
-            context, chat_id,
-            self.format_character_message(name, title, worker_response)
+        await self.send_styled_message(
+            context, chat_id, name, title, worker_response,
+            topic="project explanation",
+            with_typing=True
         )
 
         # Maybe a worker GIF (office memes, NOT Ralph)
@@ -1930,9 +2235,10 @@ _The team nods in unison._
         ralph_observation = self.get_ralph_token_observation(user_id, token_count)
         if ralph_observation:
             await asyncio.sleep(1)
-            await self.send_with_typing(
-                context, chat_id,
-                self.format_character_message("Ralph", message=self.ralph_misspell(ralph_observation))
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, self.ralph_misspell(ralph_observation),
+                topic="word count",
+                with_typing=True
             )
             # Next time, workers will be more efficient!
             if token_count > 50:  # If it was a lot
@@ -1968,16 +2274,14 @@ _Grab some popcorn..._
         if text.lower().startswith("ralph:"):
             order = text[6:].strip()
 
-            # Show typing while Ralph thinks
-            await self.send_typing(context, update.effective_chat.id, 1.0)
-
             ralph_response = self.call_boss(
                 f"The CEO just told you: '{order}'. You're excited to help! Respond and let them know you'll handle it."
             )
 
-            await self.send_with_typing(
-                context, update.effective_chat.id,
-                self.format_character_message("Ralph", message=ralph_response)
+            await self.send_styled_message(
+                context, update.effective_chat.id, "Ralph", None, ralph_response,
+                topic=order[:30] if order else "CEO order",
+                with_typing=True
             )
 
             # Queue the order
