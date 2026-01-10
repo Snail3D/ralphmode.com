@@ -94,6 +94,14 @@ except ImportError:
     FEEDBACK_SCORER_AVAILABLE = False
     logging.warning("NT-001: Feedback scorer not available - feedback notifications will be limited")
 
+# SF-003: Import admin handler for override controls
+try:
+    from admin_handler import setup_admin_handlers
+    ADMIN_HANDLER_AVAILABLE = True
+except ImportError:
+    ADMIN_HANDLER_AVAILABLE = False
+    logging.warning("SF-003: Admin handler not available - admin commands disabled")
+
 # FB-002: Import subscription manager
 try:
     from subscription_manager import get_subscription_manager
@@ -5236,6 +5244,11 @@ Use `/version <type>` to switch!
         if GDPR_AVAILABLE:
             register_gdpr_handlers(app)
             print("✅ GDPR compliance handlers registered")
+
+        # SF-003: Register admin override controls
+        if ADMIN_HANDLER_AVAILABLE:
+            setup_admin_handlers(app)
+            print("✅ Admin override controls registered")
 
         print("🤖 Bot is running! Send /start in Telegram.")
         app.run_polling()

@@ -257,6 +257,12 @@ class BuildOrchestrator:
 
     def _poll_queue(self):
         """Poll the queue for high-priority items to build."""
+        # SF-003: Check if build loop is paused by admin
+        pause_file = Path('/tmp/ralph_build_paused.flag')
+        if pause_file.exists():
+            logger.debug("Build loop is paused by admin")
+            return
+
         # Skip if already building something
         if self.current_build:
             logger.debug("Build in progress, skipping poll")
