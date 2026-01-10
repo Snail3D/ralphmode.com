@@ -395,3 +395,39 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 13 - 2026-01-10
+**Task**: [RM-003] Priority Inline Buttons for CEO Orders
+**Status**: ✅ Complete
+
+### What was implemented
+- Updated handle_text() for Ralph: commands:
+  - Detects Ralph: prefix in messages
+  - Generates unique order_id for callback tracking
+  - Stores order in boss_queue with "pending" priority
+  - Ralph asks about priority in character with misspellings
+  - Shows 3 inline buttons:
+    - 🔥 "Do this FIRST!" (priority_first)
+    - 📋 "Add to list" (priority_normal)
+    - 💭 "Just a thought" (priority_low)
+- Created handle_priority_selection() callback handler:
+  - Parses callback data to get priority level and order_id
+  - Updates order's priority in boss_queue
+  - For "first" priority: moves order to front of queue
+  - Ralph reacts differently for each priority level:
+    - First: "DROP EVERYTHING! Like when my cat sees a bird!"
+    - Normal: "Added to the list! Like waiting in line for paste!"
+    - Low: "Okie dokie! I'll keep it in my brain pocket!"
+  - 50% chance for worker acknowledgment
+- Added priority routing to handle_callback()
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Unique order_id prevents callback conflicts for multiple orders
+- Moving high-priority to front of queue respects urgency
+- Worker acknowledgments add life to the interaction
+- "brain pocket" is very Ralph
+
+---
+

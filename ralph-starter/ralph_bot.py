@@ -1216,6 +1216,99 @@ class RalphBot:
             # All questions answered
             await self._finish_onboarding(context, chat_id, user_id)
 
+    async def handle_priority_selection(self, query, context, user_id: int, data: str):
+        """Handle CEO order priority button selection.
+
+        When CEO sends 'Ralph: [order]', Ralph asks about priority with buttons.
+        This handles the button click and stores the priority.
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User's ID
+            data: Callback data (e.g., "priority_first_order_123_4567")
+        """
+        chat_id = query.message.chat_id
+
+        # Parse the callback data: priority_LEVEL_ORDER_ID
+        parts = data.split("_", 2)  # ['priority', 'first/normal/low', 'order_id']
+        if len(parts) < 3:
+            await query.answer("Something went wrong!")
+            return
+
+        priority_level = parts[1]
+        order_id = parts[2]
+
+        # Find the order in boss_queue
+        order_text = None
+        if user_id in self.boss_queue:
+            for order in self.boss_queue[user_id]:
+                if order.get("order_id") == order_id:
+                    order["priority"] = priority_level
+                    order_text = order.get("order")
+                    break
+
+        await query.answer()
+
+        # Remove buttons
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except:
+            pass
+
+        # Ralph reacts based on priority level
+        if priority_level == "first":
+            ralph_reaction = self.ralph_misspell(
+                "FIRST PRIORITY! Got it! I'll tell the team to drop EVERYTHING! "
+                "This is like when my cat sees a bird - total focus!"
+            )
+            # Move to front of queue
+            if user_id in self.boss_queue and order_text:
+                # Find and move to front
+                for i, order in enumerate(self.boss_queue[user_id]):
+                    if order.get("order_id") == order_id:
+                        high_priority_order = self.boss_queue[user_id].pop(i)
+                        self.boss_queue[user_id].insert(0, high_priority_order)
+                        break
+
+        elif priority_level == "normal":
+            ralph_reaction = self.ralph_misspell(
+                "Added to the list! We'll get to it in order. "
+                "Like waiting in line for paste at school!"
+            )
+
+        else:  # low priority - just a thought
+            ralph_reaction = self.ralph_misspell(
+                "Okie dokie! I'll keep it in my brain pocket for later. "
+                "Sometimes my best ideas come from brain pockets!"
+            )
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_reaction,
+            topic="priority set",
+            with_typing=True
+        )
+
+        # If there's an active session, inform about the task
+        session = self.active_sessions.get(user_id)
+        if session and order_text:
+            # Optionally let a worker acknowledge
+            if random.random() < 0.5:  # 50% chance
+                worker = random.choice(list(self.DEV_TEAM.keys()))
+                worker_data = self.DEV_TEAM[worker]
+                acknowledgments = {
+                    "first": ["On it, boss!", "Dropping everything!", "Top priority, got it!"],
+                    "normal": ["Added to the backlog!", "We'll get there!", "Noted!"],
+                    "low": ["Keeping it in mind.", "Food for thought!", "Interesting idea..."],
+                }
+                ack = random.choice(acknowledgments.get(priority_level, ["Got it!"]))
+                await asyncio.sleep(self.timing.rapid_banter())
+                await self.send_styled_message(
+                    context, chat_id, worker, worker_data['title'], ack,
+                    topic="task acknowledgment",
+                    with_typing=True
+                )
+
     async def _finish_onboarding(self, context, chat_id: int, user_id: int, skipped: bool = False):
         """Finish onboarding and transition to analysis results.
 
@@ -3117,6 +3210,11 @@ _Drop a zip file to get started!_
             await self.handle_onboarding_answer(query, context, user_id, data)
             return
 
+        # Handle CEO order priority selection
+        if data.startswith("priority_"):
+            await self.handle_priority_selection(query, context, user_id, data)
+            return
+
         await query.answer()
 
         if data == "generate_prd":
@@ -3425,29 +3523,61 @@ _Grab some popcorn..._
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages."""
         user_id = update.effective_user.id
+        chat_id = update.effective_chat.id
         text = update.message.text
 
         # Check if addressing Ralph
         if text.lower().startswith("ralph:"):
             order = text[6:].strip()
 
-            ralph_response = self.call_boss(
-                f"The CEO just told you: '{order}'. You're excited to help! Respond and let them know you'll handle it."
+            if not order:
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None,
+                    self.ralph_misspell("You said my name but didn't say anything! My cat does that too!"),
+                    with_typing=True
+                )
+                return
+
+            # Store the order temporarily for priority selection
+            if user_id not in self.boss_queue:
+                self.boss_queue[user_id] = []
+
+            # Generate unique order ID for callback
+            order_id = f"order_{user_id}_{len(self.boss_queue[user_id])}_{random.randint(1000, 9999)}"
+
+            # Store order with pending priority
+            self.boss_queue[user_id].append({
+                "order": order,
+                "order_id": order_id,
+                "time": datetime.now().isoformat(),
+                "priority": "pending"  # Will be set by button click
+            })
+
+            # Ralph asks about priority with inline buttons
+            ralph_question = self.ralph_misspell(
+                f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
+                "This sounds importent! How importent is this?"
             )
 
             await self.send_styled_message(
-                context, update.effective_chat.id, "Ralph", None, ralph_response,
+                context, chat_id, "Ralph", None, ralph_question,
                 topic=order[:30] if order else "CEO order",
                 with_typing=True
             )
 
-            # Queue the order
-            if user_id not in self.boss_queue:
-                self.boss_queue[user_id] = []
-            self.boss_queue[user_id].append({
-                "order": order,
-                "time": datetime.now().isoformat()
-            })
+            # Show priority buttons
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔥 Do this FIRST!", callback_data=f"priority_first_{order_id}")],
+                [InlineKeyboardButton("📋 Add to list", callback_data=f"priority_normal_{order_id}")],
+                [InlineKeyboardButton("💭 Just a thought", callback_data=f"priority_low_{order_id}")],
+            ])
+
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="_Ralph looks at you expectantly, paste jar in hand._",
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
 
             return
 
