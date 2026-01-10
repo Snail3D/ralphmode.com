@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-Translation Engine - TL-002: Character Translation Engine
+Translation Engine - TL-002 & TL-003: Character Translation & Scene-Contextualized Output
 
-Translates user speech/text into theatrical Mr. Worms character actions and dialogue.
+TL-002: Translates user speech/text into theatrical Mr. Worms character actions and dialogue.
+TL-003: Formats ALL bot output within the established scene context.
+
 The user says X, the chat shows a scene-based theatrical version.
+Bot responses include actions, atmosphere, and stay within the fiction.
 
 This is THE CORE MAGIC of Ralph Mode - turning plain text into immersive fiction.
 """
@@ -240,6 +243,71 @@ Now translate user input into Mr. Worms theatrical scenes."""
         else:
             return "enters"
 
+    def format_scene_output(
+        self,
+        speaker: str,
+        message: str,
+        action: Optional[str] = None,
+        include_atmosphere: bool = False
+    ) -> str:
+        """
+        TL-003: Format bot output as scene description.
+
+        Args:
+            speaker: Who is speaking (Ralph, Stool, Gomer, etc.)
+            message: What they're saying
+            action: Optional action description
+            include_atmosphere: Whether to include atmospheric details
+
+        Returns:
+            Formatted scene output with actions and dialogue
+        """
+        parts = []
+
+        # Add atmospheric context if requested
+        if include_atmosphere:
+            scene_context = self._get_scene_context(None)
+            if scene_context.get('description'):
+                parts.append(f"_{scene_context['description']}_\n")
+
+        # Add action if provided
+        if action:
+            parts.append(f"*{action}*")
+
+        # Add speaker and dialogue
+        if message:
+            # If message already has formatting, use it as-is
+            if message.startswith('*') or message.startswith('_'):
+                parts.append(message)
+            else:
+                # Otherwise, format as dialogue with speaker
+                parts.append(f'"{message}"')
+                if parts[-2:] == []:  # If no action, add speaker tag
+                    parts[-1] = f"**{speaker}:** {parts[-1]}"
+
+        return "\n".join(parts)
+
+    def add_scene_atmosphere(self, message: str) -> str:
+        """
+        TL-003: Add atmospheric context to a message.
+
+        Args:
+            message: The message to enhance with atmosphere
+
+        Returns:
+            Message with atmospheric context prepended
+        """
+        scene_context = self._get_scene_context(None)
+
+        # Only add atmosphere if we have description
+        if not scene_context.get('description'):
+            return message
+
+        # Atmospheric prefix
+        atmosphere = f"_{scene_context['description']}_\n\n"
+
+        return atmosphere + message
+
 
 # Global instance
 _translation_engine = None
@@ -271,6 +339,42 @@ def translate_to_scene(
     """
     engine = get_translation_engine()
     return engine.translate_to_scene(user_input, tone, context)
+
+
+def format_scene_output(
+    speaker: str,
+    message: str,
+    action: Optional[str] = None,
+    include_atmosphere: bool = False
+) -> str:
+    """
+    TL-003: Format bot output as scene description (convenience function).
+
+    Args:
+        speaker: Who is speaking (Ralph, Stool, etc.)
+        message: What they're saying
+        action: Optional action description
+        include_atmosphere: Whether to include atmospheric details
+
+    Returns:
+        Formatted scene output
+    """
+    engine = get_translation_engine()
+    return engine.format_scene_output(speaker, message, action, include_atmosphere)
+
+
+def add_scene_atmosphere(message: str) -> str:
+    """
+    TL-003: Add atmospheric context to a message (convenience function).
+
+    Args:
+        message: The message to enhance
+
+    Returns:
+        Message with atmosphere
+    """
+    engine = get_translation_engine()
+    return engine.add_scene_atmosphere(message)
 
 
 if __name__ == "__main__":

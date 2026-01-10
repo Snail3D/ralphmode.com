@@ -47,13 +47,18 @@ except ImportError:
     SCENE_MANAGER_AVAILABLE = False
     logging.warning("SS-001: Scene manager not available - using simple opening")
 
-# TL-002: Import translation engine for character translation
+# TL-002 & TL-003: Import translation engine for character translation and scene output
 try:
-    from translation_engine import translate_to_scene, get_translation_engine
+    from translation_engine import (
+        translate_to_scene,
+        format_scene_output,
+        add_scene_atmosphere,
+        get_translation_engine
+    )
     TRANSLATION_ENGINE_AVAILABLE = True
 except ImportError:
     TRANSLATION_ENGINE_AVAILABLE = False
-    logging.warning("TL-002: Translation engine not available - user input won't be translated to scenes")
+    logging.warning("TL-002/TL-003: Translation engine not available - theatrical formatting disabled")
 
 # BC-001: Import sanitizer for broadcast-safe output
 try:
