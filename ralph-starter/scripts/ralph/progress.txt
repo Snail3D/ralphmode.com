@@ -5929,3 +5929,35 @@ if health.status == HealthStatus.CRITICAL:
 ```
 
 ---
+
+## Iteration 89 - 2026-01-10
+**Task**: [SF-003] Admin Override Controls
+**Status**: ✅ Complete
+
+### What was implemented
+- Created admin_handler.py with 6 admin commands:
+  - /admin pause - Stops build loop by creating pause flag file
+  - /admin resume - Resumes build loop and resets circuit breaker
+  - /admin deploy FB-XXX - Force deploys specific feedback item
+  - /admin rollback - Reverts to previous deployed version
+  - /admin prioritize FB-XXX - Boosts priority to 9.5 (high priority)
+  - /admin reject FB-XXX - Rejects and removes item from queue
+- Admin authorization via TELEGRAM_ADMIN_ID environment variable
+- Integration with existing deploy_manager, circuit_breaker, and feedback_queue
+- Added pause flag check in build_orchestrator._poll_queue() to honor admin pause
+
+### Files changed
+- admin_handler.py (new)
+- ralph_bot.py (import and handler registration)
+- build_orchestrator.py (pause flag check)
+- prd.json (marked SF-003 as complete)
+
+### Learnings
+- Admin commands need clear authorization checks to prevent unauthorized access
+- Pause flag file pattern is simple but effective for controlling daemon processes
+- Integration with existing circuit_breaker allows resume to also reset circuit state
+- All admin commands provide clear feedback with emojis for better UX
+- Force deploy bypasses queue but still goes through normal deploy_manager flow
+- Priority boost to 9.5 ensures item is next in queue (threshold is 7.0 for high priority)
+
+---
