@@ -2598,6 +2598,37 @@ class RalphBot:
 
         return ' '.join(result)
 
+    def _detect_text_tone(self, text: str) -> str:
+        """
+        VO-001: Detect emotional tone from text for scene translation.
+
+        Args:
+            text: User's text input
+
+        Returns:
+            Tone string: 'urgent', 'frustrated', 'pleased', 'calm', 'questioning'
+        """
+        text_lower = text.lower()
+
+        # Check for urgent indicators
+        if any(word in text_lower for word in ['asap', 'urgent', 'immediately', 'now', 'quick', 'fast', '!!!', '!!']):
+            return 'urgent'
+
+        # Check for frustration
+        if any(word in text_lower for word in ['why', 'broken', 'doesn\'t work', 'not working', 'issue', 'problem', 'bug', 'error']):
+            return 'frustrated'
+
+        # Check for positive sentiment
+        if any(word in text_lower for word in ['great', 'good', 'excellent', 'nice', 'perfect', 'thanks', 'love', 'awesome']):
+            return 'pleased'
+
+        # Check for questions
+        if '?' in text or text_lower.startswith(('what', 'how', 'why', 'when', 'where', 'who', 'can', 'could', 'would', 'should')):
+            return 'questioning'
+
+        # Default to calm
+        return 'calm'
+
     # ==================== QUALITY METRICS TRACKING ====================
 
     def init_quality_metrics(self, user_id: int):
@@ -4488,7 +4519,7 @@ _Grab some popcorn..._
         )
 
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle text messages."""
+        """Handle text messages - VO-001: Admin/Power Users can type, gets translated to scene."""
         user_id = update.effective_user.id
         telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
@@ -4507,6 +4538,63 @@ _Grab some popcorn..._
                 text, feedback_type
             )
             return
+
+        # VO-001: Check if user can type text (admin/owner or Tier 1/2)
+        can_type_text = False
+        user_tier = None
+
+        # Check if admin/owner
+        if TELEGRAM_ADMIN_ID and str(telegram_id) == str(TELEGRAM_ADMIN_ID):
+            can_type_text = True
+            user_tier = 1  # Mr. Worms (admin/owner)
+        # Check subscription tier for Power Users
+        elif DATABASE_AVAILABLE:
+            try:
+                with get_db() as db:
+                    user_obj = db.query(User).filter(User.telegram_id == telegram_id).first()
+                    if user_obj:
+                        # Tier 1 = admin/owner (already checked above)
+                        # Tier 2 = Power Users (priority, enterprise subscriptions)
+                        if user_obj.subscription_tier in ["priority", "enterprise"]:
+                            can_type_text = True
+                            user_tier = 2  # Power User
+            except Exception as e:
+                logging.error(f"VO-001: Error checking user tier: {e}")
+
+        # VO-001: If user can type text and didn't start with "Ralph:", translate to scene
+        # This makes text input theatrical like voice input would be
+        if can_type_text and not text.lower().startswith("ralph:"):
+            # Translate text to theatrical scene using translation engine
+            if TRANSLATION_ENGINE_AVAILABLE:
+                try:
+                    # Detect emotional tone from text
+                    tone = self._detect_text_tone(text)
+
+                    # Translate to scene
+                    scene_text = translate_to_scene(text, tone=tone)
+
+                    # Delete original message (optional - makes it feel more theatrical)
+                    # Comment this out if we want to keep the original
+                    try:
+                        await update.message.delete()
+                    except Exception as e:
+                        logging.warning(f"VO-001: Could not delete original message: {e}")
+
+                    # Send the theatrical version
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=scene_text,
+                        parse_mode="Markdown"
+                    )
+
+                    logging.info(f"VO-001: Translated text to scene for tier {user_tier} user")
+                except Exception as e:
+                    logging.error(f"VO-001: Failed to translate text to scene: {e}")
+                    # If translation fails, just continue with normal text handling
+
+            # Now treat the translated text as if it was a "Ralph:" command
+            # Extract the actual directive from the original text for processing
+            text = f"Ralph: {text}"
 
         # Check if addressing Ralph
         if text.lower().startswith("ralph:"):
