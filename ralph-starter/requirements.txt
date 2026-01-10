@@ -20,5 +20,8 @@ requests>=2.31.0
 # Rate Limiting (SEC-011)
 redis>=5.0.0
 
+# Input Validation (SEC-012)
+pydantic>=2.5.0
+
 # Development
 python-dotenv>=1.0.0
