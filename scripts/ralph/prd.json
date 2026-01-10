@@ -100,7 +100,7 @@
         "Zip is under 1MB"
       ],
       "files_likely_modified": [],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-4.1",
