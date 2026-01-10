@@ -240,6 +240,7 @@ class User(Base):
     last_name = Column(String(255), nullable=True)
     subscription_tier = Column(String(50), default="free")  # free, builder, priority, enterprise
     access_tier = Column(Integer, default=4)  # MU-001: User tier (1=Owner, 2=Power, 3=Chatter, 4=Viewer)
+    assigned_character = Column(String(100), nullable=True)  # MU-003: Springfield character assignment
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_banned = Column(Boolean, default=False)

@@ -184,6 +184,14 @@ except ImportError:
     USER_MANAGER_AVAILABLE = False
     logging.warning("MU-001: User manager not available - tier system disabled")
 
+# MU-003: Import character manager for user character assignment
+try:
+    from character_manager import get_character_manager, SPRINGFIELD_CHARACTERS
+    CHARACTER_MANAGER_AVAILABLE = True
+except ImportError:
+    CHARACTER_MANAGER_AVAILABLE = False
+    logging.warning("MU-003: Character manager not available - character assignment disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -766,6 +774,13 @@ class RalphBot:
             logging.info("MU-001: User tier system initialized")
         else:
             self.user_manager = None
+
+        # MU-003: Initialize character manager for character assignment
+        if CHARACTER_MANAGER_AVAILABLE:
+            self.character_manager = get_character_manager()
+            logging.info("MU-003: Character manager initialized")
+        else:
+            self.character_manager = None
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
