@@ -1371,6 +1371,86 @@ class RalphBot:
                     with_typing=True
                 )
 
+    async def handle_feedback_type_selection(self, query, context, user_id: int, data: str):
+        """FB-003: Handle feedback type selection and collect type-specific fields.
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User's ID
+            data: Callback data (e.g., "feedback_type_bug_report")
+        """
+        chat_id = query.message.chat_id
+        telegram_id = query.from_user.id
+
+        # Parse feedback type from callback data
+        feedback_type = data.replace("feedback_type_", "")
+
+        await query.answer()
+
+        # Store the feedback type in user_data for later use
+        context.user_data['feedback_type'] = feedback_type
+        context.user_data['feedback_state'] = 'awaiting_content'
+
+        # Remove the type selection buttons
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except:
+            pass
+
+        # FB-003: Show type-specific prompts
+        prompts = {
+            "bug_report": self.ralph_misspell(
+                "Ooh a bug! Those are tricky! Tell me:\n\n"
+                "1️⃣ What did you try to do?\n"
+                "2️⃣ What happened instead?\n"
+                "3️⃣ What should have happened?\n\n"
+                "Just type it all out and I'll make sure the team knows! "
+                "You can also send a screenshot if that helps!"
+            ),
+            "feature_request": self.ralph_misspell(
+                "A new feture! I love new fetures! Tell me:\n\n"
+                "1️⃣ What do you want to be able to do?\n"
+                "2️⃣ Why would this be helpful?\n\n"
+                "Type your idea and I'll tell the team! My cat's breath smells like cat food!"
+            ),
+            "enhancement": self.ralph_misspell(
+                "Making something better! That's so smart! Tell me:\n\n"
+                "1️⃣ What exists now?\n"
+                "2️⃣ How should it be better?\n\n"
+                "Just type it out! I'm learnding!"
+            ),
+            "ux_issue": self.ralph_misspell(
+                "UX means 'User Xperience' I think! Tell me:\n\n"
+                "1️⃣ What part of the app is confusing or hard to use?\n"
+                "2️⃣ What would make it easier?\n\n"
+                "Type your thoughts and I'll pass them along! I bent my wookie!"
+            ),
+            "performance": self.ralph_misspell(
+                "Performance means making things fast! I like fast! Tell me:\n\n"
+                "1️⃣ What is slow?\n"
+                "2️⃣ When does it happen?\n\n"
+                "Type the details! My nose makes its own sauce!"
+            ),
+            "other": self.ralph_misspell(
+                "Other feedbak! That's okay! Sometimes the best ideas don't fit in boxes! "
+                "Just tell me what you're thinking and I'll make sure the team hears it!\n\n"
+                "Type away!"
+            )
+        }
+
+        prompt_text = prompts.get(feedback_type, prompts["other"])
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, prompt_text,
+            topic=f"feedback {feedback_type} prompt",
+            with_typing=True
+        )
+
+        # Maybe send a GIF to keep things fun
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "thinking")
+
     async def _finish_onboarding(self, context, chat_id: int, user_id: int, skipped: bool = False):
         """Finish onboarding and transition to analysis results.
 
@@ -3648,6 +3728,11 @@ _Drop a zip file to get started!_
             await self.handle_priority_selection(query, context, user_id, data)
             return
 
+        # FB-003: Handle feedback type selection
+        if data.startswith("feedback_type_"):
+            await self.handle_feedback_type_selection(query, context, user_id, data)
+            return
+
         await query.answer()
 
         if data == "generate_prd":
@@ -3956,8 +4041,23 @@ _Grab some popcorn..._
     async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages."""
         user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         text = update.message.text
+
+        # FB-003: Check if user is in feedback collection mode
+        if context.user_data.get('feedback_state') == 'awaiting_content':
+            feedback_type = context.user_data.get('feedback_type')
+
+            # Clear the feedback state
+            context.user_data['feedback_state'] = None
+
+            # Process the feedback
+            await self._process_feedback_submission(
+                update, context, user_id, telegram_id, chat_id,
+                text, feedback_type
+            )
+            return
 
         # Check if addressing Ralph
         if text.lower().startswith("ralph:"):
@@ -4156,6 +4256,119 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
 
+    async def _process_feedback_submission(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE,
+        user_id: int, telegram_id: int, chat_id: int,
+        content: str, feedback_type: str
+    ):
+        """FB-003: Process feedback submission with type-specific storage.
+
+        Args:
+            update: Telegram update
+            context: Telegram context
+            user_id: User ID
+            telegram_id: Telegram ID
+            chat_id: Chat ID
+            content: Feedback content
+            feedback_type: Type of feedback (bug_report, feature_request, etc.)
+        """
+        if not FEEDBACK_COLLECTOR_AVAILABLE:
+            await update.message.reply_text(
+                "Feedback collection is currently unavailable. Please try again later.",
+                parse_mode="Markdown"
+            )
+            return
+
+        # FB-002: Check subscription tier before accepting feedback
+        if SUBSCRIPTION_MANAGER_AVAILABLE:
+            sub_manager = get_subscription_manager()
+            can_submit, tier_name, weight = sub_manager.can_submit_feedback(telegram_id)
+
+            if not can_submit:
+                # User is Viewer tier - show upgrade prompt
+                upgrade_prompt = self.ralph_misspell(
+                    "Oh wait! My boss is saying only Builders can give feedbak! "
+                    "You need to upgrade to be a Builder! Use /subscribe to see how!"
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, upgrade_prompt,
+                    topic="subscription gate",
+                    with_typing=True
+                )
+                upgrade_msg = sub_manager.get_upgrade_message("free")
+                await update.message.reply_text(upgrade_msg, parse_mode="Markdown")
+                return
+
+        # Show typing indicator
+        await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+        # FB-002: Get feedback weight based on subscription tier
+        feedback_weight = 1.0
+        if SUBSCRIPTION_MANAGER_AVAILABLE:
+            sub_manager = get_subscription_manager()
+            feedback_weight = sub_manager.get_feedback_weight(telegram_id)
+
+        # Collect the feedback
+        collector = get_feedback_collector(self.groq_api_key)
+
+        # FB-003: Store feedback with selected type
+        feedback_id = await collector.collect_text_feedback(
+            user_id=user_id,
+            telegram_id=telegram_id,
+            content=content,
+            feedback_type=feedback_type,
+            metadata={"source": "interactive", "type": feedback_type},
+            weight=feedback_weight
+        )
+
+        if feedback_id:
+            # Success! Ralph confirms receipt in-character with type-specific response
+            type_names = {
+                "bug_report": "bug report",
+                "feature_request": "feture request",
+                "enhancement": "enhancement idea",
+                "ux_issue": "UX feedbak",
+                "performance": "performance feedbak",
+                "other": "feedbak"
+            }
+
+            type_name = type_names.get(feedback_type, "feedbak")
+
+            confirmations = [
+                f"Ooh! I got your {type_name}! I wrote it down in my special notebook! "
+                f"Feedback #{feedback_id}. My cat's breath smells like cat food!",
+
+                f"I'm learnding about your {type_name}! I'll tell the team right away! "
+                f"This is feedback number {feedback_id}!",
+
+                f"Yay! {type_name.title()}! I'll put this in the importent pile! "
+                f"Your feedback is #{feedback_id}. I dressed myself today!",
+            ]
+
+            ralph_response = self.ralph_misspell(random.choice(confirmations))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_response,
+                topic="feedback received",
+                with_typing=True
+            )
+
+            # Maybe send a GIF
+            if self.should_send_gif():
+                await self.send_ralph_gif(context, chat_id, "happy")
+
+        else:
+            # Failed to store feedback
+            error_response = self.ralph_misspell(
+                "Uh oh! I tried to write it down but my pencil broke! "
+                "Can you try again? My brain hurts a little."
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_response,
+                topic="feedback error",
+                with_typing=True
+            )
+
     async def feedback_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /feedback command - Collect user feedback for RLHF loop (FB-001)."""
         if not FEEDBACK_COLLECTOR_AVAILABLE:
@@ -4173,18 +4386,38 @@ _Grab some popcorn..._
         feedback_text = " ".join(context.args) if context.args else None
 
         if not feedback_text:
-            # No feedback provided - show help
+            # FB-003: Show feedback type selection with inline buttons
             help_text = self.ralph_misspell(
-                "Ooh! You want to give feedbak? That's so nice! Here's how:\n\n"
-                "📝 Text: `/feedback Your bug or feature idea here`\n"
-                "🎤 Voice: Send me a voice message after typing `/feedback`\n"
-                "📸 Screenshot: Send me a picture with `/feedback` in the caption\n\n"
-                "I'll make sure the team hears about it! My cat would be so proud!"
+                "Ooh! You want to give feedbak? That's so nice! What kind of feedbak do you have?\n\n"
+                "Pick one of the buttons below and I'll help you tell us all about it!"
             )
+
+            # FB-003: Inline buttons for feedback type selection
+            keyboard = [
+                [
+                    InlineKeyboardButton("🐛 Bug Report", callback_data="feedback_type_bug_report"),
+                    InlineKeyboardButton("✨ Feature Request", callback_data="feedback_type_feature_request")
+                ],
+                [
+                    InlineKeyboardButton("⚡ Enhancement", callback_data="feedback_type_enhancement"),
+                    InlineKeyboardButton("🎨 UX Issue", callback_data="feedback_type_ux_issue")
+                ],
+                [
+                    InlineKeyboardButton("🚀 Performance", callback_data="feedback_type_performance"),
+                    InlineKeyboardButton("💬 Other", callback_data="feedback_type_other")
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
             await self.send_styled_message(
                 context, chat_id, "Ralph", None, help_text,
-                topic="feedback help",
+                topic="feedback type selection",
                 with_typing=True
+            )
+
+            await update.message.reply_text(
+                "Pick a feedbak type:",
+                reply_markup=reply_markup
             )
             return
 
