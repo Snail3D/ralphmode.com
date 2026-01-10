@@ -640,6 +640,20 @@ def change_user_role(target_user_id):
     })
 
 
+@app.route('/health', methods=['GET'])
+def simple_health_check():
+    """
+    DP-001: Simple health check endpoint for deployment monitoring.
+
+    No rate limiting on this endpoint to allow frequent health checks.
+    """
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'ralph-mode-bot'
+    })
+
+
 @app.route('/api/health', methods=['GET'])
 @rate_limit_ip()  # SEC-011: Global rate limit
 def health_check():

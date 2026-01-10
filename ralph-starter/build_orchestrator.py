@@ -38,6 +38,9 @@ from feedback_queue import get_feedback_queue
 # TS-001: Import test runner
 from test_runner import TestRunner, TestResult
 
+# DP-001: Import deploy manager
+from deploy_manager import DeployManager, DeploymentResult
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -100,6 +103,9 @@ class BuildOrchestrator:
 
         # TS-001: Initialize test runner
         self.test_runner = TestRunner()
+
+        # DP-001: Initialize deploy manager
+        self.deploy_manager = DeployManager()
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -502,8 +508,25 @@ class BuildOrchestrator:
                     feedback.consecutive_failures = 0
                     db.commit()
 
+            # DP-001: Deploy to staging on test pass
+            logger.info(f"Deploying to staging for feedback_id={context.feedback_id}")
+            deploy_result = self.deploy_manager.deploy_to_staging(context.feedback_id)
+
+            if not deploy_result.success:
+                logger.error(f"Staging deployment FAILED: {deploy_result.error_message}")
+                # Treat deployment failure as build failure
+                self._handle_build_failure(context, db, f"Staging deployment failed: {deploy_result.error_message}")
+                return
+
+            logger.info(
+                f"Staging deployment SUCCESS for feedback_id={context.feedback_id} "
+                f"at {deploy_result.staging_url}"
+            )
+
+            # DP-001: Auto-promote to canary if healthy (future: DP-002)
+            # For now, just mark as deployed to staging
             queue = get_feedback_queue(db)
-            queue.update_status(context.feedback_id, "testing")
+            queue.update_status(context.feedback_id, "deployed_staging")
 
             self.builds_completed += 1
             self.current_build = None

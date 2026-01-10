@@ -4901,3 +4901,48 @@ python build_orchestrator.py
 - Future enhancements could include: test result caching, parallel test execution, incremental test running
 
 ---
+
+## Iteration N - 2026-01-10
+**Task**: [DP-001] Staging Deployment
+**Status**: ✅ Complete
+
+### What was implemented
+- Created deploy_manager.py with full staging deployment pipeline
+- Auto-deploy passing builds to staging environment on test pass
+- Health check system with retry logic and timeout handling
+- Integration test runner that executes tests against staging
+- Automatic service restart on staging server via SSH
+- rsync-based artifact deployment to remote staging server
+- Added /health endpoint to api_server.py for deployment monitoring
+- Integrated staging deployment into build_orchestrator.py
+- Created comprehensive test suite (test_deploy_manager.py) with 20+ unit tests
+
+### Files changed
+- deploy_manager.py (new file)
+- build_orchestrator.py (integrated staging deployment)
+- api_server.py (added /health endpoint)
+- test_deploy_manager.py (new test file)
+
+### Learnings
+- Staging deployment happens automatically after tests pass, before manual review
+- Health checks with retry logic (3 attempts, 5 second delays) ensure service stability
+- Integration tests run against the live staging URL to verify real-world functionality
+- Deployment failures are treated as build failures with priority reduction
+- rsync is preferred over scp for efficient file transfers with --delete flag
+- Simple /health endpoint (no rate limiting) allows frequent monitoring without hitting limits
+- SSH-based deployment requires proper key setup for passwordless authentication
+- All 20 unit tests pass, validating the deployment pipeline logic
+- Staging URL is configurable via STAGING_HOST and STAGING_PORT environment variables
+
+### Architecture notes
+- DeployManager is a standalone service that can be used independently
+- Staging deployment consists of 6 steps: prepare, deploy, restart, wait, health check, integration tests
+- Health checks default to 30 second timeout with 3 retries
+- Integration tests default to 5 minute (300 second) timeout
+- Deployment artifacts are created in /tmp/deploy_{feedback_id} for isolation
+- Service restart uses pkill + nohup pattern for background process management
+- Auto-promotion to canary (DP-002) is noted for future implementation
+- Deployment result includes: success status, URLs, health/test status, timestamps, version
+- Future enhancements: blue-green deployment, rollback automation, deployment metrics dashboard
+
+---
