@@ -3798,7 +3798,7 @@
         "cloudflare_config.json",
         "infrastructure/*"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-015",
