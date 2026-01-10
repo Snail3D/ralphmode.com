@@ -377,6 +377,87 @@ class DuplicateDetector:
         """
         return f"Feedback #{feedback_id}"
 
+    def check_already_fixed(
+        self,
+        content: str,
+        user_version: Optional[str] = None
+    ) -> Tuple[bool, Optional[str], Optional[str], float]:
+        """
+        DD-003: Check if feedback describes an issue already fixed in recent versions.
+
+        Uses semantic similarity to compare feedback against changelog entries.
+        If a match is found, the feedback should be closed and user notified.
+
+        Args:
+            content: Feedback content to check
+            user_version: User's current version (if known)
+
+        Returns:
+            Tuple of (is_fixed, version_fixed_in, fix_description, similarity_score)
+        """
+        try:
+            from version_manager import get_already_fixed_detector
+
+            # Get the already-fixed detector (it will use this DuplicateDetector for embeddings)
+            fixed_detector = get_already_fixed_detector(duplicate_detector=self)
+
+            return fixed_detector.check_already_fixed(content, user_version)
+
+        except ImportError:
+            logger.error("DD-003: version_manager module not available")
+            return (False, None, None, 0.0)
+        except Exception as e:
+            logger.error(f"DD-003: Error checking already-fixed status: {e}")
+            return (False, None, None, 0.0)
+
+    def mark_as_already_fixed(
+        self,
+        feedback_id: int,
+        version_fixed: str,
+        fix_description: str,
+        similarity_score: float
+    ) -> Tuple[bool, str]:
+        """
+        DD-003: Mark feedback as already fixed and close it.
+
+        Args:
+            feedback_id: ID of the feedback to mark
+            version_fixed: Version where issue was fixed
+            fix_description: Description of the fix from changelog
+            similarity_score: Similarity score for transparency
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            with get_db() as db:
+                feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+
+                if not feedback:
+                    return (False, f"Feedback {feedback_id} not found")
+
+                # Update feedback status
+                feedback.status = "rejected"
+                feedback.rejection_reason = (
+                    f"DD-003: Already fixed in version {version_fixed}. "
+                    f"Fix: {fix_description} "
+                    f"(similarity: {similarity_score:.2f})"
+                )
+                feedback.rejected_at = datetime.utcnow()
+                feedback.updated_at = datetime.utcnow()
+
+                db.commit()
+
+                logger.info(
+                    f"DD-003: Marked feedback {feedback_id} as already fixed in v{version_fixed}"
+                )
+
+                return (True, f"Feedback closed - issue already fixed in v{version_fixed}")
+
+        except Exception as e:
+            logger.error(f"DD-003: Failed to mark feedback as already fixed: {e}")
+            return (False, f"Failed to update feedback: {str(e)}")
+
     def preload_embeddings(self, limit: int = 1000):
         """
         Preload embeddings for recent feedback into cache.
@@ -486,5 +567,45 @@ if __name__ == "__main__":
                 print("❌ Failed to generate test embeddings")
         else:
             print("❌ Failed to generate embedding")
+
+    print("\n" + "=" * 60)
+    print("DD-003: Already Fixed Detection Test")
+    print("=" * 60)
+
+    if not detector.api_key:
+        print("\n⚠️  No Groq API key - cannot test DD-003")
+    else:
+        print("\n✅ Testing already-fixed detection...")
+
+        # Test feedback that should match a fixed issue
+        test_feedback = "The spam filter keeps flagging legitimate feedback as spam"
+        print(f"\nTest feedback: '{test_feedback}'")
+
+        is_fixed, version, fix_desc, similarity = detector.check_already_fixed(
+            test_feedback,
+            user_version="0.2.0"
+        )
+
+        if is_fixed:
+            print(f"\n✅ Detected as already fixed!")
+            print(f"   Version: {version}")
+            print(f"   Fix: {fix_desc}")
+            print(f"   Similarity: {similarity:.2f}")
+
+            # Test the notification message
+            try:
+                from version_manager import get_already_fixed_detector
+                fixed_detector = get_already_fixed_detector(duplicate_detector=detector)
+                print(f"\nNotification message:")
+                print("-" * 60)
+                print(fixed_detector.generate_notification_message(
+                    version, fix_desc, "0.2.0", similarity
+                ))
+                print("-" * 60)
+            except ImportError:
+                pass
+        else:
+            print(f"\n❌ Not detected as already fixed (best similarity: {similarity:.2f})")
+            print("   This might be a new issue or threshold needs adjustment")
 
     print("\n" + "=" * 60)

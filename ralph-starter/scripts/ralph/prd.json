@@ -3071,7 +3071,7 @@
         "duplicate_detector.py",
         "version_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "PR-001",
