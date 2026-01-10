@@ -33,7 +33,7 @@
         "Consistent throughout entire session"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-003",
@@ -805,10 +805,46 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": false
+    },
+    {
+      "id": "RM-051",
+      "category": "Visual Polish",
+      "title": "Conversation as Styled Buttons",
+      "description": "Render conversation messages as inline keyboard buttons for visual styling. Each message is a button row. More polished than plain text, user doesn't realize they're buttons.",
+      "acceptance_criteria": [
+        "Each message rendered as inline button row",
+        "Button text: '[Name]: message preview...'",
+        "Different visual feel per character",
+        "Clicking expands full message or shows options",
+        "Falls back to text if buttons fail",
+        "Experiment with button sizing for readability",
+        "Looks like styled chat, not a button menu"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "RM-052",
+      "category": "Visual Polish",
+      "title": "Tap on Shoulder Interaction",
+      "description": "Clicking a worker's message = tapping them on shoulder. They turn around surprised with VARIED fresh responses - never canned.",
+      "acceptance_criteria": [
+        "Click worker message = tap on shoulder",
+        "VARIED reactions - AI generates fresh each time, not canned",
+        "Examples: 'Oh! Mr. Worms!' / 'Whoa, you scared me!' / 'Looking good today sir!' / 'Hey boss! What's up?'",
+        "Personality shines through: Stool is chill, Gomer is startled, Mona is composed, Gus is gruff",
+        "CEO can ask follow-up about that specific topic",
+        "Context-aware: knows what they were just talking about",
+        "Ralph might notice the chain of command violation",
+        "Never feels repetitive or scripted"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
     }
   ],
 
   "priority_order": [
+    "RM-051 - Button styling (visual upgrade)",
     "RM-049 - Markdown formatting (beautiful messages)",
     "RM-050 - Formatting helpers (consistency)",
     "RM-044 - Interactive loading (use wait time wisely!)",

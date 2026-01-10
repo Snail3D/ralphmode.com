@@ -478,6 +478,35 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.ralph_moment_interval = 1200  # Seconds between Ralph moments (20 min = ~3 per hour)
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
 
+    # ==================== CHARACTER FORMATTING ====================
+
+    def get_character_prefix(self, name: str) -> str:
+        """Get the color emoji prefix for a character.
+
+        Returns format like '🔴 *Ralph:*' for consistent visual identity.
+        """
+        emoji = self.CHARACTER_COLORS.get(name, "⚪")  # Default to white if unknown
+        return f"{emoji} *{name}:*"
+
+    def format_character_message(self, name: str, title: str = None, message: str = "") -> str:
+        """Format a message from a character with their color prefix.
+
+        Args:
+            name: Character name (Ralph, Stool, Gomer, Mona, Gus)
+            title: Optional job title to include
+            message: The message content
+
+        Returns:
+            Formatted string like '🔴 *Ralph:* Hi!'
+            or '🟢 *Stool* _Frontend Dev_: Yo what's good?'
+        """
+        prefix = self.get_character_prefix(name)
+
+        if title:
+            return f"{prefix} _{title}_: {message}"
+        else:
+            return f"{prefix} {message}"
+
     # ==================== RALPH'S AUTHENTIC VOICE ====================
 
     def ralph_misspell(self, text: str, misspell_chance: float = 0.2) -> str:
@@ -835,7 +864,7 @@ If asked about something you didn't observe, honestly say you don't know."""},
         # Worker offers the joke
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*{worker_name}* _{worker['title']}_: Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?",
+            text=self.format_character_message(worker_name, worker['title'], "Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?"),
             parse_mode="Markdown"
         )
         await asyncio.sleep(2)
@@ -844,7 +873,7 @@ If asked about something you didn't observe, honestly say you don't know."""},
         ralph_response = self.call_boss("Someone wants to tell you a joke! You LOVE jokes. Respond excitedly.")
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Ralph:* {ralph_response}",
+            text=self.format_character_message("Ralph", message=ralph_response),
             parse_mode="Markdown"
         )
         await asyncio.sleep(1)
@@ -852,7 +881,7 @@ If asked about something you didn't observe, honestly say you don't know."""},
         # Worker tells the joke
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*{worker_name}*: Okay here goes... {joke}",
+            text=self.format_character_message(worker_name, message=f"Okay here goes... {joke}"),
             parse_mode="Markdown"
         )
 
@@ -872,7 +901,7 @@ If asked about something you didn't observe, honestly say you don't know."""},
         # Ralph laughs
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Ralph:* Hahaha! That's a good one! My tummy feels like laughing!",
+            text=self.format_character_message("Ralph", message=self.ralph_misspell("Hahaha! That's a good one! My tummy feels like laughing!")),
             parse_mode="Markdown"
         )
         if self.should_send_gif():
@@ -883,7 +912,7 @@ If asked about something you didn't observe, honestly say you don't know."""},
         # Ralph asks what's up
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Ralph:* Okay, what did you want to tell me?",
+            text=self.format_character_message("Ralph", message="Okay, what did you want to tell me?"),
             parse_mode="Markdown"
         )
 
@@ -1377,7 +1406,7 @@ _He has a crayon-written report in his hands._
         reaction = random.choice(reactions)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*{reaction[0]}* _{reaction[1]}_: {reaction[2]}",
+            text=self.format_character_message(reaction[0], reaction[1], reaction[2]),
             parse_mode="Markdown"
         )
 
@@ -1741,15 +1770,16 @@ Format as a numbered list with clear structure."""
         await asyncio.sleep(3)
 
         # ===== ACT 2: RALPH ENTERS =====
+        ralph_entrance = self.ralph_misspell("I'm the boss now! My cat's breath smells like cat food. Are we ready to do work things?")
         await context.bot.send_message(
             chat_id=chat_id,
-            text="""
+            text=f"""
 _The door swings open._
 
 _Ralph Wiggum walks in with a juice box, wearing his "Manager" badge upside down._
 _He looks around at his team with genuine excitement._
 
-*Ralph:* I'm the boss now! My cat's breath smells like cat food. Are we ready to do work things?
+{self.format_character_message("Ralph", message=ralph_entrance)}
 """,
             parse_mode="Markdown"
         )
@@ -1773,7 +1803,7 @@ _He looks around at his team with genuine excitement._
             greeting = worker['greeting']
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"*{name}* _{worker['title']}_: {greeting}",
+                text=self.format_character_message(name, worker['title'], greeting),
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
@@ -1808,7 +1838,7 @@ _The team nods in unison._
 
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*Ralph:* {boss_response}",
+            text=self.format_character_message("Ralph", message=boss_response),
             parse_mode="Markdown"
         )
 
@@ -1834,7 +1864,7 @@ _The team nods in unison._
 
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"*{name}* _{title}_: {worker_response}",
+            text=self.format_character_message(name, title, worker_response),
             parse_mode="Markdown"
         )
 
@@ -1849,7 +1879,7 @@ _The team nods in unison._
             await asyncio.sleep(2)
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"*Ralph:* {ralph_observation}",
+                text=self.format_character_message("Ralph", message=self.ralph_misspell(ralph_observation)),
                 parse_mode="Markdown"
             )
             # Next time, workers will be more efficient!
@@ -1891,7 +1921,7 @@ _Grab some popcorn..._
             )
 
             await update.message.reply_text(
-                f"*Ralph:* {ralph_response}",
+                self.format_character_message("Ralph", message=ralph_response),
                 parse_mode="Markdown"
             )
 
