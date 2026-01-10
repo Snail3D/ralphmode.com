@@ -2139,7 +2139,7 @@
         "ralph_bot.py",
         "sanitizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "BC-002",
