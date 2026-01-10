@@ -4,6 +4,60 @@
   "updated": "2025-01-10",
   "description": "AI Dev Team in Your Telegram - Entertainment meets productivity. Comedic timing is EVERYTHING.",
 
+  "current_blockers": {
+    "note": "READ THIS FIRST - Some infrastructure is NOT ready yet. Skip blocked tasks and make notes for later.",
+    "not_ready": [
+      {
+        "component": "Website (ralphmode.com)",
+        "status": "NOT DEPLOYED",
+        "blocked_tasks": ["WB-001", "WB-002", "WB-003"],
+        "what_to_do": "Skip website deployment tasks. Build the code/API but don't try to deploy to website. Make notes in comments about what needs to happen once website is live."
+      },
+      {
+        "component": "PostgreSQL Database",
+        "status": "NOT SET UP",
+        "blocked_tasks": ["FQ-001", "DD-005"],
+        "what_to_do": "Use SQLite for local development. Design schema but don't deploy to Postgres yet. Note migration steps needed."
+      },
+      {
+        "component": "Redis",
+        "status": "NOT SET UP",
+        "blocked_tasks": ["RL-005"],
+        "what_to_do": "Use in-memory rate limiting for now. Design Redis schema but use dict fallback. Note what needs Redis."
+      },
+      {
+        "component": "Stripe Integration",
+        "status": "NOT CONFIGURED",
+        "blocked_tasks": ["SEC-021", "FB-002"],
+        "what_to_do": "Build subscription checking logic but stub the Stripe calls. Use mock subscription data for testing."
+      },
+      {
+        "component": "Vector Database",
+        "status": "NOT SET UP",
+        "blocked_tasks": ["DD-001", "DD-002"],
+        "what_to_do": "Build embedding generation. Use simple cosine similarity on in-memory list for now. Note Pinecone/Weaviate migration."
+      },
+      {
+        "component": "CI/CD Pipeline",
+        "status": "NOT SET UP",
+        "blocked_tasks": ["SEC-023", "TS-001"],
+        "what_to_do": "Write the GitHub Actions workflows but they won't run until repo is properly configured."
+      },
+      {
+        "component": "Secrets Manager",
+        "status": "USING .env FOR NOW",
+        "blocked_tasks": ["SEC-016"],
+        "what_to_do": "Keep using .env locally. Document what needs to go into Vault/Secrets Manager for production."
+      }
+    ],
+    "ready": [
+      "Telegram Bot (running on Linode 69.164.201.191)",
+      "Groq API (configured)",
+      "Git repo (GitHub)",
+      "Local development environment"
+    ]
+  },
+
   "tasks": [
     {
       "id": "RM-001",
@@ -2422,10 +2476,1195 @@
       ],
       "files_likely_modified": ["admin_handler.py", "ralph_bot.py"],
       "passes": false
+    },
+
+    {
+      "id": "FB-001",
+      "category": "Feedback Loop",
+      "title": "Feedback Command Handler",
+      "description": "Implement /feedback command in Telegram bot. Accepts text, voice, or screenshots. Routes to collection pipeline.",
+      "acceptance_criteria": [
+        "/feedback command registered in bot",
+        "Accepts text description of bug/feature",
+        "Accepts voice messages (transcribed)",
+        "Accepts screenshots with context",
+        "Stores feedback with user_id, tier, timestamp",
+        "Confirms receipt to user in-character"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "feedback_collector.py"],
+      "passes": false
+    },
+    {
+      "id": "FB-002",
+      "category": "Feedback Loop",
+      "title": "Subscription Gate for Feedback",
+      "description": "Check if user is Builder ($10/mo) or Priority ($20/mo) before accepting feedback. Viewers get upgrade prompt.",
+      "acceptance_criteria": [
+        "Check user subscription tier before accepting feedback",
+        "Viewer tier: Show upgrade prompt in-character",
+        "Builder tier: Accept feedback with weight 1.0",
+        "Priority tier: Accept feedback with weight 2.0",
+        "Expired subscriptions blocked with renewal prompt",
+        "Ralph says something like 'Ooh feedback! But my boss says only Builders can tell us what to build'"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "subscription_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "FB-003",
+      "category": "Feedback Loop",
+      "title": "Feedback Types Classification",
+      "description": "Support multiple feedback types: bug_report, feature_request, enhancement, ux_issue, performance, other.",
+      "acceptance_criteria": [
+        "Inline buttons to select feedback type",
+        "Each type has appropriate fields",
+        "Bug: steps to reproduce, expected vs actual",
+        "Feature: description, use case",
+        "Enhancement: what exists, what to improve",
+        "Type stored with feedback for routing"
+      ],
+      "files_likely_modified": ["feedback_collector.py"],
+      "passes": false
+    },
+    {
+      "id": "RL-001",
+      "category": "Rate Limiting",
+      "title": "IP Rate Limiter for Feedback",
+      "description": "Limit feedback submissions per IP address. Default: 5 per hour, 20 per day. Prevents gaming the system.",
+      "acceptance_criteria": [
+        "Track submissions per IP address",
+        "Limit: 5 submissions per hour per IP",
+        "Limit: 20 submissions per day per IP",
+        "Priority tier gets 2x limits",
+        "Show friendly rate limit message when exceeded",
+        "Use Redis for cross-instance consistency"
+      ],
+      "files_likely_modified": ["rate_limiter.py", "feedback_collector.py"],
+      "passes": false
+    },
+    {
+      "id": "RL-002",
+      "category": "Rate Limiting",
+      "title": "User Rate Limiter for Feedback",
+      "description": "Limit feedback per user account (separate from IP). Priority users get 2x limits.",
+      "acceptance_criteria": [
+        "Track submissions per user_id",
+        "Builder: 10/hour, 50/day",
+        "Priority: 20/hour, 100/day",
+        "Separate from IP limits (both apply)",
+        "Graceful messaging when limited"
+      ],
+      "files_likely_modified": ["rate_limiter.py"],
+      "passes": false
+    },
+    {
+      "id": "RL-003",
+      "category": "Rate Limiting",
+      "title": "Burst Detection",
+      "description": "Detect and block rapid-fire submissions (>3 in 1 minute). Flag account for review.",
+      "acceptance_criteria": [
+        "Detect >3 submissions in 60 seconds",
+        "Block further submissions for 10 minutes",
+        "Flag account for admin review",
+        "3+ burst events = require manual approval",
+        "Log all burst events"
+      ],
+      "files_likely_modified": ["rate_limiter.py"],
+      "passes": false
+    },
+    {
+      "id": "QS-001",
+      "category": "Quality Scoring",
+      "title": "Quality Score Algorithm",
+      "description": "Calculate quality score (0-100) for each feedback. Factors: clarity, actionability, specificity, reproducibility.",
+      "acceptance_criteria": [
+        "Clarity (0-25): Is it clearly written?",
+        "Actionability (0-25): Can we do something with this?",
+        "Specificity (0-25): Does it include details, examples?",
+        "Reproducibility (0-25): Can we reproduce/understand scope?",
+        "Final score = sum of all factors",
+        "Score stored with feedback item"
+      ],
+      "files_likely_modified": ["feedback_scorer.py"],
+      "passes": false
+    },
+    {
+      "id": "QS-002",
+      "category": "Quality Scoring",
+      "title": "AI Quality Assessment",
+      "description": "Use LLM to assess feedback quality. Extract structured data: problem, expected, actual, steps.",
+      "acceptance_criteria": [
+        "Send feedback to Groq for analysis",
+        "Extract: problem statement, expected behavior, actual behavior",
+        "Extract: steps to reproduce (for bugs)",
+        "Extract: use case, scope (for features)",
+        "Calculate quality score from structured data",
+        "Low-quality feedback gets clarifying questions"
+      ],
+      "files_likely_modified": ["feedback_scorer.py"],
+      "passes": false
+    },
+    {
+      "id": "QS-003",
+      "category": "Quality Scoring",
+      "title": "User Quality Score Tracking",
+      "description": "Track quality score per user over time. Users with consistently high-quality feedback get boosted priority.",
+      "acceptance_criteria": [
+        "Track average quality score per user",
+        "Users with avg > 70: +20% priority boost",
+        "Users with avg > 85: +50% priority boost",
+        "Users with avg < 40: flag for review",
+        "Quality score visible to user on /mystatus"
+      ],
+      "files_likely_modified": ["feedback_scorer.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "SP-001",
+      "category": "Spam Detection",
+      "title": "Spam Pattern Detection",
+      "description": "Detect spam patterns: gibberish, repeated text, promotional content, off-topic submissions.",
+      "acceptance_criteria": [
+        "Detect gibberish (entropy analysis)",
+        "Detect repeated submissions (same text)",
+        "Detect promotional content (URLs, ads)",
+        "Detect off-topic (not about Ralph Mode)",
+        "Auto-reject with reason",
+        "Log for admin review"
+      ],
+      "files_likely_modified": ["feedback_screener.py"],
+      "passes": false
+    },
+    {
+      "id": "SP-002",
+      "category": "Spam Detection",
+      "title": "Abuse Detection",
+      "description": "Detect abusive content: profanity, threats, harassment. Auto-flag for review, don't process.",
+      "acceptance_criteria": [
+        "Detect profanity and slurs",
+        "Detect threats and harassment",
+        "Detect personal attacks",
+        "Auto-flag, don't process",
+        "Notify admin of flagged content",
+        "User warned (first time) or flagged (repeat)"
+      ],
+      "files_likely_modified": ["feedback_screener.py"],
+      "passes": false
+    },
+    {
+      "id": "DD-001",
+      "category": "Duplicate Detection",
+      "title": "Semantic Duplicate Detection",
+      "description": "Use embeddings to find semantically similar existing feedback. Threshold: 0.85 cosine similarity.",
+      "acceptance_criteria": [
+        "Generate embedding for new feedback",
+        "Compare against all existing feedback embeddings",
+        "Threshold: 0.85 similarity = duplicate",
+        "Use vector database for fast search",
+        "Works across feedback types"
+      ],
+      "files_likely_modified": ["duplicate_detector.py"],
+      "passes": false
+    },
+    {
+      "id": "DD-002",
+      "category": "Duplicate Detection",
+      "title": "Duplicate Merging and Upvoting",
+      "description": "When duplicate found, merge into existing item. Upvote count increases. Notify user.",
+      "acceptance_criteria": [
+        "Merge duplicate into original item",
+        "Increment upvote count on original",
+        "Notify user: 'Your feedback was added to an existing item'",
+        "Show link to original item",
+        "Each upvote increases impact score by 0.5"
+      ],
+      "files_likely_modified": ["duplicate_detector.py", "feedback_queue.py"],
+      "passes": false
+    },
+    {
+      "id": "DD-003",
+      "category": "Duplicate Detection",
+      "title": "Already Fixed Detection",
+      "description": "Check if feedback matches something already fixed in recent versions. Notify user and close.",
+      "acceptance_criteria": [
+        "Check against changelog of last 5 versions",
+        "If similar to fixed item, notify user",
+        "Show version where it was fixed",
+        "Auto-close feedback item",
+        "Suggest user upgrade if on old version"
+      ],
+      "files_likely_modified": ["duplicate_detector.py", "version_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "PR-001",
+      "category": "Priority Scoring",
+      "title": "Priority Score Algorithm",
+      "description": "Calculate priority: (Impact x Frequency x Urgency x Quality x UserWeight) / Complexity",
+      "acceptance_criteria": [
+        "Impact (1-10): How many users affected?",
+        "Frequency (1-10): How often does this occur?",
+        "Urgency (1-10): Is this blocking critical flows?",
+        "Quality (0.3-1.0): Feedback quality score",
+        "UserWeight: Builder=1.0, Priority=2.0",
+        "Complexity (1-10): Estimated effort to fix",
+        "Final = (impact * frequency * urgency * quality * weight) / complexity"
+      ],
+      "files_likely_modified": ["feedback_scorer.py"],
+      "passes": false
+    },
+    {
+      "id": "PR-002",
+      "category": "Priority Scoring",
+      "title": "Priority Tiers",
+      "description": "Categorize by priority score: HIGH (>7), MEDIUM (4-7), LOW (<4)",
+      "acceptance_criteria": [
+        "Score > 7: HIGH - build next",
+        "Score 4-7: MEDIUM - queued",
+        "Score < 4: LOW - backlog",
+        "Priority tier visible on queue dashboard",
+        "High priority items picked first by Ralph"
+      ],
+      "files_likely_modified": ["feedback_queue.py"],
+      "passes": false
+    },
+    {
+      "id": "FQ-001",
+      "category": "Feedback Queue",
+      "title": "Feedback Queue Database",
+      "description": "PostgreSQL table for feedback queue. Track status from submission to deployment.",
+      "acceptance_criteria": [
+        "Table: feedback_items",
+        "Fields: id, user_id, type, content, quality_score, priority_score, status",
+        "Fields: created_at, updated_at, assigned_at, completed_at",
+        "Indexes for fast queries",
+        "Status tracking through lifecycle"
+      ],
+      "files_likely_modified": ["feedback_queue.py", "db_schema.sql"],
+      "passes": false
+    },
+    {
+      "id": "FQ-002",
+      "category": "Feedback Queue",
+      "title": "Queue Status States",
+      "description": "Track feedback through: pending, screening, scored, queued, in_progress, testing, deployed, rejected.",
+      "acceptance_criteria": [
+        "pending: Just submitted",
+        "screening: Being checked for spam/quality",
+        "scored: Quality and priority calculated",
+        "queued: In build queue waiting for Ralph",
+        "in_progress: Ralph is building",
+        "testing: Tests running",
+        "deployed: Live in production",
+        "rejected: Spam, duplicate, wont_fix"
+      ],
+      "files_likely_modified": ["feedback_queue.py"],
+      "passes": false
+    },
+    {
+      "id": "FQ-003",
+      "category": "Feedback Queue",
+      "title": "User Feedback Status Check",
+      "description": "Let users check status of their submitted feedback via /mystatus command.",
+      "acceptance_criteria": [
+        "/mystatus shows all user's feedback items",
+        "Each item shows: title, status, position in queue",
+        "Estimated time to build (if queued)",
+        "Link to view details",
+        "In-character response from Ralph"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "feedback_queue.py"],
+      "passes": false
+    },
+    {
+      "id": "BO-001",
+      "category": "Build Orchestrator",
+      "title": "Build Orchestrator Service",
+      "description": "Service that monitors queue and spawns Ralph instances to build high-priority items.",
+      "acceptance_criteria": [
+        "Runs as background service",
+        "Polls queue for high-priority items",
+        "Spawns Ralph with task context",
+        "Monitors build progress",
+        "Updates queue status in real-time",
+        "Handles build completion/failure"
+      ],
+      "files_likely_modified": ["build_orchestrator.py"],
+      "passes": false
+    },
+    {
+      "id": "BO-002",
+      "category": "Build Orchestrator",
+      "title": "Isolated Build Environment",
+      "description": "Each build runs in isolated Docker container. Fresh clone of repo. No cross-contamination.",
+      "acceptance_criteria": [
+        "Docker container per build",
+        "Fresh git clone of repo",
+        "Branch: feedback/FB-XXX",
+        "Isolated from other builds",
+        "Cleanup after completion"
+      ],
+      "files_likely_modified": ["build_orchestrator.py", "Dockerfile.build"],
+      "passes": false
+    },
+    {
+      "id": "BO-003",
+      "category": "Build Orchestrator",
+      "title": "Build Failure Handling",
+      "description": "On failure: log details, deprioritize item (score * 0.5), notify admin if consecutive failures.",
+      "acceptance_criteria": [
+        "Capture build failure reason",
+        "Log detailed failure info",
+        "Reduce priority score by 50%",
+        "Move to next queue item",
+        "3+ consecutive failures: alert admin",
+        "5+ consecutive: pause build loop"
+      ],
+      "files_likely_modified": ["build_orchestrator.py"],
+      "passes": false
+    },
+    {
+      "id": "TS-001",
+      "category": "Testing",
+      "title": "Automated Test Suite Integration",
+      "description": "Run full test suite after each build. Must pass 100% to proceed to deploy.",
+      "acceptance_criteria": [
+        "Run pytest/unittest after build",
+        "All tests must pass",
+        "Coverage must not decrease",
+        "Failed tests = failed build",
+        "Test results stored with build record"
+      ],
+      "files_likely_modified": ["build_orchestrator.py", "test_runner.py"],
+      "passes": false
+    },
+    {
+      "id": "DP-001",
+      "category": "Deployment",
+      "title": "Staging Deployment",
+      "description": "Auto-deploy passing builds to staging environment. Run integration tests.",
+      "acceptance_criteria": [
+        "Deploy to staging on test pass",
+        "Run integration tests on staging",
+        "Health check endpoints",
+        "Staging URL accessible for verification",
+        "Auto-promote to canary if healthy"
+      ],
+      "files_likely_modified": ["deploy_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "DP-002",
+      "category": "Deployment",
+      "title": "Canary Deployment",
+      "description": "Roll out to 5% of users first. Monitor error rates for 30 minutes.",
+      "acceptance_criteria": [
+        "Deploy to 5% of traffic",
+        "Monitor error rates vs baseline",
+        "Monitor latency vs baseline",
+        "30 minute observation period",
+        "Auto-promote if healthy",
+        "Auto-rollback if error rate > 2x baseline"
+      ],
+      "files_likely_modified": ["deploy_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "DP-003",
+      "category": "Deployment",
+      "title": "Auto Rollback",
+      "description": "If error rate > 2x baseline after deploy, auto-rollback to previous version.",
+      "acceptance_criteria": [
+        "Monitor error rates post-deploy",
+        "Threshold: 2x baseline error rate",
+        "Auto-rollback if threshold exceeded",
+        "Notify admin of rollback",
+        "Mark feedback item as failed",
+        "Keep previous version running"
+      ],
+      "files_likely_modified": ["deploy_manager.py", "monitoring.py"],
+      "passes": false
+    },
+    {
+      "id": "VM-001",
+      "category": "Version Management",
+      "title": "Semantic Version Numbering",
+      "description": "Semantic versioning: MAJOR.MINOR.PATCH. Auto-increment based on change type.",
+      "acceptance_criteria": [
+        "MAJOR: Breaking changes",
+        "MINOR: New features (feature_request)",
+        "PATCH: Bug fixes (bug_report, enhancement)",
+        "Auto-increment on deploy",
+        "Version stored in VERSION file",
+        "Git tags created for each version"
+      ],
+      "files_likely_modified": ["version_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "VM-002",
+      "category": "Version Management",
+      "title": "Version History and Changelog",
+      "description": "Track all versions with release notes. Auto-generate changelog from feedback items addressed.",
+      "acceptance_criteria": [
+        "Store: version, date, feedback items addressed",
+        "Auto-generate changelog from feedback titles",
+        "Human-readable format",
+        "Available via API",
+        "Displayed on website"
+      ],
+      "files_likely_modified": ["version_manager.py", "changelog_generator.py"],
+      "passes": false
+    },
+    {
+      "id": "VM-003",
+      "category": "Version Management",
+      "title": "Version Selection for Users",
+      "description": "Users can choose which version to run: stable, beta, alpha, nightly.",
+      "acceptance_criteria": [
+        "/version command shows current version",
+        "/version stable - switch to stable",
+        "/version beta - switch to beta",
+        "/version alpha - switch to alpha (Priority only)",
+        "Version preference stored per user/group"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "version_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "WB-001",
+      "category": "Website Integration",
+      "title": "Website Version Display",
+      "description": "Show current stable, beta, alpha versions on website with download links.",
+      "acceptance_criteria": [
+        "API endpoint: /api/versions",
+        "Returns: stable, beta, alpha versions",
+        "Each has: number, date, changelog link",
+        "Download links for each version",
+        "Auto-updates on new release"
+      ],
+      "files_likely_modified": ["api_server.py", "version_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "WB-002",
+      "category": "Website Integration",
+      "title": "Live Build Stream",
+      "description": "Stream Ralph's terminal output to website in real-time. Show what's being built.",
+      "acceptance_criteria": [
+        "WebSocket endpoint for build stream",
+        "Real-time terminal output",
+        "Show current task being built",
+        "Show progress (tests running, deploying, etc)",
+        "Sanitize output (no secrets)"
+      ],
+      "files_likely_modified": ["build_orchestrator.py", "websocket_server.py"],
+      "passes": false
+    },
+    {
+      "id": "WB-003",
+      "category": "Website Integration",
+      "title": "Public Build Status Dashboard",
+      "description": "Public dashboard showing: items in queue, currently building, recently deployed.",
+      "acceptance_criteria": [
+        "Queue depth visible",
+        "Current build task visible",
+        "Recent deployments list",
+        "Build success rate displayed",
+        "Updates in real-time"
+      ],
+      "files_likely_modified": ["api_server.py"],
+      "passes": false
+    },
+    {
+      "id": "NT-001",
+      "category": "Notifications",
+      "title": "Feedback Received Notification",
+      "description": "Notify user when their feedback is received and scored. Show position in queue.",
+      "acceptance_criteria": [
+        "Telegram message after feedback processed",
+        "Show quality score",
+        "Show priority tier (HIGH/MEDIUM/LOW)",
+        "Show position in queue",
+        "In-character from Ralph"
+      ],
+      "files_likely_modified": ["notification_service.py"],
+      "passes": false
+    },
+    {
+      "id": "NT-002",
+      "category": "Notifications",
+      "title": "Build Started Notification",
+      "description": "Notify user when Ralph starts building their requested item.",
+      "acceptance_criteria": [
+        "Telegram message when build starts",
+        "Show estimated completion time",
+        "Link to watch live stream",
+        "In-character from Ralph"
+      ],
+      "files_likely_modified": ["notification_service.py"],
+      "passes": false
+    },
+    {
+      "id": "NT-003",
+      "category": "Notifications",
+      "title": "Deployed Notification",
+      "description": "Notify user when their feedback is live. Include version number and changelog link.",
+      "acceptance_criteria": [
+        "Telegram message when deployed",
+        "Show version number",
+        "Link to changelog",
+        "Thank user for feedback",
+        "Ask for thumbs up/down satisfaction"
+      ],
+      "files_likely_modified": ["notification_service.py"],
+      "passes": false
+    },
+    {
+      "id": "SF-001",
+      "category": "Safeguards",
+      "title": "Circuit Breaker",
+      "description": "Pause build loop if 5+ consecutive failures. Alert admin. Require manual resume.",
+      "acceptance_criteria": [
+        "Track consecutive failure count",
+        "5+ failures: pause loop",
+        "Alert admin via Telegram/email",
+        "Require /resume command to restart",
+        "Log all failures for review"
+      ],
+      "files_likely_modified": ["build_orchestrator.py", "monitoring.py"],
+      "passes": false
+    },
+    {
+      "id": "SF-002",
+      "category": "Safeguards",
+      "title": "Health Monitoring",
+      "description": "Continuous health monitoring: API latency, error rates, queue depth, build success rate.",
+      "acceptance_criteria": [
+        "Monitor API response times",
+        "Monitor error rates",
+        "Monitor queue depth",
+        "Monitor build success rate",
+        "Alert on anomalies",
+        "Dashboard for metrics"
+      ],
+      "files_likely_modified": ["monitoring.py"],
+      "passes": false
+    },
+    {
+      "id": "SF-003",
+      "category": "Safeguards",
+      "title": "Admin Override Controls",
+      "description": "Admin can: pause loop, force deploy, force rollback, prioritize item, reject item.",
+      "acceptance_criteria": [
+        "/admin pause - stop build loop",
+        "/admin resume - restart build loop",
+        "/admin deploy FB-XXX - force deploy",
+        "/admin rollback - revert to previous",
+        "/admin prioritize FB-XXX - boost priority",
+        "/admin reject FB-XXX - remove from queue"
+      ],
+      "files_likely_modified": ["admin_handler.py", "build_orchestrator.py"],
+      "passes": false
+    },
+    {
+      "id": "AN-001",
+      "category": "Analytics",
+      "title": "User Satisfaction Tracking",
+      "description": "After deploy, ask user if fix addressed their feedback. Thumbs up/down.",
+      "acceptance_criteria": [
+        "After deploy notification, show thumbs up/down",
+        "Track satisfaction per feedback item",
+        "Track satisfaction per user",
+        "Calculate overall satisfaction rate",
+        "Use for RLHF improvement"
+      ],
+      "files_likely_modified": ["notification_service.py", "analytics.py"],
+      "passes": false
+    },
+
+    {
+      "id": "SEC-001",
+      "category": "Security - OWASP Top 10",
+      "title": "SQL Injection Prevention",
+      "description": "Prevent SQL injection across all database queries. Use parameterized queries, ORM, input validation.",
+      "acceptance_criteria": [
+        "All database queries use parameterized statements",
+        "No string concatenation in SQL queries",
+        "ORM (SQLAlchemy) used where possible",
+        "Input validation before any DB operation",
+        "Automated SQL injection testing in CI/CD",
+        "sqlmap scan passes with no vulnerabilities"
+      ],
+      "files_likely_modified": ["*.py with DB access"],
+      "passes": false
+    },
+    {
+      "id": "SEC-002",
+      "category": "Security - OWASP Top 10",
+      "title": "XSS Prevention",
+      "description": "Prevent Cross-Site Scripting in all user-facing output. Escape HTML, sanitize input, CSP headers.",
+      "acceptance_criteria": [
+        "All user input HTML-escaped before display",
+        "Content Security Policy headers set",
+        "No inline scripts allowed",
+        "DOM manipulation uses safe methods",
+        "Automated XSS testing in CI/CD",
+        "OWASP ZAP scan passes"
+      ],
+      "files_likely_modified": ["website/*.js", "api_server.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-003",
+      "category": "Security - OWASP Top 10",
+      "title": "CSRF Protection",
+      "description": "Prevent Cross-Site Request Forgery on all state-changing operations.",
+      "acceptance_criteria": [
+        "CSRF tokens on all forms",
+        "SameSite cookie attribute set",
+        "Origin/Referer header validation",
+        "Double-submit cookie pattern for APIs",
+        "CSRF testing in CI/CD"
+      ],
+      "files_likely_modified": ["api_server.py", "website/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-004",
+      "category": "Security - OWASP Top 10",
+      "title": "Broken Authentication Prevention",
+      "description": "Secure authentication flow. Strong passwords, MFA option, secure session management.",
+      "acceptance_criteria": [
+        "Bcrypt/Argon2 password hashing (cost factor 12+)",
+        "Account lockout after 5 failed attempts",
+        "Session tokens are cryptographically random",
+        "Sessions expire after inactivity (1 hour)",
+        "Secure cookie flags (HttpOnly, Secure, SameSite)",
+        "Optional MFA/2FA support",
+        "No credentials in URLs or logs"
+      ],
+      "files_likely_modified": ["auth.py", "session_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-005",
+      "category": "Security - OWASP Top 10",
+      "title": "Sensitive Data Exposure Prevention",
+      "description": "Protect sensitive data at rest and in transit. Encryption, secure storage, data classification.",
+      "acceptance_criteria": [
+        "All traffic over HTTPS (TLS 1.3)",
+        "HSTS header with 1-year max-age",
+        "Sensitive data encrypted at rest (AES-256)",
+        "API keys stored in vault/secrets manager",
+        "No secrets in code, logs, or error messages",
+        "PII handling compliant with GDPR",
+        "Credit card data PCI-DSS compliant (via Stripe)"
+      ],
+      "files_likely_modified": ["*.py", "nginx.conf"],
+      "passes": false
+    },
+    {
+      "id": "SEC-006",
+      "category": "Security - OWASP Top 10",
+      "title": "Broken Access Control Prevention",
+      "description": "Enforce authorization on all resources. RBAC, resource ownership, least privilege.",
+      "acceptance_criteria": [
+        "Role-Based Access Control (RBAC) implemented",
+        "Users can only access their own resources",
+        "Admin functions require admin role check",
+        "API endpoints verify permissions",
+        "Subscription tier enforced server-side",
+        "Vertical privilege escalation prevented",
+        "Horizontal access control tested"
+      ],
+      "files_likely_modified": ["auth.py", "rbac.py", "api_server.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-007",
+      "category": "Security - OWASP Top 10",
+      "title": "Security Misconfiguration Prevention",
+      "description": "Secure default configuration. No debug mode in prod, hardened headers, minimal permissions.",
+      "acceptance_criteria": [
+        "DEBUG=False in production",
+        "Unnecessary features disabled",
+        "Default credentials changed",
+        "Security headers set (X-Frame-Options, X-Content-Type-Options)",
+        "Directory listing disabled",
+        "Error messages don't leak stack traces",
+        "Server version headers removed",
+        "Automated configuration scanning"
+      ],
+      "files_likely_modified": ["config.py", "nginx.conf", "docker-compose.yml"],
+      "passes": false
+    },
+    {
+      "id": "SEC-008",
+      "category": "Security - OWASP Top 10",
+      "title": "Insecure Deserialization Prevention",
+      "description": "Prevent deserialization attacks. Validate input, use safe formats, integrity checks.",
+      "acceptance_criteria": [
+        "No pickle/marshal on untrusted data",
+        "JSON used for serialization (not YAML/XML)",
+        "Input schema validation before deserialization",
+        "Integrity checks on serialized data",
+        "Deserialization errors logged and monitored"
+      ],
+      "files_likely_modified": ["*.py with serialization"],
+      "passes": false
+    },
+    {
+      "id": "SEC-009",
+      "category": "Security - OWASP Top 10",
+      "title": "Known Vulnerabilities Monitoring",
+      "description": "Track and patch known vulnerabilities in dependencies. Automated scanning, update policy.",
+      "acceptance_criteria": [
+        "Dependabot/Snyk enabled on repo",
+        "Weekly dependency vulnerability scan",
+        "Critical vulnerabilities patched within 24 hours",
+        "High vulnerabilities patched within 7 days",
+        "SBOM (Software Bill of Materials) maintained",
+        "Container images scanned (Trivy/Grype)",
+        "No dependencies with known critical CVEs"
+      ],
+      "files_likely_modified": ["requirements.txt", "package.json", ".github/workflows/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-010",
+      "category": "Security - OWASP Top 10",
+      "title": "Insufficient Logging and Monitoring",
+      "description": "Comprehensive security logging. Audit trails, alerting, incident response.",
+      "acceptance_criteria": [
+        "All authentication events logged",
+        "All authorization failures logged",
+        "All input validation failures logged",
+        "Logs include timestamp, user, IP, action, result",
+        "Logs sent to centralized system (ELK/Datadog)",
+        "Alerts on suspicious patterns",
+        "Log retention policy (90 days min)",
+        "Logs tamper-proof (append-only)"
+      ],
+      "files_likely_modified": ["logging_config.py", "security_logger.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-011",
+      "category": "Security - API",
+      "title": "API Rate Limiting",
+      "description": "Comprehensive API rate limiting. Per-user, per-IP, per-endpoint limits.",
+      "acceptance_criteria": [
+        "Global rate limit: 1000 req/min per IP",
+        "Auth endpoints: 10 req/min per IP",
+        "Feedback endpoint: 5 req/hour per user",
+        "Admin endpoints: 100 req/min per admin",
+        "429 Too Many Requests response with Retry-After",
+        "Rate limit headers in response",
+        "Redis-based for distributed consistency"
+      ],
+      "files_likely_modified": ["rate_limiter.py", "api_server.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-012",
+      "category": "Security - API",
+      "title": "API Input Validation",
+      "description": "Strict input validation on all API endpoints. Schema validation, type checking, bounds.",
+      "acceptance_criteria": [
+        "Pydantic/marshmallow schema validation",
+        "Type checking on all inputs",
+        "String length limits enforced",
+        "Numeric bounds validated",
+        "Enum values restricted to allowed list",
+        "File upload type/size validation",
+        "Malformed requests rejected with 400"
+      ],
+      "files_likely_modified": ["schemas.py", "validators.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-013",
+      "category": "Security - API",
+      "title": "API Authentication",
+      "description": "Secure API authentication. JWT with short expiry, refresh tokens, API keys for service-to-service.",
+      "acceptance_criteria": [
+        "JWT tokens with 15-minute expiry",
+        "Refresh tokens with 7-day expiry (rotated on use)",
+        "Tokens signed with RS256 (asymmetric)",
+        "Token revocation supported",
+        "API keys for service-to-service",
+        "API keys hashed in database",
+        "Token validation on every request"
+      ],
+      "files_likely_modified": ["auth.py", "jwt_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-014",
+      "category": "Security - Infrastructure",
+      "title": "DDoS Protection",
+      "description": "Protection against Distributed Denial of Service attacks. CDN, rate limiting, traffic analysis.",
+      "acceptance_criteria": [
+        "Cloudflare/AWS Shield in front of origin",
+        "Challenge page for suspicious traffic",
+        "Geo-blocking option available",
+        "Bot detection and mitigation",
+        "Traffic spike alerting",
+        "Anycast DNS for distributed entry",
+        "Origin IP hidden behind CDN"
+      ],
+      "files_likely_modified": ["cloudflare_config.json", "infrastructure/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-015",
+      "category": "Security - Infrastructure",
+      "title": "Network Segmentation",
+      "description": "Segment network to limit blast radius. VPC, subnets, security groups.",
+      "acceptance_criteria": [
+        "Public subnet for load balancers only",
+        "Private subnet for application servers",
+        "Database in isolated subnet (no public access)",
+        "Security groups with minimal required ports",
+        "No SSH from public internet (bastion/VPN only)",
+        "Outbound traffic limited to required destinations",
+        "Network ACLs as additional layer"
+      ],
+      "files_likely_modified": ["terraform/*.tf", "infrastructure/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-016",
+      "category": "Security - Infrastructure",
+      "title": "Secrets Management",
+      "description": "Secure secrets storage and access. Vault, environment isolation, rotation.",
+      "acceptance_criteria": [
+        "Secrets in HashiCorp Vault or AWS Secrets Manager",
+        "No secrets in code, config files, or env vars on disk",
+        "Secrets injected at runtime only",
+        "Different secrets per environment (dev/staging/prod)",
+        "Automatic secret rotation supported",
+        "Access to secrets audited",
+        "Secrets encrypted in transit and at rest"
+      ],
+      "files_likely_modified": ["secrets_manager.py", "config.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-017",
+      "category": "Security - Infrastructure",
+      "title": "Container Security",
+      "description": "Secure Docker containers. Minimal base images, non-root user, read-only filesystem.",
+      "acceptance_criteria": [
+        "Distroless or Alpine base images",
+        "Run as non-root user (UID 1000+)",
+        "Read-only root filesystem",
+        "No privileged containers",
+        "Dropped all capabilities except required",
+        "No sensitive data in image layers",
+        "Images signed and verified",
+        "Container scanning in CI/CD"
+      ],
+      "files_likely_modified": ["Dockerfile", "docker-compose.yml"],
+      "passes": false
+    },
+    {
+      "id": "SEC-018",
+      "category": "Security - Data",
+      "title": "Database Security",
+      "description": "Secure database configuration and access. Encryption, access control, backups.",
+      "acceptance_criteria": [
+        "Database not accessible from public internet",
+        "Encrypted connections (SSL/TLS) required",
+        "Data encrypted at rest",
+        "Per-service database credentials (least privilege)",
+        "Automated backups with encryption",
+        "Point-in-time recovery enabled",
+        "Audit logging on sensitive tables",
+        "Connection pooling with limits"
+      ],
+      "files_likely_modified": ["db_config.py", "infrastructure/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-019",
+      "category": "Security - Data",
+      "title": "GDPR Compliance",
+      "description": "Comply with GDPR requirements. Consent, data access, deletion, portability.",
+      "acceptance_criteria": [
+        "Explicit consent for data collection",
+        "Privacy policy clearly displayed",
+        "User can view all their data (/mydata)",
+        "User can request data deletion (/deleteme)",
+        "User can export their data (JSON format)",
+        "Data retention policy enforced",
+        "Third-party data processing documented",
+        "Data breach notification process defined"
+      ],
+      "files_likely_modified": ["gdpr.py", "user_data_controller.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-020",
+      "category": "Security - Data",
+      "title": "PII Handling",
+      "description": "Proper handling of Personally Identifiable Information. Minimization, encryption, access control.",
+      "acceptance_criteria": [
+        "PII fields identified and documented",
+        "Minimal PII collected (only what's needed)",
+        "PII encrypted at rest",
+        "PII masked in logs",
+        "PII access requires explicit permission",
+        "PII retention policy enforced",
+        "PII transmitted only over encrypted channels"
+      ],
+      "files_likely_modified": ["pii_handler.py", "logging_config.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-021",
+      "category": "Security - Payment",
+      "title": "Payment Security (PCI-DSS)",
+      "description": "Secure payment handling via Stripe. Never touch card data directly.",
+      "acceptance_criteria": [
+        "All payment processing via Stripe",
+        "No card data stored on our servers",
+        "Stripe.js for client-side tokenization",
+        "Webhook signatures verified",
+        "HTTPS required for all payment pages",
+        "Stripe API keys in secrets manager",
+        "Payment logs don't contain card details"
+      ],
+      "files_likely_modified": ["payment.py", "stripe_integration.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-022",
+      "category": "Security - Testing",
+      "title": "Penetration Testing",
+      "description": "Regular penetration testing by qualified professionals. Annual and after major changes.",
+      "acceptance_criteria": [
+        "Annual penetration test by third party",
+        "Pentest after major architectural changes",
+        "All critical/high findings remediated",
+        "Retest to verify fixes",
+        "Pentest scope includes API, web, infra",
+        "Social engineering included",
+        "Report stored securely"
+      ],
+      "files_likely_modified": ["docs/security/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-023",
+      "category": "Security - Testing",
+      "title": "Automated Security Scanning",
+      "description": "Automated security scanning in CI/CD. SAST, DAST, SCA, container scanning.",
+      "acceptance_criteria": [
+        "SAST (Semgrep/CodeQL) on every PR",
+        "DAST (OWASP ZAP) on staging deploys",
+        "SCA (Snyk/Dependabot) for dependencies",
+        "Container scanning (Trivy) for images",
+        "Secrets scanning (GitLeaks) on commits",
+        "Build fails on critical findings",
+        "Weekly full scan report"
+      ],
+      "files_likely_modified": [".github/workflows/security.yml"],
+      "passes": false
+    },
+    {
+      "id": "SEC-024",
+      "category": "Security - Incident Response",
+      "title": "Security Incident Response Plan",
+      "description": "Documented incident response plan. Detection, containment, eradication, recovery.",
+      "acceptance_criteria": [
+        "Incident response plan documented",
+        "Roles and responsibilities defined",
+        "Communication templates ready",
+        "Escalation paths defined",
+        "Evidence preservation procedures",
+        "Post-incident review process",
+        "Tabletop exercises conducted quarterly",
+        "Contact list maintained (legal, PR, etc.)"
+      ],
+      "files_likely_modified": ["docs/security/incident_response.md"],
+      "passes": false
+    },
+    {
+      "id": "SEC-025",
+      "category": "Security - Incident Response",
+      "title": "Security Alerting",
+      "description": "Real-time security alerting. Failed logins, privilege escalation, anomalies.",
+      "acceptance_criteria": [
+        "Alert on 5+ failed logins from same IP",
+        "Alert on privilege escalation attempts",
+        "Alert on SQL injection attempts",
+        "Alert on unusual API patterns",
+        "Alert on new admin account creation",
+        "PagerDuty/Slack integration",
+        "24/7 on-call rotation",
+        "Alert fatigue minimized (tuned thresholds)"
+      ],
+      "files_likely_modified": ["security_alerting.py", "monitoring.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-026",
+      "category": "Security - Compliance",
+      "title": "Security Documentation",
+      "description": "Comprehensive security documentation. Policies, procedures, architecture.",
+      "acceptance_criteria": [
+        "Security policy document",
+        "Acceptable use policy",
+        "Data classification policy",
+        "Access control policy",
+        "Incident response plan",
+        "Business continuity plan",
+        "Security architecture diagram",
+        "Threat model documented"
+      ],
+      "files_likely_modified": ["docs/security/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-027",
+      "category": "Security - Compliance",
+      "title": "SOC 2 Preparation",
+      "description": "Prepare for SOC 2 Type II compliance. Controls, evidence, audit readiness.",
+      "acceptance_criteria": [
+        "Trust Service Criteria mapped",
+        "Controls documented and implemented",
+        "Evidence collection automated",
+        "Access reviews quarterly",
+        "Change management documented",
+        "Vendor risk assessments",
+        "Employee security training",
+        "Ready for auditor engagement"
+      ],
+      "files_likely_modified": ["docs/compliance/*"],
+      "passes": false
+    },
+    {
+      "id": "SEC-028",
+      "category": "Security - Telegram",
+      "title": "Telegram Bot Security",
+      "description": "Secure Telegram bot implementation. Token protection, input validation, rate limiting.",
+      "acceptance_criteria": [
+        "Bot token in secrets manager (not code)",
+        "Webhook URL uses HTTPS with valid cert",
+        "Webhook secret for request validation",
+        "User input validated before processing",
+        "File uploads scanned for malware",
+        "Rate limiting per user",
+        "Admin commands require tier verification",
+        "No sensitive data in bot responses"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "telegram_security.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-029",
+      "category": "Security - AI/LLM",
+      "title": "LLM Security",
+      "description": "Secure LLM integration. Prompt injection prevention, output validation, cost controls.",
+      "acceptance_criteria": [
+        "Prompt injection patterns detected and blocked",
+        "User input never directly in system prompt",
+        "LLM output sanitized before display",
+        "Rate limiting on LLM calls",
+        "Cost alerting (unexpected usage)",
+        "Model output logged for review",
+        "Fallback if LLM unavailable",
+        "No PII sent to external LLM without consent"
+      ],
+      "files_likely_modified": ["llm_security.py", "sanitizer.py"],
+      "passes": false
+    },
+    {
+      "id": "SEC-030",
+      "category": "Security - Supply Chain",
+      "title": "Supply Chain Security",
+      "description": "Secure software supply chain. Signed commits, verified packages, SBOM.",
+      "acceptance_criteria": [
+        "Signed commits required for main branch",
+        "Package integrity verified (checksums)",
+        "Dependency pinning (lockfiles)",
+        "No typosquat packages",
+        "SBOM generated on release",
+        "Third-party code reviewed",
+        "CI/CD pipeline secured",
+        "Build reproducibility"
+      ],
+      "files_likely_modified": [".github/workflows/*", "requirements.txt"],
+      "passes": false
     }
   ],
 
   "priority_order": [
+    "--- SECURITY (Enterprise-Grade Protection) ---",
+    "SEC-001 - SQL Injection Prevention",
+    "SEC-002 - XSS Prevention",
+    "SEC-003 - CSRF Protection",
+    "SEC-004 - Broken Authentication Prevention",
+    "SEC-005 - Sensitive Data Exposure Prevention",
+    "SEC-006 - Broken Access Control Prevention",
+    "SEC-007 - Security Misconfiguration Prevention",
+    "SEC-010 - Logging and Monitoring",
+    "SEC-011 - API Rate Limiting",
+    "SEC-012 - API Input Validation",
+    "SEC-013 - API Authentication (JWT)",
+    "SEC-014 - DDoS Protection",
+    "SEC-016 - Secrets Management",
+    "SEC-017 - Container Security",
+    "SEC-018 - Database Security",
+    "SEC-019 - GDPR Compliance",
+    "SEC-021 - Payment Security (PCI-DSS via Stripe)",
+    "SEC-023 - Automated Security Scanning",
+    "SEC-025 - Security Alerting",
+    "SEC-028 - Telegram Bot Security",
+    "SEC-029 - LLM Security (Prompt Injection)",
+    "SEC-030 - Supply Chain Security",
+    "--- FEEDBACK LOOP (RLHF Self-Building System) ---",
+    "FB-001 - Feedback command handler",
+    "FB-002 - Subscription gate (Builder+/Priority only)",
+    "FB-003 - Feedback types classification",
+    "RL-001 - IP rate limiter (5/hour, 20/day)",
+    "RL-002 - User rate limiter (separate from IP)",
+    "RL-003 - Burst detection (>3 in 1 minute = blocked)",
+    "QS-001 - Quality score algorithm (0-100)",
+    "QS-002 - AI quality assessment (LLM analysis)",
+    "QS-003 - User quality score tracking (reputation)",
+    "SP-001 - Spam detection (gibberish, promotional)",
+    "SP-002 - Abuse detection (profanity, threats)",
+    "DD-001 - Semantic duplicate detection (0.85 similarity)",
+    "DD-002 - Duplicate merging and upvoting",
+    "DD-003 - Already fixed detection",
+    "PR-001 - Priority score algorithm",
+    "PR-002 - Priority tiers (HIGH/MEDIUM/LOW)",
+    "FQ-001 - Feedback queue database",
+    "FQ-002 - Queue status states",
+    "FQ-003 - User feedback status check (/mystatus)",
+    "BO-001 - Build orchestrator service",
+    "BO-002 - Isolated Docker build environment",
+    "BO-003 - Build failure handling",
+    "TS-001 - Automated test suite integration",
+    "DP-001 - Staging deployment",
+    "DP-002 - Canary deployment (5% rollout)",
+    "DP-003 - Auto rollback (2x error rate)",
+    "VM-001 - Semantic version numbering",
+    "VM-002 - Version history and changelog",
+    "VM-003 - Version selection for users",
+    "WB-001 - Website version display",
+    "WB-002 - Live build stream",
+    "WB-003 - Public build status dashboard",
+    "NT-001 - Feedback received notification",
+    "NT-002 - Build started notification",
+    "NT-003 - Deployed notification",
+    "SF-001 - Circuit breaker (5+ failures = pause)",
+    "SF-002 - Health monitoring",
+    "SF-003 - Admin override controls",
+    "AN-001 - User satisfaction tracking (thumbs up/down)",
     "--- STREAMING FAST TRACK (Enable Live Viewing) ---",
     "BC-001 - Sanitization layer (MUST HAVE for safe streaming)",
     "BC-002 - Output filter before Telegram (belt + suspenders)",
