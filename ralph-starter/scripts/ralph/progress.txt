@@ -4862,3 +4862,42 @@ python build_orchestrator.py
 - Database schema change (consecutive_failures) requires migration in production
 
 ---
+
+## Iteration 5 - 2026-01-10
+**Task**: [TS-001] Automated Test Suite Integration
+**Status**: ✅ Complete
+
+### What was implemented
+- Created test_runner.py module with comprehensive test execution and coverage tracking
+- TestRunner class runs pytest with coverage reporting and validates results
+- Integrated test runner into build_orchestrator.py after successful builds
+- Added test_result field to BuildContext to store test execution results
+- Tests must pass 100% before build proceeds to deployment
+- Coverage tracking with baseline comparison to ensure coverage never decreases
+- Failed tests are treated as failed builds (status returned to "queued" with reduced priority)
+- Test results include: passed/failed/skipped counts, coverage percentage, duration, and error messages
+
+### Files changed
+- test_runner.py: New module for test execution and coverage tracking
+- build_orchestrator.py: Integrated test runner into _handle_build_success() method
+- database.py: BuildContext now includes test_result field
+- prd.json: Marked TS-001 as passes=true
+
+### Learnings
+- Test suite integration acts as quality gate between build completion and deployment
+- Coverage baseline is stored in .coverage_baseline file to track coverage trends over time
+- pytest --cov provides both terminal output and JSON for parsing coverage data
+- Test failures should trigger same failure handling as build failures (priority reduction, consecutive failure tracking)
+- Coverage decrease is treated as test failure per TS-001 acceptance criteria
+- Test runner is initialized once in BuildOrchestrator.__init__() for efficiency
+- Test execution adds 2-10 minutes to build time depending on test suite size
+
+### Architecture notes
+- TestRunner is standalone module that can be used independently via CLI
+- Coverage JSON output is parsed to extract detailed coverage statistics
+- Test timeout defaults to 10 minutes (600 seconds) to prevent hanging builds
+- Baseline coverage is updated only when tests pass to maintain accurate threshold
+- Test output is captured and stored in TestResult for debugging failed builds
+- Future enhancements could include: test result caching, parallel test execution, incremental test running
+
+---

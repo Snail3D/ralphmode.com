@@ -35,6 +35,9 @@ from sqlalchemy.orm import Session
 from database import get_db, Feedback
 from feedback_queue import get_feedback_queue
 
+# TS-001: Import test runner
+from test_runner import TestRunner, TestResult
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -71,6 +74,7 @@ class BuildContext:
     user_id: int
     started_at: datetime
     process: Optional[subprocess.Popen] = None
+    test_result: Optional[TestResult] = None  # TS-001: Store test results
 
 
 class BuildOrchestrator:
@@ -93,6 +97,9 @@ class BuildOrchestrator:
         self.builds_completed = 0
         self.builds_failed = 0
         self.use_docker = use_docker
+
+        # TS-001: Initialize test runner
+        self.test_runner = TestRunner()
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -457,6 +464,8 @@ class BuildOrchestrator:
         """
         Handle successful build completion.
 
+        TS-001: After build success, run test suite before proceeding.
+
         Args:
             context: Build context
             db: Database session
@@ -464,6 +473,24 @@ class BuildOrchestrator:
         logger.info(f"Build SUCCESS for feedback_id={context.feedback_id}")
 
         try:
+            # TS-001: Run test suite after successful build
+            logger.info(f"Running test suite for feedback_id={context.feedback_id}")
+            test_result = self.test_runner.run_tests()
+            context.test_result = test_result
+
+            # TS-001: Failed tests = failed build
+            if not test_result.passed:
+                logger.error(f"Test suite FAILED for feedback_id={context.feedback_id}")
+                error_msg = f"Test suite failed: {', '.join(test_result.error_messages)}"
+                self._handle_build_failure(context, db, error_msg)
+                return
+
+            logger.info(
+                f"Test suite PASSED for feedback_id={context.feedback_id} "
+                f"({test_result.passed_tests}/{test_result.total_tests} tests, "
+                f"coverage: {test_result.coverage_percentage:.2f}%)"
+            )
+
             # BO-003: Reset consecutive failures on success
             feedback = db.query(Feedback).filter(Feedback.id == context.feedback_id).first()
             if feedback:
