@@ -1,0 +1,21 @@
+[tool.bandit]
+# SEC-023: Bandit configuration for Python security scanning
+exclude_dirs = [
+    "tests",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+]
+
+[tool.bandit.assert_used]
+# Allow asserts in test files
+skips = ["*_test.py", "test_*.py"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100

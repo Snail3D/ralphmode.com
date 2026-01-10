@@ -1,0 +1,64 @@
+# ZAP Scanning Rules for Ralph Mode Bot
+# Format: scanID	threshold	[WARN|FAIL|IGNORE|INFO]
+
+# Fail on high-risk vulnerabilities
+10020	WARN	Remote OS Command Injection
+10021	FAIL	X-Content-Type-Options Header Missing
+10023	WARN	Information Disclosure - Debug Error Messages
+10024	FAIL	Information Disclosure - Sensitive Information in URL
+10025	FAIL	Information Disclosure - Sensitive Information in HTTP Referrer Header
+10026	FAIL	HTTP Parameter Override
+10027	WARN	Information Disclosure - Suspicious Comments
+10028	FAIL	Open Redirect
+10029	FAIL	Cookie Poisoning
+10030	FAIL	User Controllable Charset
+10031	FAIL	User Controllable HTML Element Attribute (Potential XSS)
+10032	FAIL	Viewstate Scanner
+10033	WARN	Directory Browsing
+10034	FAIL	Heartbleed OpenSSL Vulnerability
+10035	FAIL	Strict-Transport-Security Header Not Set
+10036	FAIL	Server Leaks Version Information via "Server" HTTP Response Header Field
+10037	FAIL	Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
+10038	FAIL	Content Security Policy (CSP) Header Not Set
+10039	FAIL	X-Frame-Options Header Not Set
+10040	FAIL	Secure Pages Include Mixed Content
+10041	FAIL	HTTP to HTTPS Insecure Transition in Form Post
+10042	FAIL	HTTPS to HTTP Insecure Transition in Form Post
+10043	FAIL	User Controllable JavaScript Event (XSS)
+10044	FAIL	Big Redirect Detected (Potential Sensitive Information Leak)
+10045	FAIL	Source Code Disclosure - /WEB-INF folder
+10046	FAIL	Vulnerable JS Library
+10047	FAIL	HTTPS Content Available via HTTP
+10048	FAIL	Remote Code Execution - Shell Shock
+10049	WARN	Content Type Not Specified
+10050	FAIL	Retrieved from Cache
+10051	FAIL	Relative Path Confusion
+10052	FAIL	X-ChromeLogger-Data (XCOLD) Header Information Leak
+10053	FAIL	Apache Range Header DoS (CVE-2011-3192)
+10054	FAIL	Cookie Without SameSite Attribute
+10055	FAIL	CSP Scanner: Wildcard Directive
+10056	FAIL	X-Debug-Token Information Leak
+10057	FAIL	Username Hash Found
+10058	FAIL	GET for POST
+10059	FAIL	Cross-Domain Misconfiguration
+10060	FAIL	Absence of Anti-CSRF Tokens
+10061	FAIL	X-AspNet-Version Response Header
+10062	FAIL	PII Disclosure
+10063	FAIL	Permissions Policy Header Not Set
+10094	FAIL	Base64 Disclosure
+10095	FAIL	Backup File Disclosure
+10096	FAIL	Timestamp Disclosure
+10097	FAIL	Hash Disclosure
+10098	FAIL	Cross-Domain JavaScript Source File Inclusion
+10099	FAIL	Source Code Disclosure
+10103	FAIL	Verification Token Check
+10104	WARN	Anti-CSRF Token Issue (missing or doesn't match)
+10105	FAIL	Weak Authentication Method
+10108	FAIL	Reverse Tabnabbing
+10109	FAIL	Modern Web Application
+10110	FAIL	Dangerous JS Functions
+
+# Ignore low-risk informational findings
+90001	INFO	Informational
+90002	INFO	Private IP Disclosure
+90003	INFO	Loosely Scoped Cookie
