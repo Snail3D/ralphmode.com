@@ -190,6 +190,9 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_ADMIN_ID = os.environ.get("TELEGRAM_ADMIN_ID")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
+# TL-004: Admin option to disable message deletion (for debugging)
+DELETE_ORIGINAL_MESSAGES = os.environ.get("DELETE_ORIGINAL_MESSAGES", "true").lower() == "true"
+
 # AI Models (Groq)
 BOSS_MODEL = "llama-3.1-8b-instant"  # Fast, "dumber" - the middle manager
 WORKER_MODEL = "llama-3.1-70b-versatile"  # Smart - the dev team
@@ -4711,12 +4714,13 @@ _Grab some popcorn..._
                     # Translate to scene
                     scene_text = translate_to_scene(text, tone=tone)
 
-                    # Delete original message (optional - makes it feel more theatrical)
-                    # Comment this out if we want to keep the original
-                    try:
-                        await update.message.delete()
-                    except Exception as e:
-                        logging.warning(f"VO-001: Could not delete original message: {e}")
+                    # TL-004: Delete original message (optional - makes it feel more theatrical)
+                    # Can be disabled via DELETE_ORIGINAL_MESSAGES env var
+                    if DELETE_ORIGINAL_MESSAGES:
+                        try:
+                            await update.message.delete()
+                        except Exception as e:
+                            logging.warning(f"VO-001/TL-004: Could not delete original message: {e}")
 
                     # Send the theatrical version
                     await context.bot.send_message(
@@ -4923,6 +4927,19 @@ _Grab some popcorn..._
                     context.user_data = {}
                 context.user_data['voice_tone'] = tone_data
                 context.user_data['voice_intent'] = intent_data
+
+                # TL-004: Delete original voice message (only show translated version)
+                # Do this BEFORE processing so the deletion happens quickly
+                if DELETE_ORIGINAL_MESSAGES:
+                    try:
+                        await update.message.delete()
+                        logger.info("TL-004: Deleted original voice message")
+                    except Exception as e:
+                        # TL-004: Handle deletion failures gracefully (may lack permissions)
+                        logger.warning(f"TL-004: Could not delete voice message: {e}")
+                        # Continue processing even if deletion fails
+                else:
+                    logger.info("TL-004: Message deletion disabled (DELETE_ORIGINAL_MESSAGES=false)")
 
                 # Create a synthetic text message to process through existing handle_text
                 original_text = update.message.text

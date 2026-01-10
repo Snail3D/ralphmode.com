@@ -6778,3 +6778,89 @@ Characters respond appropriately to boss's emotional state
 
 ---
 
+## Iteration 104 - 2026-01-10
+**Task**: [TL-004] Original Message Deletion
+**Status**: ✅ Complete
+
+### What was implemented
+- **Voice message deletion**: Original voice messages deleted after transcription (before users notice)
+- **Text message deletion**: Also applies to text messages that get translated to scenes (VO-001)
+- **Admin debug option**: DELETE_ORIGINAL_MESSAGES env var to disable deletion
+- **Graceful failure handling**: System continues if deletion fails (permissions/API issues)
+- **Quick deletion timing**: Happens immediately after pipeline success, before handle_text processing
+
+### Files changed
+- ralph_bot.py
+  * Added DELETE_ORIGINAL_MESSAGES env var (line 194, defaults to true)
+  * Implemented voice message deletion (lines 4930-4941)
+  * Updated text message deletion to use same flag (lines 4717-4723)
+  * Both deletions use try/except for graceful error handling
+
+### Learnings
+- **Deletion timing matters**: Delete BEFORE processing so it happens instantly
+  - Voice: Delete right after pipeline success (line 4932)
+  - Then call handle_text with extracted message (line 4948)
+  - User sees translated version appear, original already gone
+- **Telegram API permissions**: Bot needs delete_messages permission
+  - If bot lacks permission, deletion fails silently
+  - Try/except ensures system continues working
+- **Debug mode is essential**: DELETE_ORIGINAL_MESSAGES=false for development
+  - Keeps original messages for debugging
+  - Helps verify transcription accuracy
+  - Useful for testing without cluttering chat
+- **Consistency across message types**: Same flag controls both voice and text deletion
+  - VO-001 (text→scene translation) and TL-004 (voice deletion) use same flag
+  - Unified behavior = predictable UX
+
+### Key Pattern
+Message deletion flow:
+```
+Voice message arrives
+  ↓
+Transcribe + analyze tone/intent (voice_handler.py)
+  ↓
+Pipeline success → tone_data + intent_data stored
+  ↓
+DELETE_ORIGINAL_MESSAGES? 
+  ├─ true → update.message.delete() (instant)
+  └─ false → keep original (debug mode)
+  ↓
+handle_text processes extracted_message
+  ↓
+Only translated/processed version visible in chat
+```
+
+### Gotchas to avoid
+- **Delete before processing**: If you process first, there's a visible delay
+- **Don't crash on deletion failure**: Bot may lack permissions in some chats
+- **Check Telegram API limits**: Bulk deletion can hit rate limits
+- **Preserve admin override**: Always have a way to disable deletion for debugging
+- **Log deletion events**: Helps diagnose permission issues
+
+### Environment Variable Usage
+```bash
+# Default: deletion enabled
+# (no variable needed)
+
+# Disable deletion for debugging
+DELETE_ORIGINAL_MESSAGES=false
+
+# Explicitly enable
+DELETE_ORIGINAL_MESSAGES=true
+```
+
+### Acceptance Criteria Met
+✅ Original voice message deleted after transcription (line 4934)
+✅ Deletion happens quickly (before users notice) - before handle_text call
+✅ Only translated scene version visible - original is gone
+✅ Works within Telegram API limits - standard delete() method
+✅ Handle deletion failures gracefully - try/except with warning log
+✅ Admin option to disable deletion - DELETE_ORIGINAL_MESSAGES env var
+
+### Testing Results
+- Flag parsing: ✅ Defaults to true, respects false, case-insensitive
+- Error handling: ✅ Try/except catches all exceptions, continues processing
+- Code locations: ✅ Voice (4932-4941), Text (4717-4723)
+
+---
+

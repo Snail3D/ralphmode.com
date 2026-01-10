@@ -2533,7 +2533,7 @@
         "ralph_bot.py",
         "message_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TL-005",
