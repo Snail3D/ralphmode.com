@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-BO-001: Build Orchestrator Service for Ralph Mode Bot
+BO-001 & BO-002: Build Orchestrator Service for Ralph Mode Bot
 
 This service:
 - Runs as a background daemon
 - Polls the feedback queue for HIGH priority items
-- Spawns isolated Ralph instances to build feedback items
+- Spawns isolated Ralph instances in Docker containers (BO-002)
 - Monitors build progress and updates queue status
 - Handles build completion and failure
 - Integrates with feedback_queue.py for status updates
@@ -14,6 +14,7 @@ Usage:
     python build_orchestrator.py --daemon    # Run as background service
     python build_orchestrator.py --once      # Process one item and exit (for testing)
     python build_orchestrator.py --stop      # Stop running daemon
+    python build_orchestrator.py --no-docker # Disable Docker isolation (for local dev)
 """
 
 import os
@@ -54,6 +55,11 @@ POLL_INTERVAL = 30  # Check queue every 30 seconds
 # Build timeout (2 hours max per build)
 BUILD_TIMEOUT = 7200
 
+# Docker configuration (BO-002)
+DOCKER_IMAGE = 'ralph-build:latest'
+DOCKER_BUILD_DIR = Path(__file__).parent
+REPO_URL = os.getenv('RALPH_REPO_URL', 'https://github.com/Snail3D/ralphmode.com.git')
+
 
 @dataclass
 class BuildContext:
@@ -69,22 +75,107 @@ class BuildContext:
 
 class BuildOrchestrator:
     """
-    BO-001: Build Orchestrator Service
+    BO-001 & BO-002: Build Orchestrator Service
 
     Monitors the feedback queue and spawns Ralph instances to build
-    high-priority feedback items.
+    high-priority feedback items in isolated Docker containers.
     """
 
-    def __init__(self):
-        """Initialize the build orchestrator."""
+    def __init__(self, use_docker: bool = True):
+        """
+        Initialize the build orchestrator.
+
+        Args:
+            use_docker: Whether to use Docker isolation (BO-002). Default True.
+        """
         self.running = True
         self.current_build: Optional[BuildContext] = None
         self.builds_completed = 0
         self.builds_failed = 0
+        self.use_docker = use_docker
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
+
+        # Verify Docker is available if enabled
+        if self.use_docker:
+            if not self._check_docker():
+                logger.warning("Docker not available, falling back to non-isolated builds")
+                self.use_docker = False
+
+    def _check_docker(self) -> bool:
+        """
+        Check if Docker is available and the build image exists.
+
+        Returns:
+            True if Docker is ready, False otherwise
+        """
+        try:
+            # Check if docker command exists
+            result = subprocess.run(
+                ['docker', '--version'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            if result.returncode != 0:
+                logger.error("Docker not installed")
+                return False
+
+            # Check if build image exists
+            result = subprocess.run(
+                ['docker', 'images', '-q', DOCKER_IMAGE],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            if not result.stdout.strip():
+                logger.info(f"Docker image {DOCKER_IMAGE} not found, building...")
+                return self._build_docker_image()
+
+            logger.info(f"Docker ready with image {DOCKER_IMAGE}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error checking Docker: {e}")
+            return False
+
+    def _build_docker_image(self) -> bool:
+        """
+        Build the Docker image for isolated builds.
+
+        Returns:
+            True if build succeeded, False otherwise
+        """
+        try:
+            dockerfile = DOCKER_BUILD_DIR / "Dockerfile.build"
+
+            if not dockerfile.exists():
+                logger.error(f"Dockerfile not found: {dockerfile}")
+                return False
+
+            logger.info(f"Building Docker image {DOCKER_IMAGE}...")
+
+            result = subprocess.run(
+                ['docker', 'build', '-f', str(dockerfile), '-t', DOCKER_IMAGE, str(DOCKER_BUILD_DIR)],
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minute timeout for image build
+            )
+
+            if result.returncode != 0:
+                logger.error(f"Docker build failed: {result.stderr}")
+                return False
+
+            logger.info(f"Docker image {DOCKER_IMAGE} built successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error building Docker image: {e}")
+            return False
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals gracefully."""
@@ -181,30 +272,20 @@ class BuildOrchestrator:
             # Create task file for Ralph
             task_file = self._create_task_file(build_context)
 
-            # Spawn Ralph process
-            logger.info(f"Spawning Ralph for feedback_id={feedback.id}")
+            # Spawn Ralph process (Docker or local)
+            logger.info(f"Spawning Ralph for feedback_id={feedback.id} (docker={self.use_docker})")
 
-            # Get the ralph.sh script path
-            ralph_script = Path(__file__).parent / "scripts" / "ralph" / "ralph.sh"
+            if self.use_docker:
+                # BO-002: Spawn in isolated Docker container
+                process = self._spawn_docker_build(build_context, task_file)
+            else:
+                # BO-001: Spawn as local subprocess (fallback)
+                process = self._spawn_local_build(build_context, task_file)
 
-            if not ralph_script.exists():
-                logger.error(f"Ralph script not found: {ralph_script}")
-                queue.update_status(feedback.id, "rejected", "Ralph script not found")
+            if not process:
+                logger.error(f"Failed to spawn build for feedback_id={feedback.id}")
+                queue.update_status(feedback.id, "rejected", "Build spawn failed")
                 return
-
-            # Start Ralph as subprocess
-            # Note: In production, this would use Docker isolation (BO-002)
-            process = subprocess.Popen(
-                [str(ralph_script)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                env={
-                    **os.environ,
-                    'RALPH_TASK_FILE': str(task_file),
-                    'RALPH_FEEDBACK_ID': str(feedback.id)
-                }
-            )
 
             build_context.process = process
             self.current_build = build_context
@@ -221,6 +302,89 @@ class BuildOrchestrator:
                 queue.update_status(feedback.id, "rejected", f"Build spawn failed: {str(e)}")
             except Exception as update_error:
                 logger.error(f"Failed to update status: {update_error}")
+
+    def _spawn_docker_build(self, context: BuildContext, task_file: Path) -> Optional[subprocess.Popen]:
+        """
+        Spawn build in isolated Docker container (BO-002).
+
+        Args:
+            context: Build context
+            task_file: Path to task file
+
+        Returns:
+            Popen process or None on failure
+        """
+        try:
+            # Branch name for this feedback item
+            branch_name = f"feedback/FB-{context.feedback_id}"
+
+            # Docker run command
+            docker_cmd = [
+                'docker', 'run',
+                '--rm',  # Auto-remove container after completion
+                '--name', f'ralph-build-{context.feedback_id}',  # Named container
+                '-e', f'REPO_URL={REPO_URL}',
+                '-e', f'FEEDBACK_ID={context.feedback_id}',
+                '-e', f'TASK_FILE=/tmp/task.json',
+                '-e', f'BRANCH_NAME={branch_name}',
+                '-v', f'{task_file}:/tmp/task.json:ro',  # Mount task file as read-only
+                DOCKER_IMAGE
+            ]
+
+            logger.info(f"Starting Docker container: {' '.join(docker_cmd)}")
+
+            process = subprocess.Popen(
+                docker_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            logger.info(f"Docker container started for feedback_id={context.feedback_id}")
+            return process
+
+        except Exception as e:
+            logger.error(f"Error spawning Docker build: {e}", exc_info=True)
+            return None
+
+    def _spawn_local_build(self, context: BuildContext, task_file: Path) -> Optional[subprocess.Popen]:
+        """
+        Spawn build as local subprocess (fallback when Docker unavailable).
+
+        Args:
+            context: Build context
+            task_file: Path to task file
+
+        Returns:
+            Popen process or None on failure
+        """
+        try:
+            # Get the ralph.sh script path
+            ralph_script = Path(__file__).parent / "scripts" / "ralph" / "ralph.sh"
+
+            if not ralph_script.exists():
+                logger.error(f"Ralph script not found: {ralph_script}")
+                return None
+
+            # Start Ralph as subprocess
+            process = subprocess.Popen(
+                [str(ralph_script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env={
+                    **os.environ,
+                    'RALPH_TASK_FILE': str(task_file),
+                    'RALPH_FEEDBACK_ID': str(context.feedback_id)
+                }
+            )
+
+            logger.info(f"Local subprocess started for feedback_id={context.feedback_id}")
+            return process
+
+        except Exception as e:
+            logger.error(f"Error spawning local build: {e}", exc_info=True)
+            return None
 
     def _create_task_file(self, context: BuildContext) -> Path:
         """
@@ -331,8 +495,13 @@ class BuildOrchestrator:
             logger.error(f"Error handling build failure: {e}", exc_info=True)
 
 
-def start_daemon():
-    """Start the orchestrator as a background daemon."""
+def start_daemon(use_docker: bool = True):
+    """
+    Start the orchestrator as a background daemon.
+
+    Args:
+        use_docker: Whether to use Docker isolation
+    """
     # Check if already running
     if PID_FILE.exists():
         with open(PID_FILE, 'r') as f:
@@ -372,7 +541,7 @@ def start_daemon():
     sys.stderr.flush()
 
     # Run orchestrator
-    orchestrator = BuildOrchestrator()
+    orchestrator = BuildOrchestrator(use_docker=use_docker)
     orchestrator.run()
 
     # Cleanup
@@ -417,23 +586,26 @@ def main():
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Ralph Mode Build Orchestrator')
+    parser = argparse.ArgumentParser(description='Ralph Mode Build Orchestrator (BO-001 & BO-002)')
     parser.add_argument('--daemon', action='store_true', help='Run as background daemon')
     parser.add_argument('--once', action='store_true', help='Process one item and exit (testing)')
     parser.add_argument('--stop', action='store_true', help='Stop running daemon')
+    parser.add_argument('--no-docker', action='store_true', help='Disable Docker isolation (local builds only)')
 
     args = parser.parse_args()
+
+    use_docker = not args.no_docker
 
     if args.stop:
         stop_daemon()
     elif args.daemon:
-        start_daemon()
+        start_daemon(use_docker=use_docker)
     elif args.once:
-        orchestrator = BuildOrchestrator()
+        orchestrator = BuildOrchestrator(use_docker=use_docker)
         orchestrator.run(once=True)
     else:
         # Run in foreground
-        orchestrator = BuildOrchestrator()
+        orchestrator = BuildOrchestrator(use_docker=use_docker)
         orchestrator.run()
 
 

@@ -3199,7 +3199,7 @@
         "build_orchestrator.py",
         "Dockerfile.build"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "BO-003",

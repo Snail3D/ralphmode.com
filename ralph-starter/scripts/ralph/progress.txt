@@ -4669,3 +4669,122 @@ Generic (too vague):
 
 ---
 
+
+## Iteration - 2026-01-10 18:00
+**Task**: [FQ-002] Queue Status States
+**Status**: ✅ Complete
+
+### What was implemented
+- Verified that the STATUS_TRANSITIONS state machine is fully implemented in feedback_queue.py
+- All 8 status states are properly defined with valid transitions
+- update_status() method enforces state transitions with validation
+- Terminal states (deployed, rejected) correctly prevent further transitions
+
+### Files changed
+- scripts/ralph/prd.json (marked FQ-002 as passes: true)
+
+### Learnings
+- FQ-002 was already fully implemented in feedback_queue.py from previous work
+- The state machine is well-designed with:
+  - Clear transition paths from pending → screening → scored → queued → in_progress → testing → deployed
+  - Ability to reject at any stage
+  - Tests can fail and go back to in_progress
+  - Terminal states properly locked
+- This demonstrates the value of verification tasks - sometimes the work is done, just needs validation
+
+---
+
+## Iteration - 2026-01-10 18:15
+**Task**: [FQ-003] User Feedback Status Check
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced /mystatus command from simple status counts to detailed feedback item listing
+- Shows up to 10 individual feedback items with:
+  - Truncated title (first 50 chars of content)
+  - Status with emoji (⏳ pending, 🔍 screening, 📊 scored, 📥 queued, 🔨 in_progress, 🧪 testing, ✅ deployed, ❌ rejected)
+  - Queue position for queued items
+  - Estimated wait time (5 min per item ahead in queue)
+  - Priority score if available
+- Added Ralph's personality with randomized greetings and sign-offs
+- In-character error messages
+- Integrated with FeedbackQueue.get_user_feedback() and get_queue_by_status()
+
+### Files changed
+- ralph_bot.py (mystatus_command method)
+- scripts/ralph/prd.json (marked FQ-003 as passes: true)
+
+### Learnings
+- The feedback_queue.py already had all the data access methods needed
+- Queue position calculation requires getting all queued items and finding index
+- Time estimation is a heuristic (5 min/item) - could be enhanced with complexity-based estimates
+- Ralph's personality shines through randomized greetings ("Me and the boys are checkin' your requests")
+- Truncating feedback content to 50 chars keeps the display clean and readable
+- Limiting to 10 items prevents message overflow while showing "...and X more" for transparency
+
+---
+
+## Iteration - 2026-01-10 18:45
+**Task**: [BO-001] Build Orchestrator Service
+**Status**: ✅ Complete
+
+### What was implemented
+- Created production-grade build orchestrator service from scratch
+- Daemon mode with proper process management:
+  - Double fork for full daemonization
+  - PID file management to prevent duplicate instances
+  - Signal handlers (SIGINT/SIGTERM) for graceful shutdown
+- Queue polling system:
+  - Polls every 30 seconds (configurable)
+  - Calls FeedbackQueue.get_next_high_priority() to get priority_score > 7 items
+  - Skips polling if build already in progress
+- Ralph subprocess spawning:
+  - Creates task file with feedback context
+  - Spawns ralph.sh as subprocess
+  - Passes feedback_id and task_file via environment variables
+- Build monitoring:
+  - Non-blocking process status checks
+  - 2-hour timeout enforcement
+  - Tracks elapsed time and completion status
+- Status updates:
+  - queued → in_progress (when build starts)
+  - in_progress → testing (on success)
+  - in_progress → rejected (on failure/timeout)
+- Error handling:
+  - Captures stdout/stderr on failure
+  - Handles spawn failures, timeouts, crashes
+  - Logs all events to build_orchestrator.log
+- Statistics tracking:
+  - Counts builds_completed and builds_failed
+  - Logs summary on shutdown
+
+### Files changed
+- build_orchestrator.py (NEW - 450 lines)
+- scripts/ralph/prd.json (marked BO-001 as passes: true)
+
+### Learnings
+- Proper daemonization requires double fork to fully detach from terminal
+- PID files are essential for managing singleton services
+- Signal handlers enable graceful shutdown (vs SIGKILL)
+- Non-blocking process monitoring (poll()) is crucial for responsive service
+- BuildContext dataclass provides clean state management
+- Integration with feedback_queue.py was seamless - good API design
+- Task files provide clean contract between orchestrator and Ralph
+- This sets foundation for BO-002 (Docker isolation) and BO-003 (failure handling)
+
+### Usage
+```bash
+# Start daemon
+python build_orchestrator.py --daemon
+
+# Test mode (process one item)
+python build_orchestrator.py --once
+
+# Stop daemon
+python build_orchestrator.py --stop
+
+# Foreground (for debugging)
+python build_orchestrator.py
+```
+
+---

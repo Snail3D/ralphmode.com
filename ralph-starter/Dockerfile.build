@@ -1,0 +1,46 @@
+# BO-002: Isolated Build Environment for Ralph Mode Bot
+#
+# This Dockerfile creates an isolated environment for building feedback items.
+# Each build runs in a fresh container with:
+# - Clean git clone of the repository
+# - Dedicated branch for the feedback item
+# - No cross-contamination between builds
+# - Automatic cleanup after completion
+
+FROM python:3.12-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code (the tool that Ralph uses)
+# Note: Adjust version as needed
+RUN curl -fsSL https://anthropic.com/claude-code/install.sh | bash
+
+# Create build user (non-root for security)
+RUN useradd -m -s /bin/bash builder
+USER builder
+WORKDIR /home/builder
+
+# Setup Python environment
+RUN python -m venv /home/builder/venv
+ENV PATH="/home/builder/venv/bin:$PATH"
+
+# Install Python dependencies
+# These will be overridden by the specific repo's requirements
+RUN pip install --upgrade pip
+
+# Entry point script
+COPY --chown=builder:builder docker-entrypoint.sh /home/builder/
+RUN chmod +x /home/builder/docker-entrypoint.sh
+
+# Environment variables that can be overridden
+ENV REPO_URL=""
+ENV FEEDBACK_ID=""
+ENV TASK_FILE=""
+ENV BRANCH_NAME=""
+
+ENTRYPOINT ["/home/builder/docker-entrypoint.sh"]
