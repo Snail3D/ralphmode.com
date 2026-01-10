@@ -1,0 +1,21 @@
+# Ralph Mode - Python Dependencies
+
+# Telegram Bot
+python-telegram-bot>=22.0.0
+
+# API Server & CSRF Protection (SEC-003)
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+
+# AI/LLM
+# Using Groq API directly with requests library
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Development
+python-dotenv>=1.0.0
