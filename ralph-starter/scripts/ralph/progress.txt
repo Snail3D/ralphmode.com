@@ -4988,3 +4988,34 @@ python build_orchestrator.py
 - Metrics tracking via JSON file is simple and effective for this use case
 
 ---
+
+## Iteration 7 - 2026-01-10
+**Task**: [DP-003] Auto Rollback
+**Status**: ✅ Complete
+
+### What was implemented
+- Updated _rollback_canary() to accept reason parameter for detailed logging
+- Implemented _notify_admin_rollback() method:
+  - Logs rollback alert with full context (feedback ID, reason, timestamp)
+  - Sends webhook notification if NOTIFICATION_WEBHOOK env var is configured
+  - Structured for future email notification (requires SMTP setup)
+- Implemented _mark_feedback_failed() method:
+  - Writes feedback status to /tmp/feedback_status_{id}.json
+  - Includes status, reason, timestamp, and stage information
+  - Ready for database integration when FQ-001 (feedback queue) is implemented
+- Updated deploy_to_canary() to pass rollback reason to _rollback_canary()
+- Updated module docstring to document all three DP tasks (001, 002, 003)
+
+### Files changed
+- deploy_manager.py
+
+### Learnings
+- DP-003 was already mostly implemented in DP-002 - rollback logic was there
+- The missing pieces were admin notification and feedback marking
+- Webhook notifications are preferred over email for real-time alerts (easier to set up)
+- File-based feedback status works as interim solution until database is ready
+- Rollback reasons should be detailed enough for debugging but concise for alerts
+- The 2x error rate threshold is the key trigger for auto-rollback
+- Production keeps running during entire canary lifecycle - zero downtime approach
+
+---

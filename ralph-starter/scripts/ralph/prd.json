@@ -3289,7 +3289,7 @@
         "deploy_manager.py",
         "monitoring.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "VM-001",
