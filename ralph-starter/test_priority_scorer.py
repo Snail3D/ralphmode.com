@@ -8,7 +8,11 @@ Quick test to verify the priority scoring functions work correctly.
 from feedback_scorer import (
     calculate_priority_score,
     normalize_quality_score,
-    estimate_complexity_from_feedback
+    estimate_complexity_from_feedback,
+    get_priority_tier,
+    get_priority_tier_description,
+    get_priority_tier_emoji,
+    calculate_priority_with_tier
 )
 
 
@@ -145,17 +149,97 @@ def test_full_workflow():
     print("\n✓ Full workflow passed!")
 
 
+def test_priority_tiers():
+    """Test PR-002: Priority tier categorization."""
+    print("\nTesting PR-002: Priority Tiers\n")
+
+    # Test HIGH tier (>7)
+    assert get_priority_tier(432.0) == "HIGH", "Score 432.0 should be HIGH"
+    assert get_priority_tier(17.5) == "HIGH", "Score 17.5 should be HIGH"
+    assert get_priority_tier(7.01) == "HIGH", "Score 7.01 should be HIGH"
+
+    # Test MEDIUM tier (4-7)
+    assert get_priority_tier(7.0) == "MEDIUM", "Score 7.0 should be MEDIUM"
+    assert get_priority_tier(6.5) == "MEDIUM", "Score 6.5 should be MEDIUM"
+    assert get_priority_tier(4.0) == "MEDIUM", "Score 4.0 should be MEDIUM"
+
+    # Test LOW tier (<4)
+    assert get_priority_tier(3.99) == "LOW", "Score 3.99 should be LOW"
+    assert get_priority_tier(0.75) == "LOW", "Score 0.75 should be LOW"
+    assert get_priority_tier(0.03) == "LOW", "Score 0.03 should be LOW"
+
+    print(f"HIGH tier (>7):   {get_priority_tier(432.0)} {get_priority_tier_emoji('HIGH')}")
+    print(f"MEDIUM tier (4-7): {get_priority_tier(6.5)} {get_priority_tier_emoji('MEDIUM')}")
+    print(f"LOW tier (<4):    {get_priority_tier(0.75)} {get_priority_tier_emoji('LOW')}")
+
+    print("\n✓ Priority tier categorization passed!")
+
+
+def test_priority_tier_helpers():
+    """Test helper functions for priority tiers."""
+    print("\nTesting priority tier helpers:\n")
+
+    # Test descriptions
+    assert "Build next" in get_priority_tier_description("HIGH")
+    assert "Queued" in get_priority_tier_description("MEDIUM")
+    assert "Backlog" in get_priority_tier_description("LOW")
+
+    # Test emojis
+    assert get_priority_tier_emoji("HIGH") == "🔴"
+    assert get_priority_tier_emoji("MEDIUM") == "🟡"
+    assert get_priority_tier_emoji("LOW") == "🟢"
+
+    print(f"HIGH: {get_priority_tier_emoji('HIGH')} {get_priority_tier_description('HIGH')}")
+    print(f"MEDIUM: {get_priority_tier_emoji('MEDIUM')} {get_priority_tier_description('MEDIUM')}")
+    print(f"LOW: {get_priority_tier_emoji('LOW')} {get_priority_tier_description('LOW')}")
+
+    print("\n✓ Priority tier helpers passed!")
+
+
+def test_calculate_priority_with_tier():
+    """Test combined priority calculation with tier."""
+    print("\nTesting calculate_priority_with_tier:\n")
+
+    # HIGH priority example
+    result_high = calculate_priority_with_tier(9, 9, 10, 0.8, 2.0, 3)
+    assert result_high['priority_score'] == 432.0
+    assert result_high['tier'] == "HIGH"
+    assert result_high['emoji'] == "🔴"
+    print(f"HIGH: Score {result_high['priority_score']} → {result_high['emoji']} {result_high['tier']}")
+
+    # MEDIUM priority example (adjusted to produce score in 4-7 range)
+    result_medium = calculate_priority_with_tier(4, 4, 4, 0.5, 1.0, 6)
+    assert result_medium['tier'] == "MEDIUM"
+    assert result_medium['emoji'] == "🟡"
+    print(f"MEDIUM: Score {result_medium['priority_score']} → {result_medium['emoji']} {result_medium['tier']}")
+
+    # LOW priority example
+    result_low = calculate_priority_with_tier(2, 3, 2, 0.5, 1.0, 8)
+    assert result_low['priority_score'] == 0.75
+    assert result_low['tier'] == "LOW"
+    assert result_low['emoji'] == "🟢"
+    print(f"LOW: Score {result_low['priority_score']} → {result_low['emoji']} {result_low['tier']}")
+
+    print("\n✓ Combined priority with tier passed!")
+
+
 if __name__ == "__main__":
     print("=" * 60)
-    print("PR-001: Priority Score Algorithm Tests")
+    print("PR-001 & PR-002: Priority Scoring System Tests")
     print("=" * 60 + "\n")
 
+    # PR-001 tests
     test_calculate_priority_score()
     test_normalize_quality_score()
     test_estimate_complexity()
     test_validation()
     test_full_workflow()
 
+    # PR-002 tests
+    test_priority_tiers()
+    test_priority_tier_helpers()
+    test_calculate_priority_with_tier()
+
     print("\n" + "=" * 60)
-    print("✓ ALL TESTS PASSED - PR-001 is ready!")
+    print("✓ ALL TESTS PASSED - PR-001 & PR-002 are ready!")
     print("=" * 60)

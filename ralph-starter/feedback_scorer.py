@@ -857,3 +857,132 @@ def estimate_complexity_from_feedback(content: str, feedback_type: str = "genera
     complexity = max(1.0, min(10.0, complexity))
 
     return round(complexity, 1)
+
+
+def get_priority_tier(priority_score: float) -> str:
+    """
+    PR-002: Categorize priority score into tiers.
+
+    Priority tiers:
+    - HIGH (>7): Build next - critical issues or high-value features
+    - MEDIUM (4-7): Queued - important but not urgent
+    - LOW (<4): Backlog - nice to have, low impact/urgency
+
+    Args:
+        priority_score: Priority score from calculate_priority_score()
+
+    Returns:
+        Priority tier: "HIGH", "MEDIUM", or "LOW"
+
+    Examples:
+        432.0 → "HIGH" (critical bug from Priority user)
+        17.5 → "HIGH" (good quality, medium impact)
+        6.5 → "MEDIUM" (decent priority)
+        0.75 → "LOW" (low impact, high complexity)
+    """
+    if priority_score > 7:
+        return "HIGH"
+    elif priority_score >= 4:
+        return "MEDIUM"
+    else:
+        return "LOW"
+
+
+def get_priority_tier_description(tier: str) -> str:
+    """
+    Get human-readable description for a priority tier.
+
+    Args:
+        tier: Priority tier ("HIGH", "MEDIUM", or "LOW")
+
+    Returns:
+        Human-readable description
+
+    Examples:
+        "HIGH" → "Build next - critical issues or high-value features"
+        "MEDIUM" → "Queued - important but not urgent"
+        "LOW" → "Backlog - nice to have, low impact/urgency"
+    """
+    descriptions = {
+        "HIGH": "Build next - critical issues or high-value features",
+        "MEDIUM": "Queued - important but not urgent",
+        "LOW": "Backlog - nice to have, low impact/urgency"
+    }
+    return descriptions.get(tier, "Unknown priority tier")
+
+
+def get_priority_tier_emoji(tier: str) -> str:
+    """
+    Get emoji indicator for a priority tier.
+
+    Args:
+        tier: Priority tier ("HIGH", "MEDIUM", or "LOW")
+
+    Returns:
+        Emoji string
+
+    Examples:
+        "HIGH" → "🔴"
+        "MEDIUM" → "🟡"
+        "LOW" → "🟢"
+    """
+    emojis = {
+        "HIGH": "🔴",
+        "MEDIUM": "🟡",
+        "LOW": "🟢"
+    }
+    return emojis.get(tier, "⚪")
+
+
+def calculate_priority_with_tier(
+    impact: float,
+    frequency: float,
+    urgency: float,
+    quality: float,
+    user_weight: float,
+    complexity: float
+) -> Dict[str, any]:
+    """
+    Calculate priority score and tier in one call.
+
+    Convenience function that combines calculate_priority_score() and
+    get_priority_tier() for easier integration.
+
+    Args:
+        impact: Impact score (1-10)
+        frequency: Frequency score (1-10)
+        urgency: Urgency score (1-10)
+        quality: Quality score (0.3-1.0)
+        user_weight: User tier weight (1.0 or 2.0)
+        complexity: Complexity score (1-10)
+
+    Returns:
+        Dict with priority score, tier, description, and emoji:
+        {
+            'priority_score': float,
+            'tier': str ("HIGH", "MEDIUM", or "LOW"),
+            'description': str,
+            'emoji': str
+        }
+
+    Example:
+        >>> calculate_priority_with_tier(9, 9, 10, 0.8, 2.0, 3)
+        {
+            'priority_score': 432.0,
+            'tier': 'HIGH',
+            'description': 'Build next - critical issues or high-value features',
+            'emoji': '🔴'
+        }
+    """
+    priority_score = calculate_priority_score(
+        impact, frequency, urgency, quality, user_weight, complexity
+    )
+
+    tier = get_priority_tier(priority_score)
+
+    return {
+        'priority_score': priority_score,
+        'tier': tier,
+        'description': get_priority_tier_description(tier),
+        'emoji': get_priority_tier_emoji(tier)
+    }
