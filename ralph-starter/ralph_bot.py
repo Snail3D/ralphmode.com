@@ -931,6 +931,25 @@ class RalphBot:
                         # Trigger background chatter in background (don't block current message)
                         asyncio.create_task(self.background_office_chatter(context, chat_id))
 
+                # RM-009: Ralph Moments (special occasions - gross/funny Ralph interruptions)
+                # Triggered based on time AND context (during active work sessions)
+                # Check if this is during an active session (context matters)
+                user_id = chat_id  # In DM, chat_id == user_id
+                if user_id in self.active_sessions:
+                    session = self.active_sessions[user_id]
+                    # Only during "working" status, not during onboarding
+                    if session.get('status') == 'working':
+                        # Check if enough time has passed (20 minutes = ~3 per hour max)
+                        now = datetime.now()
+                        last_moment = self.last_ralph_moment.get(user_id)
+                        time_since_last = (now - last_moment).total_seconds() if last_moment else 9999
+
+                        # 5% chance and at least 20 minutes since last one (special occasions)
+                        if random.random() < 0.05 and time_since_last >= self.ralph_moment_interval:
+                            self.last_ralph_moment[user_id] = now
+                            # Trigger Ralph moment in background (don't block current message)
+                            asyncio.create_task(self.ralph_moment(context, chat_id))
+
                 return True
             except Exception as e:
                 logger.warning(f"Button styling failed, falling back to text: {e}")
@@ -2319,6 +2338,52 @@ class RalphBot:
             text=f"_(In background) {speaker_1} to {speaker_2}: '{message_1}'_\n_{speaker_2}: '{message_2}'_",
             parse_mode="Markdown"
         )
+
+    async def ralph_moment(self, context, chat_id: int):
+        """Random Ralph moment - gross/funny interruption that shows Ralph being Ralph.
+
+        RM-009: Polish Ralph Moments
+        Triggered based on time AND context during active sessions.
+        Features proper comedic timing with pauses, worker reactions, and GIFs.
+        """
+        # Pick a random Ralph moment
+        moment = random.choice(self.RALPH_MOMENTS)
+
+        # Stage direction / action (comedic timing: let it land)
+        await asyncio.sleep(random.uniform(0.3, 0.7))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=moment['action'],
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.beat())
+
+        # Ralph says something absurd
+        await self.rapid_banter_send(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(moment['ralph'])
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Worker reacts (usually with exasperation)
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker_data = self.DEV_TEAM[worker_name]
+        await self.interruption_send(
+            context, chat_id, worker_name, worker_data.get('title'),
+            moment['worker_reaction']
+        )
+        await asyncio.sleep(self.timing.interruption())
+
+        # Ralph's follow-up (doubles down on the absurdity)
+        await self.rapid_banter_send(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(moment['ralph_response'])
+        )
+
+        # GIF to accompany the moment (Ralph being Ralph)
+        if self.should_send_gif():
+            await asyncio.sleep(self.timing.beat())
+            await self.send_ralph_gif(context, chat_id, "silly")
 
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
