@@ -761,6 +761,99 @@ def get_versions():
         }), 500
 
 
+@app.route('/api/build-status', methods=['GET'])
+@rate_limit_ip()  # SEC-011: Global rate limit
+def get_build_status():
+    """
+    WB-003: Public Build Status Dashboard endpoint.
+
+    Returns real-time build status information:
+    - Queue depth (number of items waiting to build)
+    - Current build task (if any)
+    - Recent deployments list
+    - Build success rate
+
+    This is a public endpoint (no auth required) for website display.
+    Updates in real-time by querying the feedback queue and build orchestrator.
+
+    SEC-011: Rate limited to prevent abuse
+    """
+    try:
+        from database import get_db, Feedback
+        from feedback_queue import get_feedback_queue
+
+        with get_db() as db:
+            queue = get_feedback_queue(db)
+
+            # Queue depth: count items in "queued" status
+            queue_depth = db.query(Feedback).filter(
+                Feedback.status == "queued"
+            ).count()
+
+            # Current build: find item in "in_progress" status
+            current_build = db.query(Feedback).filter(
+                Feedback.status == "in_progress"
+            ).first()
+
+            current_build_data = None
+            if current_build:
+                current_build_data = {
+                    'feedback_id': current_build.id,
+                    'type': current_build.feedback_type,
+                    'started_at': current_build.updated_at.isoformat() if current_build.updated_at else None,
+                    'priority_score': current_build.priority_score
+                }
+
+            # Recent deployments: last 10 items with "deployed_staging" or "deployed_production" status
+            recent_deployments = db.query(Feedback).filter(
+                Feedback.status.in_(['deployed_staging', 'deployed_production'])
+            ).order_by(
+                Feedback.updated_at.desc()
+            ).limit(10).all()
+
+            deployment_list = []
+            for deployment in recent_deployments:
+                deployment_list.append({
+                    'feedback_id': deployment.id,
+                    'type': deployment.feedback_type,
+                    'status': deployment.status,
+                    'deployed_at': deployment.updated_at.isoformat() if deployment.updated_at else None,
+                    'quality_score': deployment.quality_score,
+                    'priority_score': deployment.priority_score
+                })
+
+            # Build success rate: calculate from last 50 completed builds
+            total_builds = db.query(Feedback).filter(
+                Feedback.status.in_(['deployed_staging', 'deployed_production', 'rejected'])
+            ).count()
+
+            successful_builds = db.query(Feedback).filter(
+                Feedback.status.in_(['deployed_staging', 'deployed_production'])
+            ).count()
+
+            success_rate = 0.0
+            if total_builds > 0:
+                success_rate = (successful_builds / total_builds) * 100
+
+            return jsonify({
+                'success': True,
+                'queue_depth': queue_depth,
+                'current_build': current_build_data,
+                'recent_deployments': deployment_list,
+                'build_success_rate': round(success_rate, 2),
+                'total_builds': total_builds,
+                'successful_builds': successful_builds,
+                'timestamp': datetime.now().isoformat()
+            })
+
+    except Exception as e:
+        logger.error(f"Error fetching build status: {e}", exc_info=True)
+        return jsonify({
+            'error': 'Failed to fetch build status',
+            'code': 'BUILD_STATUS_ERROR'
+        }), 500
+
+
 @app.route('/api/health', methods=['GET'])
 @rate_limit_ip()  # SEC-011: Global rate limit
 def health_check():
