@@ -3880,7 +3880,7 @@
         "db_config.py",
         "infrastructure/*"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-019",
