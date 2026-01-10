@@ -4369,3 +4369,47 @@ Generic (too vague):
 ✅ Works across feedback types
 
 ---
+
+## Iteration [Ralph Auto] - 2026-01-10 18:20 UTC
+**Task**: [DD-002] Duplicate Merging and Upvoting
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `upvote_count` field to Feedback model in database.py (default=0)
+- Implemented `merge_duplicate()` function in duplicate_detector.py:
+  - Marks duplicate feedback with `is_duplicate_of` foreign key
+  - Increments upvote_count on original feedback
+  - Updates priority_score (+0.5 per upvote)
+  - Sets duplicate status to "rejected" with reason
+- Integrated duplicate detection and merging in feedback_collector.py:
+  - Checks for duplicates using DD-001 semantic detection
+  - Automatically merges duplicates into original items
+  - Stores merge info in metadata for user notification
+- Added `get_duplicate_merge_message()` helper for user-friendly notifications
+- Created database migration script (migrate_dd002.py)
+- Added comprehensive test suite (test_dd002.py)
+
+### Files changed
+- database.py: Added upvote_count column to Feedback model
+- duplicate_detector.py: Added merge_duplicate() and get_original_feedback_url() methods
+- feedback_collector.py: Added duplicate detection/merging logic and user notification
+- scripts/ralph/prd.json: Marked DD-002 as passes=true
+- migrate_dd002.py: Migration script for existing databases
+- test_dd002.py: Test suite validating merge, upvote, and score calculation
+
+### Learnings
+- Database migrations needed for SQLAlchemy schema changes in existing DBs
+- Upvote system provides better signal for duplicate demand vs raw count
+- Priority score formula: base_score + (upvote_count * 0.5)
+- Duplicate detection requires DD-001 embeddings + Groq API key
+- Merging happens AFTER feedback creation to get feedback_id
+- User notification metadata pattern: store merge info in metadata dict
+- Test pattern: Direct merge tests don't require API key, full flow tests do
+
+### Integration points
+- DD-001: Uses duplicate detection to find semantically similar feedback
+- PR-001: Priority score calculation incorporates upvote boost
+- FB-002: User notification system can show merge messages
+- FQ-003: /mystatus can show upvote counts on user's feedback
+
+---
