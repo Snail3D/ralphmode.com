@@ -5356,10 +5356,12 @@ _Grab some popcorn..._
         )
 
     async def process_admin_voice_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, transcription: str):
-        """AC-001: Process admin voice commands (never shown in chat).
+        """AC-001/AC-002: Process admin voice commands (never shown in chat).
 
         Admin commands are voice messages starting with trigger phrases like "admin command:"
         These are processed silently - no messages shown in chat, only actions performed.
+
+        AC-002: Send private confirmation to admin only (never in group chat).
 
         Only Mr. Worms (Tier 1) can use admin commands.
 
@@ -5406,6 +5408,25 @@ _Grab some popcorn..._
                 break
 
         logging.info(f"AC-001: Processing admin voice command from Tier 1 user {telegram_id}: {command_text[:50]}...")
+
+        # AC-002: Send private confirmation to admin (NOT to group chat)
+        try:
+            confirmation_message = (
+                "🔒 Admin command received:\n\n"
+                f"Command: {command_text[:200]}\n\n"
+                "✅ Transcribed and logged silently.\n"
+                "This message is private - not visible in the group chat."
+            )
+
+            # Send private message to admin
+            await context.bot.send_message(
+                chat_id=user_id,  # Send to user's private chat, not group chat
+                text=confirmation_message
+            )
+
+            logging.info(f"AC-002: Sent private confirmation to admin {telegram_id}")
+        except Exception as e:
+            logging.error(f"AC-002: Failed to send private confirmation to admin: {e}")
 
         # AC-001: Route to admin handler
         # For now, we log the command and acknowledge silently

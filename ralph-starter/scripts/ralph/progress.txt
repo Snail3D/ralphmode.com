@@ -7100,3 +7100,52 @@ DELETE_ORIGINAL_MESSAGES=true
 - UserTier enum has helpful properties like can_control_build and can_chat
 
 ---
+
+## Iteration 112 - 2026-01-10
+**Task**: [AC-001] Admin Command Trigger Phrase Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Added detect_admin_command() method to detect admin command trigger phrases in voice messages
+- Created process_admin_voice_command() method for silent admin command processing
+- Integrated admin command routing in handle_voice() pipeline (executes before regular voice processing)
+- Admin commands are detected, voice message deleted silently, and processed without any chat output
+- Only Tier 1 (Mr. Worms/Owner) users can execute admin commands
+- Supports multiple trigger phrases: "admin command:", "admin:", "hey admin", "admin mode", "admin please"
+
+### Files changed
+- ralph_bot.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Admin commands follow the "invisible moderation" principle - they're processed but never shown in chat
+- Tier-based access control is critical - admin commands silently reject non-Tier-1 users
+- Voice pipeline flow: transcription → admin detection → (if admin: process silently & return) → (else: continue normal flow)
+- Detection happens early in pipeline (after transcription, before unclear audio handling)
+- Fallback to TELEGRAM_ADMIN_ID env var when user_manager is not available
+
+---
+
+---
+
+## Iteration 113 - 2026-01-10
+**Task**: [AC-002] Transcribe but Don't Show in Chat (Hidden Execution)
+**Status**: ✅ Complete
+
+### What was implemented
+- Extended process_admin_voice_command() to send private confirmation to admin
+- Admin receives private DM with transcribed command (not visible in group chat)
+- Confirmation message shows command text and confirms silent processing
+- Message explicitly states it's private and not visible in group
+- Error handling for failed DM delivery
+
+### Files changed
+- ralph_bot.py (process_admin_voice_command method)
+- scripts/ralph/prd.json (marked AC-002 as complete)
+
+### Learnings
+- AC-001 already handled voice transcription, parsing, deletion - AC-002 just needed private confirmation
+- Private messages use user_id (personal chat) vs chat_id (group chat)
+- Important to make confirmation ephemeral/invisible to maintain admin command stealth
+- The invisible moderation pattern preserves group chat flow while giving admin feedback
+
