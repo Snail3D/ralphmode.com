@@ -6619,3 +6619,85 @@ Voice message flow:
 ✓ Handle various audio formats Telegram supports
 
 ---
+
+## Iteration [Ralph Auto] - 2026-01-10 14:30
+**Task**: VO-004 Voice-to-Intent Pipeline
+**Status**: ✅ Complete
+
+### What was implemented
+- Full voice-to-intent processing pipeline with 3 stages:
+  1. Whisper transcription (existing from VO-002)
+  2. LLM-powered tone analysis (new) - detects angry, happy, questioning, frustrated, etc.
+  3. LLM-powered intent extraction (enhanced) - boss_message, question, work_request, status_check, unclear
+- Graceful handling of unclear/ambiguous audio with fallback mechanisms
+- Clarification requests when intent cannot be determined
+- Context enrichment: tone and intent data passed to handlers via context.user_data
+- Fallback to keyword matching when LLM analysis fails
+
+### Files changed
+- voice_handler.py
+  * Added analyze_tone() method using Groq llama-3.3-70b-versatile
+    - Returns: primary_tone, intensity, confidence, description
+    - JSON response parsing with code block handling
+    - Fallback to neutral tone on API failure
+  * Enhanced extract_intent() to be async and LLM-powered
+    - Now takes tone_data as context parameter
+    - Returns: intent_type, confidence, action_required, extracted_message, clarity, needs_clarification
+    - Comprehensive intent types: boss_message, question, feedback, work_request, status_check, command, unclear
+    - _fallback_intent() for keyword-based extraction when LLM fails
+  * Added process_voice_message() pipeline method
+    - Orchestrates full pipeline: transcribe → analyze tone → extract intent
+    - Returns complete analysis object with all data
+    - Handles pipeline failures gracefully
+- ralph_bot.py
+  * Updated handle_voice() to use full pipeline (lines 4855-4910)
+  * Stores tone/intent in context.user_data for downstream handlers
+  * Asks for clarification when audio unclear ("I'm not sure what you want me to do?")
+  * Passes enriched context to handle_text for intent-aware processing
+
+### Learnings
+- **LLM for tone analysis is fast and accurate**: Groq's llama-3.3-70b-versatile analyzes tone in ~1-2 seconds
+- **JSON extraction robustness**: LLMs sometimes wrap JSON in code blocks - must handle ```json``` parsing
+- **Context matters**: Passing tone_data to intent extraction improves accuracy
+- **Graceful degradation is critical**: Always have fallback for API failures
+  - Tone analysis → fallback to neutral
+  - Intent extraction → fallback to keyword matching
+- **Pipeline pattern**: process_voice_message() as single entry point is clean
+- **Unclear audio handling**: needs_clarification flag prevents bad assumptions
+- **Temperature 0.3**: Good balance for consistent JSON output without being too rigid
+- **Async all the way**: Both tone and intent analysis are async to match Whisper transcription
+
+### Key Pattern
+Enhanced voice pipeline flow:
+```
+Voice message
+  ↓
+Download + Whisper transcription (VO-002)
+  ↓
+Tone analysis (LLM) → {primary_tone, intensity, confidence}
+  ↓
+Intent extraction (LLM + tone context) → {intent_type, clarity, needs_clarification}
+  ↓
+If unclear → Ask clarification
+  ↓
+Store tone/intent in context.user_data
+  ↓
+Pass to handle_text with enriched context
+```
+
+### Gotchas to avoid
+- **Don't skip tone context**: Intent extraction is better when it knows tone
+- **Handle JSON parsing errors**: LLMs are mostly consistent but can vary format
+- **Don't assume transcription quality**: Even good transcription can be ambiguous
+- **Context.user_data may not exist**: Initialize if needed before storing
+- **Short timeout for analysis**: 15 seconds prevents hanging on slow API
+
+### Acceptance Criteria Met
+✅ Voice → Whisper transcription (existing from VO-002)
+✅ Transcription → Tone analysis (angry, happy, questioning, etc.)
+✅ Transcription → Intent extraction (what does user want)
+✅ Both tone and intent passed to translation layer (via context.user_data)
+✅ Handle unclear audio gracefully (fallback mechanisms)
+✅ Ask for clarification if intent unclear (needs_clarification flag)
+
+---
