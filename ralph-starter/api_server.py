@@ -654,6 +654,113 @@ def simple_health_check():
     })
 
 
+@app.route('/api/versions', methods=['GET'])
+@rate_limit_ip()  # SEC-011: Global rate limit
+def get_versions():
+    """
+    WB-001: Get version information for website display.
+
+    Returns stable, beta, and alpha versions with:
+    - Version number
+    - Release date
+    - Changelog link
+    - Download link
+
+    SEC-011: Rate limited to prevent abuse
+    """
+    try:
+        from version_manager import VersionManager
+        from changelog_generator import ChangelogGenerator
+
+        vm = VersionManager()
+        cg = ChangelogGenerator()
+
+        # Get current stable version
+        current_version = vm.get_current_version()
+
+        # Get version history to find latest stable, beta, and alpha
+        version_history = cg.get_version_history(limit=100)
+
+        # Categorize versions based on semantic versioning conventions:
+        # - Stable: X.Y.0 or X.Y.Z where Z > 0 and not pre-release
+        # - Beta: Versions with "beta" tag or X.Y.Z-beta
+        # - Alpha: Versions with "alpha" tag or X.Y.Z-alpha or 0.X.Y versions
+
+        stable_version = None
+        beta_version = None
+        alpha_version = None
+
+        for entry in version_history:
+            version_str = entry.version
+
+            # Check for explicit beta/alpha tags
+            if 'beta' in version_str.lower():
+                if not beta_version:
+                    beta_version = entry
+            elif 'alpha' in version_str.lower():
+                if not alpha_version:
+                    alpha_version = entry
+            # 0.x.y versions are considered alpha
+            elif version_str.startswith('0.'):
+                if not alpha_version:
+                    alpha_version = entry
+            else:
+                # Stable version (1.0.0+)
+                if not stable_version:
+                    stable_version = entry
+
+        # Use current version as stable if no stable found in history
+        if not stable_version:
+            stable_version_data = {
+                'version': str(current_version),
+                'date': datetime.now().isoformat(),
+                'changelog_url': f'/changelog#{current_version}',
+                'download_url': f'/download/ralph-starter-{current_version}.zip'
+            }
+        else:
+            stable_version_data = {
+                'version': stable_version.version,
+                'date': stable_version.released_at.isoformat(),
+                'changelog_url': f'/changelog#{stable_version.version}',
+                'download_url': f'/download/ralph-starter-{stable_version.version}.zip'
+            }
+
+        # Format beta version data
+        beta_version_data = None
+        if beta_version:
+            beta_version_data = {
+                'version': beta_version.version,
+                'date': beta_version.released_at.isoformat(),
+                'changelog_url': f'/changelog#{beta_version.version}',
+                'download_url': f'/download/ralph-starter-{beta_version.version}.zip'
+            }
+
+        # Format alpha version data
+        alpha_version_data = None
+        if alpha_version:
+            alpha_version_data = {
+                'version': alpha_version.version,
+                'date': alpha_version.released_at.isoformat(),
+                'changelog_url': f'/changelog#{alpha_version.version}',
+                'download_url': f'/download/ralph-starter-{alpha_version.version}.zip'
+            }
+
+        return jsonify({
+            'success': True,
+            'stable': stable_version_data,
+            'beta': beta_version_data,
+            'alpha': alpha_version_data,
+            'current': str(current_version)
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching versions: {e}")
+        return jsonify({
+            'error': 'Failed to fetch versions',
+            'code': 'VERSION_FETCH_ERROR'
+        }), 500
+
+
 @app.route('/api/health', methods=['GET'])
 @rate_limit_ip()  # SEC-011: Global rate limit
 def health_check():
