@@ -86,6 +86,14 @@ except ImportError:
     FEEDBACK_COLLECTOR_AVAILABLE = False
     logging.warning("FB-001: Feedback collector not available - feedback features disabled")
 
+# FB-002: Import subscription manager
+try:
+    from subscription_manager import get_subscription_manager
+    SUBSCRIPTION_MANAGER_AVAILABLE = True
+except ImportError:
+    SUBSCRIPTION_MANAGER_AVAILABLE = False
+    logging.warning("FB-002: Subscription manager not available - subscription features disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -4180,8 +4188,49 @@ _Grab some popcorn..._
             )
             return
 
+        # FB-002: Check subscription tier before accepting feedback
+        if SUBSCRIPTION_MANAGER_AVAILABLE:
+            sub_manager = get_subscription_manager()
+            can_submit, tier_name, weight = sub_manager.can_submit_feedback(telegram_id)
+
+            if not can_submit:
+                # User is Viewer tier - show upgrade prompt with Ralph personality
+                upgrade_prompts = [
+                    "Ooh feedbak! I love feedbak! But my boss says only Builders can tell us what to build. "
+                    "You're a Viewer right now, which means you can watch but not help build! "
+                    "Want to upgrade? I think you'd make a great Builder! My nose makes its own sauce!",
+
+                    "That's so nice you want to help! But Mr. Worms says feedback is only for Builders and Priority members! "
+                    "You're watching right now which is super fun, but if you want to tell us what to make, "
+                    "you gotta be a Builder! Use /subscribe and I'll show you how! I eated the purple berries!",
+
+                    "Yay feedback! Oh wait... my boss is saying something in my ear... he says you need to be a Builder first! "
+                    "Right now you're a Viewer which is cool and all, but to help us build stuff you need to upgrade! "
+                    "Type /subscribe and I'll explain! My cat's breath smells like cat food!",
+                ]
+
+                ralph_response = self.ralph_misspell(random.choice(upgrade_prompts))
+
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, ralph_response,
+                    topic="subscription gate",
+                    with_typing=True
+                )
+
+                # Show upgrade options
+                upgrade_msg = sub_manager.get_upgrade_message("free")
+                await update.message.reply_text(upgrade_msg, parse_mode="Markdown")
+
+                return
+
         # Show typing indicator
         await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+        # FB-002: Get feedback weight based on subscription tier
+        feedback_weight = 1.0
+        if SUBSCRIPTION_MANAGER_AVAILABLE:
+            sub_manager = get_subscription_manager()
+            feedback_weight = sub_manager.get_feedback_weight(telegram_id)
 
         # Collect the feedback
         collector = get_feedback_collector(self.groq_api_key)
@@ -4189,13 +4238,14 @@ _Grab some popcorn..._
         # Classify feedback type
         feedback_type = collector.classify_feedback_type(feedback_text)
 
-        # Store feedback
+        # Store feedback with subscription weight
         feedback_id = await collector.collect_text_feedback(
             user_id=user_id,
             telegram_id=telegram_id,
             content=feedback_text,
             feedback_type=feedback_type,
-            metadata={"source": "command"}
+            metadata={"source": "command"},
+            weight=feedback_weight  # FB-002: Subscription tier weight
         )
 
         if feedback_id:

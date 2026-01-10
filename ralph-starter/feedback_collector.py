@@ -53,7 +53,8 @@ class FeedbackCollector:
         telegram_id: int,
         content: str,
         feedback_type: str = "general",
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        weight: float = 1.0
     ) -> Optional[int]:
         """
         Collect text-based feedback.
@@ -64,6 +65,7 @@ class FeedbackCollector:
             content: Feedback text content
             feedback_type: Type of feedback (bug, feature, improvement, praise)
             metadata: Optional metadata (source, context, etc.)
+            weight: FB-002 subscription weight (0.0=free, 1.0=builder, 2.0=priority, 3.0=enterprise)
 
         Returns:
             Feedback ID if successful, None otherwise
@@ -95,11 +97,14 @@ class FeedbackCollector:
                     db.flush()
 
                 # Create feedback entry
+                # FB-002: Use subscription weight as base priority_score
+                # This will be further refined by PR-001 algorithm later
                 feedback = Feedback(
                     user_id=user.id,
                     feedback_type=feedback_type,
                     content=content,
                     status="pending",
+                    priority_score=weight,  # FB-002: Subscription tier weight
                     created_at=datetime.utcnow()
                 )
 
