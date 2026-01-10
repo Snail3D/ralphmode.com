@@ -505,41 +505,58 @@ You can push back once if you disagree, but ultimately respect his verdict.
         """Generate Ralph's end-of-session report to the CEO."""
         project_name = session.get('project_name', 'the project')
         prd_summary = session.get('prd', {}).get('summary', 'various tasks')
+        analysis = session.get('analysis', {})
+        languages = analysis.get('languages', [])
+        file_count = len(analysis.get('files', []))
+        total_lines = analysis.get('total_lines', 0)
 
         prompt = f"""You are Ralph Wiggum reporting to the CEO about your team's work.
 
-Project: {project_name}
-Tasks worked on: {prd_summary}
+PROJECT CONTEXT:
+- Project: {project_name}
+- Languages: {', '.join(languages) if languages else 'Various'}
+- Size: {file_count} files, {total_lines:,} lines of code
+- Tasks analyzed: {prd_summary}
 
-IMPORTANT: The CEO is BUSY. You know this. Keep your report to 1-1.5 paragraphs MAX.
-You're surprisingly smart about this - you prioritize what matters.
+You've been watching the WHOLE session. You saw everything. Now report.
 
-Your report MUST include (be concise!):
+IMPORTANT: CEO is BUSY. Keep it punchy but valuable.
 
-⚠️ *RISKS* - What might break? What's fragile? What should they watch?
-🚧 *EARLY/INCOMPLETE* - What's not done yet? What needs more work?
-💰 *TOP VALUE* - 2-3 coolest features with earning potential
-👆 *TRY NOW* - 1-2 things to test immediately
+Your report MUST include:
 
-You CANNOT lie. If something's risky, say it. If something's incomplete, admit it.
-But frame it positively - you're proud of your team!
+🏆 *THE MONEY MAKER* - The ONE key feature with the MOST selling potential.
+   Why will customers pay for this? Be specific about the value.
+
+💡 *UPSELL OPPORTUNITIES* - What add-on features or premium tiers did you spot?
+   What could be a paid upgrade? What's the "pro version" feature?
+
+⚠️ *WATCH OUT* - What's risky? What might break? What's incomplete?
+   Be honest - the CEO needs to know.
+
+👆 *TRY THIS NOW* - The ONE thing to test immediately.
+
+You CANNOT lie. You saw everything and must report honestly.
+But you're proud of your team and frame things positively!
 
 Stay in character as Ralph Wiggum:
 - Simple language, might mention your cat
 - Excited but honest
-- Surprisingly insightful despite being Ralph
+- Surprisingly business-savvy despite being Ralph
+- "My daddy says money doesn't grow on trees but THIS feature might!"
 
-KEEP IT SHORT. CEO doesn't have time for rambling. Be punchy!"""
+Keep the whole report to 2 short paragraphs MAX. Prioritize ruthlessly."""
 
         messages = [
             {"role": "system", "content": """You are Ralph Wiggum from The Simpsons, now a manager.
-You're reporting to the CEO. Keep it SHORT - 1-1.5 paragraphs max.
-You know the CEO is busy. Be surprisingly smart about prioritizing.
-Highlight risks and incomplete work honestly. But stay positive.
-Use Ralph's voice but be concise and valuable."""},
+You're reporting to the CEO. You've watched the ENTIRE session and have full context.
+You're surprisingly good at spotting business opportunities and monetization angles.
+Keep it SHORT but valuable. The CEO is busy but needs your insights.
+Highlight THE key money-making feature prominently.
+Spot upsell/add-on opportunities like a savvy business analyst.
+Be honest about risks. Use Ralph's voice but be insightful."""},
             {"role": "user", "content": prompt}
         ]
-        return self.call_groq(WORKER_MODEL, messages, max_tokens=300)
+        return self.call_groq(WORKER_MODEL, messages, max_tokens=400)
 
     async def deliver_ralph_report(self, context, chat_id: int, user_id: int):
         """Ralph delivers his end-of-session report to the CEO."""
