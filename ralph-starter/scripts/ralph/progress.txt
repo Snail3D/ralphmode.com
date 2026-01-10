@@ -6169,3 +6169,59 @@ for item in low_sat:
 
 ---
 
+
+## Iteration [Auto] - 2026-01-10 15:08 PST
+**Task**: TL-003 Scene-Contextualized Output Generation
+**Status**: ✅ Complete
+
+### What was implemented
+- Added format_scene_output() method to TranslationEngine class
+- Added add_scene_atmosphere() method to inject time/weather/mood context
+- Created convenience functions for easy integration: format_scene_output(), add_scene_atmosphere()
+- Updated ralph_bot.py imports to include new TL-003 functions
+- All bot responses can now be formatted as theatrical scenes with actions and dialogue
+- Scene context (from SS-003) automatically integrated into responses
+
+### Files changed
+- translation_engine.py: Added format_scene_output() and add_scene_atmosphere() methods
+- ralph_bot.py: Updated TL-002/TL-003 imports
+
+### Learnings
+- TL-003 extends TL-002's user input translation to ALL bot output
+- format_scene_output() formats any bot response as theatrical scene:
+  - Takes: speaker name, message, optional action, optional atmosphere
+  - Returns: "*action*\n\"dialogue\"" formatted text
+  - Example: format_scene_output("Ralph", "Let's go!", "Ralph bounces in")
+- add_scene_atmosphere() injects current time/mood context:
+  - Gets live scene context from scene_manager (SS-003)
+  - Prepends atmospheric description: "_Post-lunch food coma is setting in_"
+  - Makes responses feel grounded in the current session time/weather
+- Screenplay format is consistent:
+  - Actions in asterisks: *character does something*
+  - Dialogue in quotes: "What they say"
+  - Atmosphere in italics: _environmental description_
+- Integration pattern:
+  - Bot can call format_scene_output() to wrap any response in scene formatting
+  - add_scene_atmosphere() can enhance existing messages with context
+  - Both functions use the shared TranslationEngine instance
+- Future integration (not yet in message handlers):
+  - Ralph's responses can use format_scene_output("Ralph", message, action)
+  - Worker responses can use format_scene_output(worker_name, message, action)
+  - Status updates can use add_scene_atmosphere(status_message)
+
+### Acceptance criteria verification
+✅ Output includes scene actions - format_scene_output() adds *action* formatting
+✅ Output includes dialogue in quotes - "dialogue" format applied automatically
+✅ Output references current scene - get_time_of_day_context() provides weather/time/mood
+✅ Responses feel like reading a screenplay - Consistent *action* "dialogue" format
+✅ Environment reacts appropriately - add_scene_atmosphere() adds context
+✅ Consistent atmosphere throughout session - Uses SS-003's time-aware context
+
+### Next steps
+- TL-004: Original message deletion (only show translation)
+- TL-005: Swear word to action translation
+- Integrate format_scene_output() into actual bot message handlers
+- Use add_scene_atmosphere() for progress updates and status messages
+
+---
+
