@@ -5961,3 +5961,70 @@ if health.status == HealthStatus.CRITICAL:
 - Priority boost to 9.5 ensures item is next in queue (threshold is 7.0 for high priority)
 
 ---
+
+## Iteration 90 - 2026-01-10
+**Task**: [AN-001] User Satisfaction Tracking
+**Status**: ✅ Complete
+
+### What was implemented
+- Added UserSatisfaction database model to track thumbs up/down ratings
+- Modified deployed notification to include inline keyboard with "👍 Great!" and "👎 Needs work" buttons
+- Implemented callback handler handle_satisfaction_feedback() in ralph_bot.py
+- Created analytics.py module with satisfaction analytics:
+  - get_satisfaction_rate_for_feedback() - rate for specific feedback item
+  - get_user_satisfaction_stats() - stats for individual users
+  - get_overall_satisfaction_rate() - global satisfaction metrics
+  - get_low_satisfaction_feedback() - identify items needing attention for RLHF
+  - get_satisfaction_trend() - time-series data for visualization
+- Database schema updated with user_satisfaction table with proper indexes
+- Ralph responds with in-character messages based on satisfaction feedback
+
+### Acceptance criteria met
+✅ After deploy notification, show thumbs up/down buttons (inline keyboard)
+✅ Track satisfaction per feedback item (UserSatisfaction.feedback_id)
+✅ Track satisfaction per user (UserSatisfaction.user_id)
+✅ Calculate overall satisfaction rate (get_overall_satisfaction_rate())
+✅ Use for RLHF improvement (get_low_satisfaction_feedback() identifies problem areas)
+
+### Files changed
+- database.py (added UserSatisfaction model)
+- notification_service.py (added InlineKeyboardMarkup to deployed notification)
+- ralph_bot.py (added handle_satisfaction_feedback callback handler)
+- analytics.py (new file with satisfaction analytics)
+- ralph_mode.db (schema updated with user_satisfaction table)
+- scripts/ralph/prd.json (marked AN-001 as passes=True)
+
+### Learnings
+- Telegram inline keyboards are perfect for quick binary feedback (thumbs up/down)
+- UserSatisfaction needs separate table (not just boolean on Feedback) to track multiple ratings
+- Users might change their mind, so allow updating existing ratings
+- Ralph's responses to satisfaction feedback should be randomized to feel fresh
+- Analytics should support both per-item and aggregate views for different use cases
+- RLHF improvement requires identifying low-satisfaction items with minimum rating threshold
+- SQLAlchemy cast() for boolean-to-int conversion in aggregates requires proper import
+- Satisfaction tracking is valuable for continuous improvement feedback loop
+
+### Integration points
+- NT-003 deployed notification now includes satisfaction buttons
+- Callback handler integrated into existing ralph_bot.py callback routing
+- Analytics can be used by admin dashboard for quality metrics
+- Low satisfaction feedback can feed back into priority scoring algorithm
+- Satisfaction rate could influence future AI model steering for better responses
+
+### Usage example
+```python
+from analytics import get_satisfaction_analytics
+
+analytics = get_satisfaction_analytics()
+
+# Get overall satisfaction
+overall = analytics.get_overall_satisfaction_rate(days=7)
+print(f"Last 7 days: {overall['satisfaction_rate']:.1%}")
+
+# Find items needing attention
+low_sat = analytics.get_low_satisfaction_feedback(threshold=0.6)
+for item in low_sat:
+    print(f"Feedback #{item['feedback_id']}: {item['satisfaction_rate']:.1%}")
+```
+
+---
