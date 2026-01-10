@@ -4285,3 +4285,51 @@ Generic (too vague):
 ✅ Log for admin review
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [SP-002] Abuse Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created AbuseDetector class in feedback_screener.py
+- Implemented profanity detection with context awareness (distinguishes "hell yeah" from "go to hell")
+- Implemented threat detection (death threats, violence, harm patterns)
+- Implemented harassment detection (cyberbullying, "kill yourself", etc.)
+- Implemented personal attack detection (requires 2+ attack words to avoid false positives)
+- User warning/flagging system with escalating penalties
+  - First offense: -10 quality score, warning logged
+  - Repeat offenses: -25 quality score, user flagged for review
+  - Low quality scores (<20) trigger admin review for potential ban
+- Admin notification system with severity levels
+  - HIGH severity for threats (logged to security_alerts.log)
+  - MEDIUM severity for other abuse (profanity, harassment, personal attacks)
+  - All notifications logged to admin_notifications.log
+- Abuse tracking system (logs/abuse_flags.log) for analysis
+- Integrated with screen_feedback() function (checks spam first, then abuse)
+- Comprehensive test suite with 12 test cases covering all abuse categories
+
+### Files changed
+- feedback_screener.py: Added AbuseDetector class (300+ lines)
+- test_abuse_detection.py (new): Test suite with 12 test cases
+- scripts/ralph/prd.json: Marked SP-002 as complete
+
+### Learnings
+- Context-aware profanity detection prevents false positives (casual "hell" vs abusive "go to hell")
+- Threat detection should be most aggressive (immediate HIGH severity alerts)
+- Personal attack detection needs thresholds (1 word = maybe frustrated, 2+ = likely abuse)
+- Escalating penalties work better than immediate bans (first warning, then flag)
+- Quality score system integrates naturally with abuse tracking
+- Separate log files for different severity levels help admins triage
+- Threats should log to both admin_notifications.log AND security_alerts.log
+- Pattern-based detection using regex provides flexible matching (f+u+c+k catches fuuuuck)
+- Word boundary checks (\b) prevent false positives from substring matches
+
+### Acceptance Criteria Met
+✅ Detect profanity and slurs
+✅ Detect threats and harassment
+✅ Detect personal attacks
+✅ Auto-flag, don't process
+✅ Notify admin of flagged content
+✅ User warned (first time) or flagged (repeat)
+
+---
