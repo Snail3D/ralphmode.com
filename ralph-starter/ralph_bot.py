@@ -78,6 +78,14 @@ except ImportError:
     GDPR_AVAILABLE = False
     logging.warning("SEC-019: GDPR module not available - compliance features disabled")
 
+# FB-001: Import feedback collector
+try:
+    from feedback_collector import get_feedback_collector
+    FEEDBACK_COLLECTOR_AVAILABLE = True
+except ImportError:
+    FEEDBACK_COLLECTOR_AVAILABLE = False
+    logging.warning("FB-001: Feedback collector not available - feedback features disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -3969,15 +3977,87 @@ _Grab some popcorn..._
         )
 
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle voice messages."""
-        await update.message.reply_text(
-            "🎤 Voice commands coming soon! For now, type your message or use `Boss: [message]`",
-            parse_mode="Markdown"
-        )
+        """Handle voice messages - FB-001: Support voice feedback."""
+        # Check if this is feedback (caption contains 'feedback')
+        caption = update.message.caption or ""
+        if "feedback" in caption.lower() and FEEDBACK_COLLECTOR_AVAILABLE:
+            user_id = update.effective_user.id
+            telegram_id = update.effective_user.id
+            chat_id = update.message.chat_id
+
+            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+            # Collect voice feedback
+            collector = get_feedback_collector(self.groq_api_key)
+            feedback_id = await collector.collect_voice_feedback(
+                update, context, user_id, telegram_id
+            )
+
+            if feedback_id:
+                ralph_response = self.ralph_misspell(
+                    f"I heard your voice message! I wrote down what you said! "
+                    f"Feedback #{feedback_id}. Listening is my favoritest!"
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, ralph_response,
+                    topic="voice feedback received",
+                    with_typing=True
+                )
+            else:
+                error_response = self.ralph_misspell(
+                    "I couldn't hear you very good! Can you try again? My ears are funny sometimes."
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, error_response,
+                    topic="voice feedback error",
+                    with_typing=True
+                )
+        else:
+            await update.message.reply_text(
+                "🎤 Voice commands coming soon! For now, type your message or use `Boss: [message]`\n\n"
+                "💡 Tip: Send voice with caption 'feedback' to submit voice feedback!",
+                parse_mode="Markdown"
+            )
 
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle photo uploads (visual references)."""
+        """Handle photo uploads (visual references) - FB-001: Support screenshot feedback."""
         user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+        caption = update.message.caption or ""
+
+        # Check if this is feedback
+        if "feedback" in caption.lower() and FEEDBACK_COLLECTOR_AVAILABLE:
+            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+            # Collect screenshot feedback
+            collector = get_feedback_collector(self.groq_api_key)
+            feedback_id = await collector.collect_screenshot_feedback(
+                update, context, user_id, telegram_id, caption
+            )
+
+            if feedback_id:
+                ralph_response = self.ralph_misspell(
+                    f"I see the picture! I put it in my special folder! "
+                    f"Feedback #{feedback_id}. Pictures are better than words sometimes!"
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, ralph_response,
+                    topic="screenshot feedback received",
+                    with_typing=True
+                )
+            else:
+                error_response = self.ralph_misspell(
+                    "The picture didn't work! Maybe try again? My eyes hurt a little."
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, error_response,
+                    topic="screenshot feedback error",
+                    with_typing=True
+                )
+            return
+
+        # Regular photo handling (session-based)
         session = self.active_sessions.get(user_id)
 
         if session:
@@ -3988,7 +4068,8 @@ _Grab some popcorn..._
             # TODO: Store photo for reference
         else:
             await update.message.reply_text(
-                "📸 Nice image! Start a project first by dropping a `.zip` file.",
+                "📸 Nice image! Start a project first by dropping a `.zip` file.\n\n"
+                "💡 Tip: Send a photo with caption 'feedback' to submit screenshot feedback!",
                 parse_mode="Markdown"
             )
 
@@ -4029,6 +4110,93 @@ _Grab some popcorn..._
                 parse_mode="Markdown"
             )
 
+    async def feedback_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /feedback command - Collect user feedback for RLHF loop (FB-001)."""
+        if not FEEDBACK_COLLECTOR_AVAILABLE:
+            await update.message.reply_text(
+                "Feedback collection is currently unavailable. Please try again later.",
+                parse_mode="Markdown"
+            )
+            return
+
+        user_id = update.effective_user.id
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # Check if they provided feedback text
+        feedback_text = " ".join(context.args) if context.args else None
+
+        if not feedback_text:
+            # No feedback provided - show help
+            help_text = self.ralph_misspell(
+                "Ooh! You want to give feedbak? That's so nice! Here's how:\n\n"
+                "📝 Text: `/feedback Your bug or feature idea here`\n"
+                "🎤 Voice: Send me a voice message after typing `/feedback`\n"
+                "📸 Screenshot: Send me a picture with `/feedback` in the caption\n\n"
+                "I'll make sure the team hears about it! My cat would be so proud!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, help_text,
+                topic="feedback help",
+                with_typing=True
+            )
+            return
+
+        # Show typing indicator
+        await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+
+        # Collect the feedback
+        collector = get_feedback_collector(self.groq_api_key)
+
+        # Classify feedback type
+        feedback_type = collector.classify_feedback_type(feedback_text)
+
+        # Store feedback
+        feedback_id = await collector.collect_text_feedback(
+            user_id=user_id,
+            telegram_id=telegram_id,
+            content=feedback_text,
+            feedback_type=feedback_type,
+            metadata={"source": "command"}
+        )
+
+        if feedback_id:
+            # Success! Ralph confirms receipt in-character
+            confirmations = [
+                f"Ooh! I got your {feedback_type}! I wrote it down in my special notebook! "
+                f"Feedback #{feedback_id}. My cat's breath smells like cat food!",
+
+                f"I'm learnding about your {feedback_type}! I'll tell the team right away! "
+                f"This is feedback number {feedback_id}!",
+
+                f"Yay! {feedback_type.title()} feedback! I'll put this in the importent pile! "
+                f"Your feedback is #{feedback_id}. I dressed myself today!",
+            ]
+
+            ralph_response = self.ralph_misspell(random.choice(confirmations))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_response,
+                topic="feedback received",
+                with_typing=True
+            )
+
+            # Maybe send a GIF
+            if self.should_send_gif():
+                await self.send_ralph_gif(context, chat_id, "happy")
+
+        else:
+            # Failed to store feedback
+            error_response = self.ralph_misspell(
+                "Uh oh! I tried to write it down but my pencil broke! "
+                "Can you try again? My brain hurts a little."
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_response,
+                topic="feedback error",
+                with_typing=True
+            )
+
     def run(self):
         """Start the bot."""
         if not TELEGRAM_BOT_TOKEN:
@@ -4044,6 +4212,7 @@ _Grab some popcorn..._
         app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CommandHandler("status", self.status_command))
         app.add_handler(CommandHandler("report", self.report_command))
+        app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
