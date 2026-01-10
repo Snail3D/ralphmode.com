@@ -2630,7 +2630,7 @@
         "scene_manager.py",
         "ralph_bot.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SS-004",

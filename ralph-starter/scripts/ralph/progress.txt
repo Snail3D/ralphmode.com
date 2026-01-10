@@ -6028,3 +6028,85 @@ for item in low_sat:
 ```
 
 ---
+
+---
+
+## Iteration [Next] - 2026-01-10 14:00
+**Task**: [SS-001] Opening Scene Generation
+**Status**: ✅ Complete
+
+### What was implemented
+- Created scene_manager.py with atmospheric opening scene generation
+- Each session opens with unique scene: weather, time of day, office atmosphere
+- Workers trickle in naturally based on generated scene order
+- Integrated into start_interactive_onboarding() method
+- Added fallback if scene_manager not available
+- Scene includes: weather descriptions (5 types), time contexts (7 periods), office details (14 options), worker arrival patterns
+
+### Files changed
+- scene_manager.py (new file)
+- ralph_bot.py (import and integration)
+- scripts/ralph/prd.json (marked SS-001 as passing)
+
+### Learnings
+- Scene generation adds immersion without compromising the core workflow
+- Random selection from curated lists creates variety while maintaining quality
+- Worker arrival order can be coordinated with the opening scene for consistency
+- SS-001 acceptance criteria met:
+  ✅ Generate opening scene on session start
+  ✅ Include weather (real or generated)
+  ✅ Include time of day
+  ✅ Include office atmosphere
+  ✅ Workers trickle in naturally
+  ✅ Sets the stage for the session
+  ✅ Unique each time, never canned
+
+### Technical patterns discovered
+- SceneManager class with generate_opening_scene() returns dict with full_text, weather, time, mood, worker_order
+- Convenience functions (generate_opening_scene, get_worker_arrival) for easy importing
+- Scene data stored in onboarding_state for use across multiple methods
+- SCENE_MANAGER_AVAILABLE flag for graceful degradation if import fails
+
+---
+
+## Iteration [Auto] - 2026-01-10 14:54 PST
+**Task**: SS-003 Time-of-Day Awareness
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced TIMES dictionary with energy and worker_mood metadata for each time period
+- Added 2 more descriptions per time period (now 6 each) for variety
+- Created get_time_of_day_context() method to provide real-time context
+- Updated ralph_bot.py imports to include new time context function
+- Scene generator now returns energy and worker_mood in output dict
+- Tested successfully with multiple scene generations
+
+### Files changed
+- scene_manager.py: Added energy/mood metadata, expanded descriptions, new context method
+- ralph_bot.py: Updated imports for SS-003 support
+
+### Learnings
+- The time-of-day detection was already implemented (lines 207-221)
+- Needed to expand it with richer metadata (energy, worker_mood) for context-aware responses
+- Each time period now has distinct "personality": 
+  - Early morning: slow_start, groggy but focused
+  - Morning: picking_up, caffeinated and ready
+  - Late morning: productive, focused but hungry
+  - Afternoon: settling_in, steady grind
+  - Late afternoon: winding_down, tired but pushing through
+  - Evening: crunch_mode, exhausted but dedicated
+  - Night: skeleton_crew, delirious but determined
+- get_time_of_day_context() function enables future workers/Ralph to adjust tone based on time
+- Scene generator properly detects local time and applies appropriate atmosphere
+
+### Acceptance criteria verification
+✅ Detect user's local time (from system or config) - Uses datetime.now().hour
+✅ Morning: workers arriving, coffee, slow start - Multiple descriptions in early_morning and morning
+✅ Midday: productive energy, maybe lunch mentions - Late_morning mentions lunch hunger
+✅ Afternoon: settling in, steady work - Afternoon has "steady grind" descriptions
+✅ Evening: wrapping up, tired but focused - Evening shows crunch mode, tired but dedicated
+✅ Late night: skeleton crew, dedication - Night has "skeleton crew" descriptions
+✅ Time references feel natural - Expanded to 6 descriptions per period for variety
+
+---
+
