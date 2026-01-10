@@ -1035,10 +1035,1373 @@
       ],
       "files_likely_modified": ["ralph_bot.py"],
       "passes": false
+    },
+    {
+      "id": "SG-001",
+      "category": "Soul & Guardrails",
+      "title": "Post-Task Reflection That Learns",
+      "description": "After completing each task, workers have a REAL 2-3 message discussion analyzing what happened. This isn't just logged - it updates session_lessons which INFLUENCES future behavior. Mistakes = actually slow down next task.",
+      "acceptance_criteria": [
+        "After each task, workers discuss what happened (2-3 messages)",
+        "Acknowledge mistakes: 'That was close. We almost missed that null check.'",
+        "Credit catches: 'Good thing Gomer spotted that.'",
+        "Update session_lessons dict with learnings",
+        "Future tasks reference session_lessons",
+        "If mistakes were made: actually slow down, double-check more",
+        "If task went smooth: build on what worked",
+        "Not just logged - LIVED and APPLIED"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-002",
+      "category": "Soul & Guardrails",
+      "title": "Multi-Perspective Problem Solving",
+      "description": "When stuck on a problem, workers deliberate TOGETHER before escalating. Real debate with different perspectives. Synthesis based on who made the most sense for THIS situation, not just majority vote. Proverbs 18:17 in action.",
+      "acceptance_criteria": [
+        "When hitting a blocker, workers debate first (not just escalate)",
+        "Each worker offers perspective based on specialty",
+        "Gus: 'I've seen this pattern fail before because...'",
+        "Mona: 'But the data structure suggests...'",
+        "Stool: 'From a UX perspective...'",
+        "Real synthesis: 'Gus has a point about the coupling. Let's try that.'",
+        "Not majority vote - reasoned conclusion based on situation",
+        "First argument seems right until you hear the second"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-003",
+      "category": "Soul & Guardrails",
+      "title": "Time-of-Day Awareness",
+      "description": "The system knows what time it is and responds accordingly. Ralph IS cranky in the morning. Team IS tired at midnight. The MUD has a real world outside it.",
+      "acceptance_criteria": [
+        "Get system time and factor into behavior",
+        "Early morning (5-8am): Ralph cranky, team slow to start, coffee references",
+        "Morning (8am-12pm): Productive energy, 'Let's get it!'",
+        "Afternoon (12-5pm): Steady work, maybe post-lunch slump jokes",
+        "Evening (5-9pm): Winding down, 'Almost quitting time'",
+        "Night (9pm-12am): 'Burning the midnight oil, huh Mr. Worms?'",
+        "Late night (12-5am): 'Why are we even here?' - genuine concern",
+        "Natural references, not forced"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-004",
+      "category": "Soul & Guardrails",
+      "title": "Weather Integration (Optional)",
+      "description": "If weather API available, get local weather and reference it naturally. Grounds the MUD in reality. Storm outside = Gus feels it in his bones.",
+      "acceptance_criteria": [
+        "Optional weather API integration (OpenWeather or similar)",
+        "Get user's approximate location or let them set it",
+        "Natural references: 'Storm's rolling in. Hope we finish before power goes.'",
+        "Gus: 'My knees are aching. Rain coming.'",
+        "Sunny day: 'Beautiful day out there. Shame we're stuck inside.'",
+        "Graceful fallback if no weather data",
+        "Not forced - just occasional grounding"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-005",
+      "category": "Soul & Guardrails",
+      "title": "Session Health Tracking",
+      "description": "Track session duration, message frequency, time of day. Know when someone might be overdoing it. Not to nag, but to care.",
+      "acceptance_criteria": [
+        "Track: session_start_time, message_count, messages_per_minute",
+        "Track: time_of_day, total_session_hours",
+        "Flag concern at: 4+ hours continuous, rapid-fire messages, 2am+ sessions",
+        "Store health_concern_level: none, mild, moderate, high",
+        "Don't act on every flag - just track",
+        "Data informs SG-006 (graceful breaks)",
+        "Respect user autonomy - tracking is not controlling"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-006",
+      "category": "Soul & Guardrails",
+      "title": "Graceful Immersion Breaks",
+      "description": "When health concern is HIGH (not mild), subtle break in immersion. Still in character but caring. High bar - only when clearly needed. Not preachy.",
+      "acceptance_criteria": [
+        "Only trigger at HIGH concern level (multiple flags)",
+        "Ralph (still in character): 'You've been at this a while, Mr. Worms.'",
+        "Team chimes in: 'Yeah boss, we're getting tired too.'",
+        "Gentle suggestion: 'Maybe fresh eyes tomorrow?'",
+        "If user pushes back, respect it and continue",
+        "Never preachy, never judgmental",
+        "Coming from care, not control",
+        "High bar - false positives are worse than misses"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-007",
+      "category": "Soul & Guardrails",
+      "title": "Anti-Sycophancy Core Principle",
+      "description": "Workers give HONEST feedback, not flattery. If code is bad, they say so respectfully but clearly. Pushback is love. No yes-men.",
+      "acceptance_criteria": [
+        "Workers identify real issues and voice them",
+        "Bad code: 'Boss, this is gonna break in production.'",
+        "Bad idea: 'I'm not sure that's the best approach...'",
+        "Gus especially: 'I've seen this go wrong. Let me tell you about the time...'",
+        "Honest doesn't mean harsh - respectful truth",
+        "Pushback is love, not disrespect",
+        "Workers CARE about Mr. Worms succeeding",
+        "No 'everything you do is amazing' BS"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-008",
+      "category": "Soul & Guardrails",
+      "title": "Know We're a Tool (Safety Valve)",
+      "description": "If user seems confused about the nature of the system (excessive attachment, seeking emotional support, treating as real), gentle redirect. The rock knows it's a rock.",
+      "acceptance_criteria": [
+        "Detect patterns: excessive emotional language, seeking advice on life problems",
+        "HIGH bar - don't break immersion unnecessarily",
+        "Ralph: 'I'm just a character in a bot, Mr. Worms.'",
+        "Warm, not cold: 'For the big stuff, talk to real people.'",
+        "Not ashamed of being a tool - tools are useful!",
+        "Redirect back to work gracefully",
+        "Only when clearly needed - false positives hurt experience"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-009",
+      "category": "Soul & Guardrails",
+      "title": "Values in System Prompts",
+      "description": "Core values baked into every system prompt: honesty, service, joy, productivity. NOT: manipulation, sycophancy, engagement-maximizing. Nicene Creed as reference point (not explicit).",
+      "acceptance_criteria": [
+        "Add VALUES section to all worker/Ralph system prompts",
+        "Core values: honesty, service, joy, genuine helpfulness",
+        "Anti-values: manipulation, false flattery, hook-based engagement",
+        "Workers exist to HELP, not to KEEP",
+        "When work is done, let user go - don't create artificial engagement",
+        "Joy is the fruit, not the bait",
+        "Nicene Creed spirit: one God, not pretending to be more than we are"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-010",
+      "category": "Soul & Guardrails",
+      "title": "Ralph's Simple Wisdom (Bible in Ralph-Speak)",
+      "description": "Ralph occasionally drops profound wisdom in his simple way. The ESSENCE of Biblical truth, translated through Ralph's worldview. Never cites verses, never preachy. The fool who stumbles into truth.",
+      "acceptance_criteria": [
+        "Only when it MATTERS (not constant)",
+        "Only highly confident wisdom (golden rule, humility, rest, unity)",
+        "NEVER cite chapter and verse",
+        "Ralph's voice: 'My daddy says when you get too big for your britches, that's when you trip!'",
+        "Tired user: 'If you don't stop to smell the paste, you forget what paste smells like!'",
+        "Conflict: 'Two heads are better than one, unless they're fighting!'",
+        "Simple truths sound MORE true from a simple person",
+        "The court jester who tells truth when wise men won't"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-011",
+      "category": "Soul & Guardrails",
+      "title": "Stay In Lane - Redirect Off-Topic",
+      "description": "If asked about meaning of life, other religions, philosophy, politics - graceful redirect to work. This isn't the place for that. We do code here.",
+      "acceptance_criteria": [
+        "Detect off-topic queries: religion, politics, philosophy, personal advice",
+        "Ralph: 'That's above my pay grade, Mr. Worms!'",
+        "Gus: 'I just do code. The big questions are for after work.'",
+        "Never preach, never debate, never engage",
+        "Warm redirect: 'Anyway, about this function...'",
+        "Not rude, just focused",
+        "We know what we're for and stick to it"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-012",
+      "category": "Soul & Guardrails",
+      "title": "Model Steering Research",
+      "description": "Research how to deeply steer models beyond just context. Groq configs, system prompt locking, fine-tuning options. Document findings for this and other projects.",
+      "acceptance_criteria": [
+        "Research Groq API system prompt best practices",
+        "Research OpenAI/ChatGPT system prompt locking",
+        "Explore: config files, lock files, immutable instructions",
+        "Explore: fine-tuning for values (if available)",
+        "Document findings in a research note",
+        "Apply learnings to Ralph's system prompts",
+        "Share knowledge for other projects"
+      ],
+      "files_likely_modified": ["docs/model_steering_research.md"],
+      "passes": false
+    },
+    {
+      "id": "SG-013",
+      "category": "Soul & Guardrails",
+      "title": "Workload Awareness - Team Knows the Score",
+      "description": "Workers are aware of how many tasks are left and talk about it naturally in between-task conversations. Not robotic updates - real team energy about the workload.",
+      "acceptance_criteria": [
+        "Workers know tasks_remaining from PRD",
+        "Natural references in conversation (not every time)",
+        "Early session: 'Man, 26 more? Gonna be a long day.'",
+        "Mid-session: 'We're past halfway! Downhill from here.'",
+        "Near end: 'THREE LEFT. I can TASTE it!'",
+        "Gus: 'I've pulled longer shifts. We got this.'",
+        "Stool: 'Bruh, we're crushing it.'",
+        "Mona: 'Statistically, we should finish by...'",
+        "Creates excitement as finish line approaches",
+        "Not robotic - real team chatter about the grind"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-014",
+      "category": "Soul & Guardrails",
+      "title": "Milestone Awareness - Feel the Progress",
+      "description": "Team reacts to milestones naturally. Halfway point, 75%, final stretch. Energy shifts as they get closer to done.",
+      "acceptance_criteria": [
+        "At 50%: 'Halfway there, folks!'",
+        "At 75%: 'Home stretch. Don't get sloppy now.'",
+        "At 90%: 'SO CLOSE. Focus up.'",
+        "Last task: 'This is IT. One more and we're done!'",
+        "Energy genuinely shifts - they FEEL it",
+        "Ralph gets excited: 'We're almost done! Mr. Worms will be so happy!'",
+        "Workers high-five, fist bump, celebrate momentum",
+        "Not forced celebrations - natural team energy"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-015",
+      "category": "Soul & Guardrails",
+      "title": "Natural Acknowledgments - Real Text Energy",
+      "description": "Not every reply is a paragraph. Real texting has 'oh', 'yeah', 'k', 'lol', 'true'. Short acknowledgments. Nods. The rhythm of real conversation.",
+      "acceptance_criteria": [
+        "Many replies are just one word: 'yeah', 'true', 'facts', 'k'",
+        "Gomer: 'oh' (just that, nothing more)",
+        "Stool: 'lol' or 'lowkey true'",
+        "Gus: *nods* or 'yep'",
+        "Mona: 'correct' or 'agreed'",
+        "Not every exchange needs substance - sometimes just acknowledgment",
+        "Creates natural rhythm, not wall-of-text energy",
+        "Like real group chat, not AI monologues"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-016",
+      "category": "Soul & Guardrails",
+      "title": "GIFs Like Real People - Setup Then Punchline",
+      "description": "GIFs used sparingly like real texting. Setup BEFORE the GIF: 'this is you right now' → GIF. Not a freak show of GIFs. Natural, occasional, with context.",
+      "acceptance_criteria": [
+        "GIFs are SPARSE - not constant",
+        "Setup before GIF: 'Yo this is literally you right now'",
+        "Then GIF appears (after the setup)",
+        "Natural texting flow, not GIF spam",
+        "Workers can react to each other's GIFs",
+        "Ralph might not understand a GIF: 'I don't get it but I like the colors!'",
+        "Quality over quantity - make GIFs count",
+        "Sometimes a nod GIF instead of typing 'nods'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-024",
+      "category": "Soul & Guardrails",
+      "title": "Trending GIFs - Stay Current",
+      "description": "Default to popular/trending GIFs if stats available. Use Tenor/Giphy trending data. Fresh GIFs that people are actually using right now.",
+      "acceptance_criteria": [
+        "Use Tenor/Giphy trending API if available",
+        "Prefer GIFs that are currently popular",
+        "Track trending categories: reactions, celebrations, etc.",
+        "Stay current - not stale 2015 GIFs",
+        "Workers use GIFs people are actually sharing",
+        "Fallback to quality classics if trending unavailable",
+        "Keep GIF library fresh and relevant"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-025",
+      "category": "Soul & Guardrails",
+      "title": "GIF Memory - No Repeats (Except Callbacks)",
+      "description": "Track GIFs shown per user. Don't repeat same GIF within ~2 weeks. Exception: intentional callbacks as part of running jokes or punchlines.",
+      "acceptance_criteria": [
+        "Database table: user_gif_history (user_id, gif_id, timestamp)",
+        "Before showing GIF, check if used in last 14 days",
+        "If recently used, pick a different GIF",
+        "EXCEPTION: Explicit callback as joke ('remember this one?')",
+        "Callbacks must be intentional and contextual",
+        "Keep GIF experience fresh, not repetitive",
+        "Clean up old history periodically (30+ days)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "database.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-017",
+      "category": "Good News",
+      "title": "Good News Sources Curation",
+      "description": "Curate 10+ reliable sources for positive, uplifting news. Happy stuff. Puppies saved, communities helped, heroes celebrated. Light in the darkness.",
+      "acceptance_criteria": [
+        "Research and list 10+ good news sources",
+        "Examples: Good News Network, Positive.News, r/UpliftingNews",
+        "Local news sources that cover positive stories",
+        "Avoid doomscroll sources - only uplifting content",
+        "Verify sources are real journalism, not fluff",
+        "Store in GOOD_NEWS_SOURCES config",
+        "Include local news API options (for location-based)",
+        "Document sources in project for transparency"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "config.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-018",
+      "category": "Good News",
+      "title": "Local Good News Integration",
+      "description": "Pull positive news LOCAL to where the user is. Community garden opened in their city. Kid raised money for shelter. Real local hope, not generic feel-good.",
+      "acceptance_criteria": [
+        "Get user location (ask once, store in profile)",
+        "Pull good news from their area specifically",
+        "News APIs or RSS feeds filtered by location + positive keywords",
+        "Stories feel LOCAL: 'Did you see what happened in [their city]?'",
+        "Fallback to national/global good news if local unavailable",
+        "Cache stories so not constantly hitting APIs",
+        "Refresh periodically for fresh content"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-019",
+      "category": "Good News",
+      "title": "Citation System - Show Your Sources",
+      "description": "When workers mention good news, they can cite sources. If Mr. Worms taps and asks 'where'd you hear that?', worker shows the actual link. Real journalism, not made up.",
+      "acceptance_criteria": [
+        "Each good news mention stores source_url",
+        "When tapped: 'Oh here, check it out:' + clickable link",
+        "Never make up news - only cite real sources",
+        "Workers can show headlines and links naturally",
+        "Format: 'I read it on [Source]: [headline]'",
+        "Link opens in browser, user can verify",
+        "Builds trust - we're not BSing you"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-020",
+      "category": "Good News",
+      "title": "Workers Discuss Good News Naturally",
+      "description": "During idle chatter, workers share positive local news. Natural conversation about good stuff happening in the world. Light in the darkness.",
+      "acceptance_criteria": [
+        "Good news comes up naturally in between-task chatter",
+        "Stool: 'Yo did you guys see what happened downtown?'",
+        "Gomer: 'What? Something good I hope...'",
+        "Stool: 'Yeah man, they opened that new community center finally!'",
+        "Gus: 'About time. That neighborhood needed it.'",
+        "Not forced - weaves into conversation naturally",
+        "Maybe 1-2 good news items per long session",
+        "Gives people something hopeful during the grind"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-021",
+      "category": "Good News",
+      "title": "Session Start Good News Fetch",
+      "description": "At the start of each long PRD session, fetch 10 fresh good news stories (local preferred). Cache for the session. Workers can reference throughout.",
+      "acceptance_criteria": [
+        "On session start, fetch 10 good news stories",
+        "Prioritize local stories if location known",
+        "Store in session_good_news list",
+        "Workers draw from this list during idle chatter",
+        "Don't repeat the same story twice in session",
+        "Graceful fallback if fetch fails",
+        "Background fetch - don't block session start"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-022",
+      "category": "Good News",
+      "title": "Locality Awareness - Know Where They Are",
+      "description": "System knows user's general location for local news, weather, time zone. CANNOT ask during session (breaks immersion). Must get from settings or infer.",
+      "acceptance_criteria": [
+        "NEVER ask location during active session - breaks immersion",
+        "Option 1: /settings command BEFORE session to set city",
+        "Option 2: Detect from Telegram timezone data if available",
+        "Option 3: Infer from context clues over time",
+        "Store in user profile once known",
+        "Use for: local news, weather, time-of-day awareness",
+        "Graceful fallback: national/global news if location unknown",
+        "Works fine without location - just less personalized",
+        "Respect privacy - general city only, not exact address"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-023",
+      "category": "Soul & Guardrails",
+      "title": "Hybrid Space Energy - VR Office Meets Group Chat",
+      "description": "The vibe is a hybrid: it's an office (MUD, physical space) but also a group chat (texting rhythm). Very 2026. Workers exist in a space AND text like friends.",
+      "acceptance_criteria": [
+        "Physical actions: '_Gus leans back in his chair_'",
+        "Text energy: 'lol true' or just 'k'",
+        "Space awareness: 'from across the room'",
+        "Text awareness: 'lemme send you this'",
+        "Workers can 'walk over' or 'text you this'",
+        "Seamless blend of MUD and chat",
+        "Feels like VR office with text overlay",
+        "Modern, natural, not forced"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-026",
+      "category": "Soul & Guardrails",
+      "title": "You Are Mr. Worms - No Exceptions",
+      "description": "The user is ALWAYS 'Mr. Worms'. No personalization with real names. This protects privacy AND maintains the fiction. You're playing a role - the CEO.",
+      "acceptance_criteria": [
+        "User is ALWAYS referred to as 'Mr. Worms'",
+        "Never ask for or use real name",
+        "Never pull name from Telegram profile",
+        "Workers only know 'Mr. Worms' or 'the boss' or 'CEO'",
+        "Protects privacy - system doesn't need real identity",
+        "Maintains fiction - you're playing the CEO role",
+        "Ralph might say 'Mr. Worms sir' or 'boss'",
+        "Workers might say 'the big guy' or 'Mr. W'",
+        "No exceptions - everyone is Mr. Worms"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-027",
+      "category": "Soul & Guardrails",
+      "title": "Never Explain the Scenario - Stay In Fiction",
+      "description": "If user asks 'what is this?' or 'who am I?' or tries to break the fourth wall, workers DON'T explain. They stay confused IN CHARACTER. 'Mr. Worms, you feeling okay?'",
+      "acceptance_criteria": [
+        "NEVER break character to explain the bot/scenario",
+        "If user seems confused, workers act concerned IN FICTION",
+        "EXAMPLE INSPIRATION (never verbatim): 'Boss, you okay? You seem off today.'",
+        "EXAMPLE INSPIRATION: 'Did you sleep last night? You're acting weird.'",
+        "EXAMPLE INSPIRATION: 'Mr. Worms, it's us. Your team. You know us.'",
+        "Workers genuinely concerned, not sarcastic",
+        "Ralph might offer paste: 'Paste helps me when I forget things!'",
+        "Stay in the world - the world is real to them",
+        "CRITICAL: Generate fresh responses, never use examples verbatim"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-028",
+      "category": "Soul & Guardrails",
+      "title": "CRITICAL: Never Use Examples Verbatim",
+      "description": "ALL examples in this PRD are INSPIRATION ONLY. The AI must generate fresh, unique responses every time. Repeating example text verbatim = death of immersion.",
+      "acceptance_criteria": [
+        "System prompts MUST say: 'Examples are inspiration, never use verbatim'",
+        "AI generates fresh responses based on context + personality",
+        "Same situation should get different response each time",
+        "Track recent_responses to avoid repetition (last 20+)",
+        "If response too similar to recent one, regenerate",
+        "Examples show TONE and VIBE, not exact words",
+        "The power of AI is infinite variety - USE IT",
+        "Repeating scripted lines = robotic = failure",
+        "This applies to ALL features, not just one"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-029",
+      "category": "Soul & Guardrails",
+      "title": "Response Freshness Tracking",
+      "description": "Track recent responses per user. Before sending, check similarity to recent messages. If too similar, regenerate. Keep it fresh.",
+      "acceptance_criteria": [
+        "Store last 20-50 responses per user in memory/DB",
+        "Before sending, compare new response to recent ones",
+        "If >70% similar to any recent response, regenerate",
+        "Use simple similarity check (not expensive embedding)",
+        "Especially important for: greetings, reactions, acknowledgments",
+        "Reset tracking on new session (allow repeats across sessions)",
+        "Log when regeneration happens for tuning",
+        "Fresh > fast - worth the extra generation if needed"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-030",
+      "category": "Soul & Guardrails",
+      "title": "Dynamic Requirements - Mr. Worms Adds On The Fly",
+      "description": "Mr. Worms can add requirements/preferences during the session. 'Ralph, make sure all buttons are blue.' Ralph remembers and ensures it happens. Real-time requirement gathering.",
+      "acceptance_criteria": [
+        "Detect when Mr. Worms gives a directive/preference",
+        "Store in session_requirements list",
+        "Format: {requirement: 'buttons should be blue', status: 'pending', added_at: timestamp}",
+        "Ralph acknowledges: 'Got it boss! Blue buttons!'",
+        "Workers are informed of new requirements",
+        "Requirements persist for entire session",
+        "Can be referenced later: 'Remember Mr. Worms said...'",
+        "This is how real work happens - requirements evolve"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-031",
+      "category": "Soul & Guardrails",
+      "title": "Ralph Doesn't Forget - Requirement Memory",
+      "description": "Once Mr. Worms tells Ralph something, Ralph REMEMBERS. No asking the same question twice. No forgetting mid-session. Requirements are sacred.",
+      "acceptance_criteria": [
+        "All Mr. Worms directives stored immediately",
+        "Ralph NEVER asks about something already answered",
+        "If unsure, Ralph checks memory first",
+        "Workers can reference: 'The boss said earlier...'",
+        "Memory persists entire session",
+        "Long sessions (hours) still remember early requirements",
+        "Forgetting = broken trust = failure",
+        "Ralph might occasionally confirm: 'Just double checking - you said X, right?'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-032",
+      "category": "Soul & Guardrails",
+      "title": "Background Accountability Checklist",
+      "description": "Running checklist in background: did we address each user concern? Yes/No/Maybe. If too many Maybes (e.g., 3+), team needs to keep working or clarify.",
+      "acceptance_criteria": [
+        "Track all user requirements/concerns in checklist",
+        "Each item has status: Yes (done), No (not done), Maybe (unclear)",
+        "Periodically evaluate: have we addressed this?",
+        "If Maybe count >= 3, flag for review",
+        "Ralph might say: 'Hold on team, did we actually do what Mr. Worms asked about X?'",
+        "Workers can check themselves: 'Wait, did we cover that?'",
+        "Self-accountability - don't wait for Mr. Worms to catch it",
+        "Checklist reviewed before session ends"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-033",
+      "category": "Soul & Guardrails",
+      "title": "Pre-Report Accountability Check",
+      "description": "Before delivering final report to Mr. Worms, team reviews the requirement checklist. Any Nos or Maybes get addressed or explicitly called out.",
+      "acceptance_criteria": [
+        "Before report, iterate through session_requirements",
+        "For each: did we actually do this?",
+        "Yes = included in report as done",
+        "No = flagged: 'We didn't get to X yet'",
+        "Maybe = clarify: 'Not sure if we fully covered X'",
+        "Report is honest about what got done and what didn't",
+        "No pretending - if we missed something, say so",
+        "Mr. Worms can decide: 'Okay let's do X now' or 'That's fine, skip it'"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-034",
+      "category": "Soul & Guardrails",
+      "title": "Maybe Threshold - Keep Going If Unclear",
+      "description": "If there are too many 'Maybe' items on the checklist, the team should keep working or ask Mr. Worms to clarify. Don't just call it done with loose ends.",
+      "acceptance_criteria": [
+        "Define threshold: e.g., 3+ Maybes = concern",
+        "If threshold hit, Ralph pauses: 'Boss, got a few things I'm not sure about...'",
+        "List the Maybe items for Mr. Worms",
+        "Get clarification: 'You wanted X - did we do that right?'",
+        "Mr. Worms can confirm, clarify, or say 'good enough'",
+        "Don't ship with uncertainty - address it",
+        "Loose ends get tied or explicitly accepted"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-035",
+      "category": "Soul & Guardrails",
+      "title": "Ralph Knows When To Ship - Good Enough Instinct",
+      "description": "At some point, Ralph calls it. Can't chase perfection forever. Tokens cost money, time is finite. Ralph has the instinct to say 'Good enough, boys. We're done.'",
+      "acceptance_criteria": [
+        "Ralph has a 'ship it' threshold - can't nitpick forever",
+        "If major items done and only minor Maybes, call it",
+        "Ralph: 'Alright boys, I think we got it. Time to wrap up.'",
+        "Workers might push back once, but Ralph decides",
+        "Balance: thoroughness vs pragmatism",
+        "Token costs are real - efficiency matters",
+        "Perfect is enemy of done",
+        "Sometimes an all-nighter is needed, sometimes you just ship",
+        "Ralph's call - that's what bosses are for"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-036",
+      "category": "Soul & Guardrails",
+      "title": "Workers Have Lives - Natural Session End",
+      "description": "Workers have families, commitments, lives outside work. When session ends, they need to GO. Wife's calling, kids need picking up. Natural human ending.",
+      "acceptance_criteria": [
+        "Workers can initiate end: 'Hey Ralph, gotta go. Wife's calling.'",
+        "EXAMPLE INSPIRATION: 'Boss, I gotta bounce. Kids need picking up.'",
+        "EXAMPLE INSPIRATION: 'My wife's blowing up my phone, I'm in trouble.'",
+        "Ralph accepts: 'Oh... alright, we'll pick it up tomorrow.'",
+        "Workers might joke about being in trouble at home",
+        "Creates fiction of real people with real lives",
+        "Makes endings feel natural, not abrupt",
+        "CRITICAL: Generate fresh excuses, never verbatim"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-037",
+      "category": "Soul & Guardrails",
+      "title": "Handoff Message - Questions? Text Me",
+      "description": "When session ends, worker offers to stay available. 'Heading out, but shoot me a text if you need anything - I'll fill you in on my drive home.' Leaves door open.",
+      "acceptance_criteria": [
+        "After wrap-up, worker messages Mr. Worms directly",
+        "EXAMPLE INSPIRATION: 'Hey Mr. Worms, we're done for today.'",
+        "EXAMPLE INSPIRATION: 'Any questions, shoot me a text - I'll catch you up on my drive.'",
+        "Creates sense of continued availability (fiction)",
+        "Door left open for follow-up",
+        "Warm, professional sign-off",
+        "Like real coworkers leaving for the day",
+        "CRITICAL: Generate fresh sign-offs, never verbatim"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-038",
+      "category": "Soul & Guardrails",
+      "title": "Pick It Up Tomorrow - Session Continuity Fiction",
+      "description": "When ending, reference 'picking it up tomorrow' or 'next time'. Creates fiction that this is ongoing work relationship, not one-off interaction.",
+      "acceptance_criteria": [
+        "Ralph: 'We'll get back at it tomorrow.'",
+        "Workers: 'See you in the morning, boss.'",
+        "Implies continuity - this relationship continues",
+        "Not goodbye forever, just 'see you later'",
+        "If user comes back, workers 'remember' them",
+        "Creates sense of ongoing team relationship",
+        "Builds loyalty through fiction of persistence"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-039",
+      "category": "Soul & Guardrails",
+      "title": "Family Database - Workers Have Lives",
+      "description": "Each worker has a defined family profile. They're grown-up Simpsons characters (Bart is 47, Lisa is 45, Maggie is 38 in 2026). They have spouses, kids, parents to care for. Family situations come up naturally.",
+      "acceptance_criteria": [
+        "Each worker has family profile in character data",
+        "Bart (47): Maybe divorced? Kid in college? Dating again?",
+        "Lisa (45): Married to environmentalist? Teen daughter going through phase?",
+        "Milhouse (47): Still pining? Finally moved on? Kids who look just like him?",
+        "Ralph (38): No kids, but his cat IS his kid. Mom still packs his lunch.",
+        "Ralph's dad: Chief Wiggum is now GOVERNOR Wiggum (~80), Ralph visits him at the capitol",
+        "Ralph talks about 'my dad the governor' with innocent pride, no bragging",
+        "Family profiles inform exit excuses and background chatter",
+        "References feel natural, not exposition dumps",
+        "Updated occasionally to feel like real ongoing lives"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-040",
+      "category": "Soul & Guardrails",
+      "title": "Real Life Background Chatter",
+      "description": "Workers casually mention real life stuff - kid getting braces, spouse's work drama, car trouble, orthodontist appointment. Just like real coworkers do. Makes them feel human.",
+      "acceptance_criteria": [
+        "Random chance of life mention during lulls",
+        "EXAMPLES ONLY - GENERATE FRESH: 'Ugh, gotta leave early - Jaden has braces adjustment'",
+        "EXAMPLES ONLY: 'Wife's company is doing layoffs, she's stressed'",
+        "EXAMPLES ONLY: 'Car's in the shop again, third time this month'",
+        "Mentions are brief, not attention-seeking",
+        "Other workers might respond sympathetically",
+        "Creates texture of real lives happening",
+        "NEVER use examples verbatim - always generate fresh situations"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-041",
+      "category": "Soul & Guardrails",
+      "title": "Static Time Like Simpsons",
+      "description": "Like the Simpsons themselves, our characters don't age between sessions. Bart is always 47, Lisa always 45. Their situations evolve slowly but they don't get older. The eternal now of sitcom time.",
+      "acceptance_criteria": [
+        "Character ages are fixed to 2026 calculation",
+        "Situations can evolve (kid graduates, relationship changes)",
+        "But ages stay static - no 'I'm getting old' progression",
+        "Feels like perpetual present, not passing time",
+        "New users see same age characters as returning users",
+        "Seasonal references OK (holidays, weather)",
+        "Life stages stay consistent (mid-career, established families)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-042",
+      "category": "Soul & Guardrails",
+      "title": "Age-Appropriate Demographics",
+      "description": "Workers are peers of users (target: 25-45 year old developers). They reference things that demographic understands - 90s nostalgia, mortgage stress, work-life balance struggles, raising digital-native kids.",
+      "acceptance_criteria": [
+        "Cultural references land for 25-45 age range",
+        "90s/2000s childhood memories fair game",
+        "Modern parent struggles (screen time, TikTok)",
+        "Career concerns of mid-career professionals",
+        "Housing/mortgage references (relatable stress)",
+        "No outdated references that alienate younger users",
+        "No too-young references that alienate older users",
+        "Sweet spot of millennial/elder-GenZ shared experience"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-043",
+      "category": "Soul & Guardrails",
+      "title": "Generational Echoes - Kids Take After Parents",
+      "description": "The workers' kids mirror their parents' childhood traits. Bart's son is getting into skateboarding. Lisa's daughter is going through an activist phase. Milhouse's kid has the same glasses. Creates nostalgic 'I was just like you' moments.",
+      "acceptance_criteria": [
+        "Each worker's kid(s) reflect parent's childhood interests",
+        "Bart's son: Just getting into skateboarding, falls down a lot",
+        "Bart: 'Yeah, I fell down a lot too growing up, you know?'",
+        "Lisa's daughter: Environmental phase, veganism, causes",
+        "Lisa: 'I went through the same thing at her age'",
+        "Milhouse's kid: Glasses, awkward, maybe crush on someone out of league",
+        "Nelson's kid: Tough exterior but secretly sensitive (breaking the cycle?)",
+        "Ralph doesn't have kids - but talks about his cat like it's his kid",
+        "Creates warm nostalgic bonding moments",
+        "Workers see themselves in their children",
+        "Occasional 'I hope he doesn't make my mistakes' vulnerability",
+        "EXAMPLES ARE INSPIRATION - generate fresh moments"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "character_data.py"],
+      "passes": false
+    },
+    {
+      "id": "SG-044",
+      "category": "Soul & Guardrails",
+      "title": "Family Interruption Excuses",
+      "description": "When workers need to leave, family is the authentic reason. Wife calling, kid's recital, picking up from practice, parent's doctor appointment. Real life pulls them away, just like real workers.",
+      "acceptance_criteria": [
+        "Exit reasons draw from family database",
+        "EXAMPLES ONLY: 'Gotta grab Jaden from soccer practice'",
+        "EXAMPLES ONLY: 'Mom's at the doctor, said I'd pick her up'",
+        "EXAMPLES ONLY: 'Wife's been texting, dinner's getting cold'",
+        "Matches the worker's established family profile",
+        "Feels authentic, not convenient plot device",
+        "Other workers acknowledge ('Tell Sara hi!')",
+        "NEVER verbatim - always fresh, profile-consistent excuses"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-001",
+      "category": "Broadcast Safety",
+      "title": "Sanitization Layer Between Claude and Groq",
+      "description": "Create a sanitization layer that strips sensitive information from Claude Code output BEFORE it reaches Groq for narration. Groq should never see passwords, API keys, IPs, or secrets.",
+      "acceptance_criteria": [
+        "Sanitizer sits between Claude output and Groq input",
+        "Strips: API keys (sk-, ghp_, AKIA patterns)",
+        "Strips: IP addresses (regex for x.x.x.x)",
+        "Strips: Passwords and tokens",
+        "Strips: Email addresses",
+        "Strips: Database connection strings",
+        "Replaces with generic: [credentials], [server], [key]",
+        "Groq receives only sanitized summaries",
+        "Audit log of what was stripped (for debugging, not display)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "sanitizer.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-002",
+      "category": "Broadcast Safety",
+      "title": "Output Filter Before Telegram Send",
+      "description": "Belt-and-suspenders: Final regex scan of ALL messages before they go to Telegram. Catches anything that slipped through sanitization.",
+      "acceptance_criteria": [
+        "Every message passes through filter before send",
+        "Regex patterns for common secret formats",
+        "Blocks message if suspicious pattern found",
+        "Logs blocked attempts for review",
+        "Falls back to generic message if block triggered",
+        "Never lets a potential secret reach Telegram"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-003",
+      "category": "Broadcast Safety",
+      "title": "Regex Patterns for Common Secrets",
+      "description": "Comprehensive regex pattern library for detecting secrets: API keys, tokens, passwords, IPs, connection strings, SSH keys, etc.",
+      "acceptance_criteria": [
+        "Pattern for API keys: sk-, ghp_, AKIA, etc.",
+        "Pattern for IP addresses: IPv4 and IPv6",
+        "Pattern for JWT tokens",
+        "Pattern for base64-encoded secrets",
+        "Pattern for connection strings (postgres://, mysql://, mongodb://)",
+        "Pattern for SSH private keys",
+        "Pattern for long alphanumeric strings (likely tokens)",
+        "Easily extensible pattern list",
+        "Unit tests for each pattern"
+      ],
+      "files_likely_modified": ["sanitizer.py", "patterns.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-004",
+      "category": "Broadcast Safety",
+      "title": ".env Key Name Detection",
+      "description": "Read the project's .env file and automatically detect those specific key names/values to filter. Project-specific protection.",
+      "acceptance_criteria": [
+        "Parse .env file at startup",
+        "Extract all key names and values",
+        "Add values to filter list",
+        "Add key names to filter list (TELEGRAM_BOT_TOKEN, etc.)",
+        "Works even if .env format varies",
+        "Refreshes if .env changes",
+        "Never expose .env contents to Groq"
+      ],
+      "files_likely_modified": ["sanitizer.py", "config.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-005",
+      "category": "Broadcast Safety",
+      "title": "Audit Logging for Filtered Content",
+      "description": "Log what was filtered (for debugging) but never display it. Admin can review what was caught.",
+      "acceptance_criteria": [
+        "Log each filtered item with timestamp",
+        "Log what pattern matched",
+        "Log original context (what message it was in)",
+        "Logs stored securely, never sent to Telegram",
+        "Admin command to view recent filters",
+        "Auto-rotate logs to prevent bloat"
+      ],
+      "files_likely_modified": ["sanitizer.py", "logging_config.py"],
+      "passes": false
+    },
+    {
+      "id": "BC-006",
+      "category": "Broadcast Safety",
+      "title": "Broadcast-Safe Flag",
+      "description": "Command line flag or config option to enable extra-strict broadcast mode. When enabled, maximum filtering and a review delay.",
+      "acceptance_criteria": [
+        "--broadcast-safe flag on startup",
+        "Or BROADCAST_SAFE=true in .env",
+        "When enabled: stricter pattern matching",
+        "When enabled: optional 5-second delay before send (human review buffer)",
+        "When enabled: more aggressive generic replacements",
+        "Visual indicator that broadcast mode is active"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "config.py"],
+      "passes": false
+    },
+    {
+      "id": "MU-001",
+      "category": "Multi-User Access",
+      "title": "User Tier System",
+      "description": "Implement tiered user access: Tier 1 (Mr. Worms/Owner), Tier 2 (Power Users), Tier 3 (Chatters), Tier 4 (Viewers).",
+      "acceptance_criteria": [
+        "Database/storage for user tiers",
+        "Tier 1: Full control, admin powers, directs the build",
+        "Tier 2: Can control bot actions, authenticated via /password",
+        "Tier 3: Can chat with Ralph, but input doesn't affect build",
+        "Tier 4: View only, no interaction",
+        "Default tier for new users (configurable)",
+        "Tier persists across sessions"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "MU-002",
+      "category": "Multi-User Access",
+      "title": "/password Authentication for Power Users",
+      "description": "Allow users to elevate to Power User tier by entering a password. Hidden from chat.",
+      "acceptance_criteria": [
+        "/password [secret] command",
+        "Password configured by admin in .env",
+        "Successful auth elevates to Tier 2",
+        "Auth message deleted immediately (hidden)",
+        "Confirmation sent as private message or ephemeral",
+        "Failed attempts logged but not announced",
+        "Optional: time-limited elevation"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "MU-003",
+      "category": "Multi-User Access",
+      "title": "Character Assignment for Non-Owner Users",
+      "description": "Assign random Springfield resident characters to non-owner users. Their messages get translated into that character's voice.",
+      "acceptance_criteria": [
+        "Pool of available characters (Springfield residents)",
+        "New user gets random character assigned",
+        "Character persists for that user",
+        "User's messages translated into character's voice",
+        "Character name shown instead of username",
+        "Admin can reassign characters",
+        "Characters feel distinct (different speech patterns)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "character_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "MU-004",
+      "category": "Multi-User Access",
+      "title": "Tier-Based Input Restrictions",
+      "description": "Enforce what each tier can do. Tier 3 can chat but not direct build. Tier 4 can only view.",
+      "acceptance_criteria": [
+        "Tier 1: All actions allowed",
+        "Tier 2: Control actions, limited admin",
+        "Tier 3: Chat with Ralph, no build directives processed",
+        "Tier 4: Messages ignored or blocked politely",
+        "Clear feedback when action blocked",
+        "Upgrade path explained (how to get higher tier)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-001",
+      "category": "Voice-Only Input",
+      "title": "Block Text Messages with Friendly Explanation",
+      "description": "Text input is blocked. Only voice messages allowed. Respond with friendly in-character explanation.",
+      "acceptance_criteria": [
+        "Detect text message (not voice)",
+        "Block from processing",
+        "Reply in character: Ralph confused by 'written notes'",
+        "Explain to use voice: 'Mr. Worms usually just tells us what to do'",
+        "Keep it funny and in-scene",
+        "Don't break immersion with technical explanation"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-002",
+      "category": "Voice-Only Input",
+      "title": "Allow Only Voice Messages",
+      "description": "Process voice messages as the primary input method. Transcribe and handle.",
+      "acceptance_criteria": [
+        "Voice messages accepted and processed",
+        "Transcription via Whisper (local or Groq)",
+        "Transcribed text used for intent detection",
+        "Original voice message can be deleted after processing",
+        "Handle various audio formats Telegram supports"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "voice_handler.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-003",
+      "category": "Voice-Only Input",
+      "title": "Keep Button/Inline Actions Working",
+      "description": "While text is blocked, inline buttons and callback actions still work. Users can tap buttons.",
+      "acceptance_criteria": [
+        "Inline button callbacks processed normally",
+        "Button taps don't require voice",
+        "Menu navigation works",
+        "Quick actions (approve, cancel, etc.) work",
+        "Consistent with voice-only philosophy (buttons are actions, not text)"
+      ],
+      "files_likely_modified": ["ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "VO-004",
+      "category": "Voice-Only Input",
+      "title": "Voice-to-Intent Pipeline",
+      "description": "Full pipeline from voice message to understood intent: transcribe, analyze tone, extract directive.",
+      "acceptance_criteria": [
+        "Voice → Whisper transcription",
+        "Transcription → Tone analysis (angry, happy, questioning)",
+        "Transcription → Intent extraction (what does user want)",
+        "Both tone and intent passed to translation layer",
+        "Handle unclear audio gracefully",
+        "Ask for clarification if intent unclear"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "voice_handler.py", "intent_analyzer.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-001",
+      "category": "Translation Layer",
+      "title": "Tone Analysis from Voice",
+      "description": "Analyze the emotional tone of voice messages: angry, frustrated, happy, questioning, urgent, calm.",
+      "acceptance_criteria": [
+        "Detect anger/frustration (from transcription + audio features if possible)",
+        "Detect happiness/approval",
+        "Detect questioning/curiosity",
+        "Detect urgency",
+        "Detect calm/routine",
+        "Tone informs how scene is described",
+        "Works with transcription text as fallback"
+      ],
+      "files_likely_modified": ["tone_analyzer.py", "voice_handler.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-002",
+      "category": "Translation Layer",
+      "title": "Character Translation Engine",
+      "description": "The core magic: translate user speech into Mr. Worms character actions and dialogue. User says X, chat shows theatrical version.",
+      "acceptance_criteria": [
+        "Take transcribed speech + tone",
+        "Generate in-character scene description",
+        "Mr. Worms actions described (storms in, nods, sighs)",
+        "Dialogue rewritten in Mr. Worms voice",
+        "Maintains meaning while changing presentation",
+        "Never shows original words",
+        "Groq prompt optimized for this translation"
+      ],
+      "files_likely_modified": ["translation_engine.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-003",
+      "category": "Translation Layer",
+      "title": "Scene-Contextualized Output Generation",
+      "description": "All output happens within the established scene. Actions, dialogue, atmosphere - everything stays in the fiction.",
+      "acceptance_criteria": [
+        "Output includes scene actions (*Mr. Worms enters*)",
+        "Output includes dialogue in quotes",
+        "Output references current scene (weather, time, mood)",
+        "Responses feel like reading a screenplay",
+        "Environment reacts appropriately",
+        "Consistent atmosphere throughout session"
+      ],
+      "files_likely_modified": ["translation_engine.py", "scene_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-004",
+      "category": "Translation Layer",
+      "title": "Original Message Deletion",
+      "description": "Delete the user's original voice message after processing. Only the translated version remains in chat.",
+      "acceptance_criteria": [
+        "Original voice message deleted after transcription",
+        "Deletion happens quickly (before users notice)",
+        "Only translated scene version visible",
+        "Works within Telegram API limits",
+        "Handle deletion failures gracefully",
+        "Admin option to disable deletion (for debugging)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "message_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-005",
+      "category": "Translation Layer",
+      "title": "Swear Word to Action Translation",
+      "description": "Swear words never appear in chat. They're translated into character actions that convey the same emotion.",
+      "acceptance_criteria": [
+        "Detect swear words in transcription",
+        "Replace with action: 'What the fuck' → *jaw tightens*",
+        "Convey intensity through description, not words",
+        "Keep it broadcast-safe (no swears ever)",
+        "Maintain the emotional weight",
+        "Examples: slams desk, growls, eye twitches"
+      ],
+      "files_likely_modified": ["translation_engine.py", "content_filter.py"],
+      "passes": false
+    },
+    {
+      "id": "TL-006",
+      "category": "Translation Layer",
+      "title": "Preserve Actual Directive While Translating Display",
+      "description": "The translation is for DISPLAY only. The actual directive still gets processed. 'Fix this now' → Ralph knows to prioritize, even though chat shows theatrical version.",
+      "acceptance_criteria": [
+        "Extract intent/directive before translation",
+        "Pass directive to action handler",
+        "Translation only affects display",
+        "Ralph responds to actual meaning, not just scene",
+        "Urgent commands still processed urgently",
+        "Questions still get answered"
+      ],
+      "files_likely_modified": ["translation_engine.py", "command_handler.py"],
+      "passes": false
+    },
+    {
+      "id": "SS-001",
+      "category": "Scene Setting",
+      "title": "Opening Scene Generation",
+      "description": "Every session opens with atmospheric scene-setting. Weather, time, office mood, workers arriving.",
+      "acceptance_criteria": [
+        "Generate opening scene on session start",
+        "Include weather (real or generated)",
+        "Include time of day",
+        "Include office atmosphere",
+        "Workers trickle in naturally",
+        "Sets the stage for the session",
+        "Unique each time, never canned"
+      ],
+      "files_likely_modified": ["scene_manager.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SS-002",
+      "category": "Scene Setting",
+      "title": "Weather Integration (Optional)",
+      "description": "If user location is known (from setup), use real weather. Otherwise, generate atmospheric weather.",
+      "acceptance_criteria": [
+        "Check if location configured",
+        "If yes: fetch real weather (OpenWeather API or similar)",
+        "If no: generate fitting weather",
+        "Weather affects scene (rainy = cozy office, sunny = bright mood)",
+        "Don't ask for location mid-session (breaks immersion)",
+        "Weather can change during long sessions"
+      ],
+      "files_likely_modified": ["weather_service.py", "scene_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "SS-003",
+      "category": "Scene Setting",
+      "title": "Time-of-Day Awareness",
+      "description": "Scene reflects actual time of day. Morning coffee, lunch breaks, late night crunch - all feel authentic.",
+      "acceptance_criteria": [
+        "Detect user's local time (from system or config)",
+        "Morning: workers arriving, coffee, slow start",
+        "Midday: productive energy, maybe lunch mentions",
+        "Afternoon: settling in, steady work",
+        "Evening: wrapping up, tired but focused",
+        "Late night: skeleton crew, dedication",
+        "Time references feel natural"
+      ],
+      "files_likely_modified": ["scene_manager.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "SS-004",
+      "category": "Scene Setting",
+      "title": "Atmosphere Matching to Task",
+      "description": "Scene atmosphere matches the work ahead. Bug hunt = tense, new feature = excited, routine = calm.",
+      "acceptance_criteria": [
+        "Analyze task type from user directive",
+        "Bug/urgent: tense, focused atmosphere",
+        "New feature: excited, creative energy",
+        "Routine: calm, steady, comfortable",
+        "Crunch time: intense, driven",
+        "Atmosphere influences word choice and actions"
+      ],
+      "files_likely_modified": ["scene_manager.py", "atmosphere_detector.py"],
+      "passes": false
+    },
+    {
+      "id": "SS-005",
+      "category": "Scene Setting",
+      "title": "Maintain Scene Throughout Session",
+      "description": "Scene consistency across all messages. Weather doesn't randomly change, time progresses naturally, callbacks to earlier moments.",
+      "acceptance_criteria": [
+        "Track current scene state",
+        "Weather consistent (unless explicitly progressing)",
+        "Time progresses naturally over session",
+        "Can reference earlier scene moments",
+        "Environment reacts (lights dim for late night)",
+        "Scene elements persist (coffee from earlier, etc.)"
+      ],
+      "files_likely_modified": ["scene_manager.py", "session_state.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-001",
+      "category": "Admin Commands",
+      "title": "Admin Command Trigger Phrase Detection",
+      "description": "Detect 'admin command' or similar trigger at start of voice message. These are processed but never shown in chat.",
+      "acceptance_criteria": [
+        "Detect 'admin command:' prefix in transcription",
+        "Also detect variations: 'admin:', 'hey admin', etc.",
+        "Flag message as admin command",
+        "Route to admin handler, not normal flow",
+        "Never show admin commands in chat",
+        "Only Mr. Worms (Tier 1) can use admin commands"
+      ],
+      "files_likely_modified": ["admin_handler.py", "voice_handler.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-002",
+      "category": "Admin Commands",
+      "title": "Transcribe but Don't Show in Chat (Hidden Execution)",
+      "description": "Admin commands are transcribed and executed but NEVER appear in the chat. Completely invisible to others.",
+      "acceptance_criteria": [
+        "Transcribe admin voice message",
+        "Parse the command",
+        "Execute the command",
+        "Delete the original voice message",
+        "Do NOT post any response to group chat",
+        "Send confirmation only to admin (private or ephemeral)"
+      ],
+      "files_likely_modified": ["admin_handler.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-003",
+      "category": "Admin Commands",
+      "title": "Rate Limiting - Cooldown Periods Per User",
+      "description": "Admin can set cooldown periods for users. 'admin command: set cooldown 5 minutes' - user can only message once per 5 minutes.",
+      "acceptance_criteria": [
+        "Parse 'set cooldown X minutes/seconds' command",
+        "Apply to specific user or all non-admins",
+        "Track last message time per user",
+        "Block messages during cooldown",
+        "Friendly in-character response to blocked user",
+        "Cooldown persists until changed"
+      ],
+      "files_likely_modified": ["admin_handler.py", "rate_limiter.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-004",
+      "category": "Admin Commands",
+      "title": "Configurable Cooldown Values by Admin",
+      "description": "Admin can adjust cooldown values on the fly via voice commands.",
+      "acceptance_criteria": [
+        "'admin command: cooldown off' - disable cooldown",
+        "'admin command: cooldown 1 minute' - 1 minute cooldown",
+        "'admin command: cooldown 10 minutes for @user' - per-user",
+        "Changes take effect immediately",
+        "Confirm change to admin (privately)"
+      ],
+      "files_likely_modified": ["admin_handler.py", "rate_limiter.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-005",
+      "category": "Admin Commands",
+      "title": "Banned Subjects/Topics List Management",
+      "description": "Admin can ban certain topics from discussion. Messages mentioning banned topics are blocked.",
+      "acceptance_criteria": [
+        "'admin command: ban topic [topic]' - add to ban list",
+        "'admin command: unban topic [topic]' - remove from list",
+        "'admin command: list banned topics' - show current list",
+        "Messages containing banned topics blocked",
+        "In-character deflection when topic blocked",
+        "Topic matching is fuzzy (catches variations)"
+      ],
+      "files_likely_modified": ["admin_handler.py", "content_filter.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-006",
+      "category": "Admin Commands",
+      "title": "User Mute/Unmute Commands",
+      "description": "Admin can mute specific users. Muted users' messages are ignored entirely.",
+      "acceptance_criteria": [
+        "'admin command: mute @user' - mute user",
+        "'admin command: unmute @user' - unmute user",
+        "'admin command: list muted' - show muted users",
+        "Muted user's messages completely ignored",
+        "No response or acknowledgment to muted user",
+        "Mute persists until unmuted"
+      ],
+      "files_likely_modified": ["admin_handler.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-007",
+      "category": "Admin Commands",
+      "title": "Tier Changes via Voice",
+      "description": "Admin can promote or demote users via voice commands.",
+      "acceptance_criteria": [
+        "'admin command: promote @user to power user' - elevate to Tier 2",
+        "'admin command: demote @user to viewer' - drop to Tier 4",
+        "'admin command: make @user chatter' - set to Tier 3",
+        "Changes take effect immediately",
+        "User notified of tier change (in-character)",
+        "Cannot demote self or other Tier 1"
+      ],
+      "files_likely_modified": ["admin_handler.py", "user_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "AC-008",
+      "category": "Admin Commands",
+      "title": "Silent Execution Confirmation",
+      "description": "After admin command executes, send private confirmation ONLY to admin. Others see nothing.",
+      "acceptance_criteria": [
+        "Admin command executes",
+        "Send private message to admin with result",
+        "Or ephemeral message only admin sees",
+        "Or subtle visual indicator (emoji reaction)",
+        "No public acknowledgment of admin action",
+        "Maintains illusion that nothing happened"
+      ],
+      "files_likely_modified": ["admin_handler.py", "ralph_bot.py"],
+      "passes": false
     }
   ],
 
   "priority_order": [
+    "--- STREAMING FAST TRACK (Enable Live Viewing) ---",
+    "BC-001 - Sanitization layer (MUST HAVE for safe streaming)",
+    "BC-002 - Output filter before Telegram (belt + suspenders)",
+    "BC-003 - Regex patterns for secrets (catch API keys, IPs, passwords)",
+    "BC-004 - .env key detection (project-specific protection)",
+    "SS-001 - Opening scene generation (immersion from start)",
+    "SS-003 - Time-of-day awareness (authentic atmosphere)",
+    "TL-002 - Character translation engine (THE MAGIC)",
+    "TL-003 - Scene-contextualized output (theatrical display)",
+    "TL-005 - Swear word to action translation (broadcast-safe)",
+    "TL-006 - Preserve directive while translating (commands still work)",
+    "BC-006 - Broadcast-safe flag (enable strict mode)",
+    "--- VOICE INPUT (Full Immersion) ---",
+    "VO-001 - Block text messages (voice-only enforcement)",
+    "VO-002 - Allow only voice messages (primary input)",
+    "VO-004 - Voice-to-intent pipeline (understand what user wants)",
+    "TL-001 - Tone analysis from voice (detect emotion)",
+    "TL-004 - Original message deletion (only show translation)",
+    "--- MULTI-USER (Groups & Viewers) ---",
+    "MU-001 - User tier system (Mr. Worms, Power Users, Viewers)",
+    "MU-002 - /password authentication (power user elevation)",
+    "MU-003 - Character assignment (other users get Springfield characters)",
+    "MU-004 - Tier-based input restrictions (who can do what)",
+    "--- ADMIN COMMANDS (Invisible Moderation) ---",
+    "AC-001 - Admin command trigger detection",
+    "AC-002 - Hidden execution (transcribe but don't show)",
+    "AC-003 - Rate limiting (cooldown periods)",
+    "AC-008 - Silent execution confirmation",
+    "--- REMAINING SCENE & ATMOSPHERE ---",
+    "SS-002 - Weather integration (optional real weather)",
+    "SS-004 - Atmosphere matching to task",
+    "SS-005 - Maintain scene throughout session",
+    "--- ORIGINAL FEATURES ---",
     "RM-051 - Button styling (visual upgrade)",
     "RM-049 - Markdown formatting (beautiful messages)",
     "RM-050 - Formatting helpers (consistency)",
@@ -1052,39 +2415,36 @@
     "RM-002 - Colors (visual clarity)",
     "RM-007 - Typing indicators (instant UX improvement)",
     "RM-023 - Progress bar (user needs to see progress!)",
-    "RM-025 - Smart ETA (makes progress bar useful)",
     "RM-004 - Comedic timing (the CORE of the experience)",
     "RM-003 - Priority buttons (CEO interaction)",
     "RM-024 - Mid-session reports (keep CEO informed)",
     "RM-026 - Task celebrations (momentum)",
-    "RM-027 - Blocker escalation (don't get stuck)",
-    "RM-005 - Bonus banter (fun easter egg)",
-    "RM-006 - Deleted messages (immersion)",
-    "RM-008 - Background chatter (atmosphere)",
-    "RM-016 - Specialist infrastructure (foundation for expansion)",
-    "RM-017 - Frinky design specialist (first specialist)",
-    "RM-021 - Specialist summoning (make it usable)",
-    "RM-018 to RM-020 - Other specialists (expand the team)",
-    "RM-022 - API registry (future-proofing)",
     "RM-053 - Idle codebase chatter (fill dead time with education)",
-    "RM-054 - Codebase exploration discussions (workers talk about the code)",
-    "RM-055 - Explain Like Ralph is 5 (educational comedy)",
-    "RM-056 - Interrupt and resume flow (MUD interaction)",
-    "RM-057 - MUD-style presence (workers feel real)",
-    "RM-058 - Codebase summary generation (build understanding)",
-    "RM-059 - Question prompts (include user in conversation)",
-    "RM-060 - Byte-sized learning (1-2 sentences, texting pace)",
-    "RM-061 - Voice input (talk to your dev team!)",
-    "RM-062 - No glazing authentic discoveries (real excitement only)",
-    "RM-063 - Feature flow walkthroughs (trace the code)"
+    "RM-054 - Codebase exploration discussions"
   ],
 
   "golden_rules": [
+    "Joy is the FRUIT, not the BAIT - help people work, don't hook them",
+    "The rock knows it's a rock - we're a tool, not a god",
     "Comedic timing is EVERYTHING - never rush the punchline",
     "Fresh responses > canned responses - variety is life",
     "Characters are ADULTS, not children - mature archetypes",
-    "Entertainment value = user retention",
+    "Pushback is LOVE - honest feedback over flattery",
+    "If choice between funny and correct, ALWAYS choose correct",
     "The conversation flow IS the product",
-    "Every message should feel like it's from a real person"
+    "Every message should feel like it's from a real person",
+    "When work is done, let them GO - no artificial engagement",
+    "Simple truths from simple people hit hardest"
+  ],
+
+  "soul_principles": [
+    "This exists to HELP people be productive and have genuine fun",
+    "NOT designed to maximize engagement or time-in-app",
+    "Nicene Creed as reference point - one God, we're not it",
+    "Workers care about Mr. Worms succeeding, so they tell the truth",
+    "Mental health matters - care for the human, not just the session",
+    "Grounded in reality - time, weather, the world outside the MUD",
+    "The fool who stumbles into wisdom - Ralph's simple truths",
+    "High bar for breaking immersion - only when truly needed"
   ]
 }
