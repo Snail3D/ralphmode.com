@@ -1015,6 +1015,10 @@ class RalphBot:
                             task = asyncio.create_task(self.idle_codebase_chatter(context, chat_id, user_id))
                             self.idle_chatter_task[user_id] = task
 
+                # RM-011: Log message for Q&A mode session history
+                user_id = chat_id  # In DM, chat_id == user_id
+                self.log_event(user_id, "message", name, message, {"topic": topic, "title": title})
+
                 return True
             except Exception as e:
                 logger.warning(f"Button styling failed, falling back to text: {e}")
@@ -1031,6 +1035,11 @@ class RalphBot:
                 text=full_text,
                 parse_mode="Markdown"
             )
+
+            # RM-011: Log message for Q&A mode session history
+            user_id = chat_id  # In DM, chat_id == user_id
+            self.log_event(user_id, "message", name, message, {"topic": topic, "title": title})
+
             return False
         except Exception as e:
             logger.error(f"Failed to send message: {e}")
@@ -5127,6 +5136,60 @@ _Grab some popcorn..._
 
             # Record this message for cooldown tracking
             record_user_message(user_id)
+
+        # RM-011: Handle Q&A mode - Ralph answers questions about the session
+        session = self.active_sessions.get(user_id)
+        if session and session.get("mode") == "qa":
+            # User is asking Ralph a question about the session
+            await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+            await asyncio.sleep(1)
+
+            # Get session context/history
+            session_context = self.get_session_context(user_id)
+
+            # Build Q&A prompt for Ralph
+            qa_prompt = f"""You are Ralph from The Simpsons, and you just watched your team work on a project.
+The CEO (Mr. Worms) is asking you a question about what happened during the session.
+
+SESSION HISTORY:
+{session_context}
+
+CEO'S QUESTION: {text}
+
+Answer the question in Ralph's voice - simple, enthusiastic, but with ACCURATE facts from the session.
+If you don't know the answer, say so honestly in Ralph's voice.
+Keep it 1-3 sentences max.
+Examples:
+- "Ooh! Stool said that about the database thingy! He was worried about the conectshuns!"
+- "Um... I don't remember that part. Maybe it was when I was looking at my cat?"
+- "Yeah! Maya fixed the login button! She said it was a... uh... syn-tacks error!"
+
+Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple voice."""
+
+            # Call Groq for Q&A response
+            messages = [
+                {"role": "system", "content": qa_prompt},
+                {"role": "user", "content": text}
+            ]
+
+            ralph_answer = self.call_groq("llama-3.3-70b-versatile", messages, max_tokens=300)
+
+            # Apply Ralph's misspellings
+            ralph_answer = self.ralph_misspell(ralph_answer)
+
+            # Send Ralph's answer
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_answer,
+                with_typing=False  # Already showed typing
+            )
+
+            # Log the Q&A interaction
+            self.log_event(user_id, "qa_question", "Mr. Worms", text)
+            self.log_event(user_id, "qa_answer", "Ralph", ralph_answer)
+
+            logging.info(f"RM-011: Handled Q&A mode question from user {user_id}")
+            return
 
         # FB-003: Check if user is in feedback collection mode
         if context.user_data.get('feedback_state') == 'awaiting_content':

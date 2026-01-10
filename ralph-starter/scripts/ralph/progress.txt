@@ -7189,3 +7189,39 @@ DELETE_ORIGINAL_MESSAGES=true
 
 ---
 
+
+## Iteration 114 - 2026-01-10
+**Task**: [RM-011] Polish Q&A Mode
+**Status**: ✅ Complete
+
+### What was implemented
+- Added Q&A mode text handling in handle_text() method
+- When session mode is "qa", Ralph answers questions about the session
+- Q&A handler gets session history via get_session_context()
+- Ralph responds in character with accurate facts from session history
+- Graceful "I don't know" handling when information isn't available
+- All character messages now logged via log_event() in send_styled_message()
+- Logging happens for both successful button-styled and fallback text messages
+- Q&A interactions are themselves logged (question + answer)
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Q&A mode is activated after session report via session["mode"] = "qa"
+- Session history is stored in self.session_history dict (last 100 events per user)
+- get_session_context() already existed and formats history properly (last 50 events)
+- log_event() stores structured events: time, type, speaker, content, metadata
+- By logging in send_styled_message(), all character dialogue is automatically captured
+- Ralph's Q&A responses use accurate facts but stay in simple Ralph voice
+- Example: "Ooh! Stool said that about the database thingy! He was worried about the conectshuns!"
+
+### Patterns discovered
+- Central logging point (send_styled_message) captures all dialogue automatically
+- Q&A mode check happens early in handle_text, right after cooldown check
+- Session mode flag ("qa") controls which handler processes the message
+- Ralph uses session history as context but responds in character
+- Misspellings applied to Q&A responses to maintain Ralph authenticity
+
+---
+
