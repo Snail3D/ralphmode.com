@@ -706,7 +706,7 @@
         "Groq handles onboarding chat (fast, parallel to analysis)"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-045",
@@ -804,7 +804,7 @@
         "Consistent look throughout session"
       ],
       "files_likely_modified": ["ralph_bot.py"],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-051",

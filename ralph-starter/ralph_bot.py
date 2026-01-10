@@ -479,6 +479,8 @@ _But the customer is IMPORTANT. This bug must die._""",
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
         self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
         self.message_counter = 0  # Counter for unique message IDs
+        self.onboarding_state: Dict[int, Dict] = {}  # Track onboarding progress per user
+        self.pending_analysis: Dict[int, asyncio.Task] = {}  # Track background analysis tasks
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
@@ -774,6 +776,519 @@ _But the customer is IMPORTANT. This bug must die._""",
                 ralph_response,
                 with_typing=True
             )
+
+    # ==================== INTERACTIVE ONBOARDING ====================
+
+    # Worker arrival messages - casual office atmosphere
+    WORKER_ARRIVALS = {
+        "Stool": [
+            ("_Stool walks in with an iced coffee_", "Morning! Traffic was actually chill today."),
+            ("_Stool slides into the office_", "Yo! Made it just in time."),
+            ("_Stool arrives with headphones around neck_", "What's up everyone? Vibes are good today."),
+        ],
+        "Gomer": [
+            ("_Gomer lumbers in with a box of donuts_", "I brought donuts! Mmm... donuts."),
+            ("_Gomer trips slightly entering_", "D'oh! I'm here! Did I miss anything?"),
+            ("_Gomer arrives munching on something_", "Oh boy, new project? Exciting!"),
+        ],
+        "Mona": [
+            ("_Mona walks in with a laptop already open_", "I've been reviewing some data on the way in. Fascinating patterns."),
+            ("_Mona enters with a determined stride_", "Good morning. I have some preliminary thoughts."),
+            ("_Mona arrives checking her phone_", "The metrics from yesterday are interesting. Let's discuss."),
+        ],
+        "Gus": [
+            ("_Gus shuffles in with a massive coffee mug_", "Hrmph. Coffee machine better be working."),
+            ("_Gus arrives looking tired_", "*sips coffee* I've been doing this for 25 years. What's one more project?"),
+            ("_Gus enters checking his watch_", "Right on time. Unlike some people I've worked with."),
+        ],
+    }
+
+    # Background office chatter for atmosphere
+    BACKGROUND_CHATTER = [
+        ("Stool", "Gomer", "So did you catch the game last night?", "Mmm, no, I was watching cooking shows."),
+        ("Mona", "Gus", "The quarterly reports look promising.", "*grunts* I've seen promising turn to panic before."),
+        ("Gomer", "Stool", "Want a donut?", "Nah, trying to eat clean. Maybe just one."),
+        ("Gus", "Mona", "Remember that bug in '09?", "The one that took down production for 3 hours? How could I forget?"),
+    ]
+
+    # Ralph's discovery questions during onboarding
+    ONBOARDING_QUESTIONS = [
+        {
+            "question": "What are we building here, Mr. Worms?",
+            "options": [
+                ("🚀 New feature", "new_feature", "Something shiny and new!"),
+                ("🐛 Bug fixes", "bug_fix", "Squashing some creepy crawlies!"),
+                ("🔧 Improvements", "improvement", "Making good things gooder!"),
+                ("🤷 Not sure yet", "explore", "Let's figure it out together!"),
+            ]
+        },
+        {
+            "question": "What's the MOST importent thing to get right?",
+            "options": [
+                ("⚡ Speed", "speed", "Fast like my cat when she sees a bug!"),
+                ("🎨 Looks good", "design", "Pretty like a butterfly!"),
+                ("🔒 Works right", "reliability", "Solid like a rock!"),
+                ("📋 Everything", "all", "All the things!"),
+            ]
+        },
+        {
+            "question": "How fast do you need this? Rush job or take our time?",
+            "options": [
+                ("🔥 ASAP!", "urgent", "Drop everything mode!"),
+                ("📅 Soon-ish", "normal", "Regular speed ahead!"),
+                ("🐢 No rush", "relaxed", "Nice and easy!"),
+            ]
+        },
+    ]
+
+    async def start_interactive_onboarding(self, context, chat_id: int, user_id: int, project_name: str):
+        """Start the interactive onboarding experience while analysis runs in background.
+
+        This creates entertainment and gathers user context while the code analysis
+        completes in parallel. Workers trickle in, Ralph asks questions, and the
+        scene builds naturally.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send messages to
+            user_id: User's ID
+            project_name: Name of the uploaded project
+        """
+        # Initialize onboarding state
+        self.onboarding_state[user_id] = {
+            "stage": "arriving",
+            "workers_arrived": [],
+            "question_index": 0,
+            "answers": {},
+            "project_name": project_name,
+            "started": datetime.now(),
+        }
+
+        # Stage 1: Office opens
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action("The office lights flicker on. Another day at Ralph Mode HQ..."),
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1.5)
+
+        # Stage 2: Workers arrive one by one (staggered)
+        await self._workers_arrive(context, chat_id, user_id)
+
+        # Stage 3: Ralph enters and asks first question
+        await self._ralph_enters_onboarding(context, chat_id, user_id)
+
+    async def _workers_arrive(self, context, chat_id: int, user_id: int):
+        """Workers trickle into the office with casual greetings.
+
+        Creates atmosphere while analysis runs in background.
+        """
+        state = self.onboarding_state.get(user_id, {})
+
+        # Workers arrive in random order, not all at once
+        worker_order = list(self.DEV_TEAM.keys())
+        random.shuffle(worker_order)
+
+        # Only 2-3 workers arrive during onboarding (others "were already here")
+        arriving_workers = worker_order[:random.randint(2, 3)]
+
+        for name in arriving_workers:
+            worker = self.DEV_TEAM[name]
+            arrivals = self.WORKER_ARRIVALS.get(name, [("_Worker arrives_", "Morning.")])
+            action, greeting = random.choice(arrivals)
+
+            # Action narration
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=action,
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(random.uniform(0.5, 1.0))
+
+            # Worker greeting with styled button
+            await self.send_styled_message(
+                context, chat_id, name, worker['title'], greeting,
+                topic="morning arrival",
+                with_typing=True
+            )
+
+            state['workers_arrived'].append(name)
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+
+        # Maybe some background chatter
+        if random.random() < 0.4:
+            chatter = random.choice(self.BACKGROUND_CHATTER)
+            await asyncio.sleep(0.5)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"_{chatter[0]} to {chatter[1]}: '{chatter[2]}'_\n_{chatter[1]}: '{chatter[3]}'_",
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(1.0)
+
+    async def _ralph_enters_onboarding(self, context, chat_id: int, user_id: int):
+        """Ralph enters and starts asking questions about the project."""
+        state = self.onboarding_state.get(user_id, {})
+
+        # Ralph enters
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action("The door bursts open. Ralph Wiggum arrives with his juice box and upside-down badge."),
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1.0)
+
+        ralph_greeting = self.ralph_misspell(
+            f"Hi everyone! I'm the boss now! Mr. Worms sent us a new projeck called '{state.get('project_name', 'something')}'. "
+            "My cat would be so proud!"
+        )
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_greeting,
+            topic="arrival",
+            with_typing=True
+        )
+
+        if self.should_send_gif():
+            await self.send_ralph_gif(context, chat_id, "happy")
+
+        await asyncio.sleep(1.5)
+
+        # Ask first onboarding question
+        await self._ask_onboarding_question(context, chat_id, user_id, 0)
+
+    async def _ask_onboarding_question(self, context, chat_id: int, user_id: int, question_index: int):
+        """Ask an onboarding question with inline buttons.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            question_index: Which question to ask (0-2)
+        """
+        state = self.onboarding_state.get(user_id, {})
+        if question_index >= len(self.ONBOARDING_QUESTIONS):
+            return
+
+        question_data = self.ONBOARDING_QUESTIONS[question_index]
+        question_text = self.ralph_misspell(question_data["question"])
+
+        # Build inline keyboard
+        buttons = []
+        for label, callback_value, _ in question_data["options"]:
+            buttons.append([InlineKeyboardButton(
+                label,
+                callback_data=f"onboard_{question_index}_{callback_value}"
+            )])
+
+        # Add skip option
+        buttons.append([InlineKeyboardButton("⏭️ Just get started!", callback_data="onboard_skip")])
+
+        keyboard = InlineKeyboardMarkup(buttons)
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, question_text,
+            topic="onboarding question",
+            use_buttons=False,  # Use text for the question
+            with_typing=True
+        )
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="_Ralph looks at you expectantly, juice box in hand._",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        state["question_index"] = question_index
+
+    async def handle_onboarding_answer(self, query, context, user_id: int, answer_data: str):
+        """Handle an onboarding question answer from inline button.
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User's ID
+            answer_data: The callback data (e.g., "onboard_0_new_feature" or "onboard_skip")
+        """
+        chat_id = query.message.chat_id
+        state = self.onboarding_state.get(user_id, {})
+
+        if answer_data == "onboard_skip":
+            # User wants to skip questions
+            await query.answer("Skipping to the good stuff!")
+            await self._finish_onboarding(context, chat_id, user_id, skipped=True)
+            return
+
+        # Parse the answer
+        parts = answer_data.replace("onboard_", "").split("_", 1)
+        if len(parts) != 2:
+            await query.answer()
+            return
+
+        question_index = int(parts[0])
+        answer_value = parts[1]
+
+        # Store the answer
+        state["answers"][question_index] = answer_value
+
+        # Ralph reacts to the answer
+        question_data = self.ONBOARDING_QUESTIONS[question_index]
+        for label, value, ralph_reaction in question_data["options"]:
+            if value == answer_value:
+                ralph_response = self.ralph_misspell(ralph_reaction)
+                break
+        else:
+            ralph_response = self.ralph_misspell("Ooh, interesting!")
+
+        await query.answer()
+
+        # Edit the message to remove buttons
+        try:
+            await query.edit_message_reply_markup(reply_markup=None)
+        except:
+            pass
+
+        # Ralph reacts
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_response,
+            topic="question reaction",
+            with_typing=True
+        )
+
+        await asyncio.sleep(1.0)
+
+        # Check if analysis is done before asking more questions
+        analysis_task = self.pending_analysis.get(user_id)
+        if analysis_task and analysis_task.done():
+            # Analysis finished - wrap up onboarding
+            await self._finish_onboarding(context, chat_id, user_id)
+            return
+
+        # Ask next question or finish
+        next_index = question_index + 1
+        if next_index < len(self.ONBOARDING_QUESTIONS):
+            # Maybe some worker chatter between questions
+            if random.random() < 0.3:
+                worker = random.choice(list(self.DEV_TEAM.keys()))
+                worker_data = self.DEV_TEAM[worker]
+                comments = [
+                    "Good question, boss.",
+                    "I was wondering that too.",
+                    "Makes sense to ask that.",
+                    "The boss is on a roll today!",
+                ]
+                await self.send_styled_message(
+                    context, chat_id, worker, worker_data['title'],
+                    random.choice(comments),
+                    topic="onboarding comment",
+                    with_typing=True
+                )
+                await asyncio.sleep(0.8)
+
+            await self._ask_onboarding_question(context, chat_id, user_id, next_index)
+        else:
+            # All questions answered
+            await self._finish_onboarding(context, chat_id, user_id)
+
+    async def _finish_onboarding(self, context, chat_id: int, user_id: int, skipped: bool = False):
+        """Finish onboarding and transition to analysis results.
+
+        If analysis is still running, wait for it. Then merge onboarding context
+        with analysis results.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            skipped: Whether user skipped the questions
+        """
+        state = self.onboarding_state.get(user_id, {})
+
+        # Check if analysis is complete
+        analysis_task = self.pending_analysis.get(user_id)
+        if analysis_task and not analysis_task.done():
+            # Analysis still running - show waiting message
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=self.format_action("Ralph squints at his computer, waiting for the 'compooter magic' to finish..."),
+                parse_mode="Markdown"
+            )
+
+            # Wait for analysis with a fun loading animation
+            ralph_waiting = [
+                "The compooter is thinking... I think I hear it humming!",
+                "Almost there! My cat thinks faster than this!",
+                "Still werking... I can see the little dots moving!",
+            ]
+
+            try:
+                # Wait with timeout
+                for i in range(3):
+                    if analysis_task.done():
+                        break
+                    await asyncio.sleep(2)
+                    if not analysis_task.done() and i < 2:
+                        await self.send_styled_message(
+                            context, chat_id, "Ralph", None,
+                            self.ralph_misspell(ralph_waiting[i]),
+                            topic="waiting",
+                            with_typing=True
+                        )
+
+                # Final wait if needed
+                analysis = await asyncio.wait_for(analysis_task, timeout=30)
+            except asyncio.TimeoutError:
+                analysis = {"summary": "Analysis timed out. Let's work with what we have!"}
+        else:
+            # Analysis already done
+            analysis = analysis_task.result() if analysis_task else None
+
+        # Store analysis in session
+        session = self.active_sessions.get(user_id, {})
+        if analysis:
+            session["analysis"] = analysis
+
+        # Store onboarding context in session
+        session["onboarding_answers"] = state.get("answers", {})
+        session["onboarding_context"] = self._build_onboarding_context(state)
+
+        # Ralph summarizes what he learned
+        if not skipped and state.get("answers"):
+            summary = self._build_onboarding_summary(state)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=self.format_action("Ralph straightens his upside-down badge and addresses the team."),
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(0.5)
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                self.ralph_misspell(summary),
+                topic="onboarding summary",
+                with_typing=True
+            )
+
+            # Team acknowledges
+            await asyncio.sleep(1.0)
+            reactions = ["Got it, boss!", "Understood.", "Let's do this!", "Makes sense."]
+            worker = random.choice(list(self.DEV_TEAM.keys()))
+            worker_data = self.DEV_TEAM[worker]
+            await self.send_styled_message(
+                context, chat_id, worker, worker_data['title'],
+                random.choice(reactions),
+                topic="acknowledgment",
+                with_typing=True
+            )
+
+        # Clean up onboarding state
+        if user_id in self.onboarding_state:
+            del self.onboarding_state[user_id]
+        if user_id in self.pending_analysis:
+            del self.pending_analysis[user_id]
+
+        # Now show analysis results and offer next steps
+        await asyncio.sleep(1.0)
+        if analysis:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"*Codebase Analysis Complete*\n\n{analysis.get('summary', 'Analysis ready!')}",
+                parse_mode="Markdown"
+            )
+
+        # Offer to generate PRD
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📋 Generate Task List", callback_data="generate_prd")],
+            [InlineKeyboardButton("🎯 I'll provide tasks", callback_data="manual_prd")],
+        ])
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="What would you like to do next?",
+            reply_markup=keyboard
+        )
+
+    def _build_onboarding_context(self, state: Dict) -> str:
+        """Build a context string from onboarding answers for AI prompts.
+
+        Args:
+            state: Onboarding state dictionary
+
+        Returns:
+            Context string to include in AI prompts
+        """
+        answers = state.get("answers", {})
+        if not answers:
+            return ""
+
+        context_parts = []
+        answer_meanings = {
+            0: {
+                "new_feature": "building a new feature",
+                "bug_fix": "fixing bugs",
+                "improvement": "making improvements",
+                "explore": "exploring the code",
+            },
+            1: {
+                "speed": "prioritize performance",
+                "design": "prioritize UI/UX",
+                "reliability": "prioritize stability",
+                "all": "balance everything",
+            },
+            2: {
+                "urgent": "this is urgent/ASAP",
+                "normal": "normal timeline",
+                "relaxed": "no rush, take time",
+            },
+        }
+
+        for q_idx, answer in answers.items():
+            if q_idx in answer_meanings and answer in answer_meanings[q_idx]:
+                context_parts.append(answer_meanings[q_idx][answer])
+
+        return f"CEO context: {', '.join(context_parts)}" if context_parts else ""
+
+    def _build_onboarding_summary(self, state: Dict) -> str:
+        """Build Ralph's summary of what he learned from onboarding.
+
+        Args:
+            state: Onboarding state dictionary
+
+        Returns:
+            Ralph's summary in his voice
+        """
+        answers = state.get("answers", {})
+        project_name = state.get("project_name", "the projeck")
+
+        parts = [f"Okay team! Mr. Worms told me about {project_name}!"]
+
+        if 0 in answers:
+            task_type = {
+                "new_feature": "We're making something NEW and shiny!",
+                "bug_fix": "We're squashing bugs! Like real bugs but in the compooter!",
+                "improvement": "We're making things BETTER! Like adding more paste!",
+                "explore": "We're going on an adventure to find out what this does!",
+            }
+            parts.append(task_type.get(answers[0], "We're doing stuff!"))
+
+        if 1 in answers:
+            priority = {
+                "speed": "Mr. Worms says it needs to go FAST! Zoom zoom!",
+                "design": "It needs to look PRETTY! Like a butterfly!",
+                "reliability": "It needs to work GOOD! No breaking!",
+                "all": "Everything is importent! All the things!",
+            }
+            parts.append(priority.get(answers[1], "It needs to be good!"))
+
+        if 2 in answers:
+            urgency = {
+                "urgent": "And we need to do it QUICK! My tummy is nervous!",
+                "normal": "We have time but not TOO much time!",
+                "relaxed": "No rush! Like a turtle but one that finishes things!",
+            }
+            parts.append(urgency.get(answers[2], "Let's do our best!"))
+
+        return " ".join(parts)
 
     # ==================== CHARACTER FORMATTING ====================
 
@@ -1990,8 +2505,14 @@ _Drop a zip file to get started!_
         await update.message.reply_text(welcome, parse_mode="Markdown")
 
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle uploaded files (zip archives)."""
+        """Handle uploaded files (zip archives).
+
+        Implements interactive onboarding: analysis runs in background while
+        Ralph and the team create an entertaining loading experience with
+        discovery questions for the CEO.
+        """
         user_id = update.effective_user.id
+        chat_id = update.effective_chat.id
         doc = update.message.document
 
         # Check if it's a zip file
@@ -2002,7 +2523,7 @@ _Drop a zip file to get started!_
             )
             return
 
-        await update.message.reply_text("📦 Got it! Extracting and analyzing your code...")
+        await update.message.reply_text("📦 Got it! Let me get the team together...")
 
         try:
             # Download the file
@@ -2021,40 +2542,27 @@ _Drop a zip file to get started!_
                 zip_ref.extractall(project_dir)
             os.remove(zip_path)
 
-            await update.message.reply_text("🔍 Analyzing codebase structure...")
-
-            # Analyze the codebase
-            analysis = await self._analyze_codebase(project_dir)
-
-            # Store session
+            # Store initial session
             self.active_sessions[user_id] = {
                 "project_dir": project_dir,
                 "project_name": project_name,
-                "analysis": analysis,
                 "started": datetime.now(),
-                "status": "analyzing"
+                "status": "onboarding"
             }
 
-            # Send analysis
-            await update.message.reply_text(
-                f"*Codebase Analysis Complete*\n\n{analysis['summary']}",
-                parse_mode="Markdown"
-            )
+            # Start analysis in background (async task)
+            analysis_task = asyncio.create_task(self._analyze_codebase(project_dir))
+            self.pending_analysis[user_id] = analysis_task
 
-            # Offer to generate PRD
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("📋 Generate Task List", callback_data="generate_prd")],
-                [InlineKeyboardButton("🎯 I'll provide tasks", callback_data="manual_prd")],
-            ])
-
-            await update.message.reply_text(
-                "What would you like to do?",
-                reply_markup=keyboard
-            )
+            # Start interactive onboarding while analysis runs
+            await self.start_interactive_onboarding(context, chat_id, user_id, project_name)
 
         except Exception as e:
             logger.error(f"Error handling zip: {e}")
             await update.message.reply_text(f"Error processing file: {e}")
+            # Clean up on error
+            if user_id in self.pending_analysis:
+                del self.pending_analysis[user_id]
 
     async def _analyze_codebase(self, project_dir: str) -> Dict[str, Any]:
         """Analyze a codebase and return summary."""
@@ -2122,6 +2630,11 @@ _Drop a zip file to get started!_
         # Handle tap on shoulder (styled button messages)
         if data.startswith("tap_"):
             await self.handle_tap_on_shoulder(query, context)
+            return
+
+        # Handle onboarding questions (interactive loading experience)
+        if data.startswith("onboard_"):
+            await self.handle_onboarding_answer(query, context, user_id, data)
             return
 
         await query.answer()

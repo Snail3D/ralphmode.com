@@ -1,11 +1,11 @@
 #!/bin/bash
-# Ralph Wiggum - Long-running AI agent loop for Telerizer
+# Ralph Wiggum - Long-running AI agent loop for Ralph Mode
 # Based on https://github.com/snarktank/ralph
 # Usage: ./ralph.sh [max_iterations]
 
 set -e
 
-MAX_ITERATIONS=${1:-10}
+MAX_ITERATIONS=${1:-20}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PRD_FILE="$SCRIPT_DIR/prd.json"
@@ -14,7 +14,7 @@ ARCHIVE_DIR="$SCRIPT_DIR/archive"
 
 # Initialize progress file if it doesn't exist
 if [ ! -f "$PROGRESS_FILE" ]; then
-  echo "# Ralph Progress Log - Telerizer" > "$PROGRESS_FILE"
+  echo "# Ralph Progress Log - Ralph Mode Bot" > "$PROGRESS_FILE"
   echo "Started: $(date)" >> "$PROGRESS_FILE"
   echo "---" >> "$PROGRESS_FILE"
   echo "" >> "$PROGRESS_FILE"
@@ -23,8 +23,8 @@ fi
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║  Ralph Wiggum - Autonomous AI Agent Loop                  ║"
-echo "║  Project: Telerizer                                       ║"
-echo "║  Max Iterations: $MAX_ITERATIONS                                       ║"
+echo "║  Project: Ralph Mode Bot                                  ║"
+echo "║  Max Iterations: $MAX_ITERATIONS                                      ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 

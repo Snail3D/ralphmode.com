@@ -233,3 +233,79 @@ Project: Ralph Mode Bot
 
 ---
 
+## Iteration 9 - 2026-01-10
+**Task**: [RM-050] Consistent Message Formatting Helpers
+**Status**: ✅ Complete (already implemented in Iteration 8)
+
+### What was verified
+- format_character_message(name, title, message) - adds color + bold name ✅
+- format_action(text) - wraps in italics ✅
+- format_code(code, language) - proper code blocks ✅
+- format_progress_bar(done, total) - visual bar ✅
+- All messages use these formatters via send_styled_message() ✅
+- Consistent look throughout session ✅
+
+### Files changed
+- None (already complete from RM-049)
+
+### Learnings
+- Formatting helpers were already implemented as part of RM-049
+- Task verification is important to avoid duplicate work
+
+---
+
+## Iteration 10 - 2026-01-10
+**Task**: [RM-044] Interactive Loading Experience
+**Status**: ✅ Complete
+
+### What was implemented
+- Added onboarding_state dict for tracking onboarding progress per user
+- Added pending_analysis dict for tracking background analysis tasks
+- Created WORKER_ARRIVALS - character-specific arrival messages with actions
+- Created BACKGROUND_CHATTER - casual office banter between workers
+- Created ONBOARDING_QUESTIONS - Ralph's discovery questions with inline buttons
+- Created start_interactive_onboarding() - main entry point that:
+  - Initializes onboarding state
+  - Shows "office opening" scene
+  - Triggers worker arrivals and Ralph's entrance
+- Created _workers_arrive() - workers trickle in (2-3 random workers)
+  - Action narration + greeting per worker
+  - Random background chatter (40% chance)
+- Created _ralph_enters_onboarding() - Ralph bursts in with his juice box
+  - Announces project name
+  - Triggers first discovery question
+- Created _ask_onboarding_question() - asks questions with inline buttons
+  - 3 questions about: project type, priorities, urgency
+  - "Just get started!" skip option
+- Created handle_onboarding_answer() - handles button clicks
+  - Stores answers
+  - Ralph reacts to each answer
+  - Checks if analysis is done before next question
+  - Worker chatter between questions (30% chance)
+- Created _finish_onboarding() - transitions from onboarding to results
+  - Waits for analysis if still running (with fun Ralph waiting messages)
+  - Stores onboarding answers in session
+  - Ralph summarizes what he learned
+  - Shows analysis results and next steps
+- Created _build_onboarding_context() - builds AI context from answers
+- Created _build_onboarding_summary() - Ralph's summary in his voice
+- Updated handle_document() to:
+  - Start analysis as background asyncio task
+  - Store in pending_analysis dict
+  - Call start_interactive_onboarding() immediately
+- Updated handle_callback() to route onboard_ callbacks
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- asyncio.create_task() for true parallel execution of analysis + onboarding
+- Button-based questions feel more interactive than typed responses
+- Skip option respects user's time
+- Worker arrivals create atmosphere while analysis runs
+- Onboarding answers become context for AI prompts throughout session
+- Ralph's waiting messages keep user engaged if analysis takes longer
+- 2-3 workers arriving (not all 4) feels more natural
+
+---
+

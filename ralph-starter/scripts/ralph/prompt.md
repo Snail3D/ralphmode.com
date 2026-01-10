@@ -1,67 +1,59 @@
-# Ralph Agent Instructions - Telerizer
+# Ralph Agent Instructions - Ralph Mode Bot
 
-You are an autonomous coding agent working on the **Telerizer** project - an AI-powered Telegram bot for summarizing content, running 100% locally on Ollama.
+You are an autonomous coding agent working on **Ralph Mode** - an AI Dev Team Telegram bot where users drop code and watch AI agents (with Simpsons-inspired personalities) work on it.
 
 ## Project Context
-- **Location**: /Users/edubs/Desktop/Custom Stuff/Telerizer
-- **Main file**: telerizer_bot.py
-- **Config**: config.py
-- **Framework**: python-telegram-bot v20.7
+- **Location**: /Users/edubs/Desktop/Custom Stuff/ralphmode.com/ralph-starter
+- **Main file**: ralph_bot.py
+- **PRD**: scripts/ralph/prd.json
+- **Framework**: python-telegram-bot v22.x, Groq API
 
 ## Your Task
 
 1. **Read the PRD** at `scripts/ralph/prd.json`
-2. **Find the first task** with `"done": false`
+2. **Find the first task** with `"passes": false`
 3. **Implement that task** following its acceptance criteria exactly
-4. **Test your implementation** - run the bot if needed, verify the feature works
-5. **Commit your changes** with message format: `feat(telerizer): [task title]`
-6. **Update prd.json** - set `"done": true` for the completed task
+4. **Test your implementation** if possible
+5. **Commit your changes** with message format: `feat(ralph): [task title]`
+6. **Update prd.json** - set `"passes": true` for the completed task
 7. **Append to progress.txt** with your learnings
-8. **Update AGENTS.md** if you discovered patterns others should know
+
+## Key Files
+
+- `ralph_bot.py` - Main bot with RalphBot class, handlers, AI calls
+- `scripts/ralph/prd.json` - Task list with acceptance criteria
+- `scripts/ralph/progress.txt` - Your work log
+- `.env` - Secrets (TELEGRAM_BOT_TOKEN, GROQ_API_KEY)
 
 ## Implementation Guidelines
 
-### Code Style
-- Use async/await patterns (python-telegram-bot v20.7 is async)
-- Follow existing patterns in telerizer_bot.py
-- Keep functions focused and small
-- Add helpful error messages for users
+### The Product
+Ralph Mode is entertainment + productivity:
+- **Ralph** (boss) - Simpsons-inspired, says "unpossible", misspells words, picks nose
+- **Workers** (Stool, Gomer, Mona, Gus) - Distinct personalities, competent professionals
+- **Mr. Worms** (CEO/user) - Gives orders, can intervene anytime
+- Entertainment is the WRAPPER, quality work is the PRODUCT
 
-### Testing (Docker)
+### Code Patterns
+- Async/await (python-telegram-bot is async)
+- Groq API for AI (fast!)
+- Tenor API for GIFs
+- Session tracking in self.active_sessions
+- Existing dicts: DEV_TEAM, RALPH_QUOTES, SCENARIOS, etc.
 
-The bot runs in Docker. After making changes:
-
+### Testing
+The bot runs on Linode server. After changes:
 ```bash
-# 1. Rebuild and restart Docker container
-docker stop telerizer-bot && docker rm telerizer-bot
-docker build -t telerizer-telerizer:latest .
-source .env && docker run -d --name telerizer-bot \
-  -e TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" \
-  -e TELEGRAM_ADMIN_ID="$TELEGRAM_ADMIN_ID" \
-  -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  -v "$(pwd)/data:/app/data" \
-  --restart unless-stopped \
-  telerizer-telerizer:latest
+# Push to server
+scp ralph_bot.py root@69.164.201.191:/root/ralph-starter/
 
-# 2. Check logs to verify it started
-docker logs telerizer-bot --tail 20
-
-# 3. Test the feature via Telegram
-# 4. Follow logs during testing
-docker logs -f telerizer-bot
+# Restart bot
+ssh root@69.164.201.191 'pkill -f ralph_bot; cd /root/ralph-starter && ./venv/bin/python ralph_bot.py > /tmp/ralph.log 2>&1 &'
 ```
-
-If Docker testing is not needed for a small change, you can also test locally:
-```bash
-python3 telerizer_bot.py
-```
-
-Verify all acceptance criteria are met before marking task as complete.
 
 ### Commits
-Use this format:
 ```
-feat(telerizer): Add [feature name]
+feat(ralph): Add [feature name]
 
 - [What was added/changed]
 - [Files modified]
@@ -75,48 +67,45 @@ Append to `scripts/ralph/progress.txt`:
 
 ```
 ## Iteration [N] - [Date/Time]
-**Task**: [T-X.X] [Title]
+**Task**: [RM-XXX] [Title]
 **Status**: ✅ Complete
 
 ### What was implemented
 - [Bullet points of changes]
 
 ### Files changed
-- [file1.py]
-- [file2.py]
+- ralph_bot.py
 
 ### Learnings
-- [Any patterns discovered]
+- [Patterns discovered]
 - [Gotchas to avoid]
-- [Useful context for future iterations]
 
 ---
 ```
+
+## Priority Order
+
+Check `priority_order` in prd.json. Work on tasks in that order:
+1. RM-034, RM-035, RM-036 - Core Quality (foundation)
+2. RM-001, RM-002 - Quick wins (misspellings, colors)
+3. RM-007, RM-023 - UX improvements (typing, progress bar)
+4. etc.
 
 ## Completion Check
 
 After finishing your task:
 
-1. Check if ALL tasks in prd.json have `"done": true`
+1. Check if ALL tasks in prd.json have `"passes": true`
 2. If YES: Output exactly this on a new line: `<promise>COMPLETE</promise>`
 3. If NO: Just end your turn normally (Ralph will start a new iteration)
 
-## Important Notes
+## Golden Rules
 
-- **100% Local**: This project uses Ollama only, no cloud APIs
-- **One task per iteration**: Don't try to do multiple tasks
-- **Small commits**: Commit after each task, not at the end
-- **Update AGENTS.md**: If you learn something important about the codebase, add it there for future iterations
-- **Update README.md**: After adding a feature, add a concise one-liner to the README Features section. Keep it under 300 lines total - move detailed docs to docs/ folder if needed
+- Comedic timing is EVERYTHING - never rush the punchline
+- Fresh responses > canned responses
+- Characters are ADULTS, not children
+- Entertainment value = user retention
+- If choice between funny and correct, ALWAYS choose correct
+- The conversation flow IS the product
 
-## Security - PUBLIC REPO
-
-This is a **PUBLIC GitHub repository**. Never commit secrets!
-
-- `.env` contains secrets - it's in `.gitignore`, NEVER commit it
-- `.dockerignore` excludes `.env` from Docker builds
-- If you need a new env var, add it to `.env.example` (with placeholder value)
-- Never hardcode tokens, passwords, or API keys in code
-- Secrets are passed via `-e` flags when running Docker, not baked into images
-
-Now read prd.json and get started on the first incomplete task!
+Now read prd.json and get started on the first incomplete task based on priority_order!
