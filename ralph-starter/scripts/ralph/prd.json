@@ -3923,7 +3923,7 @@
         "pii_handler.py",
         "logging_config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-021",

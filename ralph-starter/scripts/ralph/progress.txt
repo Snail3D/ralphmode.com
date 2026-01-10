@@ -5656,3 +5656,68 @@ Linode (monthly):
 
 ---
 
+
+
+## Iteration [Latest] - 2026-01-10
+**Task**: [SEC-020] PII Handling
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive `pii_handler.py` module with:
+  - Fernet-based encryption/decryption for PII at rest
+  - PIIMasker class for masking PII in logs (strings, telegram_id, dicts, text)
+  - PIIAccessControl with audit logging for PII access
+  - PIIRetentionPolicy for data retention enforcement
+  - PIIField constants defining all PII fields in the system
+- Updated `security_logging.py`:
+  - Imported PIIMasker for log safety
+  - Modified SecurityEvent.to_dict() to mask username, user_id, and details dict
+  - Added mask_pii parameter (default: True) for safe logging
+- Updated `database.py`:
+  - Imported PII encryption functions
+  - Added encryption helper methods to User model (set_encrypted_first_name, etc.)
+  - Masked PII in User.__repr__() for safe logging
+- Updated `ralph_bot.py`:
+  - Imported PIIMasker and mask_for_logs utilities
+  - Masked telegram_id in error logs
+- Created `PII_POLICY.md`:
+  - Complete documentation of all PII fields
+  - Security measures for each field
+  - Testing procedures and compliance checklist
+  - Production deployment guide
+
+### Files changed
+- pii_handler.py (new file, 520+ lines)
+- security_logging.py (added import, updated SecurityEvent.to_dict/to_json)
+- database.py (added import, User model helpers and masked repr)
+- ralph_bot.py (added import, masked telegram_id in logs)
+- PII_POLICY.md (new file, comprehensive documentation)
+- scripts/ralph/prd.json (marked SEC-020 as passes: true)
+
+### Learnings
+- **PII fields in system**: telegram_id, username, first_name, last_name, project_name
+- **Encryption at rest**: Fernet symmetric encryption (cryptography library)
+- **Key management**: .pii_key file (mode 0600) or PII_ENCRYPTION_KEY env var
+- **Masking patterns**:
+  - Strings: first 2 chars + asterisks (e.g., "JohnDoe" → "Jo*****")
+  - Telegram ID: first 2 + last 2 digits (e.g., "123456789" → "12*****89")
+  - Emails: first 2 chars + domain (e.g., "john@example.com" → "jo***@example.com")
+- **Access control**: @require_pii_permission decorator logs all PII access
+- **Retention policy**: 365 days inactive users, 30 days deleted users, 90 days sessions
+- **All tests passing**: python3 pii_handler.py runs 6 test suites, all ✅
+
+### Code patterns
+- PII encryption: encrypt_pii(value) / decrypt_pii(value) convenience functions
+- PII masking: mask_for_logs(value, field_name) for safe logging
+- Access audit: PIIAccessControl.log_access(field, context, user_id) tracks all access
+- Fallback safety: try/except ImportError with stub functions when pii_handler unavailable
+- Graceful degradation: PII_MASKING_AVAILABLE flag, warning if module missing
+
+### Security best practices
+- **Defense in depth**: Encryption + masking + access control + retention policy
+- **Fail-safe defaults**: Masking enabled by default, explicit opt-out required
+- **Minimal collection**: Only collect PII that's essential for service
+- **Encrypted transmission**: HTTPS only (enforced by telegram/groq libraries)
+- **Production todo**: Use key management service (AWS KMS, Azure Key Vault)
+
+---
