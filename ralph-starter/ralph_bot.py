@@ -49,6 +49,27 @@ except ImportError:
     def sanitize_for_telegram(text): return text
     def get_sanitizer(): return None
 
+# SEC-029: Import LLM security for prompt injection prevention
+try:
+    from llm_security import (
+        validate_llm_input,
+        validate_llm_output,
+        check_rate_limit,
+        record_api_call,
+        get_fallback_response,
+        get_security_stats
+    )
+    LLM_SECURITY_AVAILABLE = True
+except ImportError:
+    LLM_SECURITY_AVAILABLE = False
+    def validate_llm_input(text, context="unknown"): return (True, None, [])
+    def validate_llm_output(text): return (text, [])
+    def check_rate_limit(): return (True, None)
+    def record_api_call(model, input_tokens=0, output_tokens=0): pass
+    def get_fallback_response(context="general"): return "Service unavailable"
+    def get_security_stats(): return {}
+    logging.warning("SEC-029: LLM security module not available - protection disabled")
+
 # SEC-019: Import GDPR compliance handlers
 try:
     from user_data_controller import register_gdpr_handlers
@@ -2819,16 +2840,41 @@ If asked about something you didn't observe, honestly say you don't know."""},
     # ==================== AI CALLS ====================
 
     def call_groq(self, model: str, messages: list, max_tokens: int = 500) -> str:
-        """Call Groq API with BC-001 sanitization."""
+        """Call Groq API with BC-001 sanitization and SEC-029 security."""
         try:
-            # BC-001: Sanitize all messages BEFORE Groq sees them
+            # SEC-029: Check rate limits BEFORE making API call
+            allowed, rate_reason = check_rate_limit()
+            if not allowed:
+                logger.warning(f"SEC-029: Rate limit exceeded - {rate_reason}")
+                return get_fallback_response("general")
+
+            # SEC-029: Validate input for prompt injection
             sanitized_messages = []
             for msg in messages:
                 sanitized_msg = msg.copy()
                 if 'content' in sanitized_msg:
-                    sanitized_msg['content'] = sanitize_for_groq(sanitized_msg['content'])
+                    content = sanitized_msg['content']
+
+                    # SEC-029: Check for prompt injection
+                    is_safe, injection_reason, warnings = validate_llm_input(content, f"groq_{msg.get('role', 'unknown')}")
+                    if not is_safe:
+                        logger.error(f"SEC-029: Prompt injection blocked - {injection_reason}")
+                        return get_fallback_response("general")
+
+                    # Log warnings but continue
+                    if warnings:
+                        for warning in warnings:
+                            logger.warning(f"SEC-029: {warning}")
+
+                    # BC-001: Sanitize for secrets after validation
+                    sanitized_msg['content'] = sanitize_for_groq(content)
                 sanitized_messages.append(sanitized_msg)
 
+            # Estimate input tokens (rough approximation: 1 token ≈ 4 chars)
+            input_text = " ".join([m.get('content', '') for m in sanitized_messages])
+            estimated_input_tokens = len(input_text) // 4
+
+            # Make API call
             response = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={
@@ -2844,13 +2890,37 @@ If asked about something you didn't observe, honestly say you don't know."""},
                 timeout=60
             )
             result = response.json()
+
+            # SEC-029: Record API call for rate limiting and cost tracking
+            output_tokens = result.get("usage", {}).get("completion_tokens", max_tokens // 2)
+            actual_input_tokens = result.get("usage", {}).get("prompt_tokens", estimated_input_tokens)
+            record_api_call(model, actual_input_tokens, output_tokens)
+
+            # SEC-029: Check cost alerts
+            cost_warning = get_security_stats().get('rate_limiting', {}).get('current_hour_cost', 0)
+            if cost_warning > 8.0:  # Alert at $8 (80% of default $10 limit)
+                logger.warning(f"SEC-029: High API cost this hour: ${cost_warning:.2f}")
+
             response_text = result.get("choices", [{}])[0].get("message", {}).get("content", "...")
 
+            # SEC-029: Validate output
+            validated_text, output_warnings = validate_llm_output(response_text)
+            if output_warnings:
+                for warning in output_warnings:
+                    logger.warning(f"SEC-029: Output validation - {warning}")
+
             # BC-002: Sanitize output too (belt and suspenders)
-            return sanitize_for_telegram(response_text)
+            return sanitize_for_telegram(validated_text)
+
+        except requests.exceptions.Timeout:
+            logger.error("SEC-029: Groq API timeout")
+            return get_fallback_response("general")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"SEC-029: Groq API error: {e}")
+            return get_fallback_response("general")
         except Exception as e:
-            logger.error(f"Groq error: {e}")
-            return f"[AI Error: {e}]"
+            logger.error(f"SEC-029: Unexpected error in call_groq: {e}")
+            return get_fallback_response("general")
 
     def call_boss(self, message: str, apply_misspellings: bool = True) -> str:
         """Get response from Ralph Wiggum, the boss.
