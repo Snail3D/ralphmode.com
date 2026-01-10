@@ -2755,3 +2755,40 @@ SEC-021 - Payment Security (PCI-DSS via Stripe)
 Check priority_order for next incomplete task
 
 ---
+
+## Iteration (Ralph Agent) - 2026-01-10
+**Task**: SEC-021 Payment Security (PCI-DSS)
+**Status**: ✅ Complete (Re-implementation)
+
+### What was implemented
+- Complete PCI-DSS compliant payment handling via Stripe
+- StripeSecrets class for secure API key management
+- StripePaymentHandler for payment intents, customers, subscriptions
+- Webhook signature verification (HMAC, replay protection)
+- HTTPSEnforcer for secure payment pages
+- PaymentLogger with sanitized logging (no card details)
+- PCIDSSCompliance verification system
+
+### Files changed
+- payment_security.py (new): Complete payment security implementation
+- test_payment_security.py (new): 8/8 tests passing
+
+### Learnings
+- SAQ-A (simplest PCI-DSS questionnaire) applies when using Stripe
+- NEVER store card data - use Stripe Customer/PaymentMethod IDs only
+- Stripe.js handles client-side tokenization (no card data touches server)
+- Webhook signature verification prevents replay and forgery attacks
+- Payment logs must NEVER contain card details (sanitize before logging)
+- HTTPS is mandatory for all payment pages (Stripe enforces in production)
+- Stripe SDK installation: pip install stripe
+
+### Acceptance Criteria Met
+✅ All payment processing via Stripe
+✅ No card data stored on our servers
+✅ Stripe.js for client-side tokenization
+✅ Webhook signatures verified
+✅ HTTPS required for all payment pages
+✅ Stripe API keys in secrets manager
+✅ Payment logs don't contain card details
+
+---
