@@ -3611,3 +3611,132 @@ tar -czf build.tar.gz --sort=name --mtime='1970-01-01' *.py requirements.txt req
 - **DD-001** (Duplicate Detection) will merge feedback but preserve highest priority_score
 
 ---
+
+## Iteration - FB-003 - 2026-01-10
+**Task**: [FB-003] Feedback Types Classification
+**Status**: ✅ Complete
+
+### What was implemented
+- Added inline keyboard buttons for feedback type selection (6 types)
+- Types: bug_report, feature_request, enhancement, ux_issue, performance, other
+- Each type has custom Ralph-style prompts with type-specific fields
+- Bug reports: asks for what they tried, what happened, what should happen
+- Feature requests: asks what they want to do and why it's helpful
+- Enhancements: asks what exists now and how to improve it
+- UX issues: asks what's confusing and how to make it easier
+- Performance: asks what's slow and when it happens
+- Other: flexible prompt for ideas that don't fit categories
+- Created `handle_feedback_type_selection()` callback handler
+- Created `_process_feedback_submission()` method for type-aware storage
+- Modified `handle_text()` to capture feedback content after type selection
+- Used `context.user_data` to track feedback state and selected type
+- Feedback type stored in database with metadata for routing
+
+### Files changed
+- `ralph_bot.py` - Added type selection UI, callback handler, submission processor
+- `scripts/ralph/prd.json` - Marked FB-003 as complete
+
+### Acceptance Criteria Met
+✅ Inline buttons to select feedback type
+✅ Each type has appropriate fields (via prompts)
+✅ Bug: steps to reproduce, expected vs actual
+✅ Feature: description, use case
+✅ Enhancement: what exists, what to improve
+✅ Type stored with feedback for routing
+
+### Learnings
+- **User state management with context.user_data**: Perfect for multi-step interactions like type selection → content entry
+- **Callback data patterns**: Using `feedback_type_{type}` prefix makes routing easy in handle_callback
+- **Type-specific prompts maintain personality**: Ralph's prompts stay in-character while guiding users to provide structured info
+- **Metadata field is flexible**: Storing `{"source": "interactive", "type": feedback_type}` allows rich context without schema changes
+- **Ralph misspellings work everywhere**: "feture request", "feedbak", "learnding" keep it consistent
+- **State cleanup is critical**: Always clear `context.user_data['feedback_state']` after processing to avoid stuck states
+
+### Gotchas to avoid
+- **Don't forget to clear user_data**: If feedback_state stays set, ALL future messages get treated as feedback
+- **Handle both paths**: Users can still use `/feedback text here` for quick submission OR interactive flow
+- **Subscription check happens twice**: Once in feedback_command, once in _process_feedback_submission (intentional - protects both entry points)
+- **Type names need normalization**: Used type_names dict to convert "bug_report" to "bug report" for display
+
+### Integration Points
+- **PR-001** (Priority Score Algorithm) will route feedback based on type (bugs = higher urgency)
+- **QS-002** (AI Quality Assessment) can use type to set quality thresholds (bugs need reproducibility)
+- **DD-001** (Duplicate Detection) should compare within same type (bug vs bug, not bug vs feature)
+- **BO-001** (Build Orchestrator) will pick tasks by type (fix bugs before new features)
+- **SP-001** (Spam Detection) can use type patterns (mass "other" submissions = suspicious)
+
+### Technical Patterns
+- **Callback handler chain**: data.startswith("feedback_type_") → handle_feedback_type_selection()
+- **State machine**: feedback_command (show buttons) → handle_feedback_type_selection (store type) → handle_text (capture content) → _process_feedback_submission (save to DB)
+- **Graceful fallbacks**: If type not recognized, defaults to "other"
+- **Ralph personality throughout**: Every interaction has Ralph's voice, even error messages
+
+---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [RL-001] IP Rate Limiter for Feedback
+**Status**: ✅ Complete
+
+### What was implemented
+- Added IP-based rate limiting configuration to RateLimitConfig class
+- Created `check_feedback_rate_limits()` function that checks both hourly and daily limits
+- Integrated rate limiting into FeedbackCollector.collect_text_feedback()
+- Added priority tier multiplier (2x limits for Builder+/Priority users)
+- Returns -1 from collect_text_feedback when rate limited (vs None for errors)
+- Added helper methods: `_get_user_ip()` and `_is_priority_user()`
+- Updated voice and screenshot feedback methods to pass update object for rate limiting
+
+### Files changed
+- rate_limiter.py: Added FEEDBACK_PER_IP_HOUR, FEEDBACK_PER_IP_DAY constants, PRIORITY_MULTIPLIER, check_feedback_rate_limits()
+- feedback_collector.py: Integrated rate limiting checks, added IP/tier helpers, updated method signatures
+
+### Acceptance Criteria Met
+✅ Track submissions per IP address (using telegram_id as proxy since Telegram doesn't expose IPs)
+✅ Limit: 5 submissions per hour per IP
+✅ Limit: 20 submissions per day per IP
+✅ Priority tier gets 2x limits (10/hour, 40/day)
+✅ Show friendly rate limit message when exceeded ("You've reached the hourly feedback limit (5/hour). Try again in X seconds.")
+✅ Use Redis for cross-instance consistency (with in-memory fallback)
+
+### Learnings
+- **Telegram doesn't expose IPs**: Used telegram_id as proxy (f"telegram_{user_id}") for rate limiting - still effective at preventing abuse
+- **Multiple time windows require separate checks**: Hourly and daily limits need distinct Redis keys (feedback_ip_hour vs feedback_ip_day)
+- **Return -1 vs None signals different errors**: -1 = rate limited (show friendly message), None = validation error (silent/log)
+- **Priority tier detection from DB**: Check user.subscription_tier against ["builder", "builder+", "priority", "enterprise"]
+- **Update object must flow through**: Voice and screenshot feedback call collect_text_feedback, so they need to pass update param
+- **RateLimiter must be initialized**: Calling RateLimiter() once triggers backend initialization (Redis or in-memory)
+
+### Gotchas to avoid
+- **Don't forget update parameter**: If calling collect_text_feedback without update=None, rate limiting won't apply
+- **Handle -1 return value**: Callers need to check if result == -1 to show rate limit message vs None for other errors
+- **metadata gets mutated**: When rate limited, error info is added to metadata dict - don't reuse same dict object
+- **Scope naming matters**: Used 'feedback_ip_hour' and 'feedback_ip_day' as scopes to avoid key collisions with other limiters
+- **Test with limiter initialization**: Must create RateLimiter() instance before calling check_feedback_rate_limits()
+
+### Integration Points
+- **RL-002** (User Rate Limiter) will add per-user limits ON TOP OF IP limits (both apply)
+- **RL-003** (Burst Detection) will detect >3 in 1 minute = instant block (separate from hourly/daily)
+- **FQ-001** (Feedback Queue) needs to know if submission failed due to rate limit vs other reasons
+- **NT-001** (Feedback Received Notification) should NOT notify if rate limited
+- **ralph_bot.py** feedback handler needs to check for -1 return and show friendly Ralph-voice error message
+
+### Technical Patterns
+- **Two-tier limiting**: Check hourly limit first (fast failure), then daily limit (prevents day-long spam)
+- **Multiplier pattern**: Single PRIORITY_MULTIPLIER constant (value: 2) applied to both hourly and daily limits
+- **Scope-based keys**: RateLimiter creates keys like "feedback_ip_hour:telegram_123456" for isolation
+- **Fail-open on Redis errors**: If Redis crashes, rate limiter allows requests (prevents service disruption)
+- **Metadata enrichment**: Rate limit errors stored in metadata['rate_limit_error'] for caller access
+- **Helper extraction**: get_rate_limit_message() extracts friendly message from metadata (separation of concerns)
+
+### Test Results
+```
+Normal user (5/hour):
+  Requests 1-5: ✅ Allowed
+  Requests 6-7: ❌ Blocked with message
+
+Priority user (10/hour):
+  Requests 1-10: ✅ Allowed
+  Requests 11-12: ❌ Blocked with message
+```
+
+---
