@@ -26,6 +26,14 @@ from telegram.ext import ContextTypes
 from database import get_db, Feedback, User, InputValidator
 from rate_limiter import check_feedback_rate_limits, check_user_rate_limits, check_burst_detection
 
+# SP-001: Import spam detector
+try:
+    from feedback_screener import screen_feedback
+    SPAM_DETECTOR_AVAILABLE = True
+except ImportError:
+    SPAM_DETECTOR_AVAILABLE = False
+    logging.warning("SP-001: Spam detector not available - spam filtering disabled")
+
 # QS-003: Import user quality tracker for priority boost
 try:
     from user_quality_tracker import get_priority_boost
@@ -117,6 +125,7 @@ class FeedbackCollector:
         Returns:
             Feedback ID if successful, None otherwise
             Returns -1 if rate limited (use this to show friendly message)
+            Returns -2 if spam detected (use metadata['spam_rejection_reason'] for details)
         """
         # Validate input
         validated_telegram_id = InputValidator.validate_telegram_id(telegram_id)
@@ -131,6 +140,12 @@ class FeedbackCollector:
         if feedback_type not in ["bug", "feature", "improvement", "praise", "general"]:
             feedback_type = "general"
 
+        # SP-001: Screen for spam BEFORE creating feedback entry
+        # This prevents spam from being stored in the database
+        if SPAM_DETECTOR_AVAILABLE:
+            # We need user.id for spam detection, so we'll do this check after user lookup
+            pass
+
         try:
             with get_db() as db:
                 # Get or create user
@@ -143,6 +158,20 @@ class FeedbackCollector:
                     )
                     db.add(user)
                     db.flush()
+
+                # SP-001: Screen for spam after user lookup
+                # Returns -2 if spam detected (different from -1 for rate limit)
+                if SPAM_DETECTOR_AVAILABLE:
+                    is_spam, spam_reason = screen_feedback(content, user.id)
+                    if is_spam:
+                        logger.warning(
+                            f"Spam detected from user {telegram_id}: {spam_reason}"
+                        )
+                        # Store spam reason in metadata for caller
+                        if metadata is None:
+                            metadata = {}
+                        metadata['spam_rejection_reason'] = spam_reason
+                        return -2  # Signal spam detected
 
                 # RL-003: Check burst detection FIRST (highest priority)
                 allowed_burst, error_burst = check_burst_detection(
@@ -379,6 +408,22 @@ class FeedbackCollector:
 
         error = metadata['rate_limit_error']
         return error.get('message', 'Rate limit exceeded. Please try again later.')
+
+    def get_spam_rejection_message(self, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """
+        SP-001: Get friendly spam rejection message from metadata.
+
+        Args:
+            metadata: Metadata dict that may contain spam_rejection_reason
+
+        Returns:
+            Friendly error message or None
+        """
+        if not metadata or 'spam_rejection_reason' not in metadata:
+            return None
+
+        reason = metadata['spam_rejection_reason']
+        return f"Feedback rejected: {reason}"
 
     def classify_feedback_type(self, content: str) -> str:
         """

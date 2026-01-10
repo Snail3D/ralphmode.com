@@ -4481,16 +4481,46 @@ _Grab some popcorn..._
         collector = get_feedback_collector(self.groq_api_key)
 
         # FB-003: Store feedback with selected type
+        metadata = {"source": "interactive", "type": feedback_type}
         feedback_id = await collector.collect_text_feedback(
             user_id=user_id,
             telegram_id=telegram_id,
             content=content,
             feedback_type=feedback_type,
-            metadata={"source": "interactive", "type": feedback_type},
-            weight=feedback_weight
+            metadata=metadata,
+            weight=feedback_weight,
+            update=update  # For rate limiting
         )
 
-        if feedback_id:
+        # SP-001: Handle spam rejection (-2)
+        if feedback_id == -2:
+            spam_reason = collector.get_spam_rejection_message(metadata)
+            error_response = self.ralph_misspell(
+                f"Hmm... my brain is confused! That doesn't look like real feedbak! "
+                f"Can you try again with something about Ralph Mode? I promise I'm paying attention!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_response,
+                topic="spam rejection",
+                with_typing=True
+            )
+            return
+
+        # Handle rate limiting (-1)
+        if feedback_id == -1:
+            rate_limit_msg = collector.get_rate_limit_message(metadata)
+            error_response = self.ralph_misspell(
+                f"Whoa! Slow down! My hand is tired from writing! "
+                f"You're giving feedbak too fast! Take a little break and try again!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, error_response,
+                topic="rate limit exceeded",
+                with_typing=True
+            )
+            return
+
+        if feedback_id and feedback_id > 0:
             # Success! Ralph confirms receipt in-character with type-specific response
             type_names = {
                 "bug_report": "bug report",

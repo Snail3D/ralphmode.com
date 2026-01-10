@@ -286,6 +286,8 @@ class Feedback(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     ip_hash = Column(String(64), nullable=True)  # Hashed IP for rate limiting
     is_duplicate_of = Column(Integer, ForeignKey("feedback.id"), nullable=True)
+    rejection_reason = Column(Text, nullable=True)  # SP-001: Reason for spam/duplicate rejection
+    rejected_at = Column(DateTime, nullable=True)  # SP-001: When feedback was rejected
 
     # Relationships
     user = relationship("User", back_populates="feedback")
