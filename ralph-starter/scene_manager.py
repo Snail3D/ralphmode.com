@@ -210,12 +210,13 @@ class SceneManager:
         ]
     }
 
-    def generate_opening_scene(self, project_name: str = None) -> Dict[str, Any]:
+    def generate_opening_scene(self, project_name: str = None, boss_tone: str = None) -> Dict[str, Any]:
         """
         Generate a unique opening scene for a session.
 
         Args:
             project_name: Optional project name to reference
+            boss_tone: TL-001: Optional tone from voice analysis (angry, happy, urgent, etc.)
 
         Returns:
             Dictionary with scene elements:
@@ -225,8 +226,25 @@ class SceneManager:
             - mood: Overall mood/atmosphere
             - worker_order: List of workers in arrival order
         """
-        # Pick weather
-        weather_key = random.choice(list(self.WEATHER.keys()))
+        # TL-001: Pick weather based on boss tone if provided
+        if boss_tone:
+            # Map tone to weather/mood
+            tone_to_weather = {
+                'angry': 'stormy',
+                'frustrated': 'stormy',
+                'urgent': 'stormy',
+                'happy': 'sunny',
+                'excited': 'sunny',
+                'pleased': 'sunny',
+                'calm': 'overcast',
+                'neutral': 'overcast',
+                'questioning': 'foggy',
+                'concerned': 'rainy'
+            }
+            weather_key = tone_to_weather.get(boss_tone.lower(), random.choice(list(self.WEATHER.keys())))
+        else:
+            weather_key = random.choice(list(self.WEATHER.keys()))
+
         weather_info = self.WEATHER[weather_key]
         weather_desc = random.choice(weather_info["descriptions"])
         mood = weather_info["mood"]
@@ -337,9 +355,9 @@ class SceneManager:
 _scene_manager = SceneManager()
 
 
-def generate_opening_scene(project_name: str = None) -> Dict[str, Any]:
+def generate_opening_scene(project_name: str = None, boss_tone: str = None) -> Dict[str, Any]:
     """Generate an opening scene (convenience function)."""
-    return _scene_manager.generate_opening_scene(project_name)
+    return _scene_manager.generate_opening_scene(project_name, boss_tone)
 
 
 def get_worker_arrival(worker_name: str) -> str:

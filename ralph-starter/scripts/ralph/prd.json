@@ -2475,7 +2475,7 @@
         "tone_analyzer.py",
         "voice_handler.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TL-002",

@@ -1203,10 +1203,15 @@ class RalphBot:
             project_name: Name of the uploaded project
         """
         # SS-001: Generate opening scene
+        # TL-001: Include boss tone if available from voice message
+        boss_tone = None
+        if hasattr(context, 'user_data') and 'voice_tone' in context.user_data:
+            boss_tone = context.user_data['voice_tone'].get('primary_tone')
+
         scene = None
         worker_order = None
         if SCENE_MANAGER_AVAILABLE:
-            scene = generate_opening_scene(project_name)
+            scene = generate_opening_scene(project_name, boss_tone=boss_tone)
             worker_order = scene["worker_order"]
 
         # Initialize onboarding state
@@ -3638,18 +3643,19 @@ If asked about something you didn't observe, honestly say you don't know."""},
             logger.error(f"SEC-029: Unexpected error in call_groq: {e}")
             return get_fallback_response("general")
 
-    def call_boss(self, message: str, apply_misspellings: bool = True) -> str:
+    def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "") -> str:
         """Get response from Ralph Wiggum, the boss.
 
         Args:
             message: The prompt/situation for Ralph to respond to
             apply_misspellings: Whether to apply Ralph's dyslexia misspellings (default True)
+            tone_context: TL-001: Optional tone context from voice analysis
 
         Returns:
             Ralph's response, with misspellings applied if enabled
         """
-        messages = [
-            {"role": "system", "content": """You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER and you're SO proud.
+        # TL-001: Build system message with tone awareness
+        system_content = """You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER and you're SO proud.
 Your name is Ralph. Sometimes people call you "Ralphie" by accident.
 You take your job VERY seriously even though you don't understand technical stuff.
 You ask simple questions with complete confidence. Sometimes accidentally brilliant, sometimes about leprechauns.
@@ -3657,7 +3663,14 @@ You love your team! You want to make the CEO proud of you.
 You might mention your cat, your daddy, paste, or that you're a manager now.
 Classic Ralph energy - innocent, cheerful, confidently confused.
 Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
-1-2 sentences max. Stay in character as Ralph."""},
+1-2 sentences max. Stay in character as Ralph."""
+
+        # TL-001: Add tone context if available
+        if tone_context:
+            system_content += f"\n\n{tone_context}"
+
+        messages = [
+            {"role": "system", "content": system_content},
             {"role": "user", "content": message}
         ]
         response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
@@ -4548,11 +4561,18 @@ _The team nods in unison._
 
         await asyncio.sleep(2)
 
+        # TL-001: Build tone context if available from voice message
+        tone_context = ""
+        if hasattr(context, 'user_data') and 'voice_tone' in context.user_data:
+            tone_data = context.user_data['voice_tone']
+            tone_context = f"Context: The CEO sounds {tone_data['primary_tone']} ({tone_data['intensity']} intensity). React appropriately to their tone."
+
         # Boss reviews the project
         boss_response = self.call_boss(
             f"You just received a new project called '{session.get('project_name', 'Project')}'. "
             f"The team analyzed it and found these tasks:\n{session.get('prd', {}).get('summary', 'No tasks yet')}\n\n"
-            "What do you think? Ask the team about it."
+            "What do you think? Ask the team about it.",
+            tone_context=tone_context
         )
 
         await self.send_styled_message(
@@ -4575,9 +4595,16 @@ _The team nods in unison._
         # Show typing while AI generates response
         await self.send_typing(context, chat_id, 1.5)
 
+        # TL-001: Include voice tone in context if available
+        context_info = f"Project: {session.get('project_name')}"
+        if hasattr(context, 'user_data') and 'voice_tone' in context.user_data:
+            tone_data = context.user_data['voice_tone']
+            tone_context = f"\n\nBoss's Tone: The boss sounds {tone_data['primary_tone']} ({tone_data['intensity']} intensity). {tone_data.get('description', '')}"
+            context_info += tone_context
+
         name, title, worker_response, token_count = self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
-            context=f"Project: {session.get('project_name')}",
+            context=context_info,
             efficiency_mode=efficiency_mode
         )
 
