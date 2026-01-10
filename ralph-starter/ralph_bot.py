@@ -49,6 +49,14 @@ except ImportError:
     def sanitize_for_telegram(text): return text
     def get_sanitizer(): return None
 
+# SEC-019: Import GDPR compliance handlers
+try:
+    from user_data_controller import register_gdpr_handlers
+    GDPR_AVAILABLE = True
+except ImportError:
+    GDPR_AVAILABLE = False
+    logging.warning("SEC-019: GDPR module not available - compliance features disabled")
+
 # Load .env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(env_path):
@@ -3971,6 +3979,11 @@ _Grab some popcorn..._
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text))
         app.add_handler(CallbackQueryHandler(self.handle_callback))
+
+        # SEC-019: Register GDPR compliance handlers
+        if GDPR_AVAILABLE:
+            register_gdpr_handlers(app)
+            print("✅ GDPR compliance handlers registered")
 
         print("🤖 Bot is running! Send /start in Telegram.")
         app.run_polling()
