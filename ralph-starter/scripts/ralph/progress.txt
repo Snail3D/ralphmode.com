@@ -5066,3 +5066,48 @@ python build_orchestrator.py
 - Git operations should be optional and fail gracefully (version can be tracked even without git)
 
 ---
+
+## Iteration - 2026-01-10 12:15
+**Task**: [VM-002] Version History and Changelog
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `changelog_generator.py` module with full changelog generation capabilities
+- Added `VersionHistory` database table to track all releases with changelogs
+- Integrated changelog generation into `version_manager.py` version bump workflow
+- Auto-generates human-readable changelogs from feedback items
+- Stores version history in database with release dates, change types, and feedback IDs
+- Updates `CHANGELOG.md` file automatically with each version
+- Provides CLI tools for both modules (version_manager.py and changelog_generator.py)
+- Added API access methods: `get_version_history()`, `get_version_by_number()`
+
+### Files changed
+- `changelog_generator.py` (NEW) - Complete changelog generation module
+- `version_manager.py` - Added changelog integration to `increment_version()` method
+- `scripts/ralph/prd.json` - Marked VM-002 as complete
+- `CHANGELOG.md` (NEW) - Human-readable changelog file
+
+### Learnings
+- **Database integration**: Extended existing database.py structure with new VersionHistory model
+- **SQLAlchemy relationships**: Used proper ORM patterns for querying feedback items
+- **Changelog formatting**: Implemented emoji-categorized changelog (✨ Features, 🐛 Bug Fixes, 🔧 Enhancements)
+- **File management**: Automatic CHANGELOG.md updates with prepending new versions (most recent first)
+- **Error handling**: Changelog generation failures don't break version bumps (graceful degradation)
+- **CLI design**: Added optional parameters (--feedback-ids, --no-changelog) for flexible usage
+- **Testing approach**: Created end-to-end test with real database operations to verify full flow
+
+### Architecture decisions
+1. **Separate module**: Created standalone `changelog_generator.py` rather than embedding in version_manager - allows independent usage
+2. **Database-first**: Store version history in database as source of truth, CHANGELOG.md is generated output
+3. **Optional integration**: Changelog generation is opt-in via parameters, not forced
+4. **Human-readable format**: Grouped changes by category with clear emoji indicators
+5. **Feedback traceability**: Store feedback IDs as JSON for full traceability and future API needs
+
+### Acceptance criteria verification
+✅ Store: version, date, feedback items addressed - Stored in VersionHistory table
+✅ Auto-generate changelog from feedback titles - Implemented in `generate_changelog()`
+✅ Human-readable format - Markdown with emoji categories
+✅ Available via API - Methods: `get_version_history()`, `get_version_by_number()`
+✅ Displayed on website - CHANGELOG.md file created and updated automatically
+
+---
