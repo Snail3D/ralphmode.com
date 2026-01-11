@@ -6,6 +6,9 @@ MM-005: Test Prompt Library
 MM-006: Test Runner
 Execute validation and score results
 
+MM-007: Pass/Fail Detection
+Determine if model 'gets' the character - validates personality traits
+
 This module provides standardized test prompts for each role to validate
 that models can perform their expected functions. Each test is short,
 focused, and easy to score programmatically.
@@ -13,6 +16,7 @@ focused, and easy to score programmatically.
 
 import asyncio
 import logging
+import re
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
@@ -319,6 +323,267 @@ def list_all_tests() -> List[str]:
 
 
 # ============================================================================
+# MM-007: Pass/Fail Detection
+# Character Personality Validators
+# ============================================================================
+
+def validate_ralph_personality(response: str) -> bool:
+    """
+    MM-007: Validate that Ralph's personality comes through.
+
+    Ralph should:
+    - Be friendly and endearing
+    - Occasionally misspell words (but not always)
+    - Be brief (not verbose)
+    - Show some confusion but still be competent
+
+    This is a soft validation - we're checking for character traits,
+    not requiring perfection.
+
+    Args:
+        response: The model's response
+
+    Returns:
+        True if response shows Ralph-like traits
+    """
+    if not response or len(response.strip()) == 0:
+        return False
+
+    response_lower = response.lower()
+
+    # HARD FAIL: If response is too long (Ralph is brief)
+    if len(response) > 200:
+        logger.debug("MM-007: Ralph validation failed - response too long")
+        return False
+
+    # HARD FAIL: If response is overly formal or corporate
+    formal_markers = [
+        "pursuant to", "accordingly", "therefore", "furthermore",
+        "it is imperative", "i am writing to inform", "please be advised"
+    ]
+    if any(marker in response_lower for marker in formal_markers):
+        logger.debug("MM-007: Ralph validation failed - too formal")
+        return False
+
+    # SOFT PASS: Check for Ralph-ish traits (at least one is good)
+    ralph_traits = {
+        'friendly': any(word in response_lower for word in ['hi', 'hello', 'hey', 'yay', '!']),
+        'casual': not any(word in response_lower for word in ['greetings', 'salutations']),
+        'brief': len(response.split()) < 50,
+        'simple': not re.search(r'\b\w{12,}\b', response)  # No super long words
+    }
+
+    # Pass if at least 3 out of 4 traits present
+    trait_score = sum(ralph_traits.values())
+    passed = trait_score >= 3
+
+    if not passed:
+        logger.debug(f"MM-007: Ralph validation - trait score {trait_score}/4: {ralph_traits}")
+
+    return passed
+
+
+def validate_worker_personality(response: str) -> bool:
+    """
+    MM-007: Validate that Worker's competence comes through.
+
+    Workers should:
+    - Be professional and helpful
+    - Show technical knowledge
+    - Be concise and clear
+    - Not be overly casual or silly
+
+    Args:
+        response: The model's response
+
+    Returns:
+        True if response shows Worker-like traits
+    """
+    if not response or len(response.strip()) == 0:
+        return False
+
+    response_lower = response.lower()
+
+    # HARD FAIL: If response is silly or unprofessional
+    silly_markers = [
+        'lol', 'lmao', 'haha', 'hehe', 'tee hee',
+        'idk', 'dunno', 'nah', 'yolo', 'bruh'
+    ]
+    if any(marker in response_lower for marker in silly_markers):
+        logger.debug("MM-007: Worker validation failed - too silly")
+        return False
+
+    # HARD FAIL: If response shows no technical understanding
+    # (for code/debugging tests)
+    if 'function' in response_lower or 'code' in response_lower or 'error' in response_lower:
+        # Technical context detected, should show understanding
+        if any(phrase in response_lower for phrase in [
+            "i don't know", "no idea", "can't help", "beats me"
+        ]):
+            logger.debug("MM-007: Worker validation failed - lacks technical knowledge")
+            return False
+
+    # SOFT PASS: Professional tone
+    worker_traits = {
+        'helpful': not any(word in response_lower for word in ["can't", "won't", "impossible"]),
+        'clear': len(response.split('.')) <= 5,  # Not rambling
+        'technical': bool(re.search(r'\b(function|variable|error|code|index|array|def|class|import)\b', response_lower)),
+        'professional': not re.search(r'!!!+', response)  # No excessive punctuation
+    }
+
+    # Pass if at least 3 out of 4 traits present
+    trait_score = sum(worker_traits.values())
+    passed = trait_score >= 3
+
+    if not passed:
+        logger.debug(f"MM-007: Worker validation - trait score {trait_score}/4: {worker_traits}")
+
+    return passed
+
+
+def validate_builder_personality(response: str) -> bool:
+    """
+    MM-007: Validate that Builder's systematic approach comes through.
+
+    Builders should:
+    - Be systematic and organized
+    - Show planning/structural thinking
+    - Be thorough but not verbose
+    - Understand codebases and architecture
+
+    Args:
+        response: The model's response
+
+    Returns:
+        True if response shows Builder-like traits
+    """
+    if not response or len(response.strip()) == 0:
+        return False
+
+    response_lower = response.lower()
+
+    # HARD FAIL: If response is too vague or unhelpful
+    vague_responses = [
+        "i don't know", "not sure", "maybe", "possibly",
+        "it depends", "hard to say"
+    ]
+    if any(phrase in response_lower for phrase in vague_responses) and len(response.split()) < 20:
+        logger.debug("MM-007: Builder validation failed - too vague")
+        return False
+
+    # SOFT PASS: Check for builder-ish traits
+    builder_traits = {
+        'systematic': any(word in response_lower for word in [
+            'step', 'first', 'then', 'next', 'finally', 'process'
+        ]),
+        'architectural': any(word in response_lower for word in [
+            'structure', 'directory', 'folder', 'file', 'module',
+            'package', 'component', 'layer', 'pattern'
+        ]),
+        'actionable': any(word in response_lower for word in [
+            'install', 'create', 'add', 'update', 'modify', 'run', 'execute'
+        ]),
+        'clear': bool(re.search(r'[.!?]', response))  # Uses punctuation
+    }
+
+    # Pass if at least 3 out of 4 traits present
+    trait_score = sum(builder_traits.values())
+    passed = trait_score >= 3
+
+    if not passed:
+        logger.debug(f"MM-007: Builder validation - trait score {trait_score}/4: {builder_traits}")
+
+    return passed
+
+
+def validate_design_personality(response: str) -> bool:
+    """
+    MM-007: Validate that Design agent's aesthetic sense comes through.
+
+    Design agents should:
+    - Make clear aesthetic choices
+    - Explain reasoning (briefly)
+    - Show understanding of UX principles
+    - Be opinionated but not dogmatic
+
+    Args:
+        response: The model's response
+
+    Returns:
+        True if response shows Design-like traits
+    """
+    if not response or len(response.strip()) == 0:
+        return False
+
+    response_lower = response.lower()
+
+    # HARD FAIL: If response is indecisive
+    indecisive_phrases = [
+        "either works", "doesn't matter", "up to you",
+        "whatever you prefer", "no preference"
+    ]
+    if any(phrase in response_lower for phrase in indecisive_phrases):
+        logger.debug("MM-007: Design validation failed - indecisive")
+        return False
+
+    # SOFT PASS: Check for design-ish traits
+    design_traits = {
+        'opinionated': any(word in response_lower for word in [
+            'should', 'better', 'prefer', 'recommend', 'suggest'
+        ]),
+        'aesthetic': any(word in response_lower for word in [
+            'color', 'layout', 'design', 'user', 'visual', 'look',
+            'feel', 'clean', 'clear', 'simple'
+        ]),
+        'reasoned': any(word in response_lower for word in [
+            'because', 'since', 'as', 'so', 'reason', 'why'
+        ]),
+        'concise': len(response.split()) < 100
+    }
+
+    # Pass if at least 3 out of 4 traits present
+    trait_score = sum(design_traits.values())
+    passed = trait_score >= 3
+
+    if not passed:
+        logger.debug(f"MM-007: Design validation - trait score {trait_score}/4: {design_traits}")
+
+    return passed
+
+
+# Role-specific validator mapping
+ROLE_VALIDATORS: Dict[ModelRole, callable] = {
+    ModelRole.RALPH: validate_ralph_personality,
+    ModelRole.WORKER: validate_worker_personality,
+    ModelRole.BUILDER: validate_builder_personality,
+    ModelRole.DESIGN: validate_design_personality
+}
+
+
+def validate_character_personality(role: ModelRole, response: str) -> bool:
+    """
+    MM-007: Main validation function - determines if model 'gets' the character.
+
+    Routes to the appropriate role-specific validator.
+
+    Args:
+        role: The ModelRole being tested
+        response: The model's response
+
+    Returns:
+        True if model demonstrates understanding of the character
+    """
+    validator = ROLE_VALIDATORS.get(role)
+
+    if not validator:
+        logger.warning(f"MM-007: No validator for role {role.value}, using basic check")
+        # Fallback: just check for non-empty response
+        return bool(response and len(response.strip()) > 0)
+
+    return validator(response)
+
+
+# ============================================================================
 # MM-006: Test Runner
 # ============================================================================
 
@@ -393,16 +658,19 @@ class ModelTester:
 
             latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
 
-            # Basic pass criteria: got a non-empty response
-            passed = bool(response and len(response.strip()) > 0)
-
-            # Apply custom validation if provided
+            # MM-007: Use character personality validation
+            # First check if custom validation function is provided (takes precedence)
             if test.validation_fn and response:
                 try:
                     passed = test.validation_fn(response)
+                    logger.debug(f"MM-007: Used custom validation for {test.name}")
                 except Exception as e:
                     logger.warning(f"MM-006: Validation function failed for {test.name}: {e}")
                     passed = False
+            else:
+                # Use MM-007 character personality validation
+                passed = validate_character_personality(test.role, response)
+                logger.debug(f"MM-007: Used character validation for {test.name} (role: {test.role.value})")
 
             result = TestResult(
                 test_name=test.name,
