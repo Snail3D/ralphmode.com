@@ -13142,6 +13142,132 @@ Use `/version <type>` to switch!
             await update.message.reply_text(error_msg, parse_mode="Markdown")
             logger.error(f"OB-048: Analytics generation error: {e}", exc_info=True)
 
+    async def auditlog_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        BC-005: Handle /auditlog command - View recent sanitization filters.
+
+        Shows admin what secrets were filtered from messages (but NOT the actual secrets).
+        Requires Tier 1 (Owner) permission.
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # BC-005: Only Tier 1 (Owner) can view audit logs
+        if USER_MANAGER_AVAILABLE:
+            try:
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                if user_tier != UserTier.TIER_1_OWNER:
+                    # Silent rejection for non-Tier-1 users
+                    logger.warning(
+                        f"BC-005: Non-Tier-1 user {telegram_id} ({user_tier.display_name}) "
+                        "attempted /auditlog command"
+                    )
+                    return
+            except Exception as e:
+                logger.error(f"BC-005: Error checking user tier for audit log: {e}")
+                return
+
+        logger.info(f"BC-005: Processing /auditlog command from Tier 1 user {telegram_id}")
+
+        try:
+            from logging_config import get_recent_audit_logs, get_audit_summary
+
+            # Get optional limit from command args (default 20)
+            try:
+                limit = int(context.args[0]) if context.args else 20
+                limit = min(limit, 100)  # Cap at 100 to prevent spam
+            except (ValueError, IndexError):
+                limit = 20
+
+            # Get recent audit logs
+            logs = get_recent_audit_logs(limit=limit)
+
+            if not logs:
+                await update.message.reply_text(
+                    "📋 *Audit Log*\n\n"
+                    "No sanitization events recorded yet.\n\n"
+                    "The audit log will show when secrets are filtered from messages.",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Get summary stats
+            stats = get_audit_summary()
+
+            # Build response
+            response = (
+                f"📋 *Sanitization Audit Log*\n\n"
+                f"📊 *Summary Statistics:*\n"
+                f"• Total Events: {stats['total_events']}\n"
+                f"• Recent Activity (1h): {stats['recent_activity']}\n\n"
+            )
+
+            # Show top contexts
+            if stats['by_context']:
+                response += "📌 *By Context:*\n"
+                for ctx, count in sorted(stats['by_context'].items(), key=lambda x: x[1], reverse=True)[:5]:
+                    response += f"• {ctx}: {count}\n"
+                response += "\n"
+
+            # Show top patterns
+            if stats['by_pattern']:
+                response += "🔒 *Top Filtered Patterns:*\n"
+                for pattern, count in sorted(stats['by_pattern'].items(), key=lambda x: x[1], reverse=True)[:5]:
+                    response += f"• {pattern}: {count}\n"
+                response += "\n"
+
+            response += f"📜 *Recent Events (last {limit}):*\n\n"
+
+            # Show recent logs
+            for i, log in enumerate(logs[:limit], 1):
+                timestamp = log.get('timestamp', 'unknown')[:19]  # Trim to datetime
+                context_name = log.get('context', 'unknown')
+                count = log.get('replacements_count', 0)
+                patterns = log.get('patterns_matched', [])
+                user_id = log.get('user_id')
+                msg_context = log.get('original_context', 'unknown')
+
+                response += f"{i}. `{timestamp}`\n"
+                response += f"   Context: {context_name}\n"
+                response += f"   Filtered: {count} secret(s)\n"
+                response += f"   Patterns: {', '.join(patterns[:3])}\n"  # Show first 3
+                if user_id:
+                    response += f"   User ID: {user_id}\n"
+                if msg_context != 'unknown':
+                    response += f"   Message: {msg_context}\n"
+                response += "\n"
+
+                # Telegram has a message length limit (~4096 chars)
+                # Split into multiple messages if needed
+                if len(response) > 3500:
+                    await update.message.reply_text(response, parse_mode="Markdown")
+                    response = ""
+
+            # Send remaining response
+            if response:
+                await update.message.reply_text(response, parse_mode="Markdown")
+
+            logger.info(f"BC-005: Successfully sent audit log to user {telegram_id}")
+
+        except ImportError:
+            error_msg = (
+                "❌ *Error: Audit logging not available!*\n\n"
+                "The logging_config module is not installed.\n\n"
+                "Make sure logging_config.py exists."
+            )
+            await update.message.reply_text(error_msg, parse_mode="Markdown")
+            logger.error("BC-005: Audit logging module not available")
+
+        except Exception as e:
+            error_msg = (
+                "❌ *Error: Failed to retrieve audit logs!*\n\n"
+                f"Something went wrong while fetching the audit log.\n\n"
+                f"Error: {str(e)}"
+            )
+            await update.message.reply_text(error_msg, parse_mode="Markdown")
+            logger.error(f"BC-005: Audit log retrieval error: {e}", exc_info=True)
+
     async def setup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /setup command - OB-001: Onboarding Entry Point."""
         telegram_id = update.effective_user.id
@@ -14644,6 +14770,7 @@ To update your Git config:
         app.add_handler(CommandHandler("character", self.character_command))  # OB-041
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("analytics", self.analytics_command))  # OB-048
+        app.add_handler(CommandHandler("auditlog", self.auditlog_command))  # BC-005
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
         app.add_handler(CommandHandler("templates", self.templates_command))  # OB-027

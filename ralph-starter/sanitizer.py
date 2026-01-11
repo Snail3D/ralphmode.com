@@ -16,8 +16,17 @@ import re
 import os
 import html
 import logging
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Optional, Set, Dict
 from datetime import datetime
+
+# BC-005: Import persistent audit logging
+try:
+    from logging_config import log_sanitization as persist_log_sanitization
+    AUDIT_LOGGING_AVAILABLE = True
+except ImportError:
+    AUDIT_LOGGING_AVAILABLE = False
+    def persist_log_sanitization(*args, **kwargs):
+        pass  # Fallback: no-op if audit logging not available
 
 # Import XSS prevention utilities
 try:
@@ -151,8 +160,10 @@ class Sanitizer:
         """
         self.env_values: Set[str] = set()
         self.env_keys: Set[str] = set()
-        self.audit_log: List[dict] = []
+        self.audit_log: List[dict] = []  # In-memory log (legacy)
         self.broadcast_safe_mode = os.environ.get('BROADCAST_SAFE', 'false').lower() == 'true'
+        self.current_user_id: Optional[int] = None  # BC-005: Track user for audit log
+        self.current_message_context: Optional[str] = None  # BC-005: Track message context
 
         # BC-004: Load .env values if path provided
         if env_path and os.path.exists(env_path):
@@ -187,6 +198,22 @@ class Sanitizer:
             logger.info(f"Loaded {len(self.env_values)} secret values from .env")
         except Exception as e:
             logger.warning(f"Could not load .env secrets: {e}")
+
+    def set_context(self, user_id: Optional[int] = None, message_context: Optional[str] = None) -> None:
+        """
+        BC-005: Set context for audit logging.
+
+        Args:
+            user_id: Telegram user ID
+            message_context: Brief description of the message (NOT the actual content)
+        """
+        self.current_user_id = user_id
+        self.current_message_context = message_context
+
+    def clear_context(self) -> None:
+        """BC-005: Clear the current context after processing."""
+        self.current_user_id = None
+        self.current_message_context = None
 
     def sanitize(self, text: str, context: str = "unknown") -> str:
         """
@@ -390,27 +417,43 @@ class Sanitizer:
 
     def _log_sanitization(self, context: str, count: int, details: List[dict]) -> None:
         """
-        Log what was sanitized for debugging/auditing.
+        BC-005: Log what was sanitized for debugging/auditing.
+
+        This logs to BOTH:
+        1. In-memory log (legacy, for backward compatibility)
+        2. Persistent file log (BC-005: secure, rotated, admin-accessible)
 
         Args:
             context: Where the sanitization occurred
             count: Number of replacements made
             details: List of replacement details
         """
+        patterns_matched = [d['replacement'] for d in details]
+
+        # In-memory log (legacy)
         log_entry = {
             'timestamp': datetime.now().isoformat(),
             'context': context,
             'replacements_count': count,
-            'patterns_matched': [d['replacement'] for d in details]
+            'patterns_matched': patterns_matched
         }
-
         self.audit_log.append(log_entry)
 
-        # Keep log from growing too large
+        # Keep in-memory log from growing too large
         if len(self.audit_log) > 1000:
             self.audit_log = self.audit_log[-500:]
 
-        logger.info(f"Sanitized {count} secrets from {context}: {[d['replacement'] for d in details]}")
+        # BC-005: Persistent audit logging to file
+        if AUDIT_LOGGING_AVAILABLE:
+            persist_log_sanitization(
+                context=context,
+                replacements_count=count,
+                patterns_matched=patterns_matched,
+                original_message_context=self.current_message_context,
+                user_id=self.current_user_id
+            )
+
+        logger.info(f"Sanitized {count} secrets from {context}: {patterns_matched}")
 
     def get_audit_summary(self, limit: int = 20) -> List[dict]:
         """

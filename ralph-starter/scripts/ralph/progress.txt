@@ -12702,3 +12702,44 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Energy and worker_mood fields drive dialogue tone throughout session
 
 ---
+
+
+## Iteration [Auto] - 2026-01-11T01:52
+**Task**: [BC-005] Audit Logging for Filtered Content
+**Status**: ✅ Complete
+
+### What was implemented
+- Created logging_config.py module for persistent audit logging
+- Implemented AuditLogger class with JSON Lines format for easy parsing
+- Added automatic log rotation (10MB limit, keeps 5 backups)
+- Integrated persistent logging into sanitizer.py's _log_sanitization method
+- Added /auditlog admin command in ralph_bot.py (Tier 1 only)
+- Command shows summary stats + recent filtered events
+- Logs include timestamp, context, pattern types, user_id, and message context
+- Secure storage: logs/ directory with 0o700 permissions, files with 0o600
+- Auto-generated .gitignore in logs/ to prevent committing sensitive data
+
+### Files changed
+- logging_config.py (new) - 335 lines
+- sanitizer.py - Enhanced _log_sanitization with persistent logging
+- ralph_bot.py - Added auditlog_command (126 lines), registered handler
+
+### Learnings
+- JSON Lines (JSONL) format is perfect for append-only audit logs
+- File permissions (0o600) prevent other users from reading sensitive logs
+- Auto-rotation prevents disk bloat while maintaining recent history
+- Admin commands need UserTier.TIER_1_OWNER check for security
+- Context tracking (user_id, message_context) added to Sanitizer class
+- Fallback pattern: try/except import with AUDIT_LOGGING_AVAILABLE flag
+- Telegram message length limit (~4096) requires splitting long responses
+- Summary statistics (total_events, by_context, by_pattern) give quick overview
+
+### Technical patterns discovered
+- Persistent logging complements in-memory logging (both kept for backward compatibility)
+- Log rotation can be manual or automatic (size-based)
+- Admin can specify limit: /auditlog 50 (capped at 100 to prevent spam)
+- Logs NEVER contain actual secrets - only pattern types and metadata
+- Audit log is a security feature AND a debugging tool
+- Pattern matching stats help identify which secrets are most commonly caught
+
+---
