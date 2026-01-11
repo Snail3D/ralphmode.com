@@ -16058,3 +16058,70 @@ Ralph: "OH! The login page authentication bug! Ralph totally remembers!"  [BM-00
 Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 ```
 
+
+### Session Summary
+- BM-004 successfully implemented and tested
+- Ralph can now express eureka moments when reminded of context
+- Feature integrates seamlessly with existing BM workflow
+- Commit: f0bcbfb
+- 191 tasks remaining (294/485 complete)
+
+
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [BM-005] Memory Persistence for Workers
+**Status**: ✅ Complete
+
+### What was implemented
+- Added self.worker_memories dict to __init__() to track per-worker memories across sessions
+- Implemented store_worker_memory(user_id, worker_name, memory_type, content, context) method
+  - Memory types: "observation", "issue", "suggestion", "learning", "ceo_feedback"
+  - Keeps last 20 memories per worker (enough for continuity without bloat)
+  - Debug logging for memory tracking
+- Implemented get_worker_memory_context(user_id, worker_name, limit=8) method
+  - Returns formatted "WHAT YOU REMEMBER (even if Ralph doesn't):" section
+  - Includes last 8 memories with type labels and context
+- Integrated worker memory into call_worker() prompts
+  - Added worker_memory_prompt variable to system content
+  - Memory context appears in worker prompts automatically
+  - Only injected when user_id provided (session-aware)
+- Added example memory tracking when workers explain projects to Ralph
+  - Stores observation: "Explained project to Ralph: [response preview]"
+  - Context: "Project briefing"
+
+### Files changed
+- ralph_bot.py (added worker memory system, 94 lines added)
+
+### Learnings
+- **The BM Comedy Pattern**: Ralph forgets between sessions (BM-001), workers remember (BM-005)
+  - This creates natural comedy: Ralph asks "what were we doing?" while workers patiently remind him
+  - Workers maintain continuity even when Ralph doesn't - it's professional competence wrapped in comedy
+  
+- **Worker Memory vs Session History**:
+  - self.session_history logs ALL events (Ralph's memory) - used for Q&A
+  - self.worker_memories is per-worker, persistent, focused on their observations
+  - Workers can reference THEIR memories even if Ralph forgot the session
+  
+- **Memory Storage Strategy**:
+  - Keep it concise (last 20 memories max) to avoid prompt bloat
+  - Limit to 8 most recent in prompts (enough context without overwhelming)
+  - Store type + content + context for rich memory retrieval
+  
+- **Integration Points**:
+  - call_worker() is the central hub for all worker AI calls
+  - System prompt assembly happens at lines 12425-12465
+  - All context layers (mood, requirements, autonomy, etc.) get injected here
+  - Worker memory fits naturally into this architecture
+  
+- **Future BM Tasks**:
+  - BM-010 "Workers Help Ralph Remember" will build on this
+  - Workers can say "Sir, I think Mr. Worms said..." referencing their memories
+  - This creates the helpful-worker-reminds-forgetful-boss dynamic
+
+### Architecture notes
+- ralph_bot.py is 19,604 lines - explored with Explore agent
+- No per-worker conversation state between calls - each call rebuilds context
+- Context layers: personality, task guidance, freshness, mood, workload, autonomy, requirements, patience, worker_memory
+- Worker memory adds continuity layer that persists across sessions
+
+---
