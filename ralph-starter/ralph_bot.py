@@ -1638,6 +1638,10 @@ class RalphBot:
         self.good_news_citations: Dict[int, Dict[str, Any]] = {}  # Track recent good news mentions with sources
         self.last_good_news_mention: Dict[int, Dict[str, Any]] = {}  # Track the most recent good news mention
 
+        # SG-021: Session Start Good News Fetch - Pre-fetch stories for the session
+        self.session_good_news: Dict[int, List[Dict[str, Any]]] = {}  # Cache of 10 good news stories per session
+        self.session_good_news_used: Dict[int, set] = {}  # Track which stories have been used in this session
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -10455,6 +10459,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
     def generate_good_news_flow_with_citation(self, user_id: int) -> Optional[List[tuple]]:
         """
         SG-019: Generate a natural good news conversation flow using real news with citations.
+        SG-021: Draw from session cache if available, don't repeat stories.
 
         Creates a multi-message flow where workers discuss actual good news.
         Stores the citation so workers can show sources when asked.
@@ -10466,10 +10471,29 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             List of (speaker, message) tuples for the conversation flow, or None if no news available
         """
         try:
-            # Fetch a real good news story
-            news = self.get_local_good_news(user_id)
+            # SG-021: Try to get news from session cache first
+            news = None
+            if user_id in self.session_good_news and self.session_good_news[user_id]:
+                # Get unused stories
+                used_urls = self.session_good_news_used.get(user_id, set())
+                unused_stories = [
+                    story for story in self.session_good_news[user_id]
+                    if story['url'] not in used_urls
+                ]
+
+                if unused_stories:
+                    news = random.choice(unused_stories)
+                    # Mark as used
+                    if user_id not in self.session_good_news_used:
+                        self.session_good_news_used[user_id] = set()
+                    self.session_good_news_used[user_id].add(news['url'])
+                    logger.info(f"SG-021: Using cached story from session: {news['title'][:50]}")
+
+            # Fallback: Fetch a fresh story if no session cache available
             if not news:
-                return None
+                news = self.get_local_good_news(user_id)
+                if not news:
+                    return None
 
             # Store citation for this user session
             if user_id not in self.good_news_citations:
@@ -10576,6 +10600,68 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
         except Exception as e:
             logger.error(f"SG-019: Error handling source request: {e}")
             return None
+
+    async def fetch_session_good_news(self, user_id: int):
+        """
+        SG-021: Fetch 10 good news stories at session start and cache them.
+
+        Runs in background to avoid blocking session start.
+        Prioritizes local stories if user has location set.
+
+        Args:
+            user_id: The user session ID
+        """
+        try:
+            logger.info(f"SG-021: Fetching session good news for user {user_id}")
+
+            # Initialize storage for this session
+            self.session_good_news[user_id] = []
+            self.session_good_news_used[user_id] = set()
+
+            # Get user location if available
+            from database import get_db, User
+
+            location = None
+            try:
+                with get_db() as db:
+                    user = db.query(User).filter(User.telegram_id == user_id).first()
+                    if user:
+                        location = user.location
+                        logger.info(f"SG-021: User {user_id} has location: {location}")
+            except Exception as e:
+                logger.warning(f"SG-021: Could not fetch user location: {e}")
+
+            # Fetch 10 stories (or as many as we can get)
+            stories_fetched = 0
+            max_attempts = 15  # Try to fetch up to 15 to get 10 unique ones
+
+            for _ in range(max_attempts):
+                if stories_fetched >= 10:
+                    break
+
+                # Fetch a story
+                news = self.get_local_good_news(user_id)
+                if not news:
+                    break
+
+                # Check if we already have this story (by URL)
+                if any(story['url'] == news['url'] for story in self.session_good_news[user_id]):
+                    continue
+
+                # Add to session cache
+                self.session_good_news[user_id].append(news)
+                stories_fetched += 1
+
+                # Small delay to avoid hammering the API
+                await asyncio.sleep(0.5)
+
+            logger.info(f"SG-021: Fetched {stories_fetched} good news stories for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"SG-021: Error fetching session good news: {e}")
+            # Graceful fallback - session can continue without good news cache
+            self.session_good_news[user_id] = []
+            self.session_good_news_used[user_id] = set()
 
     # ==================== SG-010: RALPH'S SIMPLE WISDOM ====================
 
@@ -12974,6 +13060,9 @@ _Drop a zip file to get started!_
             # Start analysis in background (async task)
             analysis_task = asyncio.create_task(self._analyze_codebase(project_dir))
             self.pending_analysis[user_id] = analysis_task
+
+            # SG-021: Fetch session good news in background (don't block session start)
+            asyncio.create_task(self.fetch_session_good_news(user_id))
 
             # Start interactive onboarding while analysis runs
             await self.start_interactive_onboarding(context, chat_id, user_id, project_name)
