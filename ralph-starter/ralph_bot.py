@@ -175,6 +175,14 @@ except ImportError:
     ONBOARDING_WIZARD_AVAILABLE = False
     logging.warning("OB-001: Onboarding wizard not available - /setup command disabled")
 
+# OB-027: Import template manager for /templates command
+try:
+    from template_manager import template_manager
+    TEMPLATE_MANAGER_AVAILABLE = True
+except ImportError:
+    TEMPLATE_MANAGER_AVAILABLE = False
+    logging.warning("OB-027: Template manager not available - /templates command disabled")
+
 # SEC-020: Import PII masking for safe logging
 try:
     from pii_handler import PIIMasker, mask_for_logs, PIIField
@@ -7027,6 +7035,11 @@ _Drop a zip file to get started!_
             await self.handle_character_callback(query, context, user_id, data)
             return
 
+        # OB-027: Handle template selection callbacks
+        if data.startswith("template:"):
+            await self.handle_template_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -9368,6 +9381,315 @@ Use `/version <type>` to switch!
             detected_issue=detected_issue
         )
 
+    async def templates_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """OB-027: Project Template Selector
+
+        Lists available project templates and allows users to scaffold new projects.
+
+        Usage: /templates [template_id]
+        - No args: Show all available templates
+        - With template_id: Show preview and scaffolding options for that template
+        """
+        chat_id = update.message.chat_id
+        telegram_id = update.effective_user.id
+
+        logger.info(f"OB-027: /templates command from user {telegram_id}")
+
+        # Check if template manager is available
+        if not TEMPLATE_MANAGER_AVAILABLE:
+            await update.message.reply_text(
+                "😔 Sorry! The template system isn't available right now.\n\n"
+                "Try again later, or contact support!",
+                parse_mode="Markdown"
+            )
+            logger.error("OB-027: Template manager not available")
+            return
+
+        args = context.args
+
+        # If no args, show all templates
+        if not args:
+            templates = template_manager.get_all_templates()
+
+            # Group by category
+            categories = {}
+            for template in templates:
+                cat = template['category']
+                if cat not in categories:
+                    categories[cat] = []
+                categories[cat].append(template)
+
+            # Build message
+            message_lines = [
+                "🎯 *Available Project Templates*",
+                "",
+                "Pick a template to get started quickly!",
+                ""
+            ]
+
+            for category, temps in sorted(categories.items()):
+                message_lines.append(f"*{category}*")
+                for temp in temps:
+                    tags_str = ", ".join(f"#{tag}" for tag in temp['tags'][:3])
+                    message_lines.append(f"• `{temp['id']}` - {temp['name']}")
+                    message_lines.append(f"  {temp['description']}")
+                    message_lines.append(f"  {tags_str}")
+                message_lines.append("")
+
+            message_lines.append("📖 *How to use:*")
+            message_lines.append("`/templates <template_id>` - View details")
+            message_lines.append("")
+            message_lines.append("Example: `/templates ralph-starter`")
+
+            message = "\n".join(message_lines)
+
+            await update.message.reply_text(
+                message,
+                parse_mode="Markdown"
+            )
+
+            logger.info(f"OB-027: Sent template list to user {telegram_id}")
+            return
+
+        # Show specific template details
+        template_id = args[0]
+        template = template_manager.get_template(template_id)
+
+        if not template:
+            await update.message.reply_text(
+                f"❌ Template `{template_id}` not found.\n\n"
+                f"Use `/templates` to see all available templates.",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Build template preview message
+        message_lines = [
+            f"🎯 *{template.name}*",
+            "",
+            f"*Category:* {template.category}",
+            f"*Tags:* {', '.join(f'#{tag}' for tag in template.tags)}",
+            "",
+            f"*Description:*",
+            template.description,
+            "",
+            f"*Includes:*"
+        ]
+
+        # Show file structure
+        for filename in sorted(template.files.keys()):
+            message_lines.append(f"• `{filename}`")
+
+        message_lines.append("")
+        message_lines.append(f"*Tasks in PRD:* {len(template.prd_tasks)} tasks")
+
+        if template.customization_options:
+            message_lines.append("")
+            message_lines.append("*Customization Options:*")
+            for option in template.customization_options:
+                message_lines.append(f"• {option['label']} (default: `{option['default']}`)")
+
+        message_lines.append("")
+        message_lines.append("*Ready to scaffold?*")
+        message_lines.append("Use the button below to create a new project from this template!")
+
+        message = "\n".join(message_lines)
+
+        # Create keyboard with scaffold button
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"🚀 Create {template.name} Project", callback_data=f"template:scaffold:{template_id}")],
+            [InlineKeyboardButton("« Back to Templates", callback_data="template:list")]
+        ])
+
+        await update.message.reply_text(
+            message,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        logger.info(f"OB-027: Sent template preview for {template_id} to user {telegram_id}")
+
+    async def handle_template_callback(self, query, context, user_id: int, data: str):
+        """Handle template selection callbacks - OB-027
+
+        Callback data formats:
+        - template:list - Show all templates
+        - template:scaffold:<template_id> - Start scaffolding process
+        - template:confirm:<template_id> - Confirm and scaffold
+        """
+        await query.answer()
+
+        parts = data.split(":")
+        action = parts[1] if len(parts) > 1 else None
+
+        if action == "list":
+            # Show all templates
+            templates = template_manager.get_all_templates()
+
+            # Group by category
+            categories = {}
+            for template in templates:
+                cat = template['category']
+                if cat not in categories:
+                    categories[cat] = []
+                categories[cat].append(template)
+
+            # Build message
+            message_lines = [
+                "🎯 *Available Project Templates*",
+                "",
+                "Pick a template to get started quickly!",
+                ""
+            ]
+
+            buttons = []
+            for category, temps in sorted(categories.items()):
+                message_lines.append(f"*{category}*")
+                for temp in temps:
+                    message_lines.append(f"• {temp['name']} - {temp['description'][:50]}...")
+                    buttons.append([InlineKeyboardButton(
+                        f"🚀 {temp['name']}",
+                        callback_data=f"template:preview:{temp['id']}"
+                    )])
+                message_lines.append("")
+
+            message = "\n".join(message_lines)
+            keyboard = InlineKeyboardMarkup(buttons)
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+
+        elif action == "preview" and len(parts) > 2:
+            # Show template preview
+            template_id = parts[2]
+            template = template_manager.get_template(template_id)
+
+            if not template:
+                await query.edit_message_text(
+                    f"❌ Template not found.",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Build preview message
+            message_lines = [
+                f"🎯 *{template.name}*",
+                "",
+                f"*Category:* {template.category}",
+                "",
+                template.description,
+                "",
+                "*Files included:*"
+            ]
+
+            for filename in sorted(list(template.files.keys())[:10]):
+                message_lines.append(f"• `{filename}`")
+
+            if len(template.files) > 10:
+                message_lines.append(f"  ...and {len(template.files) - 10} more")
+
+            message_lines.append("")
+            message_lines.append("Ready to create this project?")
+
+            message = "\n".join(message_lines)
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 Create Project", callback_data=f"template:scaffold:{template_id}")],
+                [InlineKeyboardButton("« Back", callback_data="template:list")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+
+        elif action == "scaffold" and len(parts) > 2:
+            # Ask for project name and start scaffolding
+            template_id = parts[2]
+            template = template_manager.get_template(template_id)
+
+            if not template:
+                await query.edit_message_text("❌ Template not found.")
+                return
+
+            await query.edit_message_text(
+                f"🏗 *Creating {template.name} Project*\n\n"
+                f"Please send the project name (or type 'cancel'):",
+                parse_mode="Markdown"
+            )
+
+            # Store scaffolding state
+            if user_id not in self.active_sessions:
+                self.active_sessions[user_id] = {}
+
+            self.active_sessions[user_id]["scaffolding"] = {
+                "template_id": template_id,
+                "awaiting": "project_name"
+            }
+
+        elif action == "confirm" and len(parts) > 2:
+            # Confirmed - scaffold the project
+            template_id = parts[2]
+            project_name = parts[3] if len(parts) > 3 else "my-project"
+
+            await query.edit_message_text(
+                f"🏗 *Scaffolding project...*\n\n"
+                f"Creating project structure from {template_id}...",
+                parse_mode="Markdown"
+            )
+
+            # Create project in a temp directory
+            import tempfile
+            project_path = os.path.join(tempfile.gettempdir(), f"ralph_project_{user_id}_{template_id}")
+
+            customizations = {
+                "project_name": project_name,
+                "bot_name": project_name,
+                "app_name": project_name,
+                "api_name": project_name,
+                "tool_name": project_name,
+            }
+
+            success = template_manager.scaffold_project(template_id, project_path, customizations)
+
+            if success:
+                # Create a zip file
+                zip_path = f"{project_path}.zip"
+                shutil.make_archive(project_path, 'zip', project_path)
+
+                # Send zip file to user
+                await context.bot.send_document(
+                    chat_id=query.message.chat_id,
+                    document=open(zip_path, 'rb'),
+                    filename=f"{project_name}.zip",
+                    caption=f"✅ *Project Created!*\n\n"
+                            f"Your {template_id} project is ready!\n\n"
+                            f"Extract this zip and start building!",
+                    parse_mode="Markdown"
+                )
+
+                # Clean up
+                shutil.rmtree(project_path, ignore_errors=True)
+                os.remove(zip_path)
+
+                await query.edit_message_text(
+                    f"✅ *Project scaffolded successfully!*\n\n"
+                    f"Check your downloads for `{project_name}.zip`",
+                    parse_mode="Markdown"
+                )
+            else:
+                await query.edit_message_text(
+                    "❌ *Error creating project*\n\n"
+                    "Something went wrong. Please try again!",
+                    parse_mode="Markdown"
+                )
+
+        logger.info(f"OB-027: Handled template callback {action} for user {user_id}")
+
     async def handle_setup_callback(self, query, context, user_id: int, data: str):
         """Handle setup wizard button callbacks.
 
@@ -10270,6 +10592,7 @@ To update your Git config:
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
+        app.add_handler(CommandHandler("templates", self.templates_command))  # OB-027
         app.add_handler(CommandHandler("hacktest", self.hacktest_command))  # SEC-031
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
