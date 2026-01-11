@@ -559,7 +559,11 @@ Ralph doesn't know he's saying anything weird. To him, it's all normal.
 _Fluorescent lights flicker. The deadline looms like a storm cloud._
 _The team hasn't slept properly in days. But they're still here._""",
             "mood": "intense",
-            "rally": "We ship tonight or we don't go home!"
+            "rally": "We ship tonight or we don't go home!",
+            "variables": {
+                "time_left": ["3 hours", "by midnight", "before sunrise", "in 2 hours"],
+                "energy_level": ["running on fumes", "powered by pure caffeine", "somehow still standing", "on their fifth espresso"]
+            }
         },
         {
             "title": "THE BACKLOG MOUNTAIN",
@@ -567,7 +571,11 @@ _The team hasn't slept properly in days. But they're still here._""",
 _Someone printed the backlog - it's 47 pages long._
 _The team stares at it in horror. But then... determination._""",
             "mood": "overwhelming",
-            "rally": "One ticket at a time. We've got this!"
+            "rally": "One ticket at a time. We've got this!",
+            "variables": {
+                "backlog_pages": ["47 pages", "83 pages", "a novel-length document", "more pages than anyone dares count"],
+                "board_state": ["a war zone", "completely red", "nothing but blockers", "a beautiful disaster"]
+            }
         },
         {
             "title": "THE BIG DEMO",
@@ -575,7 +583,11 @@ _The team stares at it in horror. But then... determination._""",
 _The feature is 80% done. Maybe 70%. Okay, 60%._
 _Panic is not an option. The team needs a miracle._""",
             "mood": "pressure",
-            "rally": "Demo gods, be with us today!"
+            "rally": "Demo gods, be with us today!",
+            "variables": {
+                "vip_coming": ["The CEO", "The investors", "The Board", "That big client"],
+                "completion": ["80%", "mostly working", "theoretically functional", "if we squint, it works"]
+            }
         },
         {
             "title": "FRESH START MONDAY",
@@ -583,7 +595,11 @@ _Panic is not an option. The team needs a miracle._""",
 _The whiteboard is clean. The coffee is fresh._
 _The team gathers, energized and ready to build something great._""",
             "mood": "optimistic",
-            "rally": "Let's make something awesome!"
+            "rally": "Let's make something awesome!",
+            "variables": {
+                "day": ["Monday", "a new sprint", "Q1", "this quarter"],
+                "fresh_thing": ["The coffee", "The energy", "The optimism", "The momentum"]
+            }
         },
         {
             "title": "THE LEGACY CODE",
@@ -591,7 +607,11 @@ _The team gathers, energized and ready to build something great._""",
 _But here we are. Someone has to fix it._
 _The code is older than some team members. It has no tests._""",
             "mood": "dread",
-            "rally": "We go in together, we come out together!"
+            "rally": "We go in together, we come out together!",
+            "variables": {
+                "age": ["older than some team members", "from 2003", "written before Git existed", "ancient beyond reckoning"],
+                "warning": ["don't touch it", "don't even look at it", "the last person who tried left the company", "protected by tribal knowledge"]
+            }
         },
         {
             "title": "THE COMEBACK",
@@ -599,7 +619,11 @@ _The code is older than some team members. It has no tests._""",
 _But the team learned. They adapted. They're hungry._
 _This time will be different. This time they're ready._""",
             "mood": "redemption",
-            "rally": "We're not just fixing bugs, we're making history!"
+            "rally": "We're not just fixing bugs, we're making history!",
+            "variables": {
+                "last_time": ["Last sprint", "Last quarter", "Last release", "That disaster in November"],
+                "lesson": ["learned", "adapted", "evolved", "leveled up"]
+            }
         },
         {
             "title": "THE MYSTERY BUG",
@@ -607,7 +631,71 @@ _This time will be different. This time they're ready._""",
 _No one can reproduce it. The logs show nothing._
 _But the customer is IMPORTANT. This bug must die._""",
             "mood": "detective",
-            "rally": "We will find you. And we will fix you."
+            "rally": "We will find you. And we will fix you.",
+            "variables": {
+                "when": ["on Tuesdays", "at 3am", "during full moons", "exactly at midnight"],
+                "where": ["in production", "on mobile only", "in Safari", "in that one region"]
+            }
+        },
+        {
+            "title": "THE FRAMEWORK MIGRATION",
+            "setup": """_React 15 to React 18. Or was it Vue? No, Angular. Wait..._
+_Thousands of components. Breaking changes everywhere._
+_The docs say 'easy migration'. The docs lied._""",
+            "mood": "epic",
+            "rally": "We didn't choose the migration life. The migration life chose us!",
+            "variables": {
+                "from_to": ["React 15 to React 18", "Vue 2 to Vue 3", "AngularJS to Angular", "Python 2 to Python 3"],
+                "component_count": ["Thousands", "Hundreds", "More than we can count", "An ungodly number"]
+            }
+        },
+        {
+            "title": "THE PRODUCTION FIRE",
+            "setup": """_The alerts are screaming. The dashboards are red._
+_Users are angry. Twitter is noticing._
+_This is not a drill. This is THE big one._""",
+            "mood": "chaos",
+            "rally": "Everybody stay calm! STAY CALM!",
+            "variables": {
+                "severity": ["The alerts are screaming", "Everything is on fire", "The pager won't stop", "Slack is melting"],
+                "visibility": ["Twitter is noticing", "It's trending", "The CEO is calling", "HackerNews found us"]
+            }
+        },
+        {
+            "title": "THE REFACTOR THAT GREW",
+            "setup": """_'I'll just clean this one function,' they said._
+_'It'll take 10 minutes,' they said._
+_Six files deep. Three days later. Still going._""",
+            "mood": "resigned",
+            "rally": "We're in too deep to turn back now!",
+            "variables": {
+                "initial_claim": ["10 minutes", "an hour tops", "just one function", "a quick cleanup"],
+                "reality": ["Six files deep", "Touched half the codebase", "Triggered a full rewrite", "Found the rabbit hole"]
+            }
+        },
+        {
+            "title": "THE DEPENDENCY HELL",
+            "setup": """_npm install. Error. Stack Overflow. Try again._
+_Version conflicts. Peer dependency issues. Deprecated warnings._
+_The package-lock.json mocks them from the corner._""",
+            "mood": "frustration",
+            "rally": "Delete node_modules! Try again! We'll break through!",
+            "variables": {
+                "package_manager": ["npm", "yarn", "pnpm", "the forbidden package manager"],
+                "error_type": ["Version conflicts", "Peer dependency issues", "Python version mismatches", "Node version chaos"]
+            }
+        },
+        {
+            "title": "THE FRIDAY AFTERNOON",
+            "setup": """_It's 4:30 PM on a Friday. Everyone's mentally checked out._
+_Suddenly: 'Quick question about production...'_
+_The team's souls collectively leave their bodies._""",
+            "mood": "dread",
+            "rally": "We're so close to the weekend. We can do this. Probably.",
+            "variables": {
+                "time": ["4:30 PM", "4:45 PM", "minutes before standup ends", "right before everyone logs off"],
+                "request": ["Quick question about production", "Can we deploy this real quick", "Small bug in prod", "Urgent hotfix needed"]
+            }
         },
     ]
 
@@ -4950,14 +5038,41 @@ Format as a numbered list with clear structure."""
             "generated": datetime.now().isoformat()
         }
 
+    def apply_scenario_variables(self, scenario: dict) -> dict:
+        """Apply variable elements to a scenario to make it feel fresh.
+
+        Each scenario has optional 'variables' dict with lists of alternatives.
+        Randomly selects from these alternatives and stores them in the scenario
+        for consistent use throughout the session.
+
+        Args:
+            scenario: Scenario dict with 'title', 'setup', 'mood', 'rally', and optional 'variables'
+
+        Returns:
+            Modified scenario with variables applied and stored in 'selected_vars'
+        """
+        scenario_copy = scenario.copy()
+
+        if 'variables' in scenario:
+            selected_vars = {}
+            for var_name, options in scenario['variables'].items():
+                selected_vars[var_name] = random.choice(options)
+            scenario_copy['selected_vars'] = selected_vars
+
+        return scenario_copy
+
     async def _start_ralph_session(self, context, chat_id: int, user_id: int):
         """Start the Ralph work session with Boss/Worker drama."""
         session = self.active_sessions.get(user_id)
         if not session:
             return
 
-        # Pick a random scenario
+        # Pick a random scenario and apply variables
         scenario = random.choice(self.SCENARIOS)
+        scenario = self.apply_scenario_variables(scenario)
+
+        # Store scenario in session for potential later reference
+        session['scenario'] = scenario
 
         # ===== ACT 1: THE SCENARIO =====
         await context.bot.send_message(
@@ -4996,9 +5111,29 @@ _He looks around at his team with genuine excitement._
         await asyncio.sleep(2)
 
         # ===== ACT 3: THE TEAM RALLIES =====
+        # Team reaction varies based on scenario mood
+        mood_reactions = {
+            "intense": "_The team exchanges tense glances. They know what's at stake. But they're ready._",
+            "overwhelming": "_The team stares at the mountain of work. Someone sighs. But they crack their knuckles._",
+            "pressure": "_Nervous energy fills the room. The team knows this is the big one._",
+            "optimistic": "_The team exchanges excited glances. This is going to be good._",
+            "dread": "_The team exchanges nervous glances. But someone has to do it._",
+            "redemption": "_The team exchanges determined glances. This time will be different._",
+            "detective": "_The team exchanges curious glances. Time to solve a mystery._",
+            "epic": "_The team exchanges weary glances. This is going to be a long one._",
+            "chaos": "_The team exchanges panicked glances. But panic is just focus that hasn't found its target yet._",
+            "resigned": "_The team exchanges knowing glances. Here we go again._",
+            "frustration": "_The team exchanges frustrated glances. But they've been here before._"
+        }
+
+        team_reaction = mood_reactions.get(
+            scenario.get('mood', 'optimistic'),
+            "_The team exchanges glances. Despite everything, they believe in this weird little boss._"
+        )
+
         await context.bot.send_message(
             chat_id=chat_id,
-            text="_The team exchanges glances. Despite everything, they believe in this weird little boss._",
+            text=team_reaction,
             parse_mode="Markdown"
         )
         await asyncio.sleep(1)
