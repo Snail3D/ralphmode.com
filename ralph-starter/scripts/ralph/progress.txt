@@ -12932,3 +12932,40 @@ if should_ship:
 ✅ No exceptions - everyone is Mr. Worms
 
 ---
+
+## Iteration 241 - 2026-01-11
+**Task**: [SG-006] Graceful Immersion Breaks
+**Status**: ✅ Complete
+
+### What was implemented
+- Added health_concern_flags tracking to monitor multiple signals per user
+- Created detect_health_concern_level() that returns "low", "medium", or "high" based on flags:
+  - Session duration (>3 hours, >5 hours)
+  - Late night work (11pm-5am)
+  - High message count (>50 messages)
+  - Multiple blockers (>3 blockers)
+- Created should_trigger_immersion_break() with high bar:
+  - Only at HIGH concern level (2+ flags)
+  - 60-minute cooldown between breaks
+  - 50% random chance even when HIGH (prevents predictability)
+- Created graceful_immersion_break() with natural team dialogue:
+  - Ralph notices gently: "You've been at this a while, Mr. Worms."
+  - 1-2 workers chime in with character-specific tired reactions
+  - Gentle suggestions like "Maybe fresh eyes tomorrow?"
+  - No forced follow-up - respects if user continues
+- Integrated health check at progress milestones (natural timing)
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- High bar is critical - false positives worse than misses
+- Multiple flags (2+) prevent triggering on single data points
+- Cooldown (60 min) + random chance (50%) keep it rare and meaningful
+- Stay in character - coming from care, not control
+- Team dynamic is natural - not all workers speak, just 1-2
+- Character-specific reactions make it feel authentic (Gus: "burnt-out code is buggy", Mona: "quality drops when exhausted")
+- Integration at milestones feels natural vs. interrupting mid-work
+- No enforcement needed - suggestion alone is sufficient
+
+---
