@@ -4193,7 +4193,7 @@
       "files_likely_modified": [
         "dependency_graph.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TC-005",
