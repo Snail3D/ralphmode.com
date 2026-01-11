@@ -4685,7 +4685,7 @@
         "dependency_checker.py",
         "setup_venv.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-025",
