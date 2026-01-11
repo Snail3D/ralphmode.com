@@ -7326,6 +7326,7 @@ Stay true to your personality. 1 sentence only."""
             "last_progress_shown": None,  # When progress bar was last shown
             "last_progress_report_task": 0,  # Task count when last report was given
             "last_reported_milestone": 0,  # Last milestone reported (25, 50, 75)
+            "last_milestone_announced": 0,  # SG-014: Last milestone team reacted to (50, 75, 90)
         }
 
     def track_task_identified(self, user_id: int, task_title: str, priority: str = "medium"):
@@ -7844,6 +7845,160 @@ FRESHNESS REQUIREMENT:
             mins = (total_seconds % 3600) // 60
             return f"{hours}h {mins}m"
 
+    async def milestone_team_reaction(self, context, chat_id: int, user_id: int, pct: float):
+        """SG-014: Team reacts naturally to hitting major milestones.
+
+        Energy shifts at:
+        - 50%: 'Halfway there, folks!'
+        - 75%: 'Home stretch. Don't get sloppy now.'
+        - 90%: 'SO CLOSE. Focus up.'
+        - Last task: 'This is IT. One more and we're done!'
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            pct: Current completion percentage
+        """
+        m = self.quality_metrics.get(user_id, {})
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+        last_milestone_announced = m.get("last_milestone_announced", 0)
+
+        # Determine which milestone we just hit
+        milestone = None
+        if pct >= 90 and last_milestone_announced < 90:
+            milestone = 90
+        elif pct >= 75 and last_milestone_announced < 75:
+            milestone = 75
+        elif pct >= 50 and last_milestone_announced < 50:
+            milestone = 50
+
+        # Check if this is the last task
+        is_last_task = tasks_done == tasks_total - 1
+
+        if not milestone and not is_last_task:
+            return
+
+        # Update tracking
+        if milestone:
+            m["last_milestone_announced"] = milestone
+
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        workers = list(self.DEV_TEAM.keys())
+
+        # Last task gets special treatment
+        if is_last_task:
+            # One worker realizes it's the last one
+            worker = random.choice(workers)
+            await self.send_styled_message(
+                context, chat_id, worker, None,
+                "Wait... this is IT. One more and we're done!",
+                topic="last task excitement",
+                with_typing=True
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Ralph gets VERY excited
+            ralph_excitement = self.ralph_misspell(
+                "We're almost done! Mr. Worms will be so happy! I can feel it in my tummy!"
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_excitement,
+                topic="final push", with_typing=True
+            )
+
+        elif milestone == 50:
+            # Halfway point - optimistic energy
+            worker1 = random.choice(workers)
+            await self.send_styled_message(
+                context, chat_id, worker1, None,
+                "Halfway there, folks!",
+                topic="milestone", with_typing=True
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Team high-five
+            worker2 = random.choice([w for w in workers if w != worker1])
+            celebration = random.choice([
+                f"*{worker2} and {worker1} high-five*",
+                f"*{worker2} fist bumps {worker1}*",
+                f"*The team celebrates the halfway point*"
+            ])
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=self.format_action(celebration.strip('*')),
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Ralph celebrates
+            ralph_happy = self.ralph_misspell(
+                random.choice([
+                    "We're at the middle! That means we're halfway to the end!",
+                    "Look how much we did already! My daddy would be proud!",
+                    "Halfway! I can almost taste the finish line! It tastes like... paste!"
+                ])
+            )
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_happy,
+                topic="halfway celebration", with_typing=True
+            )
+
+        elif milestone == 75:
+            # Home stretch - focused energy
+            worker1 = random.choice(workers)
+            await self.send_styled_message(
+                context, chat_id, worker1, None,
+                "Home stretch. Don't get sloppy now.",
+                topic="milestone", with_typing=True
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            worker2 = random.choice([w for w in workers if w != worker1])
+            focused_comments = [
+                "Three quarters done. Let's finish strong.",
+                "Almost there. Keep the quality up.",
+                "Final quarter. No shortcuts.",
+                "Getting close. Stay sharp."
+            ]
+            await self.send_styled_message(
+                context, chat_id, worker2, None,
+                random.choice(focused_comments),
+                topic="focus", with_typing=True
+            )
+
+        elif milestone == 90:
+            # SO CLOSE - intense focus
+            worker1 = random.choice(workers)
+            await self.send_styled_message(
+                context, chat_id, worker1, None,
+                "SO CLOSE. Focus up.",
+                topic="final push", with_typing=True
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            worker2 = random.choice([w for w in workers if w != worker1])
+            intense_comments = [
+                "*laser focused*",
+                "*cracks knuckles*",
+                "*rolls up sleeves*",
+                "Let's bring this home."
+            ]
+            comment = random.choice(intense_comments)
+            if comment.startswith('*'):
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=self.format_action(comment.strip('*')),
+                    parse_mode="Markdown"
+                )
+            else:
+                await self.send_styled_message(
+                    context, chat_id, worker2, None, comment,
+                    topic="final push", with_typing=True
+                )
+
     async def show_progress_bar(self, context, chat_id: int, user_id: int, delay: float = 5.0):
         """Show a visual progress bar after task completion.
 
@@ -7959,6 +8114,10 @@ FRESHNESS REQUIREMENT:
             if tasks_done % 5 == 0:  # Every 5 tasks
                 mood_boost += 5
             session['team_mood'] = min(100, session['team_mood'] + mood_boost)
+
+        # SG-014: Check for milestone reactions (50%, 75%, 90%, last task)
+        pct = (tasks_done / tasks_total) * 100 if tasks_total > 0 else 0
+        await self.milestone_team_reaction(context, chat_id, user_id, pct)
 
         # Ralph occasionally comments (~30% chance)
         if random.random() < 0.3:
