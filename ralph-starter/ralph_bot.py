@@ -4060,6 +4060,35 @@ _{ralph_response}_
                     with_typing=True
                 )
 
+                # RM-055: 15% chance Ralph overhears and asks for explanation
+                # Only trigger on technical-sounding messages
+                technical_keywords = ['api', 'database', 'frontend', 'backend', 'auth', 'config', 'component',
+                                      'function', 'class', 'error', 'bug', 'test', 'deploy', 'migration',
+                                      'schema', 'endpoint', 'webhook', 'async', 'cache', 'session']
+
+                message_lower = message.lower()
+                has_technical_term = any(keyword in message_lower for keyword in technical_keywords)
+
+                if has_technical_term and random.random() < 0.15:
+                    # Ralph overhears something technical and wants it explained
+                    # Extract the technical concept from the message
+                    concept = None
+                    for keyword in technical_keywords:
+                        if keyword in message_lower:
+                            concept = keyword
+                            break
+
+                    if concept:
+                        # Wait a beat for comedic timing
+                        await asyncio.sleep(self.timing.rapid_banter())
+
+                        # Check again if we should stop
+                        if user_id not in self.active_sessions or user_id not in self.idle_chatter_task:
+                            break
+
+                        # Trigger the explanation exchange
+                        await self.explain_like_ralph_is_5(context, chat_id, concept, worker_name=speaker, user_id=user_id)
+
                 # Wait texting pace before next message (5-15 seconds)
                 await asyncio.sleep(random.uniform(5, 15))
 
@@ -6467,6 +6496,148 @@ Keep it SHORT - 2-3 sentences max. Stay in character but be CLEAR."""},
 
         response = self.call_groq(WORKER_MODEL, messages, max_tokens=150)
         return (worker_name, worker['title'], response)
+
+    async def explain_like_ralph_is_5(self, context, chat_id: int, concept: str, worker_name: str = None, user_id: int = None):
+        """RM-055: Workers explain complex concepts to Ralph in simple terms.
+
+        Ralph asks confused questions, workers patiently re-explain.
+        Educational AND entertaining - user learns by watching the exchange.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            concept: The technical concept to explain
+            worker_name: Which worker to use (random if None)
+            user_id: User ID for tracking
+        """
+        if worker_name is None:
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+
+        worker = self.DEV_TEAM[worker_name]
+
+        # Step 1: Worker starts explaining the concept
+        worker_prompt = f"""You're explaining '{concept}' to Ralph (your confused boss) and the CEO.
+
+Start with a technical explanation but keep it conversational - you're teaching Ralph.
+Stay in character ({worker['style']}). 2-3 sentences max."""
+
+        name, title, initial_explanation = self.call_worker(
+            worker_prompt,
+            context="educational explanation",
+            worker_name=worker_name,
+            task_type="general",
+            user_id=user_id
+        )
+
+        await self.send_styled_message(context, chat_id, name, title, initial_explanation, with_typing=True)
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Step 2: Ralph asks a confused question
+        ralph_confusion_prompt = f"""The worker just explained: "{initial_explanation}"
+
+You're Ralph Wiggum. You didn't understand that at all. Ask a VERY simple, confused question.
+Examples of Ralph's confused questions:
+- "Wait wait wait... so the thingy goes into the other thingy?"
+- "But where does my buttons go?"
+- "Is that like when paste goes in my tummy?"
+- "Do I need to click the internet?"
+
+Ask ONE confused question about what they just said. Stay authentic to Ralph - genuinely confused but trying."""
+
+        ralph_question = self.call_boss(
+            ralph_confusion_prompt,
+            apply_misspellings=True,
+            tone_context="confused and trying to understand",
+            user_id=user_id
+        )
+
+        await self.send_styled_message(context, chat_id, "Ralph", "Boss", ralph_question, with_typing=True)
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Step 3: Worker patiently re-explains in MUCH simpler terms
+        worker_simple_prompt = f"""Ralph just asked: "{ralph_question}"
+
+He clearly didn't understand your explanation. Re-explain '{concept}' in THE SIMPLEST possible terms.
+Use an analogy Ralph would actually get. Be patient and kind - he's trying.
+
+Stay in character ({worker['style']}) but make it VERY simple. 1-2 sentences."""
+
+        name, title, simple_explanation = self.call_worker(
+            worker_simple_prompt,
+            context="explaining to confused boss",
+            worker_name=worker_name,
+            task_type="general",
+            user_id=user_id
+        )
+
+        await self.send_styled_message(context, chat_id, name, title, simple_explanation, with_typing=True)
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Step 4: Ralph has a moment of triumphant (but hilariously wrong) understanding
+        # 70% chance he "gets it" with a ridiculous analogy
+        if random.random() < 0.7:
+            ralph_eureka_prompt = f"""The worker explained: "{simple_explanation}"
+
+You're Ralph. You THINK you finally get it! Make a triumphant connection to something ridiculous.
+Examples:
+- "OH! Like when I eat paste and it goes in my tummy!"
+- "So it's like my nose but for computers!"
+- "I know this one! My cat does this when she poops!"
+
+Your "aha moment" should be enthusiastic but completely silly. One sentence."""
+
+            ralph_eureka = self.call_boss(
+                ralph_eureka_prompt,
+                apply_misspellings=True,
+                tone_context="triumphant understanding",
+                user_id=user_id
+            )
+
+            await self.send_styled_message(context, chat_id, "Ralph", "Boss", ralph_eureka, with_typing=True)
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Step 5: Worker gently affirms (with patience)
+            worker_affirm_prompt = f"""Ralph just said: "{ralph_eureka}"
+
+He... kind of gets it? In his own way? Be encouraging but gently correct if needed.
+Stay in character ({worker['style']}). Keep it short - 1 sentence."""
+
+            name, title, affirmation = self.call_worker(
+                worker_affirm_prompt,
+                context="affirming ralph's understanding",
+                worker_name=worker_name,
+                task_type="general",
+                user_id=user_id
+            )
+
+            await self.send_styled_message(context, chat_id, name, title, affirmation, with_typing=True)
+        else:
+            # 30% chance Ralph asks another confused question and worker gives up (lovingly)
+            ralph_still_confused = self.call_boss(
+                f"You're Ralph. You still don't get it after: '{simple_explanation}'. Express confusion in one short sentence.",
+                apply_misspellings=True,
+                tone_context="still confused",
+                user_id=user_id
+            )
+
+            await self.send_styled_message(context, chat_id, "Ralph", "Boss", ralph_still_confused, with_typing=True)
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            # Worker lovingly gives up
+            worker_giveup_prompt = f"""Ralph is still confused. You tried. Give up lovingly.
+Examples: "You know what boss? Don't worry about it." or "Let's just... let's just move on."
+
+Stay in character ({worker['style']}). 1 sentence."""
+
+            name, title, giveup = self.call_worker(
+                worker_giveup_prompt,
+                context="lovingly giving up on explanation",
+                worker_name=worker_name,
+                task_type="general",
+                user_id=user_id
+            )
+
+            await self.send_styled_message(context, chat_id, name, title, giveup, with_typing=True)
 
     def generate_ralph_report(self, session: Dict[str, Any]) -> str:
         """Generate Ralph's end-of-session report to the CEO."""

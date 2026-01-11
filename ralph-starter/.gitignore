@@ -1,0 +1,48 @@
+# Secrets - NEVER commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# Verification reports (may contain secrets)
+setup_verification_report.txt
+*_verification_report.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+ralph_mode.db
+
+# Logs
+*.log
+/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# State files (may contain sensitive paths)
+.ralph_state
+
+# Backroom logs (private)
+BACKROOM_LOG.md

@@ -25,9 +25,9 @@ if [ "$START_ITERATION" -eq 1 ] && [ -f "$STATE_FILE" ]; then
   fi
 fi
 
-# Telegram streaming config
-TELEGRAM_BOT_TOKEN="8318741949:AAF__w86T8qgiv7YFZ8-wcHNkbrT1ngbPaM"
-TELEGRAM_CHAT_ID="7340030703"
+# Telegram streaming config - load from environment
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 
 # Function to send message to Telegram
 send_telegram() {
@@ -38,9 +38,9 @@ send_telegram() {
     -d "parse_mode=Markdown" > /dev/null 2>&1 || true
 }
 
-# Auto-deploy config
-SERVER_IP="69.164.201.191"
-SERVER_PASS="Y2xQkkH01puXGlOzuOdQ"
+# Auto-deploy config - load from environment
+SERVER_IP="${DEPLOY_SERVER_IP:-}"
+SERVER_PASS="${DEPLOY_SERVER_PASS:-}"
 
 # Function to deploy to server and restart bot (with timeouts to prevent hanging)
 deploy_to_server() {
