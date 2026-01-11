@@ -1173,6 +1173,43 @@ class RalphBot:
         },
     }
 
+    # SG-036: Worker Family Profiles for Natural Session Ends
+    WORKER_FAMILY_PROFILES = {
+        "Stool": {
+            "relationship_status": "single",
+            "lives_with": "roommate",
+            "pet": "cat named Pixel",
+            "family_nearby": ["sister", "mom"],
+            "hobbies": ["gaming", "concerts", "streaming"],
+            "responsibilities": ["apartment", "cat care", "gym routine"]
+        },
+        "Gomer": {
+            "relationship_status": "married",
+            "spouse_name": "Sara",
+            "kids": ["Tommy (8)", "Lisa (5)"],
+            "family_nearby": ["parents (aging)", "in-laws"],
+            "hobbies": ["bowling", "woodworking", "cooking"],
+            "responsibilities": ["kids activities", "home repairs", "family dinners"]
+        },
+        "Mona": {
+            "relationship_status": "married",
+            "spouse_name": "James",
+            "spouse_job": "architect",
+            "kids": ["Maya (12)"],
+            "family_nearby": ["brother"],
+            "hobbies": ["saxophone", "environmental activism", "reading"],
+            "responsibilities": ["PTA", "daughter's tutoring", "city council meetings"]
+        },
+        "Gus": {
+            "relationship_status": "divorced",
+            "lives_with": "alone",
+            "kids": ["adult son (lives across country)"],
+            "family_nearby": ["elderly mother"],
+            "hobbies": ["woodworking", "fishing", "blues bars"],
+            "responsibilities": ["checking on mom", "maintaining house", "vintage car restoration"]
+        }
+    }
+
     def __init__(self):
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.boss_queue: Dict[int, list] = {}  # Queued messages for boss
@@ -1224,6 +1261,9 @@ class RalphBot:
         # SG-032: Background Accountability Checklist - Track requirement evaluation
         self.last_accountability_check: Dict[int, datetime] = {}  # Track when last check happened
         self.accountability_check_cooldown = 1800  # 30 minutes between checks
+
+        # SG-036: Natural Session Ends - Track when workers need to leave
+        self.last_session_end_check: Dict[int, datetime] = {}  # Track when last check happened
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -1654,6 +1694,8 @@ class RalphBot:
         Creates the MUD feeling - you see workers doing things around you.
         Updates appear during quiet moments, not constantly.
 
+        Also checks for SG-036 natural session ends.
+
         Args:
             context: Telegram context
             chat_id: Chat ID for sending messages
@@ -1667,6 +1709,13 @@ class RalphBot:
                 # Check if session still active
                 if user_id not in self.active_sessions:
                     break
+
+                # SG-036: Check if we should trigger natural session end
+                if self.should_trigger_natural_session_end(user_id):
+                    await self.natural_session_end(context, chat_id, user_id)
+                    self.last_session_end_check[user_id] = datetime.now()
+                    # Don't show status update after session end
+                    continue
 
                 session = self.active_sessions[user_id]
                 worker_statuses = session.get('worker_statuses', {})
@@ -10494,6 +10543,210 @@ I'm not that smart, but I remember ALL of it!
 
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "approved")
+
+    # ==================== SG-036: NATURAL SESSION ENDS ====================
+
+    def generate_session_end_excuse(self, worker_name: str) -> str:
+        """SG-036: Generate a fresh, natural excuse for worker to leave session.
+
+        Uses worker family profiles to create authentic, varied excuses.
+        NEVER returns verbatim examples - always generates fresh content.
+
+        Args:
+            worker_name: Name of the worker leaving
+
+        Returns:
+            Natural excuse string that feels authentic to the worker's life
+        """
+        if worker_name not in self.WORKER_FAMILY_PROFILES:
+            return "Hey Ralph, gotta head out. Got some stuff to take care of."
+
+        profile = self.WORKER_FAMILY_PROFILES[worker_name]
+
+        # Build contextual excuse based on worker's actual life
+        excuse_templates = []
+
+        # Family-based excuses
+        if profile.get("spouse_name"):
+            excuse_templates.extend([
+                f"{profile['spouse_name']}'s been texting me - gotta go.",
+                f"Wife's calling, I should probably answer that.",
+                f"{profile['spouse_name']}'s asking where I am. I'm in trouble if I don't leave now.",
+                f"Promised {profile['spouse_name']} I'd be home by now. Gotta bounce."
+            ])
+
+        if profile.get("kids"):
+            kid_names = [kid.split()[0] for kid in profile["kids"]]  # Extract first names
+            excuse_templates.extend([
+                f"Kids need picking up from {random.choice(['school', 'practice', 'their friends house'])}.",
+                f"{random.choice(kid_names)} has {random.choice(['soccer', 'piano', 'karate'])} in 20 minutes.",
+                f"Gotta help {random.choice(kid_names)} with {random.choice(['homework', 'a project', 'dinner'])}.",
+                f"Promised the kids I'd be there for {random.choice(['dinner', 'bedtime', 'game night'])}."
+            ])
+
+        # Elderly family care (Gus and Gomer)
+        if "elderly mother" in str(profile.get("family_nearby", [])) or "parents (aging)" in str(profile.get("family_nearby", [])):
+            excuse_templates.extend([
+                f"Need to check on my {random.choice(['mom', 'folks'])}. Haven't heard from them today.",
+                f"Told my mom I'd stop by. She worries if I'm late.",
+                f"Gotta pick up some groceries for my {random.choice(['mom', 'parents'])}."
+            ])
+
+        # Pet responsibilities
+        if profile.get("pet"):
+            pet = profile["pet"]
+            excuse_templates.extend([
+                f"My {pet} hasn't been fed yet. Feeling guilty about that.",
+                f"Been gone too long - {pet} is probably destroying my apartment.",
+                f"Gotta get home to my {pet}. Can't leave them alone much longer."
+            ])
+
+        # Hobbies and personal time
+        hobbies = profile.get("hobbies", [])
+        if hobbies:
+            hobby = random.choice(hobbies)
+            excuse_templates.extend([
+                f"Got {hobby} tonight. Can't miss it.",
+                f"Meeting some people for {hobby}. Told them I'd be there.",
+            ])
+
+        # Responsibilities
+        responsibilities = profile.get("responsibilities", [])
+        if responsibilities:
+            resp = random.choice(responsibilities)
+            excuse_templates.extend([
+                f"Need to deal with {resp}. Been putting it off too long.",
+                f"Gotta handle {resp} before it gets too late.",
+            ])
+
+        # Time-of-day generic excuses
+        excuse_templates.extend([
+            "Getting late. I should head out.",
+            "Promised I wouldn't stay late today. Gotta go.",
+            "Been here long enough. Time for me to bounce.",
+            "Heading out, boss. Got some stuff to handle at home."
+        ])
+
+        return random.choice(excuse_templates)
+
+    async def natural_session_end(self, context, chat_id: int, user_id: int):
+        """SG-036: Worker initiates natural session end with life excuse.
+
+        Workers can initiate session end by mentioning real-life responsibilities.
+        Ralph accepts gracefully. Makes endings feel natural, not abrupt.
+        Creates fiction of real people with real lives.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+        """
+        # Pick a random worker to initiate the end
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
+
+        # Generate fresh excuse based on worker's profile
+        excuse = self.generate_session_end_excuse(worker_name)
+
+        # Worker announces they need to leave
+        worker_message = f"Hey Ralph, {excuse}"
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker['title'],
+            worker_message,
+            topic="session_end"
+        )
+
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # Other workers might acknowledge
+        if random.random() < 0.4:  # 40% chance another worker chimes in
+            other_workers = [w for w in self.DEV_TEAM.keys() if w != worker_name]
+            other_worker_name = random.choice(other_workers)
+
+            acknowledgments = [
+                "Yeah, I should probably head out too.",
+                "See you tomorrow, man.",
+                f"Tell {self.WORKER_FAMILY_PROFILES.get(worker_name, {}).get('spouse_name', 'them')} hi!" if self.WORKER_FAMILY_PROFILES.get(worker_name, {}).get('spouse_name') else "See ya!",
+                "Have a good one.",
+                "Later!",
+                "Catch you in the morning.",
+            ]
+
+            await self.send_styled_message(
+                context, chat_id, other_worker_name, self.DEV_TEAM[other_worker_name]['title'],
+                random.choice(acknowledgments),
+                topic="session_end"
+            )
+
+            await asyncio.sleep(self.timing.brief_pause())
+
+        # Ralph accepts and acknowledges gracefully
+        ralph_responses = [
+            "Oh... alright. We'll pick it up tomorrow!",
+            "Okay! You go take care of that. See you tomorrow!",
+            "No problem! We can finish this tomorrow!",
+            "Sure thing! Go ahead, we're good here!",
+            "That's okay! We did good work today anyway!",
+            "Alright! Thanks for staying as long as you did!",
+            "Go ahead! Family comes first! We'll get it tomorrow!",
+            "No worries! We'll continue in the morning!",
+        ]
+
+        ralph_message = self.ralph_misspell(random.choice(ralph_responses))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            ralph_message,
+            topic="session_end"
+        )
+
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # Workers might say goodbye to Mr. Worms
+        goodbye_templates = [
+            "See you later, Mr. Worms!",
+            "We'll pick this up tomorrow, boss!",
+            "Talk to you tomorrow, Mr. Worms!",
+            "Have a good night, boss!",
+            "Catch you later, Mr. Worms!",
+        ]
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker['title'],
+            random.choice(goodbye_templates),
+            topic="session_end"
+        )
+
+        logger.info(f"SG-036: Natural session end initiated by {worker_name} for user {user_id}")
+
+    def should_trigger_natural_session_end(self, user_id: int) -> bool:
+        """SG-036: Determine if a natural session end should trigger.
+
+        Triggers occasionally during long sessions to create natural rhythm.
+        Not too frequent - maybe once every 2-3 hours of active work.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            True if natural session end should trigger
+        """
+        session = self.active_sessions.get(user_id, {})
+
+        # Don't trigger during onboarding or if no active session
+        if session.get('status') != 'working':
+            return False
+
+        # Check cooldown - minimum 90 minutes between natural ends
+        if user_id in self.last_session_end_check:
+            time_since_last = (datetime.now() - self.last_session_end_check[user_id]).total_seconds()
+            if time_since_last < 5400:  # 90 minutes
+                return False
+
+        # Low probability trigger - 2% chance on each check
+        # This means it happens occasionally but not predictably
+        return random.random() < 0.02
 
     async def send_worker_handoff_message(self, context, chat_id: int, user_id: int):
         """SG-037: Worker sends warm handoff message when session ends.
