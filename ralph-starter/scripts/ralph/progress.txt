@@ -11145,3 +11145,29 @@ All functionality tested and verified:
 - Keyword matching: case-insensitive, checks both message and context
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-025] Dependency Installation Wizard
+**Status**: ✅ Complete
+
+### What was implemented
+- Added async npm install with streaming progress updates
+- Added async pip install with streaming progress updates
+- Progress callback system that updates Telegram messages in real-time
+- Error handling with retry/skip/help options
+- Comprehensive help messages for common installation issues
+- Installation result tracking (SUCCESS, FAILURE, SKIPPED, CANCELLED)
+
+### Files changed
+- dependency_checker.py: Added run_npm_install() and run_pip_install() methods
+- onboarding_wizard.py: Added run_dependency_installation(), get_dependency_install_help_message(), and get_dependency_install_keyboard()
+
+### Learnings
+- Using asyncio.create_subprocess_exec() for non-blocking installation with live output
+- Progress callbacks allow real-time Telegram message updates during long operations
+- Separate stdout/stderr readers ensure we capture all output
+- Retry/skip pattern gives users control when installations fail
+- Filter pip output to show only meaningful lines (Collecting, Installing, Successfully)
+- npm output can be verbose - show all lines for transparency
+
+---
