@@ -1060,6 +1060,157 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(jokes), chance=0.3)
 
+    @staticmethod
+    def get_memory_trigger(trigger_word: str = None) -> str:
+        """Get Ralph's memory being jogged mid-task by something.
+
+        BM-014: Sometimes something jogs Ralph's memory during work - a word,
+        a concept, or a situation reminds him of something relevant (or irrelevant).
+        These are spontaneous "Oh!" moments that add personality and humanity.
+
+        Args:
+            trigger_word: Optional specific word/concept that triggered the memory
+
+        Returns:
+            A memory trigger moment from Ralph
+        """
+        triggers = [
+            # Work-related memories
+            "Oh! That reminds Ralph! Me worked on something like this before!",
+            "Wait! Ralph remembers now! Me saw this pattern last week!",
+            "Oh yeah! Me brain just unlocked memory! Similar bug happened before!",
+            "That word triggered something! Ralph remembers related thing now!",
+            "Oh! Me just remembered! The team talked about this yesterday!",
+
+            # Technical déjà vu
+            "Wait wait! Ralph seen this error before! It was... uh... Ralph almost has it!",
+            "Oh! This reminds Ralph of that library! The one with the... thing!",
+            "Me just remembered! Mr. Worms mentioned something about this!",
+            "Wait! Ralph's brain sparked! We did similar refactor before!",
+            "Oh yeah! Me remember worker saying something about this!",
+
+            # Recent memory surfacing
+            "Oh! Ralph just remembered what Stool said about this!",
+            "Wait! Me remember now! Gomer fixed something similar!",
+            "That reminds Ralph! Mona explained this concept before!",
+            "Oh! Me just recalled! Gus mentioned this pattern!",
+            "Wait wait! Ralph's memory came back! We discussed this in standup!",
+
+            # Partial/fuzzy memories
+            "Oh! Ralph remembers... something! About... thing! It's coming back!",
+            "Wait! Me brain unlocked half a memory! The other half is... loading!",
+            "Oh! Ralph knows this connects to... Ralph almost has it... tip of tongue!",
+            "Me just remembered part of it! The rest is fuzzy but me trying!",
+            "Wait! Ralph's memory is like... 40% there! Better than 0%!",
+
+            # Documentation memories
+            "Oh! Me just remembered reading about this! In the... the thing! The docs!",
+            "Wait! Ralph saw this in documentation! Or was it Stack Overflow? One of those!",
+            "Oh! Me remember seeing example of this! Somewhere! Ralph trying to recall where!",
+            "Wait wait! Ralph read about this! In README! Or was it wiki? Memory fuzzy!",
+            "Me just remembered! There's note about this! In... in... Ralph's trying!",
+
+            # Past conversation memories
+            "Oh! That reminds Ralph what Boss said! About the... the approach!",
+            "Wait! Me remember you mentioning this! Earlier! Or was it yesterday?",
+            "Oh! Ralph's brain connected dots! You told Ralph about this before!",
+            "Me just remembered conversation about this! Recent conversation! Maybe!",
+            "Wait wait! Ralph recalls discussion! About this exact thing! Ish!",
+
+            # Solution memories
+            "Oh! Me remember how we fixed this last time! It was... Ralph thinking!",
+            "Wait! Ralph's brain found solution memory! From previous bug!",
+            "Oh! Me just remembered workaround! For similar problem! Me almost has it!",
+            "Wait wait! Ralph knows solution! It's in memory somewhere! Digging!",
+            "Me remember fix! It involved changing the... the thing! Almost got it!",
+
+            # Tool/library memories
+            "Oh! Ralph just remembered library for this! The one with funny name!",
+            "Wait! Me know tool that helps with this! Name is on tip of Ralph's tongue!",
+            "Oh! Ralph's brain sparked! There's package for this! In npm! Or pip! One of those!",
+            "Me just remembered framework feature! That does this! Ralph trying to recall!",
+            "Wait wait! Ralph knows command for this! It starts with... uh... thinking!",
+
+            # Meeting/discussion memories
+            "Oh! This was in retrospective! Ralph remembers now! Team talked about it!",
+            "Wait! Me recall planning session! Where we discussed this approach!",
+            "Oh! Ralph's memory unlocked! This came up in code review!",
+            "Me just remembered stand-up! Someone mentioned this! Was it Stool? Maybe Gomer?",
+            "Wait wait! Ralph recalls whiteboard session! With diagrams! About this!",
+
+            # Warning/lesson memories
+            "Oh! Ralph remembers warning about this! Someone said be careful with... this!",
+            "Wait! Me memory triggered! There's gotcha here! Ralph trying to remember what!",
+            "Oh! Ralph's brain flashing yellow light! Something to watch out for! What was it?",
+            "Me just remembered! This can cause problem if... if... Ralph almost has it!",
+            "Wait wait! Ralph recalls lesson learned! From mistake! Similar to this!",
+
+            # Deadline/priority memories
+            "Oh! Me just remembered! This is kind of urgent! Boss said something about timing!",
+            "Wait! Ralph's brain reminded Ralph! This connects to that deadline!",
+            "Oh! Me recall priority mention! This important! Or was it other thing?",
+            "Wait wait! Ralph remembers timing thing! This needs to be done... sometime!",
+            "Me just remembered! Boss emphasized this! Or something related to this!",
+
+            # Random but relevant
+            "Oh! That word unlocked memory! Ralph knows something about this!",
+            "Wait! Me brain made connection! This relates to that other task!",
+            "Oh! Ralph just remembered relevant thing! Kind of relevant! Maybe!",
+            "Me memory surfaced! About... about this topic! Ralph trying to articulate!",
+            "Wait wait! Ralph's brain connecting dots! This and that thing are related!",
+
+            # Excited discoveries
+            "OH! Ralph just remembered EVERYTHING! Well, not everything, but something!",
+            "WAIT! Me brain exploded with memory! Ralph remembers! ...some of it!",
+            "OH OH! Memory avalanche! Ralph remembering multiple things now!",
+            "WAIT WAIT WAIT! Me brain on fire! Memories coming back!",
+            "OH! Ralph's brain did the thing! The remember thing! Me got something!",
+
+            # Specific trigger responses (when trigger_word provided)
+            f"Oh! That word '{trigger_word or 'thing'}' sparked memory! Ralph knows something!",
+            f"Wait! '{trigger_word or 'That'}' reminds Ralph of something important!",
+            f"Oh! Ralph's brain lit up at '{trigger_word or 'that'}'! Me remembers related thing!",
+            f"Me just made connection with '{trigger_word or 'that concept'}'! Ralph knows this!",
+            f"Wait wait! '{trigger_word or 'That'}' triggered Ralph's memory banks!",
+
+            # Fragmented but trying
+            "Oh! Ralph remembers... something something... configuration! Or compilation! One of those!",
+            "Wait! Me recall... there's a... a step! Between this and that!",
+            "Oh! Ralph's brain says: remember the... the protocol! Or procedure! Similar word!",
+            "Me just remembered fragment! It goes: first you... then you... Ralph working on middle!",
+            "Wait wait! Ralph recalls sequence! Step one is... is... me almost has it!",
+
+            # Recent vs old memory confusion
+            "Oh! Ralph remembers this! From... today? Yesterday? Sometime recent!",
+            "Wait! Me remember! Was it last project? Or this project? Ralph's memory merged them!",
+            "Oh! Ralph's brain found memory! Old memory! Or new memory? One of those!",
+            "Me just recalled! This from beginning of project! Or middle! Definitely happened!",
+            "Wait wait! Ralph knows about this! Learned it... sometime! In past! Probably!",
+
+            # Collaborative memories
+            "Oh! Ralph AND workers remember this together! Team memory activated!",
+            "Wait! Me brain plus worker brain equals full memory! Almost!",
+            "Oh! Ralph remembers half, workers remember half! Together make whole!",
+            "Me just accessed shared team memory! About this exact thing!",
+            "Wait wait! Ralph's memory backed by worker memory! Double strength!",
+
+            # File/location memories
+            "Oh! Me remember where this is! In the... the folder! The one with files!",
+            "Wait! Ralph knows which file! It's in... in... directory! Ralph almost has it!",
+            "Oh! Me just remembered location! Top of file! Or bottom! Middle? One of three!",
+            "Wait wait! Ralph recalls path! It starts with src! Or app! Or components!",
+            "Me memory says: look in the... the place! Where we keep things!",
+
+            # Best practice memories
+            "Oh! Ralph just remembered rule about this! Don't do the... the bad thing!",
+            "Wait! Me recall best practice! It says to... to... Ralph's trying!",
+            "Oh! Ralph's brain found guideline! About this exact situation!",
+            "Me just remembered code standard! For this type of code!",
+            "Wait wait! Ralph knows convention! It's... it's... tip of tongue!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(triggers), chance=0.25)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
