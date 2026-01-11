@@ -13428,3 +13428,66 @@ Milestone reactions should come BEFORE random Ralph comments or worker high-five
 - The rhythm creates immersion - feels less robotic, more human
 
 ---
+
+## Iteration 16 - 2026-01-11
+**Task**: [SG-005] Session Health Tracking
+**Status**: ✅ Complete
+
+### What was implemented
+- Added health tracking fields to active_sessions initialization:
+  * start_time: Session start timestamp (for total session hours)
+  * message_count: Total messages sent by user
+  * last_message_time: Timestamp of most recent message
+  * messages_in_last_minute: Rolling list of message timestamps for rate calculation
+  * total_session_hours: Calculated session duration
+  * health_concern_level: "none", "mild", "moderate", or "high"
+  
+- Created update_session_health_tracking() method:
+  * Called on every user message in handle_text()
+  * Increments message_count
+  * Maintains rolling window of messages_in_last_minute (auto-cleans old timestamps)
+  * Calculates messages_per_minute average
+  * Updates total_session_hours from start_time
+  * Recalculates health_concern_level automatically
+  
+- Created calculate_health_concern_level() method:
+  * Flags long sessions: 4+ hours = moderate, 6+ hours = severe
+  * Flags rapid messages: 5+ per minute = moderate, 10+ per minute = severe
+  * Flags late night: 2am-6am = moderate concern
+  * Multi-tier severity system:
+    - High: 2+ severe flags OR 1 severe + 2 moderate
+    - Moderate: 1 severe flag OR 3+ moderate flags
+    - Mild: 1-2 moderate flags
+    - None: No flags
+  * Non-intrusive tracking - doesn't act on flags, just stores data
+
+### Files changed
+- ralph_bot.py:
+  * Session initialization (lines 11679-11684)
+  * Health tracking methods (lines 11305-11402)
+  * Message handler integration (lines 13005-13007)
+- scripts/ralph/prd.json:
+  * Marked SG-005 as passes: true
+
+### Learnings
+- Tracking health metrics is about CARING, not CONTROLLING (respects user autonomy)
+- Data should inform future features (SG-006 graceful breaks) but not act automatically
+- Rolling window pattern is efficient for rate calculation (auto-cleans old timestamps)
+- Multi-tier concern levels allow nuanced assessment (mild vs severe concerns)
+- Integration at message handler ensures tracking happens on every user interaction
+- Time-of-day awareness (2am-6am) helps identify late-night sessions
+- Combining multiple signals (duration + rate + time) gives better health picture than single metric
+- Important to track WITHOUT acting - the data informs humans (or future AI decision-making)
+- Session health is foundation for caring AI that knows when users might need a break
+
+### Pattern discovered
+Health tracking needs to be:
+1. **Non-intrusive**: Track silently, don't nag
+2. **Multi-signal**: Combine duration, message rate, and time-of-day for holistic view
+3. **Graduated severity**: Mild/moderate/high allows appropriate responses
+4. **Forward-looking**: Data enables future features (SG-006) without immediate action
+5. **Respectful**: User autonomy is paramount - tracking is not controlling
+
+This enables "caring AI" that understands user patterns and can respond appropriately when needed, while never being preachy or controlling.
+
+---
