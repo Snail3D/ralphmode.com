@@ -13007,3 +13007,30 @@ if should_ship:
 - Warm language: "talk to real people" not "I'm not your therapist"
 
 ---
+
+## Iteration 243 - 2026-01-11
+**Task**: [SG-030] Dynamic Requirements - Mr. Worms Adds On The Fly
+**Status**: ✅ Complete
+
+### What was implemented
+- Added session_requirements list to active_sessions with status tracking (pending/in_progress/completed)
+- Created add_session_requirement() to store requirements with timestamp
+- Created detect_and_store_requirement() with pattern detection for requirement phrases
+- Added format_session_requirements_for_prompt() to format requirements for worker prompts
+- Integrated detection into handle_text() message handler to catch requirements in real-time
+- Ralph now acknowledges requirements with varied responses ("Got it boss! Blue buttons!")
+- Workers receive all active requirements in their system prompts via call_worker()
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Pattern detection for requirements: "make sure", "all X should be", "needs to be", "don't forget", "remember to"
+- Requirements persist for entire session and can be referenced by workers
+- Status tracking allows for requirement lifecycle management (pending → in_progress → completed)
+- Ralph's acknowledgment happens asynchronously with comedic timing (rapid_banter delay)
+- Workers see requirements formatted with emojis (📋 pending, ⚡ in_progress, ✅ completed)
+- This is how real work happens - requirements evolve during the session, not just at the start
+- Separate from SG-031's requirements list (which stores all directives), this focuses on actionable preferences with status
+
+---
