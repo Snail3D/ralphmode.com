@@ -2665,6 +2665,252 @@ But these make it look MORE professional! ✨
 *Ready to continue?*
 """
 
+    # OB-036: Telegram Bot Permissions Guide
+
+    def get_bot_permissions_guide_message(self) -> str:
+        """Get comprehensive guide for Telegram bot permissions.
+
+        Returns:
+            Bot permissions guide with explanations
+        """
+        return """*Telegram Bot Permissions Guide!* 🔐
+
+Ralph gonna help you set up your bot's permissions!
+
+*What are permissions?*
+They control what your bot can see and do in Telegram!
+
+**Here's what we gonna configure:**
+
+**1. Privacy Mode** 🕵️
+• Controls if bot sees ALL messages or just commands
+• **DISABLED** = Bot sees everything in groups
+• **ENABLED** = Bot only sees messages that start with /
+
+*Ralph's Recommendation:*
+**DISABLE** privacy mode for Ralph to work right!
+Ralph needs to see your messages to help you!
+
+**2. Group Mode** 👥
+• Let your bot work in group chats
+• Ralph works great in groups or private chats!
+
+*Ralph's Recommendation:*
+**ENABLE** groups if you want to work with team!
+
+**3. Inline Mode** 🔍
+• Lets people use bot like: `@yourbot search term`
+• Cool feature but not needed for Ralph!
+
+*Ralph's Recommendation:*
+**OPTIONAL** - only if you want this feature!
+
+*Ready to configure these settings?*
+"""
+
+    def get_bot_permissions_instructions_message(self) -> str:
+        """Get step-by-step instructions for setting bot permissions via BotFather.
+
+        Returns:
+            Detailed permission configuration steps
+        """
+        return """*Setting Bot Permissions - Step by Step!* 📝
+
+Follow these steps in BotFather!
+
+**Step 1: Open BotFather**
+Search `@BotFather` in Telegram and start chat
+
+**Step 2: Access Your Bot Settings**
+Send this command:
+```
+/mybots
+```
+Then select your bot from the list!
+
+**Step 3: Go to Bot Settings**
+Click "Bot Settings" button
+
+**Step 4: Configure Privacy Mode** 🔒
+
+Send to BotFather:
+```
+/setprivacy
+```
+
+BotFather will ask: "Enable privacy mode?"
+
+**For Ralph, choose: DISABLE**
+• Type: `Disable`
+• This lets Ralph see all messages
+• Needed for Ralph to help you properly!
+
+✅ Success message: "Privacy mode is disabled for [your bot]"
+
+**Step 5: Configure Group Settings** 👥
+
+Click "Allow Groups" in Bot Settings
+
+**For Ralph, choose: ENABLE**
+• This lets you add Ralph to group chats
+• Great for team projects!
+
+**Step 6: Configure Inline Mode** (Optional) 🔍
+
+Send to BotFather:
+```
+/setinline
+```
+
+**For Ralph:**
+• You can skip this!
+• Or enable if you want inline features later
+• Not required for basic Ralph functionality
+
+*That's it!* Your bot permissions are configured!
+
+Click below when you're done!
+"""
+
+    def get_bot_permissions_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for bot permissions guide.
+
+        Returns:
+            Keyboard with BotFather link and action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("👨‍💼 Open BotFather", url="https://t.me/BotFather")],
+            [InlineKeyboardButton("📋 Show Commands", callback_data="show_permission_commands")],
+            [InlineKeyboardButton("✅ I Configured Permissions!", callback_data="bot_permissions_done")],
+            [InlineKeyboardButton("❓ Help", callback_data="bot_permissions_help")],
+            [InlineKeyboardButton("◀️ Back", callback_data="setup_back_permissions")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_bot_permissions_commands_message(self) -> str:
+        """Get quick reference of BotFather commands for permissions.
+
+        Returns:
+            Commands reference
+        """
+        return """*Quick Commands Reference!* 📋
+
+Copy and paste these into BotFather:
+
+**Access your bot settings:**
+```
+/mybots
+```
+
+**Disable Privacy Mode (Recommended):**
+```
+/setprivacy
+```
+Then choose: `Disable`
+
+**Enable Inline Mode (Optional):**
+```
+/setinline
+```
+
+**View all settings:**
+Select your bot → "Bot Settings"
+
+*Ralph says:*
+"Just copy these! Paste in BotFather! Easy peasy!" 👃
+
+[Official Telegram Bot Docs](https://core.telegram.org/bots#privacy-mode)
+"""
+
+    def get_bot_permissions_help_message(self) -> str:
+        """Get troubleshooting help for bot permissions.
+
+        Returns:
+            Common problems and solutions
+        """
+        return """*Bot Permissions Help!* 🆘
+
+**Common Problems:**
+
+**Problem 1: "BotFather doesn't respond to /setprivacy"**
+→ Make sure you typed it exactly: `/setprivacy`
+→ Try `/mybots` first, select bot, then Bot Settings
+→ Look for "Group Privacy" option there!
+
+**Problem 2: "I don't see the Disable option"**
+→ BotFather shows "Enable" or "Disable"
+→ Current setting is shown first
+→ Choose the OPPOSITE of current setting!
+
+**Problem 3: "Privacy mode keeps turning back on"**
+→ Check you selected the RIGHT bot in BotFather
+→ Try setting it again
+→ Restart your bot after changing
+
+**Problem 4: "Not sure if settings applied"**
+→ BotFather shows confirmation message
+→ You can check anytime: `/mybots` → your bot → Bot Settings
+→ Current settings are shown!
+
+**Problem 5: "Bot still doesn't see group messages"**
+→ Remove bot from group and add again
+→ Check privacy mode is DISABLED
+→ Make sure bot is admin (if group requires it)
+
+*What Privacy Mode should be:*
+**DISABLED** = Bot sees all messages (Ralph needs this!)
+**ENABLED** = Bot only sees commands (don't use this!)
+
+*Still confused?*
+Check the official docs or tell Ralph what's wrong!
+
+[Telegram Bot Privacy Mode](https://core.telegram.org/bots/features#privacy-mode)
+"""
+
+    def get_bot_permissions_verification_message(self) -> str:
+        """Get message to verify permissions are set correctly.
+
+        Returns:
+            Verification checklist
+        """
+        return """*Let's Verify Your Settings!* ✅
+
+Ralph gonna check if everything's configured right!
+
+**Checklist:**
+
+□ Privacy Mode: **DISABLED**
+  → Bot can see all messages
+  → Required for Ralph to work!
+
+□ Groups: **ENABLED**
+  → Bot can join group chats
+  → Good for team projects!
+
+□ Inline Mode: **Your choice!**
+  → Optional feature
+  → Not needed for basic Ralph!
+
+*How to verify:*
+
+1. Go to @BotFather
+2. Send `/mybots`
+3. Select your bot
+4. Click "Bot Settings"
+5. Check each setting!
+
+**Privacy Mode should say:**
+"Privacy mode is **disabled** for YourBot"
+
+*Everything look good?*
+Click "Done" below if settings are correct!
+
+*Need to change something?*
+No problem! Just go back to BotFather and adjust!
+
+Ralph says: "Take your time! Getting settings right is important!" 👃
+"""
+
     # Repository Creation Wizard (OB-004)
 
     def get_repo_creation_intro_message(self) -> str:
