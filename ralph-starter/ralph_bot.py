@@ -1104,6 +1104,82 @@ class RalphBot:
         else:
             self.onboarding_wizard = None
 
+    # ==================== RM-029: DYNAMIC MOOD SYSTEM ====================
+
+    def get_team_mood(self, user_id: int) -> int:
+        """Get current team mood for a session (0-100).
+        Uses session['team_mood'] from RM-028 if available.
+
+        Returns:
+            Mood level: 0=exhausted, 50=neutral, 100=energized
+        """
+        session = self.active_sessions.get(user_id, {})
+        return session.get('team_mood', 70)  # Default to 70 (slightly upbeat)
+
+    def adjust_mood(self, user_id: int, delta: int, reason: str = None):
+        """Adjust team mood by a delta amount.
+        Integrates with RM-028 session-based mood tracking.
+
+        Args:
+            user_id: User session to adjust mood for
+            delta: Amount to change mood (-100 to +100)
+            reason: Optional reason for logging
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return  # No active session, skip mood adjustment
+
+        current_mood = session.get('team_mood', 70)
+        new_mood = max(0, min(100, current_mood + delta))
+        session['team_mood'] = new_mood
+
+        if reason:
+            logger.info(f"RM-029: Mood {current_mood} -> {new_mood} ({delta:+d}) for user {user_id}: {reason}")
+
+    def get_mood_modifier(self, user_id: int) -> dict:
+        """Get mood-based modifiers for worker responses.
+
+        Returns:
+            Dict with mood level, description, and response guidance
+        """
+        mood = self.get_team_mood(user_id)
+
+        if mood >= 80:
+            return {
+                "level": "energized",
+                "emoji": "🔥",
+                "guidance": "High energy! Show enthusiasm, crack jokes, be collaborative. Team is firing on all cylinders.",
+                "tone": "upbeat"
+            }
+        elif mood >= 60:
+            return {
+                "level": "positive",
+                "emoji": "😊",
+                "guidance": "Good spirits. Professional, friendly, engaged. Team is doing well.",
+                "tone": "friendly"
+            }
+        elif mood >= 40:
+            return {
+                "level": "neutral",
+                "emoji": "😐",
+                "guidance": "Moderate energy. Focus on work, less chitchat. Team is steady.",
+                "tone": "professional"
+            }
+        elif mood >= 20:
+            return {
+                "level": "tired",
+                "emoji": "😓",
+                "guidance": "Low energy. Shorter responses, occasional sighs, mild complaints. Team is wearing down.",
+                "tone": "weary"
+            }
+        else:
+            return {
+                "level": "exhausted",
+                "emoji": "😫",
+                "guidance": "Exhausted! Very short responses, frequent sighs, clear fatigue. Team needs a break.",
+                "tone": "drained"
+            }
+
     # ==================== STYLED BUTTON MESSAGES ====================
 
     def _generate_message_id(self) -> str:
@@ -4285,6 +4361,9 @@ _{ralph_response}_
                 item["status"] = "completed"
                 break
 
+        # RM-029: Boost mood when tasks are completed
+        self.adjust_mood(user_id, +10, f"Task completed: {task_title}")
+
     def track_code_provided(self, user_id: int, language: str = "unknown"):
         """Track when a code snippet is provided."""
         if user_id not in self.quality_metrics:
@@ -5338,6 +5417,15 @@ When reviewing:
         if user_id is not None:
             freshness_prompt = self.get_freshness_prompt(user_id, worker_name)
 
+        # RM-029: Get mood modifier to adjust worker tone
+        mood_prompt = ""
+        if user_id is not None:
+            mood_modifier = self.get_mood_modifier(user_id)
+            mood_prompt = f"""
+CURRENT TEAM MOOD: {mood_modifier['level'].upper()} {mood_modifier['emoji']} ({self.get_team_mood(user_id)}/100)
+{mood_modifier['guidance']}
+Your response tone should be: {mood_modifier['tone']}"""
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -5356,6 +5444,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {context}
 {efficiency_note}
 {freshness_prompt}
+{mood_prompt}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
         ]
@@ -6440,12 +6529,18 @@ _The team nods in unison._
                 worker_response_prompt = f"Ralph just noticed you used a lot of words ({token_count}). React briefly - maybe apologize, make an excuse, or promise to be more concise. Stay in character as {name}."
                 # Next time, workers will be more efficient!
                 session["efficiency_mode"] = True
+                # RM-029: Boss criticism lowers mood
+                self.adjust_mood(user_id, -8, "Boss criticized worker for verbosity")
             elif situation_type == "efficient":
                 worker_response_prompt = f"Ralph just praised you for being efficient with only {token_count} words. React briefly with pride or modesty. Stay in character as {name}."
                 session["efficiency_mode"] = False
+                # RM-029: Boss praise boosts mood
+                self.adjust_mood(user_id, +5, "Boss praised worker efficiency")
             elif situation_type == "trend_up":
                 worker_response_prompt = f"Ralph noticed you've been using more words lately. React briefly - maybe defend yourself or promise to do better. Stay in character as {name}."
                 session["efficiency_mode"] = True
+                # RM-029: Boss pressure lowers mood
+                self.adjust_mood(user_id, -6, "Boss noted increasing verbosity trend")
 
             if worker_response_prompt:
                 messages = [
