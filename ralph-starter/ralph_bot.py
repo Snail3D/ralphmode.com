@@ -10460,6 +10460,8 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
 
 {CORE_VALUES}
 
+SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
+
 RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph."""
 
         # RM-033: Add Ralph's daily mood to system prompt
@@ -10720,6 +10722,8 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {requirements_prompt}
 {workload_prompt}
 
+SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
+
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""
 
@@ -10825,6 +10829,9 @@ You work under Ralph Wiggum as your boss - be respectful but stay in character.
 {summoned_by} needs your specialized expertise for this task.
 Provide expert advice in your unique voice.
 Use your catchphrases naturally (don't force them).
+
+SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
+
 2-3 sentences. Stay in character."""},
             {"role": "user", "content": f"Task: {task}"}
         ]
