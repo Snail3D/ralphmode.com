@@ -10445,3 +10445,64 @@ Worker reactions:
 - Popular servers list guides new users to proven choices
 
 ---
+## Iteration 188 - 2026-01-10
+**Task**: [OB-020] Custom MCP Server Wizard
+**Status**: ✅ Complete
+
+### What was implemented
+- Created mcp_generator.py: Complete MCP server boilerplate generator
+  - Generates TypeScript MCP server code with proper structure
+  - Supports multiple authentication types (API Key, OAuth 2.0, Basic Auth, None, Custom)
+  - Creates complete Node.js project (package.json, tsconfig.json, README.md, .env.example)
+  - Generates tool handlers based on user-specified capabilities
+  - Includes save_generated_files() to write files to disk
+  - Provides get_next_steps_message() for post-generation guidance
+  
+- Integrated into onboarding_wizard.py:
+  - Added MCP generator import with availability check
+  - get_custom_mcp_wizard_welcome() - Welcome message for the wizard
+  - get_custom_mcp_api_info_prompt() - Prompts user for API details
+  - get_custom_mcp_auth_type_prompt() - Asks about authentication method
+  - get_custom_mcp_auth_type_keyboard() - Interactive auth type selection
+  - get_custom_mcp_capabilities_prompt() - Asks what tools user wants
+  - generate_custom_mcp_server() - Main generation method
+  - get_custom_mcp_wizard_keyboard() - Main wizard navigation
+  - get_custom_mcp_info_message() - Educational content about custom servers
+  - Added "🧙‍♂️ Build Custom Server" button to MCP browser
+
+### Files changed
+- mcp_generator.py (new file - 741 lines)
+- onboarding_wizard.py (added 11 methods + import)
+
+### Acceptance criteria met
+✅ Asks what API to connect to (get_custom_mcp_api_info_prompt)
+✅ Generates MCP server boilerplate (generate_mcp_server_boilerplate with TypeScript)
+✅ Guides through authentication setup (interactive keyboard + 5 auth type options)
+✅ Creates example tools/resources (generates handlers for each capability)
+✅ Tests before finalizing (basic import tests and generation tests pass)
+
+### Testing performed
+- Import validation: mcp_generator module loads successfully
+- Generation test: Created test server with 2 capabilities
+  - Generated 5 files: package.json, src/index.ts, tsconfig.json, README.md, .env.example
+  - Package.json: 581 bytes with correct dependencies
+  - TypeScript code: 3858 bytes with proper MCP SDK usage
+- Onboarding wizard integration test:
+  - All 11 new methods callable
+  - Messages generate with proper character counts
+  - Keyboards generate with correct button counts (6 for auth, 3 for main)
+- No syntax errors in either file
+
+### Learnings
+- TypeScript MCP server structure follows @modelcontextprotocol/sdk patterns
+- Authentication headers vary significantly by type - template system handles this
+- Tool generation uses snake_case for names, PascalCase for method names
+- README generation is critical - users need clear next steps
+- .env.example prevents users from committing secrets
+- TODOs in generated code guide users to customize for their specific API
+- Singleton pattern for generator matches existing codebase patterns
+- Integration tests should verify both generation and wizard UX separately
+- Ralph's personality shines through in wizard prompts ("Me help you build!")
+
+---
+
