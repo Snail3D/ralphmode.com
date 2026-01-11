@@ -13273,3 +13273,63 @@ if should_ship:
 - The fiction of persistence encourages repeated use
 
 ---
+
+## Iteration 45 - 2026-01-11
+**Task**: [SG-013] Workload Awareness - Team Knows the Score
+**Status**: ✅ Complete
+
+### What was implemented
+- Added workload awareness tracking infrastructure:
+  - last_workload_comment dict to track when workload was last mentioned
+  - workload_comment_cooldown (15 min) to prevent robotic repetition
+- Created get_prd_workload_stats() method:
+  - Reads scripts/ralph/prd.json to get task counts
+  - Returns total, completed, remaining, progress_percent
+  - Graceful error handling if PRD not found
+- Created get_workload_awareness_prompt(user_id) method:
+  - Generates workload context for worker system prompts
+  - Determines workload phase based on progress:
+    * Final stretch (90%+): "HIGH - Almost done!"
+    * Home stretch (75%+): "ELEVATED - Can see the finish line!"
+    * Past halfway (50%+): "GOOD - Downhill from here!"
+    * Mid grind (25-50%): "STEADY - Chipping away at it"
+    * Early session (<25%): "FOCUSED - Long day ahead"
+  - Provides character-specific example references (not for verbatim use)
+  - Emphasizes natural references during idle chatter, not robotic updates
+- Created _generate_workload_awareness_messages(user_id) method:
+  - Generates 1-2 natural workload references for idle chatter
+  - 15% probability per idle chatter session (not constant)
+  - Respects 15-minute cooldown to avoid spam
+  - Character-specific messages based on phase:
+    * Final stretch: "26 LEFT. I can literally TASTE it!" (Stool)
+    * Home stretch: "Home stretch. Don't get sloppy now - 26 to go." (Gus)
+    * Past halfway: "Halfway there! 26 to go, bruh." (Stool)
+    * Mid grind: "We're making progress. 26 remaining out of 273." (Mona)
+    * Early session: "Man, 26 more? Gonna be a long day." (Stool)
+  - Each phase has 5-6 message variations per character
+  - Messages feel like real team energy, not status updates
+- Integrated into call_worker() system prompts:
+  - Added workload_prompt to worker system message
+  - Workers now aware of tasks remaining and session phase
+  - Can reference naturally in responses
+- Integrated into idle_codebase_chatter():
+  - Workload messages mixed into idle chatter quotes (15% insertion rate)
+  - Natural flow alongside codebase exploration and discoveries
+  - Creates excitement as finish line approaches
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Workload awareness makes workers feel like real team members, not isolated bots
+- Phase-based energy ("final stretch" vs "long day ahead") creates authentic momentum
+- Character-specific messages (Gus's "I've pulled longer shifts" vs Stool's "Bruh, we're crushing it") maintain personality
+- Cooldown + probability prevents robotic repetition while allowing occasional natural references
+- Reading from actual PRD keeps stats accurate and real-time
+- Workers knowing "26 out of 273 tasks left" creates shared team context
+- As progress nears 100%, energy shifts naturally to celebration mode
+- This pattern could extend to other progress-based features (build progress, deployment status, etc.)
+- The fiction of "team grinding through the work together" enhances user investment
+- Not announcing workload constantly (15% chance) keeps it special when it happens
+
+---
