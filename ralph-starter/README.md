@@ -51,6 +51,7 @@ python ralph_bot.py
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
+| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |

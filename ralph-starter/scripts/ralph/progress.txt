@@ -17075,3 +17075,54 @@ After (new methods):
 
 ---
 
+
+## Iteration N - 2026-01-11
+**Task**: [PD-002] Smart Discovery Trigger
+**Status**: ✅ Complete
+
+### What was implemented
+- Added _check_prd_quality_and_offer_discovery() method to analyze PRD quality
+- Integrated PRD Analyzer (PD-001) to check if discovery mode is needed (score < 70)
+- Updated generate_prd callback to offer discovery mode when PRD quality is low
+- Added start_discovery callback handler for entering discovery mode
+- Ralph now suggests discovery with his personality when tasks are vague
+
+### Files changed
+- ralph_bot.py (+87 lines)
+- README.md (added Discovery Mode to features list)
+- scripts/ralph/prd.json (marked PD-002 as passing)
+
+### Learnings
+- **PRD Quality Scoring**: PD-001 scores PRD from 0-100 based on:
+  - Task structure (20 pts)
+  - Acceptance criteria specificity (30 pts)
+  - File hints (20 pts)
+  - Description quality (15 pts)
+  - Category organization (15 pts)
+
+- **Smart triggering**: Discovery mode automatically offered when score < 70
+- **User choice**: Users can still "Start Ralph Anyway" if they want to skip discovery
+- **Ralph's personality**: Discovery offer uses Ralph's innocent voice ("Um... these tasks look kinda vague?")
+
+### Integration points
+- generate_prd callback: After PRD generation, checks quality and adjusts UI
+- start_discovery callback: Entry point for discovery mode (placeholder for PD-003+)
+- Session state: Tracks discovery_phase for multi-step discovery flow
+
+### Discovery mode flow
+1. User uploads zip → PRD generated
+2. PRD Analyzer scores quality
+3. If score < 70: Ralph offers discovery mode with 3 buttons:
+   - 🔍 Start Discovery
+   - 🚀 Start Ralph Anyway  
+   - ✏️ Edit Tasks
+4. If user chooses discovery: Session enters "discovery" status
+5. Ralph asks clarifying questions (future tasks: PD-003, PD-007, PD-008)
+
+### Technical patterns
+- Optional[Dict] return type for quality check (returns None if PRD doesn't exist)
+- Conditional button generation based on quality score
+- Dynamic message text assembly
+- Session state management for discovery phase tracking
+
+---
