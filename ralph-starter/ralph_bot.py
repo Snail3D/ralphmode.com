@@ -18434,6 +18434,162 @@ Use `/version <type>` to switch!
                 parse_mode="Markdown"
             )
 
+    async def retest_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handle /retest command - MM-009: Re-test Trigger.
+
+        Manual re-validation of models. Clears validation cache and re-runs tests.
+
+        Usage:
+            /retest - List all registered models
+            /retest <model_name> - Re-test a specific model
+            /retest <model_name> basic_generation - Re-test specific test only
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+        args = context.args
+
+        logger.info(f"MM-009: User {telegram_id} requested /retest with args: {args}")
+
+        # Import model manager
+        from model_manager import get_model_manager
+        manager = get_model_manager()
+
+        # If no args, list all models in registry
+        if not args:
+            models = manager.list_registry_models()
+
+            if not models:
+                await update.message.reply_text(
+                    "📋 *No models in registry*\n\n"
+                    "Register a model first using `/setmodel`",
+                    parse_mode="Markdown"
+                )
+                return
+
+            message_lines = [
+                "🧪 *Model Testing*",
+                "",
+                "*Registered Models:*",
+                ""
+            ]
+
+            for model in models[:10]:  # Limit to first 10
+                name = model["name"]
+                provider = model["config"]["provider"]
+                model_id = model["config"]["model_id"]
+
+                # Get validation status
+                test_results = manager.registry.get_test_results(name)
+                if test_results:
+                    passed = test_results["passed_tests"]
+                    total = test_results["total_tests"]
+                    status = f"✅ {passed}/{total}" if passed == total else f"⚠️ {passed}/{total}"
+                else:
+                    status = "❓ Not tested"
+
+                message_lines.append(f"• `{name}`")
+                message_lines.append(f"  {provider}/{model_id} - {status}")
+
+            message_lines.append("")
+            message_lines.append("*Usage:*")
+            message_lines.append("`/retest <model_name>`")
+            message_lines.append("")
+            message_lines.append("*Example:*")
+            if models:
+                message_lines.append(f"• `/retest {models[0]['name']}`")
+
+            await update.message.reply_text(
+                "\n".join(message_lines),
+                parse_mode="Markdown"
+            )
+            return
+
+        # Parse arguments
+        model_name = args[0]
+        test_suite = args[1:] if len(args) > 1 else None
+
+        # Send initial response
+        initial_msg = await update.message.reply_text(
+            f"🧪 *Testing Model: {model_name}*\n\n"
+            f"Running validation tests... This may take a moment!",
+            parse_mode="Markdown"
+        )
+
+        try:
+            # Run the re-test
+            results = await manager.retest_model(
+                model_name=model_name,
+                test_suite=test_suite,
+                clear_existing=True
+            )
+
+            # Check for errors
+            if "error" in results:
+                await initial_msg.edit_text(
+                    f"❌ *Test Failed*\n\n"
+                    f"Error: {results['error']}\n\n"
+                    f"Make sure the model name is correct. Use `/retest` to see available models.",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Format results
+            total = results["total_tests"]
+            passed = results["passed_tests"]
+            failed = results["failed_tests"]
+
+            # Determine overall status
+            if passed == total:
+                status_emoji = "✅"
+                status_text = "All tests passed!"
+            elif passed > 0:
+                status_emoji = "⚠️"
+                status_text = "Some tests failed"
+            else:
+                status_emoji = "❌"
+                status_text = "All tests failed"
+
+            message_lines = [
+                f"{status_emoji} *Test Results: {model_name}*",
+                "",
+                f"*Status:* {status_text}",
+                f"*Passed:* {passed}/{total}",
+                f"*Failed:* {failed}/{total}",
+                ""
+            ]
+
+            # Add individual test results
+            if results["test_results"]:
+                message_lines.append("*Test Details:*")
+                for test_name, result in results["test_results"].items():
+                    test_emoji = "✅" if result["passed"] else "❌"
+                    message_lines.append(f"{test_emoji} {test_name}")
+
+                    # Add error details if failed
+                    if not result["passed"] and "error" in result["details"]:
+                        error_msg = str(result["details"]["error"])[:50]
+                        message_lines.append(f"   Error: `{error_msg}...`")
+
+            await initial_msg.edit_text(
+                "\n".join(message_lines),
+                parse_mode="Markdown"
+            )
+
+            logger.info(
+                f"MM-009: Completed re-test for '{model_name}' - "
+                f"{passed}/{total} tests passed"
+            )
+
+        except Exception as e:
+            logger.error(f"MM-009: Error in retest_command: {e}")
+            await initial_msg.edit_text(
+                f"❌ *Test Error*\n\n"
+                f"Failed to test model: {str(e)}\n\n"
+                f"Check the logs for details.",
+                parse_mode="Markdown"
+            )
+
     async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle /reorganize command - TC-007: PRD Reorganization Command.
@@ -20299,6 +20455,7 @@ To update your Git config:
         app.add_handler(CommandHandler("setlocation", self.setlocation_command))  # SG-018
         app.add_handler(CommandHandler("goodnews", self.goodnews_command))  # SG-018
         app.add_handler(CommandHandler("setmodel", self.setmodel_command))  # MM-004
+        app.add_handler(CommandHandler("retest", self.retest_command))  # MM-009
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))

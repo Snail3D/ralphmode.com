@@ -1284,6 +1284,222 @@ class ModelManager:
         logger.info(f"MM-019: Auto-registered {len(registered_names)} local models")
         return registered_names
 
+    async def retest_model(
+        self,
+        model_name: str,
+        test_suite: Optional[List[str]] = None,
+        clear_existing: bool = True
+    ) -> Dict[str, Any]:
+        """
+        MM-009: Re-test Trigger - Manual re-validation of models.
+
+        Clears existing validation cache and re-runs tests for a model.
+        Useful when:
+        - A model was updated
+        - You want to verify a model still works
+        - Previous tests failed and you've fixed the issue
+
+        Args:
+            model_name: Name of the model in registry to retest
+            test_suite: List of test names to run. If None, runs all standard tests.
+            clear_existing: Whether to clear existing test results first (default: True)
+
+        Returns:
+            Dict with test results summary:
+            {
+                "model_name": str,
+                "total_tests": int,
+                "passed_tests": int,
+                "failed_tests": int,
+                "test_results": {test_name: {"passed": bool, "details": {...}}}
+            }
+
+        Example:
+            # Re-test a model completely
+            results = await manager.retest_model("ralph_groq_llama-3.1-70b")
+
+            # Re-test specific tests only
+            results = await manager.retest_model(
+                "my_model",
+                test_suite=["basic_generation", "code_quality"]
+            )
+
+            # Re-test but keep old results
+            results = await manager.retest_model("my_model", clear_existing=False)
+        """
+        logger.info(f"MM-009: Starting re-test for model '{model_name}'")
+
+        # Check if model exists
+        config = self.registry.get(model_name)
+        if not config:
+            logger.error(f"MM-009: Model '{model_name}' not found in registry")
+            return {
+                "model_name": model_name,
+                "error": "Model not found in registry",
+                "total_tests": 0,
+                "passed_tests": 0,
+                "failed_tests": 0,
+                "test_results": {}
+            }
+
+        # Clear existing results if requested
+        if clear_existing:
+            if test_suite:
+                # Clear only specified tests
+                for test_name in test_suite:
+                    self.registry.clear_test_results(model_name, test_name)
+                logger.info(f"MM-009: Cleared {len(test_suite)} test(s) for '{model_name}'")
+            else:
+                # Clear all tests
+                self.registry.clear_test_results(model_name)
+                logger.info(f"MM-009: Cleared all tests for '{model_name}'")
+
+        # Define standard test suite if not provided
+        if not test_suite:
+            test_suite = ["basic_generation", "response_quality", "availability"]
+
+        # Run tests
+        test_results = {}
+
+        # Load the adapter for this model
+        adapter = self.load_from_registry(model_name)
+        if not adapter:
+            logger.error(f"MM-009: Failed to load adapter for '{model_name}'")
+            return {
+                "model_name": model_name,
+                "error": "Failed to load model adapter",
+                "total_tests": 0,
+                "passed_tests": 0,
+                "failed_tests": 0,
+                "test_results": {}
+            }
+
+        # Test 1: Availability
+        if "availability" in test_suite:
+            try:
+                is_available = await adapter.is_available()
+                self.registry.record_test_result(
+                    model_name,
+                    "availability",
+                    passed=is_available,
+                    details={"timestamp": datetime.utcnow().isoformat()}
+                )
+                test_results["availability"] = {
+                    "passed": is_available,
+                    "details": {"available": is_available}
+                }
+                logger.info(f"MM-009: Availability test: {'PASS' if is_available else 'FAIL'}")
+            except Exception as e:
+                logger.error(f"MM-009: Availability test failed with exception: {e}")
+                self.registry.record_test_result(
+                    model_name,
+                    "availability",
+                    passed=False,
+                    details={"error": str(e)}
+                )
+                test_results["availability"] = {
+                    "passed": False,
+                    "details": {"error": str(e)}
+                }
+
+        # Test 2: Basic Generation
+        if "basic_generation" in test_suite:
+            try:
+                test_messages = [{"role": "user", "content": "Say 'test successful' if you can read this."}]
+                response = await adapter.generate(
+                    messages=test_messages,
+                    max_tokens=50,
+                    temperature=0.3
+                )
+                # Check if we got a response
+                passed = bool(response and len(response) > 0)
+                self.registry.record_test_result(
+                    model_name,
+                    "basic_generation",
+                    passed=passed,
+                    details={
+                        "response_length": len(response) if response else 0,
+                        "response_preview": response[:100] if response else ""
+                    }
+                )
+                test_results["basic_generation"] = {
+                    "passed": passed,
+                    "details": {"response_length": len(response) if response else 0}
+                }
+                logger.info(f"MM-009: Basic generation test: {'PASS' if passed else 'FAIL'}")
+            except Exception as e:
+                logger.error(f"MM-009: Basic generation test failed with exception: {e}")
+                self.registry.record_test_result(
+                    model_name,
+                    "basic_generation",
+                    passed=False,
+                    details={"error": str(e)}
+                )
+                test_results["basic_generation"] = {
+                    "passed": False,
+                    "details": {"error": str(e)}
+                }
+
+        # Test 3: Response Quality
+        if "response_quality" in test_suite:
+            try:
+                test_messages = [
+                    {"role": "user", "content": "What is 2+2? Answer with just the number."}
+                ]
+                response = await adapter.generate(
+                    messages=test_messages,
+                    max_tokens=10,
+                    temperature=0.0
+                )
+                # Check if response contains "4"
+                passed = "4" in response if response else False
+                self.registry.record_test_result(
+                    model_name,
+                    "response_quality",
+                    passed=passed,
+                    details={
+                        "expected": "4",
+                        "response": response[:50] if response else ""
+                    }
+                )
+                test_results["response_quality"] = {
+                    "passed": passed,
+                    "details": {"response": response[:50] if response else ""}
+                }
+                logger.info(f"MM-009: Response quality test: {'PASS' if passed else 'FAIL'}")
+            except Exception as e:
+                logger.error(f"MM-009: Response quality test failed with exception: {e}")
+                self.registry.record_test_result(
+                    model_name,
+                    "response_quality",
+                    passed=False,
+                    details={"error": str(e)}
+                )
+                test_results["response_quality"] = {
+                    "passed": False,
+                    "details": {"error": str(e)}
+                }
+
+        # Compile results
+        total_tests = len(test_results)
+        passed_tests = sum(1 for r in test_results.values() if r["passed"])
+        failed_tests = total_tests - passed_tests
+
+        result_summary = {
+            "model_name": model_name,
+            "total_tests": total_tests,
+            "passed_tests": passed_tests,
+            "failed_tests": failed_tests,
+            "test_results": test_results
+        }
+
+        logger.info(
+            f"MM-009: Re-test complete for '{model_name}': "
+            f"{passed_tests}/{total_tests} tests passed"
+        )
+
+        return result_summary
+
 
 # Global singleton instance
 _model_manager: Optional[ModelManager] = None
