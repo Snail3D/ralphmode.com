@@ -14995,14 +14995,37 @@ IMPORTANT - Scene Consistency Rules:
                 session["prd"] = prd
                 session["status"] = "ready"
 
-                await context.bot.send_message(
-                    chat_id=query.message.chat_id,
-                    text=f"*Task List Generated*\n\n{prd['summary']}\n\nReady to start?",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([
+                # PD-002: Check PRD quality and offer discovery if needed
+                prd_analysis = self._check_prd_quality_and_offer_discovery()
+
+                buttons = []
+                message_text = f"*Task List Generated*\n\n{prd['summary']}\n\n"
+
+                # If PRD quality is low, offer discovery mode
+                if prd_analysis and prd_analysis.get('needs_discovery', False):
+                    score = prd_analysis.get('score', 0)
+                    message_text += f"📊 *PRD Quality Score: {score}/100*\n\n"
+                    message_text += "🔍 *Ralph notices the task list could be more detailed.*\n\n"
+                    message_text += "_\"Um... these tasks look kinda vague? Want me to ask you some questions to make them better?\"_\n\n"
+                    message_text += "Discovery mode helps clarify requirements before building.\n\n"
+
+                    buttons = [
+                        [InlineKeyboardButton("🔍 Start Discovery", callback_data="start_discovery")],
+                        [InlineKeyboardButton("🚀 Start Ralph Anyway", callback_data="start_ralph")],
+                        [InlineKeyboardButton("✏️ Edit Tasks", callback_data="edit_prd")],
+                    ]
+                else:
+                    message_text += "Ready to start?"
+                    buttons = [
                         [InlineKeyboardButton("🚀 Start Ralph", callback_data="start_ralph")],
                         [InlineKeyboardButton("✏️ Edit Tasks", callback_data="edit_prd")],
-                    ])
+                    ]
+
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=message_text,
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(buttons)
                 )
 
         elif data == "start_ralph":
@@ -15011,6 +15034,38 @@ IMPORTANT - Scene Consistency Rules:
             if session:
                 session["status"] = "running"
                 await self._start_ralph_session(context, query.message.chat_id, user_id)
+
+        elif data == "start_discovery":
+            # PD-002: Start discovery mode to improve PRD quality
+            await query.edit_message_text(
+                """
+🔍 *DISCOVERY MODE ACTIVATED*
+
+_Ralph scratches his head and pulls out a notepad._
+
+*Ralph:* "Okay! I'm gonna ask you questions about what you wanna build! Then the workers will have better instructions!"
+
+_He holds up a crayon-drawn flowchart._
+
+*Ralph:* "First question... um... what's this thing supposed to do? Like, for real?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**How Discovery Works:**
+1. Ralph asks questions about your project
+2. Workers analyze your codebase in detail
+3. PRD gets updated with specific, actionable tasks
+4. Better tasks = better results!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+_Type your answer or send /skip to move on_
+""",
+                parse_mode="Markdown"
+            )
+
+            session = self.active_sessions.get(user_id)
+            if session:
+                session["status"] = "discovery"
+                session["discovery_phase"] = "purpose"  # Track which question we're on
 
         elif data == "ask_ralph_mode":
             session = self.active_sessions.get(user_id)
@@ -15105,6 +15160,33 @@ Drop a new `.zip` to start another project!
 """,
                     parse_mode="Markdown"
                 )
+
+    def _check_prd_quality_and_offer_discovery(self, prd_path: str = "scripts/ralph/prd.json") -> Optional[Dict]:
+        """PD-002: Smart Discovery Trigger - Check PRD quality and determine if discovery is needed.
+
+        Returns:
+            Dict with analysis results if PRD exists, None otherwise.
+            Dict includes 'needs_discovery' boolean and other quality metrics.
+        """
+        try:
+            from prd_analyzer import analyze_prd
+
+            # Check if PRD file exists
+            if not os.path.exists(prd_path):
+                logging.info(f"PD-002: PRD file not found at {prd_path}")
+                return None
+
+            # Analyze PRD quality
+            analysis_results = analyze_prd(prd_path)
+
+            logging.info(f"PD-002: PRD quality score: {analysis_results.get('score', 0)}/100, "
+                        f"needs_discovery: {analysis_results.get('needs_discovery', False)}")
+
+            return analysis_results
+
+        except Exception as e:
+            logging.error(f"PD-002: Error analyzing PRD quality: {e}")
+            return None
 
     async def _generate_prd(self, session: Dict[str, Any]) -> Dict[str, Any]:
         """Generate PRD from codebase analysis."""
