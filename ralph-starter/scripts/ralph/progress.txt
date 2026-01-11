@@ -7672,3 +7672,60 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Returns ordered list of clusters (sorted by size, largest first)
 
 ---
+## Iteration 5 - 2026-01-10 17:30
+
+**Task**: [TC-005] Cluster Ordering by Dependencies
+**Status**: ✅ Complete
+
+### What was implemented
+- Added topological_sort_clusters() function to prd_organizer.py
+- Orders clusters using topological sort based on dependency graph
+- Three-stage algorithm:
+  1. Build cluster dependency graph (which clusters depend on which)
+  2. Detect and break cycles at lowest-cost edges
+  3. Perform topological sort on cluster DAG
+- Priority heuristics applied after topological sort:
+  - Foundational clusters (database, schema, models) first
+  - Business logic clusters (API, handlers, services) second
+  - Other clusters third
+  - UI/Polish clusters last
+- Cycle breaking algorithm:
+  - Detects cycles using DFS from dependency_graph.py
+  - For each cycle, finds weakest edge (fewest task dependencies)
+  - Removes weakest edge to break cycle
+- Comprehensive test suite validates:
+  - Database tasks come before API tasks (foundational ordering)
+  - API handlers come before API endpoints (dependency ordering)
+  - UI polish tasks come last (polish ordering)
+
+### Files changed
+- prd_organizer.py:
+  - Added topological_sort_clusters() function (lines 325-465)
+  - Imports detect_cycles, topological_sort from dependency_graph
+  - Maps tasks to clusters and builds cluster-level dependency graph
+  - Categorizes clusters as foundational/business/ui/other
+  - Returns clusters in dependency-aware order
+  - Added test_topological_sort_clusters() (lines 623-730)
+  - Updated main to run 3 tests (lines 733-748)
+- scripts/ralph/prd.json:
+  - TC-005 "passes" changed from false to true
+
+### Learnings
+- Cluster dependencies are derived from task dependencies
+- Topological sort must happen at cluster level, not just task level
+- Cycles are common in complex PRDs (e.g., API-001 depends on API-002 and vice versa)
+- Breaking cycles at lowest cost (fewest task deps) minimizes disruption
+- Priority heuristics (foundational first, polish last) work alongside topological order
+- Task-to-cluster mapping is key data structure for deriving cluster dependencies
+- Foundational work (DB schema) must precede usage work (queries, APIs)
+- UI/Polish should always come last regardless of dependencies
+- Test validates ordering with 6 tasks across 4 clusters
+
+### Acceptance Criteria Met
+✅ topological_sort(clusters, graph) function exists (topological_sort_clusters)
+✅ Respects dependency order within and between clusters
+✅ Foundational clusters (database, models) come first
+✅ UI/Polish clusters come last
+✅ Handles cycles by breaking at lowest cost edge
+
+---
