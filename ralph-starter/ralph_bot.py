@@ -6991,6 +6991,112 @@ Use `/version <type>` to switch!
                 with_typing=True
             )
 
+    async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handle /reorganize command - TC-007: PRD Reorganization Command.
+
+        Triggers PRD re-clustering to optimize task order. Requires Tier 1 (Owner) permission.
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # TC-007: Only Tier 1 (Owner) can use this command
+        if USER_MANAGER_AVAILABLE:
+            try:
+                from user_manager import UserTier
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                if user_tier != UserTier.TIER_1_OWNER:
+                    # Silent rejection for non-Tier-1 users
+                    logger.warning(
+                        f"TC-007: Non-Tier-1 user {telegram_id} ({user_tier.display_name}) "
+                        "attempted /reorganize command"
+                    )
+                    return
+            except Exception as e:
+                logger.error(f"TC-007: Error checking user tier: {e}")
+                return
+        else:
+            # No user manager - allow command (local testing mode)
+            logger.warning("TC-007: USER_MANAGER not available, allowing /reorganize without tier check")
+
+        logger.info(f"TC-007: Processing /reorganize command from Tier 1 user {telegram_id}")
+
+        # Send initial response
+        initial_msg = await update.message.reply_text(
+            "🔄 *Reorganizing PRD...*\n\n"
+            "Running task clustering... This might take a moment!",
+            parse_mode="Markdown"
+        )
+
+        try:
+            # Import and call cluster_tasks
+            from prd_organizer import cluster_tasks
+
+            # Run clustering
+            import time
+            start_time = time.time()
+            result = cluster_tasks(prd_path="scripts/ralph/prd.json")
+            elapsed = time.time() - start_time
+
+            # Build cluster summary text
+            cluster_summary_lines = []
+            for cluster_name, task_count in result["cluster_summary"].items():
+                cluster_summary_lines.append(f"• {cluster_name}: {task_count} tasks")
+
+            cluster_summary_text = "\n".join(cluster_summary_lines[:10])  # Show first 10 clusters
+            if len(result["cluster_summary"]) > 10:
+                remaining = len(result["cluster_summary"]) - 10
+                cluster_summary_text += f"\n• ... and {remaining} more clusters"
+
+            # Format success message
+            success_msg = (
+                f"✅ *PRD Reorganized Successfully!*\n\n"
+                f"📊 *Statistics:*\n"
+                f"• Total Tasks: {result['total_tasks']}\n"
+                f"• Clusters Created: {result['num_clusters']}\n"
+                f"• Time Taken: {elapsed:.2f}s\n\n"
+                f"📦 *Cluster Summary:*\n"
+                f"{cluster_summary_text}\n\n"
+                f"The priority_order has been updated in prd.json!"
+            )
+
+            # Update the message
+            await initial_msg.edit_text(success_msg, parse_mode="Markdown")
+
+            logger.info(
+                f"TC-007: Successfully reorganized PRD - {result['num_clusters']} clusters, "
+                f"{result['total_tasks']} tasks in {elapsed:.2f}s"
+            )
+
+        except FileNotFoundError as e:
+            error_msg = (
+                "❌ *Error: PRD file not found!*\n\n"
+                f"Could not find prd.json at expected location.\n\n"
+                f"Error: {str(e)}"
+            )
+            await initial_msg.edit_text(error_msg, parse_mode="Markdown")
+            logger.error(f"TC-007: PRD file not found: {e}")
+
+        except ImportError as e:
+            error_msg = (
+                "❌ *Error: Missing dependencies!*\n\n"
+                f"Could not import required modules for clustering.\n\n"
+                f"Error: {str(e)}\n\n"
+                "Make sure task_embeddings.py and dependency_graph.py exist."
+            )
+            await initial_msg.edit_text(error_msg, parse_mode="Markdown")
+            logger.error(f"TC-007: Import error: {e}")
+
+        except Exception as e:
+            error_msg = (
+                "❌ *Error: Clustering failed!*\n\n"
+                f"Something went wrong during PRD reorganization.\n\n"
+                f"Error: {str(e)}"
+            )
+            await initial_msg.edit_text(error_msg, parse_mode="Markdown")
+            logger.error(f"TC-007: Clustering error: {e}", exc_info=True)
+
     def run(self):
         """Start the bot."""
         if not TELEGRAM_BOT_TOKEN:
@@ -7051,6 +7157,7 @@ Use `/version <type>` to switch!
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
         app.add_handler(CommandHandler("password", self.password_command))  # MU-002
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
+        app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))

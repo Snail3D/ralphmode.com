@@ -620,6 +620,427 @@ def test_extract_file_hints():
     print("\n✅ All tests passed!")
 
 
+def insert_new_task(
+    task: Dict,
+    clusters: List[List[Dict]],
+    file_hints: Dict[str, Set[str]],
+    embeddings: Dict[str, np.ndarray],
+    priority_override: bool = False
+) -> List[List[Dict]]:
+    """
+    Insert a new task into the most appropriate existing cluster.
+
+    Finds the best-fit cluster using hybrid similarity (file overlap + semantic similarity).
+    Optionally respects priority overrides for boss tasks that should go to the top.
+    Rebalances clusters if needed to maintain optimal cluster sizes.
+
+    Args:
+        task: The new task dictionary to insert
+        clusters: List of existing task clusters
+        file_hints: Dict of task_id -> Set of file paths for all tasks
+        embeddings: Dict of task_id -> embedding vector for all tasks
+        priority_override: If True, this is a boss task that should be inserted at the top of its cluster
+
+    Returns:
+        Updated list of clusters with the new task inserted
+    """
+    if not clusters:
+        # No existing clusters - create a new one
+        return [[task]]
+
+    task_id = task.get("id", "")
+
+    # Extract file hints for the new task
+    if task_id not in file_hints:
+        file_hints[task_id] = extract_file_hints(task)
+
+    # Find the best-fit cluster based on similarity
+    best_cluster_idx = 0
+    best_similarity = -1
+
+    for idx, cluster in enumerate(clusters):
+        # Calculate average similarity to all tasks in this cluster
+        total_similarity = 0.0
+        count = 0
+
+        for existing_task in cluster:
+            similarity = hybrid_similarity(
+                task,
+                existing_task,
+                file_hints,
+                embeddings
+            )
+            total_similarity += similarity
+            count += 1
+
+        avg_similarity = total_similarity / count if count > 0 else 0.0
+
+        if avg_similarity > best_similarity:
+            best_similarity = avg_similarity
+            best_cluster_idx = idx
+
+    # Check if similarity is too low - might need a new cluster
+    SIMILARITY_THRESHOLD = 0.15  # Lower than clustering threshold
+    if best_similarity < SIMILARITY_THRESHOLD and len(clusters) < 20:
+        # Create a new cluster for this task
+        clusters.append([task])
+    else:
+        # Insert into the best-fit cluster
+        if priority_override:
+            # Boss tasks go to the top of their cluster
+            clusters[best_cluster_idx].insert(0, task)
+        else:
+            # Regular tasks go at the end
+            clusters[best_cluster_idx].append(task)
+
+    # Rebalance if any cluster is too large
+    MAX_CLUSTER_SIZE = 15
+    rebalanced = False
+
+    for idx, cluster in enumerate(clusters):
+        if len(cluster) > MAX_CLUSTER_SIZE:
+            # Split this cluster into two
+            mid_point = len(cluster) // 2
+
+            # Keep first half in original cluster
+            first_half = cluster[:mid_point]
+            second_half = cluster[mid_point:]
+
+            # Replace original cluster with first half
+            clusters[idx] = first_half
+
+            # Add second half as new cluster
+            clusters.append(second_half)
+
+            rebalanced = True
+            break  # Only split one cluster per insertion
+
+    # Sort clusters by size (largest first) if we rebalanced
+    if rebalanced:
+        clusters.sort(key=len, reverse=True)
+
+    return clusters
+
+
+def update_priority_order(
+    clusters: List[List[Dict]],
+    prd_path: str = "scripts/ralph/prd.json"
+) -> None:
+    """
+    Update the priority_order field in prd.json based on current clusters.
+
+    Flattens clusters into a priority order list, preserving section headers.
+    This should be called after inserting new tasks or re-organizing clusters.
+
+    Args:
+        clusters: Ordered list of task clusters
+        prd_path: Path to prd.json file (default: scripts/ralph/prd.json)
+    """
+    import json
+    import os
+
+    # Read current prd.json
+    if not os.path.exists(prd_path):
+        print(f"Warning: {prd_path} not found, skipping priority_order update")
+        return
+
+    with open(prd_path, 'r') as f:
+        prd = json.load(f)
+
+    # Get existing priority order to detect section headers
+    old_priority = prd.get("priority_order", [])
+
+    # Build task ID to category mapping for section organization
+    task_categories = {}
+    for cluster in clusters:
+        for task in cluster:
+            task_id = task.get("id", "")
+            category = task.get("category", "")
+            if task_id and category:
+                task_categories[task_id] = category
+
+    # Build new priority order
+    # Group tasks by category prefix (SEC, TC, OB, etc.) to preserve sections
+    from collections import defaultdict
+    category_groups = defaultdict(list)
+
+    for cluster in clusters:
+        for task in cluster:
+            task_id = task.get("id", "")
+            task_title = task.get("title", "")
+            if task_id and task_title:
+                # Extract category prefix (e.g., "SEC" from "SEC-001")
+                prefix = task_id.split("-")[0] if "-" in task_id else "OTHER"
+                category_groups[prefix].append(f"{task_id} - {task_title}")
+
+    # Build final priority order with section headers
+    new_priority = []
+
+    # Define section headers based on common prefixes
+    section_headers = {
+        "SEC": "--- SECURITY (Enterprise-Grade Protection) ---",
+        "TC": "--- TASK CLUSTERING (PRD Organization) ---",
+        "OB": "--- ONBOARDING WIZARD (Zero-Friction Setup) ---",
+        "FB": "--- FEEDBACK LOOP (RLHF Self-Building System) ---",
+        "RM": "--- RALPH MODE (Core Features) ---",
+        "VO": "--- VOICE-ONLY (Conversational Excellence) ---",
+        "AC": "--- ADMIN COMMANDS ---",
+        "SS": "--- SCENE SETTING ---",
+    }
+
+    # Preserve order from original priority list if possible
+    seen_prefixes = set()
+    for prefix in ["SEC", "TC", "OB", "FB", "RM", "VO", "AC", "SS"]:
+        if prefix in category_groups and category_groups[prefix]:
+            if prefix in section_headers:
+                new_priority.append(section_headers[prefix])
+            new_priority.extend(category_groups[prefix])
+            seen_prefixes.add(prefix)
+
+    # Add any remaining categories not explicitly handled
+    for prefix, tasks in sorted(category_groups.items()):
+        if prefix not in seen_prefixes and tasks:
+            new_priority.extend(tasks)
+
+    # Update prd.json
+    prd["priority_order"] = new_priority
+
+    # Write back to file
+    with open(prd_path, 'w') as f:
+        json.dump(prd, f, indent=2)
+
+
+def test_insert_new_task():
+    """Test inserting new tasks into existing clusters"""
+    from task_embeddings import generate_embeddings
+
+    # Create initial tasks for clustering
+    initial_tasks = [
+        {
+            "id": "UI-001",
+            "title": "Add Dark Mode Toggle",
+            "description": "Create a toggle button for dark mode",
+            "category": "UI/UX",
+            "files_likely_modified": ["settings.py", "ui.py"]
+        },
+        {
+            "id": "UI-002",
+            "title": "Update Button Colors",
+            "description": "Change all buttons to new brand colors",
+            "category": "UI/UX",
+            "files_likely_modified": ["ui.py", "styles.css"]
+        },
+        {
+            "id": "API-001",
+            "title": "Add User Login Endpoint",
+            "description": "Create POST /api/login endpoint",
+            "category": "Backend API",
+            "files_likely_modified": ["api_server.py", "auth.py"]
+        },
+        {
+            "id": "API-002",
+            "title": "Add Rate Limiting",
+            "description": "Implement rate limiting on all endpoints",
+            "category": "Backend API",
+            "files_likely_modified": ["api_server.py", "rate_limiter.py"]
+        }
+    ]
+
+    print("=== Insert New Task Test ===\n")
+
+    # Extract file hints
+    file_hints = {}
+    for task in initial_tasks:
+        file_hints[task["id"]] = extract_file_hints(task)
+
+    # Generate embeddings
+    embeddings = generate_embeddings(initial_tasks, use_cache=False)
+
+    # Create initial clusters
+    clusters = hybrid_cluster(initial_tasks, file_hints, embeddings, similarity_threshold=0.2)
+    print(f"Initial clusters ({len(clusters)}):")
+    for i, cluster in enumerate(clusters):
+        task_ids = [t["id"] for t in cluster]
+        print(f"  Cluster {i + 1}: {task_ids}")
+
+    # Test 1: Insert a new UI task (should go to UI cluster)
+    new_ui_task = {
+        "id": "UI-003",
+        "title": "Add Theme Switcher",
+        "description": "Create a component to switch between themes",
+        "category": "UI/UX",
+        "files_likely_modified": ["ui.py", "settings.py"]
+    }
+
+    # Generate embedding for new task
+    all_tasks = initial_tasks + [new_ui_task]
+    embeddings = generate_embeddings(all_tasks, use_cache=False)
+    file_hints[new_ui_task["id"]] = extract_file_hints(new_ui_task)
+
+    clusters = insert_new_task(new_ui_task, clusters, file_hints, embeddings)
+    print(f"\nAfter inserting UI-003:")
+    for i, cluster in enumerate(clusters):
+        task_ids = [t["id"] for t in cluster]
+        print(f"  Cluster {i + 1}: {task_ids}")
+
+    # Verify UI-003 is with other UI tasks
+    ui_cluster_found = False
+    for cluster in clusters:
+        task_ids = [t["id"] for t in cluster]
+        if "UI-003" in task_ids:
+            assert "UI-001" in task_ids or "UI-002" in task_ids, \
+                "New UI task should be clustered with other UI tasks"
+            ui_cluster_found = True
+            break
+    assert ui_cluster_found, "UI-003 should be in a cluster"
+
+    # Test 2: Insert a high-priority boss task
+    boss_task = {
+        "id": "BOSS-001",
+        "title": "Fix Critical Bug in API",
+        "description": "Urgent: fix authentication bypass bug",
+        "category": "Backend API",
+        "files_likely_modified": ["api_server.py", "auth.py"]
+    }
+
+    all_tasks.append(boss_task)
+    embeddings = generate_embeddings(all_tasks, use_cache=False)
+    file_hints[boss_task["id"]] = extract_file_hints(boss_task)
+
+    clusters = insert_new_task(boss_task, clusters, file_hints, embeddings, priority_override=True)
+    print(f"\nAfter inserting BOSS-001 (priority override):")
+    for i, cluster in enumerate(clusters):
+        task_ids = [t["id"] for t in cluster]
+        print(f"  Cluster {i + 1}: {task_ids}")
+
+    # Verify BOSS-001 is at the top of its cluster
+    for cluster in clusters:
+        task_ids = [t["id"] for t in cluster]
+        if "BOSS-001" in task_ids:
+            assert task_ids[0] == "BOSS-001", \
+                "Boss task with priority override should be at top of cluster"
+            break
+
+    # Test 3: Insert a very different task (should create new cluster if similarity is low)
+    different_task = {
+        "id": "DOC-001",
+        "title": "Write API Documentation",
+        "description": "Document all REST endpoints",
+        "category": "Documentation",
+        "files_likely_modified": ["docs/api.md"]
+    }
+
+    all_tasks.append(different_task)
+    embeddings = generate_embeddings(all_tasks, use_cache=False)
+    file_hints[different_task["id"]] = extract_file_hints(different_task)
+
+    initial_cluster_count = len(clusters)
+    clusters = insert_new_task(different_task, clusters, file_hints, embeddings)
+    print(f"\nAfter inserting DOC-001 (different category):")
+    for i, cluster in enumerate(clusters):
+        task_ids = [t["id"] for t in cluster]
+        print(f"  Cluster {i + 1}: {task_ids}")
+
+    print(f"\nCluster count: {initial_cluster_count} -> {len(clusters)}")
+
+    print("\n✅ All insert_new_task tests passed!")
+
+
+def cluster_tasks(prd_path: str = "scripts/ralph/prd.json") -> Dict:
+    """
+    Re-cluster and reorganize all tasks in the PRD.
+
+    Main orchestrator function that:
+    1. Loads tasks from prd.json
+    2. Generates embeddings
+    3. Extracts file hints
+    4. Performs hybrid clustering
+    5. Builds dependency graph
+    6. Orders clusters topologically
+    7. Updates priority_order in prd.json
+
+    Args:
+        prd_path: Path to prd.json file (default: scripts/ralph/prd.json)
+
+    Returns:
+        Dict with clustering statistics:
+        {
+            "total_tasks": int,
+            "num_clusters": int,
+            "cluster_summary": Dict[str, int],  # cluster_name -> task_count
+            "updated_priority_order": List[str]
+        }
+    """
+    import json
+    import os
+    from task_embeddings import generate_embeddings
+    from dependency_graph import build_dependency_graph
+
+    # Load PRD
+    if not os.path.exists(prd_path):
+        raise FileNotFoundError(f"PRD file not found: {prd_path}")
+
+    with open(prd_path, 'r') as f:
+        prd = json.load(f)
+
+    tasks = prd.get("tasks", [])
+
+    if not tasks:
+        return {
+            "total_tasks": 0,
+            "num_clusters": 0,
+            "cluster_summary": {},
+            "updated_priority_order": []
+        }
+
+    # Extract file hints for all tasks
+    file_hints = {}
+    for task in tasks:
+        task_id = task.get("id", "")
+        if task_id:
+            file_hints[task_id] = extract_file_hints(task)
+
+    # Generate embeddings
+    embeddings = generate_embeddings(tasks, use_cache=True)
+
+    # Perform hybrid clustering
+    clusters = hybrid_cluster(
+        tasks,
+        file_hints,
+        embeddings,
+        similarity_threshold=0.3
+    )
+
+    # Build dependency graph
+    graph = build_dependency_graph(tasks)
+
+    # Order clusters by dependencies
+    sorted_clusters = topological_sort_clusters(clusters, graph)
+
+    # Assign names to clusters
+    named_clusters = assign_cluster_names(sorted_clusters)
+
+    # Update priority_order in prd.json
+    update_priority_order(sorted_clusters, prd_path)
+
+    # Build cluster summary
+    cluster_summary = {}
+    for name, cluster in named_clusters:
+        cluster_summary[name] = len(cluster)
+
+    # Get updated priority order
+    with open(prd_path, 'r') as f:
+        updated_prd = json.load(f)
+    updated_priority_order = updated_prd.get("priority_order", [])
+
+    return {
+        "total_tasks": len(tasks),
+        "num_clusters": len(sorted_clusters),
+        "cluster_summary": cluster_summary,
+        "updated_priority_order": updated_priority_order
+    }
+
+
 def test_topological_sort_clusters():
     """Test cluster ordering by dependencies"""
     from task_embeddings import generate_embeddings
@@ -743,6 +1164,11 @@ if __name__ == "__main__":
     test_hybrid_cluster()
 
     print("\n" + "=" * 50)
-    print("Test 3: Topological Sort Clusters")
+    print("Test 3: Insert New Task")
+    print("=" * 50)
+    test_insert_new_task()
+
+    print("\n" + "=" * 50)
+    print("Test 4: Topological Sort Clusters")
     print("=" * 50)
     test_topological_sort_clusters()
