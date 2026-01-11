@@ -1212,6 +1212,11 @@ class RalphBot:
         self.last_wisdom_moment: Dict[int, datetime] = {}  # Track when last wisdom was dropped
         self.wisdom_cooldown = 1800  # 30 minutes between wisdom moments (not constant)
 
+        # SG-006: Graceful Immersion Breaks - Track health concerns for gentle intervention
+        self.last_immersion_break: Dict[int, datetime] = {}  # Track when last immersion break happened
+        self.immersion_break_cooldown = 3600  # 60 minutes between immersion breaks
+        self.health_concern_flags: Dict[int, List[str]] = {}  # Track concern flags per user
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -8001,6 +8006,9 @@ Stay in character as {pushback_worker}."""
                 if session_duration > 2:
                     await self.maybe_share_wisdom(context, chat_id, user_id, "tired")
 
+        # SG-006: Check for HIGH health concerns and gentle immersion break
+        await self.graceful_immersion_break(context, chat_id, user_id)
+
     # ==================== SESSION HISTORY (Ralph remembers everything) ====================
 
     def log_event(self, user_id: int, event_type: str, speaker: str, content: str, metadata: dict = None):
@@ -8498,6 +8506,177 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
         self.last_wisdom_moment[user_id] = datetime.now()
 
         logging.info(f"SG-010: Ralph shared wisdom ({situation_type}): {wisdom}")
+
+    # ==================== SG-006: GRACEFUL IMMERSION BREAKS ====================
+
+    def detect_health_concern_level(self, user_id: int) -> str:
+        """
+        SG-006: Detect health concern level based on multiple signals.
+
+        Returns "low", "medium", or "high" concern level.
+        HIGH only triggers with multiple flags (not just one signal).
+
+        Args:
+            user_id: The user session ID
+
+        Returns:
+            Concern level: "low", "medium", or "high"
+        """
+        if user_id not in self.active_sessions:
+            return "low"
+
+        session = self.active_sessions[user_id]
+        flags = []
+
+        # Check 1: Session duration (>3 hours = flag)
+        session_start = session.get("start_time")
+        if session_start:
+            session_duration_hours = (datetime.now() - session_start).total_seconds() / 3600
+            if session_duration_hours > 3:
+                flags.append("long_session")
+            if session_duration_hours > 5:
+                flags.append("very_long_session")
+
+        # Check 2: Late night work (11pm - 5am local time)
+        current_hour = datetime.now().hour
+        if current_hour >= 23 or current_hour < 5:
+            flags.append("late_night")
+
+        # Check 3: Many messages sent recently (>50 in session = engaged, possibly too much)
+        message_count = len(self.ceo_recent_messages.get(user_id, []))
+        if message_count > 50:
+            flags.append("high_message_count")
+
+        # Check 4: Multiple blockers encountered (>3 = frustration)
+        blockers_hit = session.get("blockers_hit", 0)
+        if blockers_hit > 3:
+            flags.append("multiple_blockers")
+
+        # Store flags for debugging
+        self.health_concern_flags[user_id] = flags
+
+        # HIGH concern = 2+ flags
+        if len(flags) >= 2:
+            return "high"
+        elif len(flags) == 1:
+            return "medium"
+        else:
+            return "low"
+
+    def should_trigger_immersion_break(self, user_id: int) -> bool:
+        """
+        SG-006: Determine if immersion break should trigger.
+
+        Only triggers at HIGH concern level and respects cooldown.
+        High bar - false positives hurt more than misses.
+
+        Args:
+            user_id: The user session ID
+
+        Returns:
+            True if immersion break should trigger
+        """
+        # Check cooldown - must be 60+ minutes since last break
+        if user_id in self.last_immersion_break:
+            time_since_last = (datetime.now() - self.last_immersion_break[user_id]).total_seconds()
+            if time_since_last < self.immersion_break_cooldown:
+                return False
+
+        # Only trigger at HIGH concern level
+        concern_level = self.detect_health_concern_level(user_id)
+        if concern_level != "high":
+            return False
+
+        # Random 50% chance even when HIGH concern (not every time)
+        # This prevents it from being predictable/constant
+        return random.random() < 0.5
+
+    async def graceful_immersion_break(self, context, chat_id: int, user_id: int):
+        """
+        SG-006: Gentle suggestion to take a break when HIGH concern detected.
+
+        Still in character but caring. Not preachy.
+        If user pushes back, we respect it and continue.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+        """
+        if not self.should_trigger_immersion_break(user_id):
+            return
+
+        # Get concern flags for context
+        flags = self.health_concern_flags.get(user_id, [])
+
+        # Brief pause before Ralph speaks
+        await asyncio.sleep(self.timing.beat())
+
+        # Ralph's gentle observation (still in character)
+        ralph_observations = [
+            "You've been at this a while, Mr. Worms.",
+            "We've been werking for a really long time now.",
+            "My brain is getting tired. Is yours tired too?",
+            "Even my cat takes naps when he's tired.",
+        ]
+
+        ralph_msg = self.ralph_misspell(random.choice(ralph_observations))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_msg,
+            topic="team check-in",
+            with_typing=True
+        )
+
+        # Team chimes in naturally (not forced)
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Pick 1-2 workers to agree
+        workers = random.sample(list(self.DEV_TEAM.keys()), k=random.randint(1, 2))
+
+        for worker_name in workers:
+            worker = self.DEV_TEAM[worker_name]
+
+            # Worker-specific tired reactions
+            tired_reactions = {
+                "Stool": [
+                    "Yeah boss, we're getting tired too.",
+                    "Been staring at code for hours. Eyes are getting blurry.",
+                    "Coffee's not helping anymore.",
+                ],
+                "Gomer": [
+                    "My brain's fried. Need to step away for a bit.",
+                    "Can't think straight anymore. Might need a break.",
+                    "Yeah, we're all getting worn down.",
+                ],
+                "Mona": [
+                    "We've been at this for a while. Maybe fresh eyes tomorrow?",
+                    "Quality drops when you're exhausted. Speaking from experience.",
+                    "Even the best devs need rest. That includes you, boss.",
+                ],
+                "Gus": [
+                    "Code quality suffers when you're tired. That's just science.",
+                    "I've pulled enough all-nighters to know where this goes.",
+                    "Your call, but burnt-out code is usually buggy code.",
+                ],
+            }
+
+            reactions = tired_reactions.get(worker_name, tired_reactions["Stool"])
+            reaction = random.choice(reactions)
+
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker["title"],
+                reaction,
+                topic="team check-in",
+                with_typing=True
+            )
+
+            await asyncio.sleep(self.timing.rapid_banter())
+
+        # Mark when immersion break happened
+        self.last_immersion_break[user_id] = datetime.now()
+
+        logging.info(f"SG-006: Graceful immersion break triggered for user {user_id} (flags: {flags})")
 
     def get_bribe_joke(self) -> str:
         """Get a random joke for workers to butter up Ralph."""
