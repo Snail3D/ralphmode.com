@@ -58,6 +58,16 @@ class OnboardingWizard:
             self.verifier_available = True
         except ImportError:
             self.verifier = None
+
+        # Import tutorial library
+        try:
+            from tutorial_library import get_tutorial_library
+            self.tutorials = get_tutorial_library()
+            self.tutorials_available = True
+        except ImportError:
+            self.tutorials = None
+            self.tutorials_available = False
+            self.logger.warning("Tutorial library not available")
             self.verifier_available = False
             self.logger.warning("Setup verification not available")
 
@@ -388,6 +398,21 @@ Ralph think Option 1 is good unless old key is broken or lost!
 
         keygen_cmd = self.get_ssh_keygen_command(email)
 
+        # Get tutorial link
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            ssh_tutorial = self.tutorials.get_tutorial("ssh_keys", 0)
+            if ssh_tutorial:
+                tutorial_section = f"""
+*Need help?* Watch this video:
+🎥 [{ssh_tutorial.title}]({ssh_tutorial.url})
+   ⏱️ {ssh_tutorial.duration} | Skip to 2:30 for the command!
+"""
+            else:
+                tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+
         return f"""*Time to Make Your Key!* 🔨
 
 Ralph give you magic command! Just copy and paste into your terminal!
@@ -410,11 +435,7 @@ Ralph give you magic command! Just copy and paste into your terminal!
 4. Wait a few seconds... DONE!
 
 Ralph make it so the key has no passphrase so it's easier to use! If you want extra security, you can remove the `-N ""` part and it will ask you for a passphrase!
-
-*Need help?* Watch this video:
-🎥 [How to Generate SSH Keys](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
-   (Skip to 1:25 for the actual command!)
-
+{tutorial_section}
 *Did you run the command?*
 """
 
@@ -473,7 +494,23 @@ Ready?
         Returns:
             Help message with troubleshooting tips
         """
-        return """*Ralph Help You!* 🆘
+        # Get tutorial links
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            ssh_tutorial = self.tutorials.get_tutorial("ssh_keys", 0)
+            if ssh_tutorial:
+                tutorial_section = f"""
+*Watch This Video:*
+🎥 [{ssh_tutorial.title}]({ssh_tutorial.url})
+   ⏱️ {ssh_tutorial.duration}
+   Key sections: 1:15 for checking keys, 2:30 for generation
+"""
+            else:
+                tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+
+        return f"""*Ralph Help You!* 🆘
 
 **Common Problems:**
 
@@ -493,10 +530,7 @@ Ready?
 → Mac: Search for "Terminal" in Spotlight
 → Windows: Search for "Command Prompt" or install Git Bash
 → Linux: You probably know already! 😉
-
-*Watch This Video:*
-🎥 [Complete SSH Key Tutorial](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
-
+{tutorial_section}
 Still stuck? Tell Ralph what error message you seeing!
 """
 
@@ -549,7 +583,22 @@ This will show your public key! It looks like random letters and numbers!
         Returns:
             Detailed step-by-step instructions
         """
-        return """*Adding Key to GitHub - Step by Step!* 📝
+        # Get tutorial link
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            github_tutorial = self.tutorials.get_tutorial("ssh_keys", 0)
+            if github_tutorial:
+                tutorial_section = f"""
+*Need Help?*
+🎥 [{github_tutorial.title}]({github_tutorial.url})
+   ⏱️ {github_tutorial.duration} | Skip to 4:45 for adding to GitHub!
+"""
+            else:
+                tutorial_section = "\n*Need Help?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Need Help?* Check Ralph Mode documentation!"
+
+        return f"""*Adding Key to GitHub - Step by Step!* 📝
 
 Okay! Follow these steps EXACTLY!
 
@@ -574,10 +623,7 @@ Click this link: [GitHub SSH Settings](https://github.com/settings/keys)
 That's normal! GitHub making sure it's really you!
 
 *Done?* Click the button below when you added the key!
-
-*Need Help?*
-🎥 [How to Add SSH Key to GitHub](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
-   (Skip to 3:45 for adding to GitHub!)
+{tutorial_section}
 """
 
     def get_github_ssh_keyboard(self) -> InlineKeyboardMarkup:
@@ -679,7 +725,22 @@ Ready to keep going?
         Returns:
             Troubleshooting help for SSH errors
         """
-        return """*Ralph Help Fix It!* 🔧
+        # Get troubleshooting tutorial
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            troubleshoot_tutorial = self.tutorials.get_tutorial("troubleshooting", 0)
+            if troubleshoot_tutorial:
+                tutorial_section = f"""
+*Still stuck?*
+🎥 [{troubleshoot_tutorial.title}]({troubleshoot_tutorial.url})
+   ⏱️ {troubleshoot_tutorial.duration} | See 0:45 for permission errors
+"""
+            else:
+                tutorial_section = "\n*Still stuck?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Still stuck?* Check Ralph Mode documentation!"
+
+        return f"""*Ralph Help Fix It!* 🔧
 
 **Common Errors and Fixes:**
 
@@ -704,10 +765,7 @@ Ready to keep going?
 → Make sure you ran: `cat ~/.ssh/id_ed25519.pub`
 → Copy EVERYTHING from ssh-ed25519 to the end
 → Don't copy the PRIVATE key (without .pub)!
-
-*Still stuck?*
-🎥 [SSH Troubleshooting Video](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
-
+{tutorial_section}
 Try the test command again, or go back and add the key again!
 """
 
@@ -1129,7 +1187,22 @@ Ralph recommend starting with free credits to test everything!
         Returns:
             API key retrieval instructions
         """
-        return """*Step 2: Get Your API Key!* 🔑
+        # Get API tutorial
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            api_tutorial = self.tutorials.get_tutorial("api_keys", 1)  # Anthropic-specific tutorial
+            if api_tutorial:
+                tutorial_section = f"""
+*Need a video tutorial?*
+🎥 [{api_tutorial.title}]({api_tutorial.url})
+   ⏱️ {api_tutorial.duration} | See 2:10 for key generation
+"""
+            else:
+                tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+
+        return f"""*Step 2: Get Your API Key!* 🔑
 
 Perfect! Now let's get your API key!
 
@@ -1161,10 +1234,7 @@ sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 *Got your key copied?*
 
 🔗 [Get API Key](https://console.anthropic.com/settings/keys)
-
-*Need a video tutorial?*
-🎥 [How to Get Anthropic API Key](https://www.youtube.com/watch?v=example)
-"""
+{tutorial_section}"""
 
     def get_anthropic_api_key_keyboard(self) -> InlineKeyboardMarkup:
         """Get keyboard for API key retrieval step.
@@ -2573,7 +2643,22 @@ Ralph tried to connect to your bot but something went wrong!
         Returns:
             Troubleshooting help
         """
-        return """*Ralph Help With Telegram Bot!* 🆘
+        # Get Telegram bot tutorial
+        tutorial_section = ""
+        if self.tutorials_available and self.tutorials:
+            telegram_tutorial = self.tutorials.get_tutorial("telegram_bots", 0)
+            if telegram_tutorial:
+                tutorial_section = f"""
+*Need a video tutorial?*
+🎥 [{telegram_tutorial.title}]({telegram_tutorial.url})
+   ⏱️ {telegram_tutorial.duration} | See 0:45 for finding BotFather
+"""
+            else:
+                tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+        else:
+            tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
+
+        return f"""*Ralph Help With Telegram Bot!* 🆘
 
 **Common Problems:**
 
@@ -2609,10 +2694,7 @@ Ralph tried to connect to your bot but something went wrong!
 → No problem! Just make a new one!
 → Use `/newbot` again
 → Pick a different username
-
-*Need a video tutorial?*
-🎥 [How to Create a Telegram Bot](https://www.youtube.com/watch?v=example)
-
+{tutorial_section}
 *Still stuck?*
 Tell Ralph exactly what error you seeing!
 """
