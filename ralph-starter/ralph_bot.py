@@ -304,6 +304,45 @@ class RalphBot:
         "bribe": ["peace offering gif", "gift gif", "please dont be mad gif", "butter up gif"],
     }
 
+    # RM-057: MUD-Style Presence System - Worker statuses
+    WORKER_STATUSES = ["working", "chatting", "thinking", "coffee break", "reviewing code", "debugging"]
+
+    # RM-057: Status-specific actions for each worker
+    WORKER_STATUS_ACTIONS = {
+        "Stool": {
+            "working": ["types rapidly on his keyboard", "adjusts his monitor", "sips his iced coffee while coding", "nods to the music in his headphones"],
+            "chatting": ["leans back in his chair, talking", "gestures animatedly", "laughs at something on his screen"],
+            "thinking": ["stares at the ceiling", "drums his fingers on the desk", "tilts his head, pondering"],
+            "coffee break": ["refills his coffee mug", "stretches and grabs another coffee", "makes himself an espresso"],
+            "reviewing code": ["scrolls through the codebase", "squints at the screen", "makes notes on a sticky"],
+            "debugging": ["furrows his brow at a bug", "mutters 'what the...'", "runs another test"],
+        },
+        "Gomer": {
+            "working": ["hunches over his keyboard", "types slowly but deliberately", "scratches his head while coding"],
+            "chatting": ["spins in his chair to talk", "grins widely", "chuckles to himself"],
+            "thinking": ["stares at his screen blankly", "rubs his chin", "squints in concentration"],
+            "coffee break": ["munches on a donut", "sips from his giant coffee mug", "reaches for another snack"],
+            "reviewing code": ["reads through the code carefully", "nods slowly", "points at something on screen"],
+            "debugging": ["frowns at an error", "says 'D'oh!'", "tries something different"],
+        },
+        "Mona": {
+            "working": ["types precisely and quickly", "refers to her notes", "tests something methodically"],
+            "chatting": ["crosses her arms while talking", "raises an eyebrow", "explains something with precision"],
+            "thinking": ["taps her pen rhythmically", "stares at her whiteboard", "calculates in her head"],
+            "coffee break": ["sips her tea carefully", "reads documentation on her phone", "organizes her desk"],
+            "reviewing code": ["scans the code analytically", "marks up her notepad", "shakes her head slightly"],
+            "debugging": ["isolates the problem systematically", "runs a diagnostic", "narrows down the issue"],
+        },
+        "Gus": {
+            "working": ["types with practiced efficiency", "references old documentation", "implements a proven pattern"],
+            "chatting": ["leans against his desk, talking", "shares a war story", "sips his black coffee"],
+            "thinking": ["closes his eyes, remembering something", "strokes his beard", "recalls a similar situation"],
+            "coffee break": ["pours himself more coffee", "looks out the window", "takes a moment to rest his eyes"],
+            "reviewing code": ["looks over the code carefully", "compares it to something he's seen before", "nods approvingly"],
+            "debugging": ["identifies a familiar bug", "knows exactly what to look for", "recalls how he fixed this before"],
+        },
+    }
+
     # The Dev Team - distinct personalities (legally safe names!)
     # Inspired by classic archetypes, not any specific IP
     # IMPORTANT: Personality is the WRAPPER, competence is the CORE
@@ -1141,6 +1180,9 @@ class RalphBot:
         # RM-056: Interrupt and Resume Flow
         self.conversation_context: Dict[int, Dict[str, Any]] = {}  # Stores ongoing conversation context before interruption
         self.resume_timer: Dict[int, asyncio.Task] = {}  # Timer tasks for resuming conversation
+        # RM-057: MUD-Style Presence System
+        self.last_status_update: Dict[int, datetime] = {}  # Track when last status update happened
+        self.status_update_task: Dict[int, asyncio.Task] = {}  # Track status update background tasks
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -1488,6 +1530,207 @@ class RalphBot:
                 with_typing=True
             )
             await asyncio.sleep(self.timing.rapid_banter())
+
+    # ==================== RM-057: MUD-STYLE PRESENCE SYSTEM ====================
+
+    def initialize_worker_statuses(self, user_id: int):
+        """RM-057: Initialize worker statuses for a new session.
+
+        Workers start in various states - not all working right away.
+        Creates the feeling of a MUD space where workers are present and doing things.
+
+        Args:
+            user_id: User session ID
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return
+
+        # Initialize with varied statuses - not all working
+        worker_statuses = {}
+        for worker_name in self.DEV_TEAM.keys():
+            # Start with mostly working/chatting, some on coffee break
+            status = random.choice([
+                "working", "working", "working",  # 60% working
+                "chatting", "chatting",  # 40% chatting initially
+            ])
+            worker_statuses[worker_name] = status
+
+        session['worker_statuses'] = worker_statuses
+        logger.info(f"RM-057: Worker statuses initialized for user {user_id}: {worker_statuses}")
+
+    def update_worker_status(self, user_id: int, worker_name: str, new_status: str):
+        """RM-057: Update a worker's status.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+            new_status: New status (working, chatting, thinking, coffee break, etc.)
+        """
+        session = self.active_sessions.get(user_id)
+        if not session or 'worker_statuses' not in session:
+            return
+
+        session['worker_statuses'][worker_name] = new_status
+        logger.debug(f"RM-057: {worker_name} status updated to '{new_status}' for user {user_id}")
+
+    def get_worker_status(self, user_id: int, worker_name: str) -> str:
+        """RM-057: Get a worker's current status.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+
+        Returns:
+            Current status string
+        """
+        session = self.active_sessions.get(user_id, {})
+        worker_statuses = session.get('worker_statuses', {})
+        return worker_statuses.get(worker_name, "working")
+
+    def get_worker_status_action(self, worker_name: str, status: str) -> str:
+        """RM-057: Get a random action description for a worker's current status.
+
+        Args:
+            worker_name: Name of the worker
+            status: Current status
+
+        Returns:
+            Action description (e.g., "refills his coffee mug")
+        """
+        if worker_name not in self.WORKER_STATUS_ACTIONS:
+            return "sits at their desk"
+
+        worker_actions = self.WORKER_STATUS_ACTIONS[worker_name]
+        if status not in worker_actions:
+            return "sits at their desk"
+
+        return random.choice(worker_actions[status])
+
+    async def periodic_status_updates(self, context, chat_id: int, user_id: int):
+        """RM-057: Background task that occasionally shows worker status updates.
+
+        Creates the MUD feeling - you see workers doing things around you.
+        Updates appear during quiet moments, not constantly.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID for sending messages
+            user_id: User session ID
+        """
+        try:
+            while user_id in self.active_sessions:
+                # Wait 3-8 minutes between status updates
+                await asyncio.sleep(random.uniform(180, 480))
+
+                # Check if session still active
+                if user_id not in self.active_sessions:
+                    break
+
+                session = self.active_sessions[user_id]
+                worker_statuses = session.get('worker_statuses', {})
+
+                if not worker_statuses:
+                    continue
+
+                # Pick a random worker to show an update for
+                worker_name = random.choice(list(worker_statuses.keys()))
+                current_status = worker_statuses[worker_name]
+
+                # Get action description
+                action = self.get_worker_status_action(worker_name, current_status)
+
+                # Send subtle status update
+                update_text = f"_{worker_name} {action}_"
+
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=update_text,
+                    parse_mode="Markdown"
+                )
+
+                # Occasionally change worker status
+                if random.random() < 0.4:  # 40% chance to change status
+                    new_status = random.choice(self.WORKER_STATUSES)
+                    self.update_worker_status(user_id, worker_name, new_status)
+
+        except asyncio.CancelledError:
+            logger.debug(f"RM-057: Periodic status updates cancelled for user {user_id}")
+        except Exception as e:
+            logger.error(f"RM-057: Error in periodic status updates: {e}")
+
+    def get_workers_present(self, user_id: int) -> str:
+        """RM-057: Get a formatted description of who's present and what they're doing.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Formatted string showing all workers and their current activities
+        """
+        session = self.active_sessions.get(user_id, {})
+        worker_statuses = session.get('worker_statuses', {})
+
+        if not worker_statuses:
+            return "_The office is quiet..._"
+
+        # Build the presence description
+        lines = ["*Who's Here:*\n"]
+
+        for worker_name in self.DEV_TEAM.keys():
+            status = worker_statuses.get(worker_name, "working")
+            action = self.get_worker_status_action(worker_name, status)
+            worker_title = self.DEV_TEAM[worker_name]['title']
+
+            lines.append(f"• *{worker_name}* ({worker_title}) - _{action}_")
+
+        return "\n".join(lines)
+
+    async def add_spatial_reaction(self, context, chat_id: int, user_id: int, speaker: str):
+        """RM-057: Occasionally add spatial reactions between workers.
+
+        Workers notice each other and react - "Hey Stool, you see this?"
+        Creates group chat energy with physical presence hints.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID for sending messages
+            user_id: User session ID
+            speaker: Worker who just spoke
+        """
+        # 15% chance of spatial reaction
+        if random.random() > 0.15:
+            return
+
+        # Pick another worker to react
+        other_workers = [w for w in self.DEV_TEAM.keys() if w != speaker]
+        if not other_workers:
+            return
+
+        reactor = random.choice(other_workers)
+        reactor_data = self.DEV_TEAM[reactor]
+
+        # Spatial reaction templates
+        reactions = [
+            f"Hey {speaker}, you see this?",
+            f"_{reactor} looks over at {speaker}_",
+            f"_{reactor} glances at {speaker}'s screen_",
+            f"_{reactor} nods to {speaker} from across the room_",
+            f"Yeah, I saw that too",
+            f"_{reactor} spins his chair toward {speaker}_ True",
+            f"_{reactor} walks over to {speaker}'s desk_",
+            f"Hold up {speaker}, lemme check something",
+        ]
+
+        reaction = random.choice(reactions)
+
+        await asyncio.sleep(self.timing.rapid_banter())
+        await self.send_styled_message(
+            context, chat_id, reactor, reactor_data['title'],
+            reaction,
+            topic="spatial awareness",
+            with_typing=False  # Quick reaction, no typing
+        )
 
     # ==================== RM-039: CEO MOOD TRACKING & ESCALATION ====================
 
@@ -5134,6 +5377,9 @@ _{ralph_response}_
                     use_buttons=False,  # No buttons for idle chatter
                     with_typing=True
                 )
+
+                # RM-057: Occasionally add spatial reactions between workers
+                await self.add_spatial_reaction(context, chat_id, user_id, speaker)
 
                 # RM-058: Store insights as workers explore
                 # Detect topic from message and store the insight
@@ -9022,6 +9268,14 @@ _The team nods in unison._
                     reaction_mood = "nervous" if situation_type in ["verbose", "trend_up"] else "happy"
                     await self.send_worker_gif(context, chat_id, reaction_mood)
 
+        # RM-057: Initialize worker statuses for MUD-style presence
+        self.initialize_worker_statuses(user_id)
+
+        # RM-057: Start periodic status updates task
+        if user_id not in self.status_update_task:
+            task = asyncio.create_task(self.periodic_status_updates(context, chat_id, user_id))
+            self.status_update_task[user_id] = task
+
         # Continue the session...
         await context.bot.send_message(
             chat_id=chat_id,
@@ -9031,6 +9285,7 @@ _Session started! Ralph and the team are now working._
 *Commands:*
 • `Ralph: [message]` - Talk to Ralph directly
 • /status - Check progress
+• /lookaround or /whos_here - See who's present
 • /stop - End session
 
 _Grab some popcorn..._
@@ -9991,6 +10246,28 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 "No active session. Drop a `.zip` file to start!",
                 parse_mode="Markdown"
             )
+
+    async def lookaround_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """RM-057: Handle /lookaround or /whos_here command - show who's present and what they're doing."""
+        user_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        session = self.active_sessions.get(user_id)
+
+        if not session:
+            await update.message.reply_text(
+                "No active session. Drop a `.zip` file to start!",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Get presence description
+        presence_text = self.get_workers_present(user_id)
+
+        await update.message.reply_text(
+            presence_text,
+            parse_mode="Markdown"
+        )
 
     async def mystatus_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /mystatus command - FQ-003: Show user's feedback queue status and quality score (QS-003)."""
@@ -12514,6 +12791,8 @@ To update your Git config:
         # Handlers
         app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CommandHandler("status", self.status_command))
+        app.add_handler(CommandHandler("lookaround", self.lookaround_command))  # RM-057
+        app.add_handler(CommandHandler("whos_here", self.lookaround_command))  # RM-057 alias
         app.add_handler(CommandHandler("mystatus", self.mystatus_command))  # QS-003 & FQ-003
         app.add_handler(CommandHandler("report", self.report_command))
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
