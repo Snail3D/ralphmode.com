@@ -11,6 +11,13 @@ from typing import Dict, Any, Optional, List, Tuple
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+# Import Ralph personality module for narration
+try:
+    from ralph_personality import get_ralph_narrator
+    RALPH_NARRATOR_AVAILABLE = True
+except ImportError:
+    RALPH_NARRATOR_AVAILABLE = False
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -30,6 +37,13 @@ class OnboardingWizard:
     def __init__(self):
         """Initialize the onboarding wizard."""
         self.logger = logging.getLogger(__name__)
+
+        # Initialize Ralph narrator (OB-032: Story Mode Narration)
+        if RALPH_NARRATOR_AVAILABLE:
+            self.narrator = get_ralph_narrator()
+        else:
+            self.narrator = None
+            self.logger.warning("Ralph narrator not available")
 
         # Import setup state manager
         try:
@@ -293,36 +307,51 @@ Ralph help you check each one super fast!
             state: Current onboarding state
 
         Returns:
-            Progress message string
+            Progress message string with Ralph's encouragement (OB-032)
         """
         progress = []
+        completed_count = 0
+        total_steps = 5
 
         if state.get("ssh_key_generated"):
             progress.append("✅ SSH key generated")
+            completed_count += 1
         else:
             progress.append("⬜ SSH key not generated yet")
 
         if state.get("ssh_key_added_to_github"):
             progress.append("✅ SSH key added to GitHub")
+            completed_count += 1
         else:
             progress.append("⬜ SSH key not added to GitHub yet")
 
         if state.get("repo_created"):
             progress.append("✅ Repository created")
+            completed_count += 1
         else:
             progress.append("⬜ Repository not created yet")
 
         if state.get("repo_url"):
             progress.append(f"✅ Repository URL: {state['repo_url']}")
+            completed_count += 1
         else:
             progress.append("⬜ Repository URL not configured")
 
         if state.get("git_configured"):
             progress.append(f"✅ Git configured ({state.get('git_name', 'Unknown')})")
+            completed_count += 1
         else:
             progress.append("⬜ Git not configured yet")
 
-        return "*Your Progress:*\n\n" + "\n".join(progress)
+        # Add Ralph's encouragement based on progress (OB-032)
+        encouragement = ""
+        if self.narrator:
+            if completed_count == total_steps:
+                encouragement = f"\n\n{self.narrator.get_encouragement('milestone')}"
+            elif completed_count > 0:
+                encouragement = f"\n\n{self.narrator.get_encouragement('progress')}"
+
+        return "*Your Progress:*\n\n" + "\n".join(progress) + encouragement
 
     # SSH Key Generation Wizard (OB-002)
 
@@ -467,9 +496,14 @@ Ralph make it so the key has no passphrase so it's easier to use! If you want ex
         """Get the success message after SSH key generation.
 
         Returns:
-            Success message with Ralph's personality
+            Success message with Ralph's personality and celebration (OB-032)
         """
-        return """*You did it!* 🎊
+        # Add celebration message (OB-032)
+        celebration = ""
+        if self.narrator:
+            celebration = self.narrator.get_celebration("SSH key created") + "\n\n"
+
+        return f"""{celebration}*You did it!* 🎊
 
 Ralph so proud! You made a SSH key!
 
@@ -492,8 +526,13 @@ Ready?
         """Get help message for SSH key generation issues.
 
         Returns:
-            Help message with troubleshooting tips
+            Help message with troubleshooting tips and Ralph's humor (OB-032)
         """
+        # Add humorous error intro (OB-032)
+        error_intro = ""
+        if self.narrator:
+            error_intro = self.narrator.get_error_message("general") + "\n\n"
+
         # Get tutorial links
         tutorial_section = ""
         if self.tutorials_available and self.tutorials:
@@ -510,7 +549,7 @@ Ready?
         else:
             tutorial_section = "\n*Need help?* Check Ralph Mode documentation!"
 
-        return f"""*Ralph Help You!* 🆘
+        return f"""{error_intro}*Ralph Help You!* 🆘
 
 **Common Problems:**
 
@@ -775,9 +814,14 @@ Try the test command again, or go back and add the key again!
         """Get introduction message for git configuration.
 
         Returns:
-            Git configuration introduction
+            Git configuration introduction with Ralph's narration (OB-032)
         """
-        return """*Time to Tell Git Who You Are!* 👤
+        # Add step introduction narration (OB-032)
+        step_intro = ""
+        if self.narrator:
+            step_intro = self.narrator.get_step_intro("Git Configuration") + "\n\n"
+
+        return f"""{step_intro}*Time to Tell Git Who You Are!* 👤
 
 Okay! Before you start making code, Git needs to know YOUR name!
 
@@ -1906,9 +1950,14 @@ Ralph can help you:
         """Get confirmation message when user skips Groq setup.
 
         Returns:
-            Skip confirmation message
+            Skip confirmation message with Ralph's personality (OB-032)
         """
-        return """*No Problem! Skipping Groq Setup!* ⏭️
+        # Add skip message with Ralph's understanding (OB-032)
+        skip_msg = ""
+        if self.narrator:
+            skip_msg = self.narrator.get_skip_message() + "\n\n"
+
+        return f"""{skip_msg}*No Problem! Skipping Groq Setup!* ⏭️
 
 Ralph totally understands! Groq is optional!
 
@@ -5291,12 +5340,19 @@ Ralph mode: ACTIVATED! 🚀"""
             configured_items: List of what was configured during setup
 
         Returns:
-            Celebration message with next steps
+            Celebration message with next steps and Ralph's celebration (OB-032)
         """
+        # Add Ralph's big celebration (OB-032)
+        celebration = ""
+        goodbye = ""
+        if self.narrator:
+            celebration = self.narrator.get_celebration("Setup complete") + "\n\n"
+            goodbye = "\n\n" + self.narrator.get_goodbye_message()
+
         # Build configured items list
         items_text = "\n".join([f"✅ {item}" for item in configured_items]) if configured_items else "✅ Everything Ralph needed!"
 
-        return f"""*🎉 CONGRATULATIONS! 🎉*
+        return f"""{celebration}*🎉 CONGRATULATIONS! 🎉*
 
 Ralph is SO PROUD of you!
 
@@ -5328,7 +5384,7 @@ Tell your friends! Ralph Mode makes coding fun!
 Tweet: "I just set up Ralph Mode! AI dev team in Telegram 🤖🎉 #RalphMode"
 
 Ralph says: "Me proud of you! You did unpossible thing!" 👃
-
+{goodbye}
 *Ready to start building?*"""
 
     # ==================== OB-049: RE-ONBOARDING FLOW ====================
