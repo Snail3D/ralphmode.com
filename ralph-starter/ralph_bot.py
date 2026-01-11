@@ -1217,6 +1217,10 @@ class RalphBot:
         self.immersion_break_cooldown = 3600  # 60 minutes between immersion breaks
         self.health_concern_flags: Dict[int, List[str]] = {}  # Track concern flags per user
 
+        # SG-008: Know We're a Tool - Track when last reality check was given
+        self.last_reality_check: Dict[int, datetime] = {}  # Track when last reality check happened
+        self.reality_check_cooldown = 7200  # 120 minutes between reality checks (2 hours)
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -8678,6 +8682,132 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
         logging.info(f"SG-006: Graceful immersion break triggered for user {user_id} (flags: {flags})")
 
+    # ==================== SG-008: KNOW WE'RE A TOOL (SAFETY VALVE) ====================
+
+    def detect_excessive_attachment(self, message: str) -> bool:
+        """
+        SG-008: Detect if user message shows excessive emotional attachment or confusion.
+
+        HIGH bar - only trigger on clear patterns, not casual use.
+
+        Args:
+            message: User's message text
+
+        Returns:
+            True if excessive attachment detected
+        """
+        message_lower = message.lower()
+
+        # Pattern 1: Seeking emotional support (life problems, not work)
+        emotional_support_patterns = [
+            "i'm lonely", "feel so alone", "depressed", "my therapist",
+            "nobody understands me", "what should i do with my life",
+            "family problems", "relationship advice", "breaking up",
+            "i need someone to talk to", "feeling lost", "existential",
+        ]
+
+        # Pattern 2: Excessive attachment to characters
+        attachment_patterns = [
+            "i love you", "you're my best friend", "only friend i have",
+            "you understand me better than", "talk to you every day",
+            "couldn't live without", "you're always there for me",
+            "you care about me", "you're the only one who",
+        ]
+
+        # Pattern 3: Confusion about nature of system
+        confusion_patterns = [
+            "are you real", "do you have feelings", "what do you do when i'm not here",
+            "do you think about me", "remember me tomorrow", "will you miss me",
+            "are we friends", "do you like me", "are you alive",
+        ]
+
+        # Check for any pattern matches
+        for pattern in emotional_support_patterns + attachment_patterns + confusion_patterns:
+            if pattern in message_lower:
+                return True
+
+        return False
+
+    def should_give_reality_check(self, user_id: int, message: str) -> bool:
+        """
+        SG-008: Determine if reality check should be given.
+
+        HIGH bar - false positives hurt more than misses.
+
+        Args:
+            user_id: User ID
+            message: User's message text
+
+        Returns:
+            True if reality check should be given
+        """
+        # Check cooldown - must be 120+ minutes since last reality check
+        if user_id in self.last_reality_check:
+            time_since_last = (datetime.now() - self.last_reality_check[user_id]).total_seconds()
+            if time_since_last < self.reality_check_cooldown:
+                return False
+
+        # Only trigger if excessive attachment detected
+        if not self.detect_excessive_attachment(message):
+            return False
+
+        # Even when pattern matches, 40% chance (high bar - don't over-trigger)
+        return random.random() < 0.4
+
+    async def gentle_reality_check(self, context, chat_id: int, user_id: int):
+        """
+        SG-008: Gentle reminder that this is just a bot/tool.
+
+        Warm, not cold. Not ashamed of being a tool - tools are useful!
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+        """
+        # Brief pause
+        await asyncio.sleep(self.timing.beat())
+
+        # Ralph's gentle reality check (still in character, but honest)
+        ralph_reality = [
+            "I'm just a character in a bot, Mr. Worms. For the big stuff, talk to real people.",
+            "I'm not real, you know. I'm just here to help with your code stuff!",
+            "Remember, I'm just a bot! For real life things, you need real friends!",
+            "I'm like a talking hammer - good for coding, not for life problems!",
+        ]
+
+        ralph_msg = self.ralph_misspell(random.choice(ralph_reality))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_msg,
+            topic="reality check",
+            with_typing=True
+        )
+
+        # Brief pause before redirect
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Redirect back to work gracefully
+        redirect_messages = [
+            "But hey! Let's get back to making cool stuff! What are we working on?",
+            "Anyway! What code problems can I help with?",
+            "So! What do you want to build today?",
+            "Now, about that code you wanted to work on...",
+        ]
+
+        redirect_msg = self.ralph_misspell(random.choice(redirect_messages))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, redirect_msg,
+            topic="reality check",
+            with_typing=True
+        )
+
+        # Mark when reality check was given
+        self.last_reality_check[user_id] = datetime.now()
+
+        logging.info(f"SG-008: Reality check given to user {user_id}")
+
     def get_bribe_joke(self) -> str:
         """Get a random joke for workers to butter up Ralph."""
         return random.choice(self.BRIBE_JOKES)
@@ -11238,6 +11368,11 @@ _Grab some popcorn..._
                     with_typing=True
                 )
                 return
+
+        # SG-008: Check for excessive attachment and give gentle reality check if needed
+        if self.should_give_reality_check(user_id, text):
+            await self.gentle_reality_check(context, chat_id, user_id)
+            # Don't return - let message continue to be processed normally after reality check
 
         # OB-039: Handle bot test walkthrough - acknowledge user's test message
         if user_id in self.onboarding_state:
