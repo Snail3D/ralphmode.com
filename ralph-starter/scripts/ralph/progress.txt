@@ -10698,3 +10698,38 @@ Worker reactions:
 - Configuration stored in same format as other MCP servers
 
 ---
+## Iteration 193 - 2026-01-10
+**Task**: [OB-044] Discord MCP Server Setup - Manager Integration
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 6 Discord MCP methods to mcp_manager.py following Slack/GitHub pattern:
+  - setup_discord_mcp() - Orchestrates setup, checks prerequisites
+  - test_discord_connection() - Sends test message with rich embeds
+  - list_discord_channels() - Lists available channels in guild
+  - configure_discord_channel() - Sets default notification channel
+  - get_discord_bot_creation_guide() - Returns 7-step creation guide
+  - format_discord_setup_guide() - Formats checklist for display
+- All methods delegate to discord_mcp_setup.py implementation
+- Includes error handling when Discord setup helper unavailable
+- Tested all methods successfully with comprehensive test suite
+
+### Files changed
+- mcp_manager.py
+
+### Learnings
+- MCP manager provides consistent interface for all service integrations
+- Discord methods mirror Slack pattern (OB-043) for maintainability
+- Discord setup already existed, just needed manager exposure
+- Testing shows proper delegation and error handling works
+- Pattern makes adding new MCP services straightforward
+
+### Acceptance Criteria Met
+✅ Links to Discord bot creation (via get_discord_bot_creation_guide())
+✅ Guides through token setup (get_token_setup_guide() with security warnings)
+✅ Installs Discord MCP server (setup_discord_mcp() provides install instructions)
+✅ Tests bot connection (test_discord_connection() sends rich embed message)
+✅ Configures default channel (configure_discord_channel() with notification prefs)
+
+---
+
