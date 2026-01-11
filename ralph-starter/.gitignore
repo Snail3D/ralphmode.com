@@ -46,3 +46,7 @@ Thumbs.db
 
 # Backroom logs (private)
 BACKROOM_LOG.md
+
+# Memory files (contain conversation history)
+withers_memories/
+*_memories/
