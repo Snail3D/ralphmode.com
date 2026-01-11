@@ -17310,3 +17310,28 @@ All 10 test cases passed:
 - No breaking changes - bot still works with legacy path if MM not configured
 
 ---
+
+## Iteration Latest - 2026-01-11
+**Task**: [MM-025] Builder Flow Model Injection
+**Status**: ✅ Complete
+
+### What was implemented
+- Made call_worker() async to support ModelManager integration
+- Added ModelManager.generate() call with ModelRole.WORKER for worker responses
+- Falls back to legacy call_groq(WORKER_MODEL) if ModelManager fails or unavailable
+- Updated all 14 call_worker() invocations across ralph_bot.py to use await
+- Workers now use configurable models just like Ralph (MM-024 pattern)
+
+### Files changed
+- ralph_bot.py (main implementation)
+- scripts/ralph/prd.json (marked MM-025 as passes=true)
+
+### Learnings
+- Pattern from MM-024 (Ralph Flow) applied cleanly to worker flow
+- Making call_worker() async required updating all callers with await
+- All calling functions were already async, so no cascading function signature changes needed
+- ModelRole.WORKER was already defined in model_manager.py
+- Consistent fallback pattern ensures backward compatibility if ModelManager unavailable
+- This completes the model injection pattern for both personality (Ralph) and coding (Workers)
+
+---
