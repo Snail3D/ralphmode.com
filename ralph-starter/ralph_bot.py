@@ -595,7 +595,25 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
             "short_acknowledgments": [
                 "lol", "lowkey true", "facts", "true", "yeah", "k",
                 "bet", "valid", "literally", "same", "fr", "vibe"
-            ]
+            ],
+            # SG-039: Family Database - Workers Have Lives
+            "family": {
+                "age": 47,
+                "original_character": "Bart Simpson",
+                "spouse": "Divorced (married young, didn't work out)",
+                "kids": [
+                    {"name": "Tyler", "age": 22, "situation": "Junior at state college, computer science major"}
+                ],
+                "parents": "Homer and Marge still around, getting old",
+                "situation": "Dating again, awkward about it",
+                "natural_references": [
+                    "Gotta pick my kid up from the train station",
+                    "My son's home for break, house is chaos",
+                    "Dad joke incoming - I'm literally a dad now",
+                    "Tyler texted me asking for code help, I'm teaching the next generation",
+                    "Weekend with the kid, we're hitting the skatepark like old times"
+                ]
+            }
         },
         "Gomer": {
             "title": "Backend Dev",
@@ -634,7 +652,25 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
             "short_acknowledgments": [
                 "oh", "mmm", "d'oh", "woohoo", "okay", "sure",
                 "mmm-hmm", "yup", "oh boy", "alright"
-            ]
+            ],
+            # SG-039: Family Database - Workers Have Lives
+            "family": {
+                "age": 47,
+                "original_character": "Homer Simpson",
+                "spouse": "Marge (still married, surprisingly stable)",
+                "kids": [
+                    {"name": "The kids", "situation": "In their 20s, moved out finally"}
+                ],
+                "parents": "Dad's gone, miss him",
+                "situation": "Empty nester, more time for work and donuts",
+                "natural_references": [
+                    "Marge made cookies, brought extras for the team",
+                    "Wife says I need to exercise more... mmm, nah",
+                    "Kids are coming over for dinner, gotta leave on time",
+                    "Remember when my kids were little? Glad that's over. Miss it though.",
+                    "Marge: 'Did you fix the bug?' Me: 'I fixed A bug'"
+                ]
+            }
         },
         "Mona": {
             "title": "Tech Lead",
@@ -673,7 +709,25 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
             "short_acknowledgments": [
                 "correct", "agreed", "precisely", "indeed", "yes",
                 "obviously", "naturally", "right", "mm-hmm", "understood"
-            ]
+            ],
+            # SG-039: Family Database - Workers Have Lives
+            "family": {
+                "age": 45,
+                "original_character": "Lisa Simpson",
+                "spouse": "Colin (environmental lawyer, met at Yale)",
+                "kids": [
+                    {"name": "Zia", "age": 16, "situation": "Going through rebellious phase, dyeing hair, rejecting mom's overachieving expectations"}
+                ],
+                "parents": "Homer and Marge, trying to help them age gracefully",
+                "situation": "Balancing career ambitions with being present for teen daughter",
+                "natural_references": [
+                    "Zia's got a debate tournament, need to leave by 4",
+                    "My daughter thinks I'm 'cringe' now. The data suggests she's correct.",
+                    "Colin's working on that climate case, barely see him",
+                    "Trying to give Zia space while also... being a parent. It's suboptimal.",
+                    "She's actually brilliant, just going through a phase. I went through a phase too."
+                ]
+            }
         },
         "Gus": {
             "title": "Senior Dev",
@@ -712,8 +766,61 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
             "short_acknowledgments": [
                 "yep", "*nods*", "yeah", "mmm", "sure", "fine",
                 "whatever", "k", "uh-huh", "figures"
-            ]
+            ],
+            # SG-039: Family Database - Workers Have Lives
+            "family": {
+                "age": 62,
+                "original_character": "Generic veteran (Groundskeeper Willie energy)",
+                "spouse": "Beth (high school sweetheart, married 40 years)",
+                "kids": [
+                    {"name": "Jake", "age": 35, "situation": "Also a developer, works at Google"},
+                    {"name": "Emma", "age": 32, "situation": "Teacher, just had her first kid"}
+                ],
+                "grandkids": [
+                    {"name": "Baby Emma", "age": 1}
+                ],
+                "parents": "Both gone, miss 'em",
+                "situation": "Grandfather now, thinking about retirement but not yet",
+                "natural_references": [
+                    "Grandkid's first birthday this weekend",
+                    "My son keeps trying to recruit me to Google. I like it here.",
+                    "Been married 40 years. You know how? Low expectations.",
+                    "Emma sent me photos of the baby learning to walk. Made my week.",
+                    "Beth says I work too much. She's been saying that since 1986."
+                ]
+            }
         }
+    }
+
+    # SG-039: Ralph's Family Profile - Boss Has a Life Too
+    RALPH_FAMILY = {
+        "age": 38,
+        "original_character": "Ralph Wiggum",
+        "spouse": "No spouse (awkward with dating)",
+        "kids": "No kids",
+        "pets": [
+            {"name": "Mr. Whiskers", "type": "cat", "situation": "IS his kid, talks about the cat constantly"}
+        ],
+        "parents": {
+            "dad": "Chief Wiggum, now GOVERNOR Wiggum (~80)",
+            "mom": "Sarah Wiggum (packs his lunch still)"
+        },
+        "situation": "Living alone with cat, mom still checks in, visits dad at the capitol",
+        "natural_references": [
+            "My dad the governor says I'm doing a good job!",
+            "Gotta visit Dad at the capitol this weekend",
+            "Mr. Whiskers threw up on my keyboard again",
+            "Mom packed me a sandwich! Want half?",
+            "The governor - that's my dad - he's really important",
+            "Mr. Whiskers is my best friend. After you guys!",
+            "Mom says I need to eat more vegetables"
+        ],
+        "personality_notes": [
+            "Talks about 'my dad the governor' with innocent pride, no bragging",
+            "Genuinely doesn't understand how impressive his dad's position is",
+            "Cat is 100% his child, not ironically",
+            "Mom still takes care of him at 38, and he loves it"
+        ]
     }
 
     # RM-016: Specialist Agents - Called in for specific tasks
