@@ -10506,3 +10506,46 @@ Worker reactions:
 
 ---
 
+
+## Iteration (OB-018) - 2026-01-10
+**Task**: [OB-018] GitHub MCP Server Setup
+**Status**: ✅ Complete
+
+### What was implemented
+- Created github_mcp_setup.py with comprehensive GitHub MCP server setup helpers
+- Enhanced mcp_manager.py with GitHub-specific setup integration methods
+- Added complete GitHub MCP setup UI flow to onboarding_wizard.py
+- Implemented GitHub CLI detection and installation guidance
+- Added gh auth login flow with step-by-step instructions
+- Created MCP server availability checking
+- Built connection verification system
+- Added comprehensive capabilities overview showing what GitHub MCP can do
+- Included troubleshooting guide for common issues
+
+### Files changed
+- github_mcp_setup.py (new file - 352 lines)
+- mcp_manager.py (added GitHub setup methods)
+- onboarding_wizard.py (added GitHub MCP UI handlers)
+
+### Key Features
+1. **GitHub CLI Check**: Detects if gh is installed, provides platform-specific install commands
+2. **Authentication Flow**: Guides users through gh auth login with detailed steps
+3. **MCP Server Check**: Verifies Node.js and GitHub MCP server availability
+4. **Connection Verification**: Tests full setup and reports status
+5. **Capabilities Display**: Shows all available GitHub operations (repos, PRs, issues, etc.)
+6. **Troubleshooting**: Common issues and solutions for setup problems
+
+### Learnings
+- GitHub MCP requires both GitHub CLI authentication AND Node.js for the MCP server
+- Users need clear distinction between gh CLI vs MCP server
+- Platform-specific install commands are essential (Mac/Windows/Linux)
+- Connection testing should check all components independently for better debugging
+- Ralph's personality makes technical setup feel less intimidating
+
+### Integration Points
+- Uses existing mcp_manager infrastructure from OB-017
+- Builds on onboarding_wizard patterns from OB-001, OB-002, OB-003
+- Ready for callback handlers in ralph_bot.py when needed
+- Follows same UI pattern as other MCP server setups (OB-043, OB-044, OB-045)
+
+---

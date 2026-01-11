@@ -4579,7 +4579,7 @@
         "mcp_manager.py",
         "github_mcp_setup.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-019",
