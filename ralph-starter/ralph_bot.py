@@ -11589,10 +11589,10 @@ I'm not that smart, but I remember ALL of it!
     # ==================== SG-036: NATURAL SESSION ENDS ====================
 
     def generate_session_end_excuse(self, worker_name: str) -> str:
-        """SG-036: Generate a fresh, natural excuse for worker to leave session.
+        """SG-044: Generate a fresh, natural excuse for worker to leave session.
 
         Uses worker family profiles to create authentic, varied excuses.
-        NEVER returns verbatim examples - always generates fresh content.
+        NEVER returns verbatim examples - always generates fresh content via AI.
 
         Args:
             worker_name: Name of the worker leaving
@@ -11605,71 +11605,57 @@ I'm not that smart, but I remember ALL of it!
 
         profile = self.WORKER_FAMILY_PROFILES[worker_name]
 
-        # Build contextual excuse based on worker's actual life
-        excuse_templates = []
+        # Build context for AI to generate fresh excuse
+        life_context_parts = []
 
-        # Family-based excuses
         if profile.get("spouse_name"):
-            excuse_templates.extend([
-                f"{profile['spouse_name']}'s been texting me - gotta go.",
-                f"Wife's calling, I should probably answer that.",
-                f"{profile['spouse_name']}'s asking where I am. I'm in trouble if I don't leave now.",
-                f"Promised {profile['spouse_name']} I'd be home by now. Gotta bounce."
-            ])
+            life_context_parts.append(f"spouse {profile['spouse_name']}")
+            if profile.get("spouse_job"):
+                life_context_parts.append(f"(who works as {profile['spouse_job']})")
 
         if profile.get("kids"):
-            kid_names = [kid.split()[0] for kid in profile["kids"]]  # Extract first names
-            excuse_templates.extend([
-                f"Kids need picking up from {random.choice(['school', 'practice', 'their friends house'])}.",
-                f"{random.choice(kid_names)} has {random.choice(['soccer', 'piano', 'karate'])} in 20 minutes.",
-                f"Gotta help {random.choice(kid_names)} with {random.choice(['homework', 'a project', 'dinner'])}.",
-                f"Promised the kids I'd be there for {random.choice(['dinner', 'bedtime', 'game night'])}."
-            ])
+            kids_str = ", ".join(profile["kids"])
+            life_context_parts.append(f"kids: {kids_str}")
 
-        # Elderly family care (Gus and Gomer)
-        if "elderly mother" in str(profile.get("family_nearby", [])) or "parents (aging)" in str(profile.get("family_nearby", [])):
-            excuse_templates.extend([
-                f"Need to check on my {random.choice(['mom', 'folks'])}. Haven't heard from them today.",
-                f"Told my mom I'd stop by. She worries if I'm late.",
-                f"Gotta pick up some groceries for my {random.choice(['mom', 'parents'])}."
-            ])
-
-        # Pet responsibilities
         if profile.get("pet"):
-            pet = profile["pet"]
-            excuse_templates.extend([
-                f"My {pet} hasn't been fed yet. Feeling guilty about that.",
-                f"Been gone too long - {pet} is probably destroying my apartment.",
-                f"Gotta get home to my {pet}. Can't leave them alone much longer."
-            ])
+            life_context_parts.append(f"pet: {profile['pet']}")
 
-        # Hobbies and personal time
-        hobbies = profile.get("hobbies", [])
-        if hobbies:
-            hobby = random.choice(hobbies)
-            excuse_templates.extend([
-                f"Got {hobby} tonight. Can't miss it.",
-                f"Meeting some people for {hobby}. Told them I'd be there.",
-            ])
+        if "elderly mother" in str(profile.get("family_nearby", [])) or "parents (aging)" in str(profile.get("family_nearby", [])):
+            life_context_parts.append("elderly parent(s) they care for")
 
-        # Responsibilities
-        responsibilities = profile.get("responsibilities", [])
-        if responsibilities:
-            resp = random.choice(responsibilities)
-            excuse_templates.extend([
-                f"Need to deal with {resp}. Been putting it off too long.",
-                f"Gotta handle {resp} before it gets too late.",
-            ])
+        if profile.get("hobbies"):
+            hobbies_str = ", ".join(profile["hobbies"])
+            life_context_parts.append(f"hobbies: {hobbies_str}")
 
-        # Time-of-day generic excuses
-        excuse_templates.extend([
-            "Getting late. I should head out.",
-            "Promised I wouldn't stay late today. Gotta go.",
-            "Been here long enough. Time for me to bounce.",
-            "Heading out, boss. Got some stuff to handle at home."
-        ])
+        if profile.get("responsibilities"):
+            resp_str = ", ".join(profile["responsibilities"])
+            life_context_parts.append(f"responsibilities: {resp_str}")
 
-        return random.choice(excuse_templates)
+        # Generate fresh excuse using AI
+        life_context = " | ".join(life_context_parts)
+        prompt = f"""Generate a brief, casual excuse for {worker_name} to leave work and head home.
+
+{worker_name}'s life context: {life_context}
+
+Examples of TYPES of excuses (NEVER use verbatim - generate fresh):
+- Spouse calling/texting
+- Kid's activity pickup (soccer, piano, etc.)
+- Elderly parent care/doctor appointment
+- Pet needs attention
+- Family dinner commitment
+- Home responsibility
+
+Generate ONE brief excuse (10-15 words max). Keep it natural and casual, not dramatic.
+Format: Just the excuse itself as {worker_name} would say it, no quotes or formatting."""
+
+        messages = [
+            {"role": "system", "content": "You generate realistic exit excuses for workers leaving for the day. Always fresh, profile-consistent, never repeat examples verbatim."},
+            {"role": "user", "content": prompt}
+        ]
+
+        excuse = self.call_groq("llama-3.3-70b-versatile", messages, max_tokens=50)
+
+        return excuse.strip()
 
     async def natural_session_end(self, context, chat_id: int, user_id: int):
         """SG-036: Worker initiates natural session end with life excuse.
