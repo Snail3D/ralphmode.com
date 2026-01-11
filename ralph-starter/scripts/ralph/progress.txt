@@ -11104,3 +11104,44 @@ All functionality tested and verified:
 - All status codes (INSTALLED, OUTDATED, NOT_FOUND, ERROR) handled
 
 ---
+
+## Iteration [AUTO] - 2026-01-10 (continued)
+**Task**: [RM-043] Worker Enthusiasm Varies by Task
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `WORKER_TASK_PREFERENCES` class constant with task preferences for each worker
+- Each worker has "loves" and "dislikes" keyword lists
+- Each worker has custom reactions for excited/bored states
+- Created `_get_worker_enthusiasm_prompt()` function:
+  - Analyzes message and context for task keywords
+  - Returns enthusiasm prompts (HIGH/LOW/PERKS UP/NEUTRAL)
+  - Stool: loves UI/frontend, dislikes backend
+  - Gomer: loves backend/data, dislikes CSS
+  - Mona: loves complex challenges, bored by simple fixes
+  - Gus: perks up for legacy code and debugging
+- Integrated enthusiasm prompts into `call_worker()` system messages
+- Enthusiasm affects worker tone without compromising work quality
+
+### Files changed
+- ralph_bot.py (+88 lines)
+
+### Learnings
+- **Enthusiasm layers on top of personality**: Workers are still themselves (Stool is still Stool), enthusiasm just adjusts their energy level
+- **Keyword-based detection**: Simple keyword matching in message/context works well for detecting task types
+- **Preference specificity**: Specific reactions per worker make enthusiasm feel authentic
+  - Stool: "Ooh, pretty buttons!" vs "Can someone else take this one?"
+  - Gomer: "Mmm, chunky data!" vs "Why won't this box go there?"
+  - Mona: "Finally, a real challenge!" vs "This is beneath my talents."
+  - Gus: "*sips coffee* Another day..." (veteran energy)
+- **Gus special case**: Veterans don't get super excited, but they "perk up" for interesting problems and war stories
+- **Quality first**: Enthusiasm prompt includes "still do good work" even when bored - quality never suffers
+- **Order matters**: Enthusiasm prompt comes after project tone but before pushback - creates natural priority
+
+### Code patterns established
+- Task preferences as class constant (not instance variable - same for all sessions)
+- Enthusiasm prompt structure: "TASK ENTHUSIASM: [LEVEL]\n- Guidance\n- Optional reaction quote"
+- Integration pattern: enthusiasm_prompt variable → system message concatenation
+- Keyword matching: case-insensitive, checks both message and context
+
+---
