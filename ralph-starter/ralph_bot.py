@@ -461,6 +461,33 @@ COMPETENCE (this is your core - never compromise it):
         # - style: Their communication style
     }
 
+    # RM-022: API Registry for Specialists
+    # Registry of APIs that specialists can demonstrate or actually call
+    API_REGISTRY = {
+        # Example structure (APIs to be added in future tasks):
+        # "github": {
+        #     "base_url": "https://api.github.com",
+        #     "auth_type": "token",  # "token", "oauth", "api_key", "none"
+        #     "specialist_owner": "册子",  # Which specialist knows this API best
+        #     "mock_mode": True,  # True = mock responses, False = real API calls
+        #     "description": "GitHub API for repos, issues, PRs"
+        # },
+        # "stripe": {
+        #     "base_url": "https://api.stripe.com/v1",
+        #     "auth_type": "api_key",
+        #     "specialist_owner": "册子",
+        #     "mock_mode": True,
+        #     "description": "Payment processing"
+        # },
+        # "openai": {
+        #     "base_url": "https://api.openai.com/v1",
+        #     "auth_type": "bearer",
+        #     "specialist_owner": "册子",
+        #     "mock_mode": False,  # Could actually call if configured
+        #     "description": "AI/ML models"
+        # }
+    }
+
     # The CEO (user talks to Mr. Worms through Ralphie)
     CEO_NAME = "Mr. Worms"
 
