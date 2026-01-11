@@ -8383,3 +8383,178 @@ Doc specialist character was already fully implemented in ralph_bot.py:
 - This implementation provides audit-ready SOC 2 Type II compliance for Ralph Mode - ready for auditor engagement
 
 ---
+
+## Iteration [Ralph Auto] - 2026-01-10 01:30 UTC
+**Task**: [OB-005] Git Configuration Setup
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive git configuration setup wizard to OnboardingWizard class
+- Created methods for each step of the git config flow:
+  - get_git_config_intro_message() - Explains what Git is and why we need to configure it
+  - get_git_config_name_request_message() - Asks for user's name with examples
+  - get_git_config_email_request_message() - Asks for email with GitHub integration tips
+  - get_git_config_commands() - Generates the actual git config commands
+  - get_git_config_command_message() - Presents commands with copy buttons
+  - get_git_config_verify_command() - Provides verification command
+  - get_git_config_verify_message() - Instructions to verify configuration
+  - get_git_config_verify_keyboard() - Interactive buttons for verification
+  - get_git_config_success_message() - Celebration and explanation of what commit means
+  - get_git_config_help_message() - Troubleshooting for common issues
+  - get_git_config_explanation_message() - Kid-friendly explanation of version control
+- Updated init_onboarding_state() to track git_configured, git_name, git_email
+- Updated get_progress_message() to show git configuration status
+- All messages maintain Ralph's personality (simple language, enthusiasm, helpful analogies)
+
+### Files changed
+- onboarding_wizard.py (+329 lines)
+- scripts/ralph/prd.json (marked OB-005 as passes: true)
+
+### Learnings
+- Ralph's personality is CRITICAL to make technical concepts accessible
+  - Git config becomes "telling Git who you are" like putting your name on homework
+  - Version control explained through story-writing analogy (story_v1, story_FINAL_REAL chaos)
+  - Commits are "diary entries for code" - simple but accurate
+- Copy-paste commands are essential for onboarding flow
+  - Users shouldn't type complex commands manually
+  - Backtick formatting in markdown ensures commands stand out
+  - Always show both commands together (name + email) for convenience
+- Verification is as important as setup
+  - Provide exact command: git config --list | grep user
+  - Show expected output format so users know success state
+  - Offer help path if verification fails
+- State tracking needs to be comprehensive
+  - Don't just track "git_configured" boolean
+  - Also store git_name and git_email for display in progress messages
+  - Progress message shows git_name to remind user what they configured
+- Kid-friendly explanations build confidence
+  - Compare to familiar concepts (school notebooks, art projects)
+  - Use positive framing ("You're officially a Git user now!")
+  - Celebrate completions to maintain momentum
+- Help messages should cover ALL common failures
+  - "git command not found" - provide install links for all platforms
+  - Typos in name/email - reassure they can just run commands again
+  - Explain --global flag to prevent confusion
+- The flow needs to explain WHY not just HOW
+  - "Use same email as GitHub so commits show on your profile"
+  - "This shows up FOREVER in history" - makes users take it seriously
+  - Explaining commits in success message bridges to next concepts
+
+### Patterns discovered
+- OnboardingWizard class uses consistent method naming:
+  - get_{step}_intro_message() - Introduces the concept
+  - get_{step}_request_message() - Asks for user input
+  - get_{step}_commands() - Generates commands to run
+  - get_{step}_command_message() - Presents commands with instructions
+  - get_{step}_verify_message() - Verification instructions
+  - get_{step}_keyboard() - Interactive buttons
+  - get_{step}_success_message() - Celebration
+  - get_{step}_help_message() - Troubleshooting
+- All methods return strings or InlineKeyboardMarkup for consistency
+- Ralph's voice: "Ralph" refers to self, "Me help you!", enthusiastic punctuation
+- Messages use markdown formatting: *bold*, `code blocks`, bullet points
+- Always provide "Back" navigation option in keyboards
+- Help messages have consistent structure: Problem → Solution pairs
+
+### Gotchas to avoid
+- Don't assume users have git installed - help message must include installation links
+- Don't just give commands without explaining what they do - users learn by understanding
+- Don't skip verification step - users need confirmation that it worked
+- Don't forget to update both state dict AND progress tracking
+- Don't make messages too long - break into digestible sections with headers
+- Don't use technical jargon without explaining it (parameterized queries vs "git config")
+- Don't forget to update prd.json passes field after implementation
+- The prd.json file is HUGE (60k+ tokens) - use targeted reads with grep or offset/limit
+
+### Next steps
+Based on priority_order in prd.json, next incomplete tasks are likely:
+- OB-007 - Telegram Bot Creation Wizard
+- OB-008 - Environment File Creator
+- OB-006 - Anthropic API Key Setup
+Check priority_order for exact sequence.
+
+---
+
+---
+
+## Iteration [Ralph Auto] - 2026-01-10 12:50 UTC
+**Task**: [OB-006] Anthropic API Key Setup
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive Anthropic API key onboarding wizard to OnboardingWizard class
+- Created methods for complete API key setup flow:
+  - get_anthropic_api_intro_message() - Explains what API keys are in kid-friendly language (library card, train ticket analogies)
+  - get_anthropic_signup_message() - Guides users through Anthropic account creation with pricing info
+  - get_anthropic_signup_keyboard() - Interactive buttons to open Anthropic Console and pricing page
+  - get_anthropic_api_key_message() - Step-by-step instructions for getting API key from console
+  - get_anthropic_api_key_keyboard() - Buttons to open API keys page
+  - get_anthropic_key_entry_message() - Prompts user to paste their key securely
+  - validate_anthropic_key_format() - Validates key format (sk-ant-*, 100+ chars, valid characters)
+  - get_anthropic_key_invalid_message() - Helpful error messages for invalid keys with common mistakes
+  - get_anthropic_key_success_message() - Celebrates successful key save and explains what's next
+  - get_anthropic_key_security_reminder() - Comprehensive security education about API keys
+  - get_anthropic_test_keyboard() - Options to test key, review security, or continue setup
+- Created new api_key_manager.py module for secure key management:
+  - APIKeyManager class handles all key operations
+  - validate_anthropic_key() - Format validation with detailed error messages
+  - validate_telegram_token() - Token format validation (digits:alphanumeric)
+  - validate_groq_key() - Groq key validation (gsk_* prefix)
+  - save_key_to_env() - Securely saves/updates keys in .env file
+  - get_key_from_env() - Retrieves keys from .env
+  - check_env_in_gitignore() - Verifies .env is in .gitignore
+  - ensure_env_in_gitignore() - Adds .env to .gitignore if missing
+  - test_anthropic_key() - Makes real API call to test key validity
+  - get_anthropic_key_info() - Returns masked key info for debugging
+- Security features:
+  - .env file created with 0600 permissions (user read/write only)
+  - Keys never shown in full (masked: sk-ant-***...1234)
+  - Validates format before saving
+  - Auto-ensures .env is in .gitignore
+  - Educates users about key security (never share, no GitHub, rotate if leaked)
+
+### Files changed
+- onboarding_wizard.py (+336 lines)
+- api_key_manager.py (new file, 327 lines)
+- scripts/ralph/prd.json (marked OB-006 as passes: true)
+
+### Learnings
+- API key security is CRITICAL for onboarding
+  - Users often don't understand the risk of leaked keys
+  - Education needs to be clear: "Your key = Your money = Your responsibility"
+  - Multiple security layers: validation, .gitignore check, permission setting, masking
+  - Good analogies help: "library card for using Claude's brain"
+- Validation should be strict but helpful
+  - Check prefix (sk-ant-), length (100+ chars), character set (alphanumeric + hyphens)
+  - Provide specific error messages: "too short", "wrong prefix", "invalid characters"
+  - List common mistakes: "copied only part", "extra spaces", "wrong key type"
+- File permissions matter for .env files
+  - 0600 (rw-------) ensures only user can read/write
+  - Auto-create .env if it doesn't exist
+  - Check and enforce .gitignore to prevent accidental commits
+- Key masking for display
+  - Show first 11 chars (sk-ant-xxx) and last 4 chars
+  - Users can verify they have the right key without exposing it
+  - Useful for debugging "which key is this?"
+- API key testing validates functionality
+  - Make minimal test call (claude-3-5-haiku, max_tokens=10)
+  - Handle different error types: AuthenticationError, PermissionDenied, RateLimitError
+  - Even RateLimitError confirms the key works
+- Reusable manager pattern
+  - APIKeyManager can validate/save multiple key types (Anthropic, Telegram, Groq)
+  - Each key type has its own validation rules
+  - Centralized .env management prevents duplication
+- Progressive disclosure in onboarding
+  - Step 1: Intro (what are API keys?)
+  - Step 2: Signup (create account)
+  - Step 3: Get key (from console)
+  - Step 4: Enter key (paste it)
+  - Step 5: Test key (optional but recommended)
+  - Each step builds on previous understanding
+- Ralph's personality makes security fun
+  - "Ralph's Security Lesson!" instead of dry warning
+  - Emojis for emphasis (🔒 🚫 ✅)
+  - Kid-friendly language for complex topics
+  - Enthusiasm without minimizing importance
+
+---
