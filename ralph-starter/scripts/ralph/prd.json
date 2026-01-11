@@ -2800,7 +2800,7 @@
         "admin_handler.py",
         "user_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AC-008",

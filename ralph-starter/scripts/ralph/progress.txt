@@ -12490,3 +12490,31 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Time awareness makes late-night sessions feel more real ("burning midnight oil", genuine concern about hours)
 
 ---
+
+## Iteration [Date: 2026-01-11] - Tier Changes via Voice
+**Task**: [AC-007] Tier Changes via Voice
+**Status**: ✅ Complete
+
+### What was implemented
+- Created handle_admin_tier_command() method to process tier change voice commands
+- Supports natural language commands: "promote @user to power user", "demote user to viewer", "make user chatter"
+- Parses user IDs from commands using regex patterns
+- Validates that admin cannot demote self or other Tier 1 (Owner) users
+- Sets new tier immediately via user_manager.set_user_tier()
+- Sends private confirmation to admin with tier change details
+- Sends in-character notification to group chat via Ralph using ralph_misspell()
+- Different notification messages for each tier (Power User, Chatter, Viewer)
+- Integrated into process_admin_voice_command() routing with proper keyword detection
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Admin command pattern follows existing mute/cooldown handlers: parse command -> validate -> execute -> confirm
+- User tier changes need both private admin confirmation AND public in-character notification
+- In-character notifications maintain the entertainment value while delivering important system messages
+- Cannot demote Tier 1 users - this prevents accidental lockout or privilege escalation issues
+- Regex pattern `r'(?:user|@)\s*(\d+)'` handles both "user 123" and "@123" formats
+- Tier change takes effect immediately via user_manager, no restart needed
+
+---
