@@ -130,6 +130,16 @@ class OnboardingWizard:
             self.git_helper = None
             self.logger.warning("Git helper not available for first commit assistant")
 
+        # Import progress tracker (OB-013: Progress Tracker UI)
+        try:
+            from progress_tracker import get_progress_tracker
+            self.progress_tracker = get_progress_tracker()
+            self.progress_tracker_available = True
+        except ImportError:
+            self.progress_tracker = None
+            self.progress_tracker_available = False
+            self.logger.warning("Progress tracker not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -269,6 +279,8 @@ Ralph help you check each one super fast!
             "git_configured": False,
             "git_name": None,
             "git_email": None,
+            "first_commit": False,  # OB-013: Progress Tracker UI
+            "environment_setup": False,  # OB-013: Progress Tracker UI
             "started_at": datetime.utcnow().isoformat(),
             "completed_at": None,
         }
@@ -315,15 +327,37 @@ Ralph help you check each one super fast!
             state.get("repo_url") is not None
         )
 
-    def get_progress_message(self, state: Dict[str, Any]) -> str:
+    def get_progress_message(self, state: Dict[str, Any], current_step: str = None) -> str:
         """Get a progress message showing what's been completed.
 
         Args:
             state: Current onboarding state
+            current_step: ID of the current step being worked on (optional)
 
         Returns:
-            Progress message string with Ralph's encouragement (OB-032)
+            Progress message string with Ralph's encouragement (OB-032, OB-013)
         """
+        # Use new progress tracker if available (OB-013)
+        if self.progress_tracker_available:
+            base_message = self.progress_tracker.get_progress_message(state, current_step)
+
+            # Add Ralph's encouragement based on progress (OB-032)
+            encouragement = ""
+            if self.narrator:
+                if self.progress_tracker.is_setup_complete(state):
+                    encouragement = f"\n\n{self.narrator.get_encouragement('milestone')}"
+                else:
+                    # Count completed steps
+                    completed_count = sum([
+                        state.get(step["id"], False)
+                        for step in self.progress_tracker.SETUP_STEPS
+                    ])
+                    if completed_count > 0:
+                        encouragement = f"\n\n{self.narrator.get_encouragement('progress')}"
+
+            return base_message + encouragement
+
+        # Fallback to old implementation if progress tracker not available
         progress = []
         completed_count = 0
         total_steps = 5
@@ -367,6 +401,37 @@ Ralph help you check each one super fast!
                 encouragement = f"\n\n{self.narrator.get_encouragement('progress')}"
 
         return "*Your Progress:*\n\n" + "\n".join(progress) + encouragement
+
+    def get_visual_progress_with_current_step(self, state: Dict[str, Any], current_step_id: str = None) -> str:
+        """Get visual progress display highlighting the current step.
+
+        Args:
+            state: Current onboarding state
+            current_step_id: ID of the step being worked on (e.g., 'ssh_key_generated')
+
+        Returns:
+            Visual progress message with current step highlighted (OB-013)
+        """
+        if self.progress_tracker_available:
+            return self.progress_tracker.get_progress_message(state, current_step_id)
+        else:
+            # Fallback to regular progress message
+            return self.get_progress_message(state)
+
+    def get_celebration_message_with_checklist(self, state: Dict[str, Any]) -> str:
+        """Get celebration message when setup is complete with full checklist.
+
+        Args:
+            state: Completed onboarding state
+
+        Returns:
+            Celebration message with visual checklist (OB-013)
+        """
+        if self.progress_tracker_available and self.progress_tracker.is_setup_complete(state):
+            return self.progress_tracker.get_celebration_message(state)
+        else:
+            # Fallback to basic message
+            return "*🎉 Setup Complete! 🎉*\n\nGreat job! You're all set to start using Ralph Mode!"
 
     # SSH Key Generation Wizard (OB-002)
 
