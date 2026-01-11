@@ -88,6 +88,9 @@ class UserManager:
         self.default_tier = default_tier
         self._in_memory_tiers: Dict[int, UserTier] = {}
 
+        # AC-006: Muted users tracking
+        self._muted_users: set = set()
+
         # Load power user password from environment
         self.power_user_password = os.environ.get("POWER_USER_PASSWORD", "")
         if not self.power_user_password:
@@ -259,6 +262,78 @@ class UserManager:
             "has_admin_powers": tier.has_admin_powers,
             "is_owner": telegram_id == self.owner_id if self.owner_id else False,
         }
+
+    def mute_user(self, telegram_id: int) -> bool:
+        """
+        AC-006: Mute a user. Muted users' messages are completely ignored.
+
+        Args:
+            telegram_id: Telegram user ID to mute
+
+        Returns:
+            True if user was muted, False if already muted
+        """
+        # Validate input
+        if not InputValidator.validate_telegram_id(telegram_id):
+            logger.warning(f"AC-006: Invalid telegram_id for muting: {telegram_id}")
+            return False
+
+        # Don't allow muting the owner
+        if self.owner_id and telegram_id == self.owner_id:
+            logger.warning(f"AC-006: Cannot mute owner ({telegram_id})")
+            return False
+
+        if telegram_id in self._muted_users:
+            logger.info(f"AC-006: User {telegram_id} is already muted")
+            return False
+
+        self._muted_users.add(telegram_id)
+        logger.info(f"AC-006: Muted user {telegram_id}")
+        return True
+
+    def unmute_user(self, telegram_id: int) -> bool:
+        """
+        AC-006: Unmute a user.
+
+        Args:
+            telegram_id: Telegram user ID to unmute
+
+        Returns:
+            True if user was unmuted, False if not muted
+        """
+        # Validate input
+        if not InputValidator.validate_telegram_id(telegram_id):
+            logger.warning(f"AC-006: Invalid telegram_id for unmuting: {telegram_id}")
+            return False
+
+        if telegram_id not in self._muted_users:
+            logger.info(f"AC-006: User {telegram_id} is not muted")
+            return False
+
+        self._muted_users.remove(telegram_id)
+        logger.info(f"AC-006: Unmuted user {telegram_id}")
+        return True
+
+    def is_user_muted(self, telegram_id: int) -> bool:
+        """
+        AC-006: Check if a user is muted.
+
+        Args:
+            telegram_id: Telegram user ID to check
+
+        Returns:
+            True if user is muted
+        """
+        return telegram_id in self._muted_users
+
+    def get_muted_users(self) -> list:
+        """
+        AC-006: Get list of all muted users.
+
+        Returns:
+            List of muted telegram IDs
+        """
+        return list(self._muted_users)
 
 
 # Global instance

@@ -8758,6 +8758,12 @@ _Drop a zip file to get started!_
         chat_id = update.effective_chat.id
         doc = update.message.document
 
+        # AC-006: Check if user is muted - completely ignore their messages
+        if USER_MANAGER_AVAILABLE and self.user_manager:
+            if self.user_manager.is_user_muted(telegram_id):
+                logging.info(f"AC-006: Ignored document upload from muted user {telegram_id}")
+                return  # No response, no acknowledgment
+
         # MU-004: Check user tier for document uploads
         if USER_MANAGER_AVAILABLE:
             try:
@@ -9844,6 +9850,12 @@ _Grab some popcorn..._
         chat_id = update.effective_chat.id
         text = update.message.text
 
+        # AC-006: Check if user is muted - completely ignore their messages
+        if USER_MANAGER_AVAILABLE and self.user_manager:
+            if self.user_manager.is_user_muted(telegram_id):
+                logging.info(f"AC-006: Ignored text message from muted user {telegram_id}")
+                return  # No response, no acknowledgment
+
         # OB-039: Handle bot test walkthrough - acknowledge user's test message
         if user_id in self.onboarding_state:
             state = self.onboarding_state[user_id]
@@ -10574,6 +10586,119 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 text=f"❌ Error setting cooldown: {str(e)}"
             )
 
+    async def handle_admin_mute_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int):
+        """AC-006: Parse and execute mute/unmute commands from voice input.
+
+        Examples:
+            "mute user 123456789"
+            "unmute user 123456789"
+            "list muted"
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            command_text: The command text (after admin trigger phrase)
+            admin_user_id: The admin's user ID
+        """
+        import re
+
+        if not USER_MANAGER_AVAILABLE or not self.user_manager:
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text="❌ User manager not available - mute commands disabled"
+            )
+            return
+
+        try:
+            command_lower = command_text.lower().strip()
+
+            # AC-006: List muted users
+            if 'list muted' in command_lower or command_lower == 'list':
+                muted_users = self.user_manager.get_muted_users()
+
+                if not muted_users:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text="✅ **No Muted Users**\n\nNo users are currently muted."
+                    )
+                else:
+                    user_list = '\n'.join([f"• `{user_id}`" for user_id in muted_users])
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"🔇 **Muted Users** ({len(muted_users)})\n\n{user_list}",
+                        parse_mode='Markdown'
+                    )
+
+                logging.info(f"AC-006: Admin {admin_user_id} listed muted users: {len(muted_users)} found")
+                return
+
+            # AC-006: Parse user ID for mute/unmute
+            user_id_match = re.search(r'(?:user|@)\s*(\d+)', command_lower)
+
+            if not user_id_match:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Could not parse user ID.\n\n"
+                         "Examples:\n"
+                         "• 'mute user 123456789'\n"
+                         "• 'unmute user 123456789'\n"
+                         "• 'list muted'"
+                )
+                logging.warning(f"AC-006: Could not parse user ID from command: {command_text}")
+                return
+
+            target_user_id = int(user_id_match.group(1))
+
+            # AC-006: Mute user
+            if 'unmute' not in command_lower and ('mute' in command_lower or 'silence' in command_lower):
+                success = self.user_manager.mute_user(target_user_id)
+
+                if success:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"🔇 **User Muted**\n\n"
+                             f"User `{target_user_id}` is now muted.\n"
+                             f"Their messages will be completely ignored.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-006: Admin {admin_user_id} muted user {target_user_id}")
+                else:
+                    # Already muted or owner
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"ℹ️ User `{target_user_id}` is already muted or cannot be muted.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-006: User {target_user_id} already muted or cannot be muted")
+
+            # AC-006: Unmute user
+            elif 'unmute' in command_lower:
+                success = self.user_manager.unmute_user(target_user_id)
+
+                if success:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"🔊 **User Unmuted**\n\n"
+                             f"User `{target_user_id}` is now unmuted.\n"
+                             f"They can interact normally again.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-006: Admin {admin_user_id} unmuted user {target_user_id}")
+                else:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"ℹ️ User `{target_user_id}` is not currently muted.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-006: User {target_user_id} was not muted")
+
+        except Exception as e:
+            logging.error(f"AC-006: Error handling mute command: {e}", exc_info=True)
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text=f"❌ Error processing mute command: {str(e)}"
+            )
+
     async def process_admin_voice_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, transcription: str):
         """AC-001/AC-002: Process admin voice commands (never shown in chat).
 
@@ -10654,6 +10779,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         # AC-003: Parse "set cooldown X minutes/seconds" command
         if 'set cooldown' in command_lower or 'cooldown' in command_lower:
             await self.handle_admin_cooldown_command(update, context, command_text, user_id)
+        # AC-006: Parse mute/unmute commands
+        elif 'mute' in command_lower or 'unmute' in command_lower or 'list muted' in command_lower:
+            await self.handle_admin_mute_command(update, context, command_text, user_id)
         else:
             # Log other commands for future implementation
             logging.info(f"AC-001: Admin voice command processed silently (no handler): {command_text[:100]}")
@@ -10664,6 +10792,12 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
         caption = update.message.caption or ""
+
+        # AC-006: Check if user is muted - completely ignore their messages
+        if USER_MANAGER_AVAILABLE and self.user_manager:
+            if self.user_manager.is_user_muted(telegram_id):
+                logging.info(f"AC-006: Ignored voice message from muted user {telegram_id}")
+                return  # No response, no acknowledgment
 
         # MU-004: Check user tier for voice input
         if USER_MANAGER_AVAILABLE:
@@ -10856,6 +10990,12 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
         caption = update.message.caption or ""
+
+        # AC-006: Check if user is muted - completely ignore their messages
+        if USER_MANAGER_AVAILABLE and self.user_manager:
+            if self.user_manager.is_user_muted(telegram_id):
+                logging.info(f"AC-006: Ignored photo upload from muted user {telegram_id}")
+                return  # No response, no acknowledgment
 
         # MU-004: Check user tier for photo uploads
         if USER_MANAGER_AVAILABLE:
