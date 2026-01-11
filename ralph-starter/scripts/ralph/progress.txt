@@ -17277,3 +17277,36 @@ All 10 test cases passed:
 - MM-012: Finish Groq adapter implementation details
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-024] Ralph Flow Model Injection
+**Status**: ✅ Complete
+
+### What was implemented
+- Imported ModelManager and ModelRole into ralph_bot.py
+- Initialized ModelManager in RalphBot.__init__ with error handling
+- Converted call_boss() from sync to async to support ModelManager's async API
+- Updated call_boss() to use ModelManager.generate() with ModelRole.RALPH
+- Added fallback to legacy call_groq() if ModelManager unavailable or fails
+- Updated all 8 call_boss() call sites to use await
+- All callers were already in async functions, so no function signature changes needed
+
+### Files changed
+- ralph_bot.py (imports, __init__, call_boss method, 8 call sites)
+- scripts/ralph/prd.json (marked MM-024 as passes=True)
+
+### Learnings
+- ModelManager (MM-001) provides clean abstraction for swapping AI models
+- call_boss was synchronous but all callers were async, making conversion smooth
+- Graceful degradation pattern: try ModelManager, fall back to legacy if needed
+- Ralph's personality now configurable via .env (GROQ_MODEL, ANTHROPIC_MODEL, etc.)
+- Future tasks can inject different models for WORKER, BUILDER, DESIGN roles
+- Async/await pattern already prevalent in bot - good architecture decision
+
+### Technical Notes
+- ModelManager uses async for all adapters (GroqAdapter, AnthropicAdapter, etc.)
+- initialize_default_models() reads from environment variables
+- Falls back to call_groq() if ModelManager init fails or generate() errors
+- No breaking changes - bot still works with legacy path if MM not configured
+
+---

@@ -30,6 +30,9 @@ import difflib
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List, Tuple
 
+# MM-024: Import ModelManager for configurable AI models
+from model_manager import get_model_manager, initialize_default_models, ModelRole
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -1845,6 +1848,15 @@ class RalphBot:
             logging.info("OB-001: Onboarding wizard initialized")
         else:
             self.onboarding_wizard = None
+
+        # MM-024: Initialize ModelManager for Ralph's personality
+        try:
+            initialize_default_models()
+            self.model_manager = get_model_manager()
+            logging.info("MM-024: ModelManager initialized for Ralph personality")
+        except Exception as e:
+            logging.error(f"MM-024: Failed to initialize ModelManager: {e}")
+            self.model_manager = None
 
     # ==================== OB-012: COPY BUTTON HANDLERS ====================
 
@@ -5328,7 +5340,7 @@ What's your take on this, Ralph? You might not understand all the technical deta
 
 Provide your guidance in 2-3 sentences. Be Ralph - sweet, occasionally wise, sometimes accidentally brilliant."""
 
-        ralph_response = self.call_boss(ralph_guidance_prompt, apply_misspellings=True)
+        ralph_response = await self.call_boss(ralph_guidance_prompt, apply_misspellings=True)
 
         # Store Ralph's guidance in the conflict
         conflict_data["ralph_guidance"] = ralph_response
@@ -12228,7 +12240,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
         # Ralph loves jokes - use normal response timing for natural feel
         await asyncio.sleep(self.timing.normal_response())
-        ralph_response = self.call_boss(
+        ralph_response = await self.call_boss(
             "Someone wants to tell you a joke! You LOVE jokes. Respond excitedly in character.",
             apply_misspellings=True
         )
@@ -12263,7 +12275,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
         # Ralph laughs genuinely - AI makes it fresh every time
         laugh_prompt = f"You just heard this joke: '{joke}'. React with genuine laughter in your Ralph Wiggum style. Be specific about what you found funny (even if you misunderstand it). 1-2 sentences max."
-        ralph_laugh = self.call_boss(laugh_prompt, apply_misspellings=True)
+        ralph_laugh = await self.call_boss(laugh_prompt, apply_misspellings=True)
 
         await self.rapid_banter_send(
             context, chat_id,
@@ -12280,7 +12292,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
         # Ralph transitions back, ready for the news
         transition_prompt = "You just finished laughing at a joke. Now ask what they wanted to tell you. Stay cheerful and friendly. 1 sentence."
-        ralph_transition = self.call_boss(transition_prompt, apply_misspellings=True)
+        ralph_transition = await self.call_boss(transition_prompt, apply_misspellings=True)
 
         await self.rapid_banter_send(
             context, chat_id,
@@ -12376,8 +12388,10 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             # RM-027: This is a blocker - callers should check for fallback response and escalate
             return get_fallback_response("general")
 
-    def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "", user_id: int = None) -> str:
+    async def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "", user_id: int = None) -> str:
         """Get response from Ralph Wiggum, the boss.
+
+        MM-024: Now uses ModelManager for configurable AI models.
 
         Args:
             message: The prompt/situation for Ralph to respond to
@@ -12460,7 +12474,19 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
         response = None
 
         while attempt < max_attempts:
-            response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
+            # MM-024: Use ModelManager for Ralph personality (fallback to legacy if not available)
+            if self.model_manager:
+                try:
+                    response = await self.model_manager.generate(
+                        role=ModelRole.RALPH,
+                        messages=messages,
+                        max_tokens=150
+                    )
+                except Exception as e:
+                    logger.error(f"MM-024: ModelManager failed, falling back to legacy: {e}")
+                    response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
+            else:
+                response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
 
             # Apply Ralph's authentic misspellings
             if apply_misspellings:
@@ -13144,7 +13170,7 @@ Examples of Ralph's confused questions:
 
 Ask ONE confused question about what they just said. Stay authentic to Ralph - genuinely confused but trying."""
 
-        ralph_question = self.call_boss(
+        ralph_question = await self.call_boss(
             ralph_confusion_prompt,
             apply_misspellings=True,
             tone_context="confused and trying to understand",
@@ -13186,7 +13212,7 @@ Examples:
 
 Your "aha moment" should be enthusiastic but completely silly. One sentence."""
 
-            ralph_eureka = self.call_boss(
+            ralph_eureka = await self.call_boss(
                 ralph_eureka_prompt,
                 apply_misspellings=True,
                 tone_context="triumphant understanding",
@@ -13213,7 +13239,7 @@ Stay in character ({worker['style']}). Keep it short - 1 sentence."""
             await self.send_styled_message(context, chat_id, name, title, affirmation, with_typing=True)
         else:
             # 30% chance Ralph asks another confused question and worker gives up (lovingly)
-            ralph_still_confused = self.call_boss(
+            ralph_still_confused = await self.call_boss(
                 f"You're Ralph. You still don't get it after: '{simple_explanation}'. Express confusion in one short sentence.",
                 apply_misspellings=True,
                 tone_context="still confused",
@@ -15366,7 +15392,7 @@ _The team nods in unison._
             tone_context = f"Context: The CEO sounds {tone_data['primary_tone']} ({tone_data['intensity']} intensity). React appropriately to their tone."
 
         # Boss reviews the project
-        boss_response = self.call_boss(
+        boss_response = await self.call_boss(
             f"You just received a new project called '{session.get('project_name', 'Project')}'. "
             f"The team analyzed it and found these tasks:\n{session.get('prd', {}).get('summary', 'No tasks yet')}\n\n"
             "What do you think? Ask the team about it.",
