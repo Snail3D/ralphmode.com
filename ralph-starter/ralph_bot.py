@@ -143,6 +143,21 @@ except ImportError:
     FEEDBACK_SCORER_AVAILABLE = False
     logging.warning("NT-001: Feedback scorer not available - feedback notifications will be limited")
 
+# OB-012: Import telegram utilities for copy button components
+try:
+    from telegram_utils import (
+        handle_copy_callback,
+        handle_help_callback,
+        get_ralph_copy_message,
+        create_copy_button,
+        create_copy_message,
+        cleanup_old_copy_data
+    )
+    TELEGRAM_UTILS_AVAILABLE = True
+except ImportError:
+    TELEGRAM_UTILS_AVAILABLE = False
+    logging.warning("OB-012: Telegram utils not available - copy buttons disabled")
+
 # SF-003: Import admin handler for override controls
 try:
     from admin_handler import setup_admin_handlers
@@ -1092,6 +1107,8 @@ class RalphBot:
         self.idle_chatter_task: Dict[int, asyncio.Task] = {}  # RM-053: Track idle chatter background task
         self.worker_pushback_count: Dict[int, Dict[str, Dict[str, int]]] = {}  # RM-037: Track worker pushback counts per issue
         self.ralph_mood: Dict[int, str] = {}  # RM-033: Track Ralph's daily mood per session (good/neutral/bad)
+        self.ceo_mood: Dict[int, str] = {}  # RM-039: Track CEO mood from recent messages (pissy/neutral/good)
+        self.ceo_recent_messages: Dict[int, List[Dict]] = {}  # RM-039: Track recent CEO messages for mood analysis
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -1373,6 +1390,250 @@ class RalphBot:
                 with_typing=True
             )
             await asyncio.sleep(self.timing.rapid_banter())
+
+    # ==================== RM-039: CEO MOOD TRACKING & ESCALATION ====================
+
+    def update_ceo_mood(self, message: str, user_id: int):
+        """Track CEO mood from recent messages for RM-039.
+
+        Args:
+            message: The CEO's message
+            user_id: User session ID
+        """
+        # Initialize tracking if needed
+        if user_id not in self.ceo_recent_messages:
+            self.ceo_recent_messages[user_id] = []
+
+        # Store message with timestamp and sentiment
+        message_lower = message.lower()
+
+        # Detect frustration/pissy indicators
+        pissy_indicators = [
+            "wtf", "what the hell", "seriously", "why", "again", "still",
+            "figure it out", "just do it", "stop asking", "I told you",
+            "not again", "come on", "really", "ugh", "ffs", "jesus",
+            "for the love of", "how many times", "stupid", "ridiculous"
+        ]
+
+        # Detect good mood indicators
+        good_indicators = [
+            "great", "awesome", "perfect", "excellent", "love it",
+            "nice", "good job", "well done", "keep it up", "fantastic",
+            "brilliant", "amazing", "thank you", "thanks", "appreciate"
+        ]
+
+        pissy_count = sum(1 for indicator in pissy_indicators if indicator in message_lower)
+        good_count = sum(1 for indicator in good_indicators if indicator in message_lower)
+
+        # Determine sentiment
+        if pissy_count > good_count and pissy_count >= 1:
+            sentiment = "pissy"
+        elif good_count > pissy_count and good_count >= 1:
+            sentiment = "good"
+        else:
+            sentiment = "neutral"
+
+        # Store message data (keep last 5)
+        self.ceo_recent_messages[user_id].append({
+            "message": message,
+            "sentiment": sentiment,
+            "timestamp": datetime.now()
+        })
+
+        # Keep only last 5 messages
+        if len(self.ceo_recent_messages[user_id]) > 5:
+            self.ceo_recent_messages[user_id] = self.ceo_recent_messages[user_id][-5:]
+
+        # Calculate overall CEO mood from recent messages
+        recent_sentiments = [m["sentiment"] for m in self.ceo_recent_messages[user_id]]
+        pissy_weight = recent_sentiments.count("pissy") * 2  # Pissy weighs more
+        good_weight = recent_sentiments.count("good")
+
+        if pissy_weight > good_weight and pissy_weight >= 2:
+            self.ceo_mood[user_id] = "pissy"
+        elif good_weight > pissy_weight and good_weight >= 2:
+            self.ceo_mood[user_id] = "good"
+        else:
+            self.ceo_mood[user_id] = "neutral"
+
+        logger.info(f"RM-039: CEO mood updated to '{self.ceo_mood.get(user_id, 'neutral')}' for user {user_id}")
+
+    def get_ceo_mood(self, user_id: int) -> str:
+        """Get current CEO mood.
+
+        Returns:
+            "pissy", "neutral", or "good"
+        """
+        return self.ceo_mood.get(user_id, "neutral")
+
+    def is_trivial_escalation(self, issue_description: str) -> bool:
+        """Determine if an escalation issue is trivial (RM-039).
+
+        Trivial issues should not warrant escalation to Mr. Worms,
+        especially when he's pissy.
+
+        Args:
+            issue_description: Description of the issue
+
+        Returns:
+            True if trivial, False if serious
+        """
+        issue_lower = issue_description.lower()
+
+        # Trivial issue indicators
+        trivial_indicators = [
+            "which name", "what to call", "naming", "variable name",
+            "indent", "spacing", "format", "comment", "docstring",
+            "typo", "spelling", "wording", "phrase",
+            "color", "font", "layout", "margin", "padding",
+            "preference", "opinion", "like better", "prefer",
+            "minor", "small", "tiny", "quick question"
+        ]
+
+        # Serious issue indicators
+        serious_indicators = [
+            "security", "vulnerability", "breach", "exploit",
+            "data loss", "crash", "broken", "not working", "failing",
+            "error", "exception", "bug", "critical", "blocker",
+            "architecture", "design decision", "approach",
+            "performance", "slow", "timeout", "memory",
+            "breaking change", "backwards compatible",
+            "api", "database", "auth", "payment"
+        ]
+
+        trivial_count = sum(1 for indicator in trivial_indicators if indicator in issue_lower)
+        serious_count = sum(1 for indicator in serious_indicators if indicator in issue_lower)
+
+        # If clearly serious, not trivial
+        if serious_count >= 1:
+            return False
+
+        # If clearly trivial
+        if trivial_count >= 1:
+            return True
+
+        # Default: assume non-trivial to be safe
+        return False
+
+    async def worker_escalates_to_ceo(self, context, chat_id: int, user_id: int,
+                                     worker_name: str, issue_description: str):
+        """RM-039: Worker escalates an issue to Mr. Worms.
+
+        CEO's response depends on:
+        1. Is the issue trivial?
+        2. Is the CEO in a pissy mood?
+
+        If trivial + pissy = CEO snaps back
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            worker_name: Name of worker escalating
+            issue_description: What the issue is
+        """
+        ceo_mood = self.get_ceo_mood(user_id)
+        is_trivial = self.is_trivial_escalation(issue_description)
+
+        worker_data = self.DEV_TEAM.get(worker_name, self.DEV_TEAM["Stool"])
+
+        # Worker approaches seriously
+        serious_approaches = [
+            f"Mr. Worms, we need your guidance on something important.",
+            f"Hey Mr. Worms, got a situation that needs your call.",
+            f"Mr. Worms, the team's stuck on something. Need your input.",
+            f"Boss, we need you to weigh in on this one.",
+            f"Mr. Worms, this is above my pay grade. Can you help?"
+        ]
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker_data['title'],
+            random.choice(serious_approaches),
+            topic="escalation",
+            with_typing=True
+        )
+
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # Worker explains the issue
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker_data['title'],
+            issue_description,
+            topic="issue details",
+            with_typing=True
+        )
+
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # CEO response based on mood + triviality
+        if ceo_mood == "pissy" and is_trivial:
+            # CEO snaps back
+            pissy_responses = [
+                "Why are you bothering me with this? Figure it out!",
+                "Seriously? You're asking me about THIS?",
+                "Come on, you don't need me for this. Just pick one.",
+                "Are you kidding me right now? Handle it yourselves.",
+                "I hired you to make these decisions. Do your job.",
+                "This is what I'm paying you for. Figure. It. Out.",
+                "You're smart people. Stop asking permission for everything."
+            ]
+
+            ceo_response = random.choice(pissy_responses)
+
+            # Send CEO response (simulated as system message)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"*[Mr. Worms]:* {ceo_response}",
+                parse_mode="Markdown"
+            )
+
+            await asyncio.sleep(self.timing.awkward_pause())
+
+            # Worker apologizes
+            apology_responses = [
+                "Oh... sorry Mr. Worms. We'll handle it.",
+                "Right, yeah, my bad. We got this.",
+                "Sorry boss. Won't bother you with this stuff.",
+                "You're right. We'll figure it out ourselves.",
+                "*winces* Sorry. We'll take care of it."
+            ]
+
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker_data['title'],
+                random.choice(apology_responses),
+                topic="apology",
+                with_typing=True
+            )
+
+            logger.info(f"RM-039: CEO snapped at trivial escalation from {worker_name} (mood: {ceo_mood})")
+
+        else:
+            # CEO gives thoughtful response
+            if ceo_mood == "good":
+                thoughtful_responses = [
+                    "Good question. Here's what I think...",
+                    "I appreciate you bringing this to me. Let's talk it through.",
+                    "Smart to ask. This is important.",
+                    "Glad you escalated this. Here's my take...",
+                    "This is exactly the kind of thing I want to know about."
+                ]
+            else:  # neutral or pissy but serious issue
+                thoughtful_responses = [
+                    "Alright, let me think about this...",
+                    "Okay, here's what we're going to do...",
+                    "Good catch. This matters.",
+                    "You're right to ask. Here's the call...",
+                    "Fair question. Let's approach it this way..."
+                ]
+
+            # Send CEO response (simulated)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"*[Mr. Worms]:* {random.choice(thoughtful_responses)}",
+                parse_mode="Markdown"
+            )
+
+            logger.info(f"RM-039: CEO responded thoughtfully to escalation from {worker_name} (mood: {ceo_mood}, trivial: {is_trivial})")
 
     # ==================== OB-040: THEME PREFERENCE ====================
 
@@ -7778,6 +8039,9 @@ _Grab some popcorn..._
         # RM-033: Detect CEO tone and shift Ralph's mood if appropriate
         if user_id in self.active_sessions:
             self.detect_ceo_tone_and_shift_ralph_mood(text, user_id)
+
+            # RM-039: Update CEO mood tracking from message
+            self.update_ceo_mood(text, user_id)
 
         # RM-011: Handle Q&A mode - Ralph answers questions about the session
         session = self.active_sessions.get(user_id)
