@@ -13147,3 +13147,30 @@ if should_ship:
 - This protects both user and bot from uncomfortable territory - clear boundaries are kind
 
 ---
+
+## Iteration 248 - 2026-01-11
+**Task**: [SG-027] Never Explain the Scenario - Stay In Fiction
+**Status**: ✅ Complete
+
+### What was implemented
+- Created is_fourth_wall_break() function to detect meta/identity questions
+- Detects patterns like "what is this?", "who am I?", "are you a bot?", "is this real?"
+- Created get_fourth_wall_response() with 16 in-character concerned reactions
+- Workers stay IN the fiction - they don't explain the scenario
+- Ralph offers paste, asks if boss slept, genuinely concerned
+- Workers act worried about Mr. Worms seeming confused or disoriented
+- Integrated check into handle_text() flow (runs after off-topic check)
+
+### Files changed
+- ralph_bot.py (added 2 functions, integrated into message handler)
+- scripts/ralph/prd.json (marked SG-027 as passes: true)
+
+### Learnings
+- Fourth-wall breaks are treated like any other scene element - stay in character
+- The world is REAL to the characters - they don't break fiction to explain
+- Genuine concern (not sarcasm) is key - workers care about Mr. Worms
+- Pattern-based detection works well alongside other guardrails (off-topic, banned topics)
+- Placement matters - check happens EARLY in handle_text to prevent processing as normal message
+- Ralph's paste suggestion adds authentic Ralph humor while staying in scene
+
+---
