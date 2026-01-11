@@ -26,6 +26,14 @@ try:
 except ImportError:
     RALPH_NARRATOR_AVAILABLE = False
 
+# Import bot tester for OB-039
+try:
+    from bot_tester import get_bot_tester
+    BOT_TESTER_AVAILABLE = True
+except ImportError:
+    BOT_TESTER_AVAILABLE = False
+    logging.warning("Bot tester not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -38,6 +46,7 @@ class OnboardingWizard:
     STEP_REPO = "repo"
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
+    STEP_BOT_TEST = "bot_test"  # OB-039: Bot testing walkthrough
     STEP_COMPLETE = "complete"
 
     # Setup types
@@ -141,6 +150,13 @@ class OnboardingWizard:
             self.progress_tracker = None
             self.progress_tracker_available = False
             self.logger.warning("Progress tracker not available")
+
+        # Import bot tester (OB-039: Bot Testing Walkthrough)
+        if BOT_TESTER_AVAILABLE:
+            self.bot_tester = get_bot_tester()
+        else:
+            self.bot_tester = None
+            self.logger.warning("Bot tester not available")
 
         # Import theme manager (OB-040: Visual Theme Selector)
         try:
@@ -323,6 +339,7 @@ Ralph help you check each one super fast!
             "git_email": None,
             "first_commit": False,  # OB-013: Progress Tracker UI
             "environment_setup": False,  # OB-013: Progress Tracker UI
+            "bot_tested": False,  # OB-039: Bot Testing Walkthrough
             "started_at": datetime.utcnow().isoformat(),
             "completed_at": None,
         }
@@ -7270,6 +7287,103 @@ You can always create a PRD later!
 *For now*, Ralph can still work on your project! Just tell Ralph what to do and Ralph will do it!
 
 Ralph works great with OR without a PRD! The PRD just helps Ralph know what to build when you're sleeping! 😴"""
+
+    # OB-039: Bot Testing Walkthrough
+    def get_bot_test_intro_message(self) -> str:
+        """Get the introduction message for bot testing.
+
+        Returns:
+            Message introducing bot testing phase
+        """
+        if self.bot_tester:
+            return self.bot_tester.get_intro_message()
+
+        # Fallback if bot_tester not available
+        return """*🧪 Time to Test Your Bot!*
+
+Let's make sure everything works before we finish setup.
+
+Send me any message to test that I'm responding correctly!"""
+
+    def get_bot_test_acknowledgment(self, message_text: str) -> str:
+        """Get acknowledgment message for user's test message.
+
+        Args:
+            message_text: The message the user sent
+
+        Returns:
+            Acknowledgment message
+        """
+        if self.bot_tester:
+            return self.bot_tester.get_message_acknowledgment(message_text)
+
+        # Fallback
+        return f"""*🎯 Got it!*
+
+I received your message: "{message_text}"
+
+This means I'm working correctly!"""
+
+    def get_bot_test_command_prompt(self) -> str:
+        """Get message prompting user to test a command.
+
+        Returns:
+            Command test prompt
+        """
+        if self.bot_tester:
+            return self.bot_tester.get_basic_command_test_message()
+
+        # Fallback
+        return """*Great! Now let's test commands.*
+
+Try sending:
+```
+/help
+```
+
+This will test my command handlers."""
+
+    def get_bot_test_completion_message(self) -> str:
+        """Get message when bot testing is complete.
+
+        Returns:
+            Completion message
+        """
+        if self.bot_tester:
+            return self.bot_tester.get_completion_message()
+
+        # Fallback
+        return """*🎉 All Tests Passed!*
+
+Your bot is working perfectly!
+
+✅ Message handling works
+✅ Commands work
+✅ Bot is responding quickly
+
+You're all set!"""
+
+    def get_bot_test_keyboard(self, tests_complete: bool = False) -> InlineKeyboardMarkup:
+        """Get keyboard for bot testing step.
+
+        Args:
+            tests_complete: Whether all tests are complete
+
+        Returns:
+            Keyboard with test options
+        """
+        buttons = []
+
+        if tests_complete:
+            buttons.append([
+                InlineKeyboardButton("✅ Finish Testing", callback_data="bot_test_complete")
+            ])
+        else:
+            buttons.append([
+                InlineKeyboardButton("⏭ Skip Testing", callback_data="bot_test_skip")
+            ])
+
+        return InlineKeyboardMarkup(buttons)
 
 
 def get_onboarding_wizard() -> OnboardingWizard:

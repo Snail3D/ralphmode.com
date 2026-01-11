@@ -7238,6 +7238,11 @@ _Drop a zip file to get started!_
             await self.handle_template_callback(query, context, user_id, data)
             return
 
+        # OB-039: Handle bot test callbacks
+        if data.startswith("bot_test_"):
+            await self.handle_bot_test_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -7669,6 +7674,22 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         text = update.message.text
+
+        # OB-039: Handle bot test walkthrough - acknowledge user's test message
+        if user_id in self.onboarding_state:
+            state = self.onboarding_state[user_id]
+            if state.get("step") == self.onboarding_wizard.STEP_BOT_TEST:
+                # User sent a message during bot testing - acknowledge it!
+                acknowledgment = self.onboarding_wizard.get_bot_test_acknowledgment(text)
+                keyboard = self.onboarding_wizard.get_bot_test_keyboard(tests_complete=True)
+
+                await update.message.reply_text(
+                    acknowledgment,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                logger.info(f"OB-039: User {user_id} sent test message during bot testing: {text}")
+                return
 
         # OB-046: Handle troubleshooting search queries
         if context.user_data.get('awaiting_troubleshoot_search'):
@@ -10531,16 +10552,20 @@ To update your Git config:
         elif data == "theme_continue":
             if user_id in self.onboarding_state:
                 state = self.onboarding_state[user_id]
-                # Mark theme step complete and move to next step
-                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_COMPLETE)
+                # OB-039: Move to bot testing step instead of complete
+                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_BOT_TEST)
                 self.onboarding_state[user_id] = state
 
-                # Show completion message
+                # Show bot test introduction
+                bot_test_intro = self.onboarding_wizard.get_bot_test_intro_message()
+                keyboard = self.onboarding_wizard.get_bot_test_keyboard(tests_complete=False)
+
                 await query.edit_message_text(
-                    "*All set!* 🎉\n\nYour Ralph Mode setup is complete!\n\nSend me a message to get started with your dev team!",
-                    parse_mode="Markdown"
+                    bot_test_intro,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
                 )
-                logger.info(f"OB-040: User {user_id} completed onboarding with theme selection")
+                logger.info(f"OB-039: User {user_id} starting bot testing")
             else:
                 await query.edit_message_text(
                     "Theme saved! You're all set.",
@@ -10649,6 +10674,61 @@ To update your Git config:
             else:
                 await query.edit_message_text(
                     "Character saved! You're all set.",
+                    parse_mode="Markdown"
+                )
+
+    async def handle_bot_test_callback(self, query, context, user_id: int, data: str):
+        """Handle bot testing walkthrough callbacks - OB-039.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'bot_test_complete', 'bot_test_skip')
+        """
+        await query.answer()
+
+        logger.info(f"OB-039: Processing bot test callback: {data} for user {user_id}")
+
+        # Handle test completion
+        if data == "bot_test_complete":
+            if user_id in self.onboarding_state:
+                state = self.onboarding_state[user_id]
+                # Mark bot tested and move to complete
+                state["bot_tested"] = True
+                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_COMPLETE)
+                self.onboarding_state[user_id] = state
+
+                # Show completion message
+                completion_msg = self.onboarding_wizard.get_bot_test_completion_message()
+                await query.edit_message_text(
+                    f"{completion_msg}\n\n*🎉 Setup Complete!*\n\nYour Ralph Mode bot is fully configured and tested!\n\nSend me a message to start working with your AI dev team!",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"OB-039: User {user_id} completed bot testing and onboarding")
+            else:
+                await query.edit_message_text(
+                    "Bot test complete! You're all set.",
+                    parse_mode="Markdown"
+                )
+
+        # Handle skip testing
+        elif data == "bot_test_skip":
+            if user_id in self.onboarding_state:
+                state = self.onboarding_state[user_id]
+                # Skip testing, move to complete
+                state["bot_tested"] = False  # Mark as skipped
+                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_COMPLETE)
+                self.onboarding_state[user_id] = state
+
+                await query.edit_message_text(
+                    "*Setup Complete!* 🎉\n\n_(Bot testing skipped)_\n\nYour Ralph Mode bot is configured!\n\nSend me a message to start working!",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"OB-039: User {user_id} skipped bot testing")
+            else:
+                await query.edit_message_text(
+                    "Skipped! You're all set.",
                     parse_mode="Markdown"
                 )
 

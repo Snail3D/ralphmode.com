@@ -50,6 +50,11 @@ class ProgressTracker:
             "id": "environment_setup",
             "label": "Set Up Environment",
             "description": "Configure .env file with tokens"
+        },
+        {
+            "id": "bot_tested",
+            "label": "Test Bot",
+            "description": "Verify bot is working correctly"
         }
     ]
 
