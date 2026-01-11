@@ -6123,7 +6123,7 @@
       "files_likely_modified": [
         "session_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AU-007",
@@ -6137,7 +6137,7 @@
       "files_likely_modified": [
         "ralph_bot.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AU-008",
@@ -6165,7 +6165,7 @@
       "files_likely_modified": [
         "worker_agents.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AU-010",
@@ -6179,7 +6179,7 @@
       "files_likely_modified": [
         "worker_agents.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RS-001",
