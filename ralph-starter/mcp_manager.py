@@ -34,6 +34,14 @@ except ImportError:
     DISCORD_MCP_AVAILABLE = False
     logging.warning("Discord MCP setup helper not available")
 
+# Import Notion MCP setup helper (OB-045)
+try:
+    from notion_mcp_setup import get_notion_mcp_setup
+    NOTION_MCP_AVAILABLE = True
+except ImportError:
+    NOTION_MCP_AVAILABLE = False
+    logging.warning("Notion MCP setup helper not available")
+
 
 class MCPManager:
     """Manages MCP server browsing and installation."""
@@ -63,6 +71,12 @@ class MCPManager:
             self.discord_setup = get_discord_mcp_setup()
         else:
             self.discord_setup = None
+
+        # Initialize Notion MCP setup helper (OB-045)
+        if NOTION_MCP_AVAILABLE:
+            self.notion_setup = get_notion_mcp_setup()
+        else:
+            self.notion_setup = None
 
     def _build_server_catalog(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build comprehensive server catalog with installation info.
@@ -606,6 +620,145 @@ class MCPManager:
             guide += f"   → {step['action']}\n\n"
 
         return guide
+
+    # OB-045: Notion MCP Server Setup Methods
+
+    def setup_notion_mcp(self) -> Dict[str, Any]:
+        """Guide through Notion MCP server setup.
+
+        Returns:
+            Dictionary with setup status and instructions
+        """
+        if not self.notion_setup:
+            return {
+                "success": False,
+                "error": "Notion MCP setup helper not available"
+            }
+
+        # Check all prerequisites
+        token_ok, token_msg = self.notion_setup.check_notion_token_configured()
+        server_ok, server_msg = self.notion_setup.check_mcp_server_installed()
+
+        return {
+            "notion_token": {
+                "configured": token_ok,
+                "message": token_msg
+            },
+            "mcp_server": {
+                "ready": server_ok,
+                "message": server_msg,
+                "install_instructions": self.notion_setup.get_install_instructions() if not server_ok else None
+            },
+            "integration_creation": {
+                "creation_guide": self.notion_setup.get_integration_creation_instructions(),
+                "page_sharing_guide": self.notion_setup.get_page_sharing_guide()
+            },
+            "all_ready": token_ok and server_ok,
+            "setup_guide": self.notion_setup.get_setup_summary(),
+            "example_queries": self.notion_setup.get_example_queries()
+        }
+
+    def test_notion_connection(self, token: str) -> Tuple[bool, str, Optional[Dict]]:
+        """Test Notion integration connection.
+
+        Args:
+            token: Notion integration token
+
+        Returns:
+            Tuple of (success, message, response_data)
+        """
+        if not self.notion_setup:
+            return False, "Notion MCP setup helper not available", None
+
+        return self.notion_setup.test_notion_connection(token)
+
+    def list_notion_databases(self, token: str) -> Tuple[bool, List[Dict[str, Any]], str]:
+        """List Notion databases accessible to integration.
+
+        Args:
+            token: Notion integration token
+
+        Returns:
+            Tuple of (success, databases_list, error_message)
+        """
+        if not self.notion_setup:
+            return False, [], "Notion MCP setup helper not available"
+
+        return self.notion_setup.list_databases(token)
+
+    def list_notion_pages(self, token: str, limit: int = 10) -> Tuple[bool, List[Dict[str, Any]], str]:
+        """List Notion pages accessible to integration.
+
+        Args:
+            token: Notion integration token
+            limit: Maximum number of pages to return
+
+        Returns:
+            Tuple of (success, pages_list, error_message)
+        """
+        if not self.notion_setup:
+            return False, [], "Notion MCP setup helper not available"
+
+        return self.notion_setup.list_pages(token, limit)
+
+    def configure_notion_database(self, database_name: str, database_id: str) -> Dict[str, Any]:
+        """Configure default Notion database for logging.
+
+        Args:
+            database_name: Database name
+            database_id: Database ID (UUID)
+
+        Returns:
+            Configuration dictionary
+        """
+        if not self.notion_setup:
+            return {"error": "Notion MCP setup helper not available"}
+
+        return self.notion_setup.configure_default_database(database_name, database_id)
+
+    def get_notion_integration_guide(self) -> Dict[str, Any]:
+        """Get Notion integration creation instructions.
+
+        Returns:
+            Dictionary with integration creation steps
+        """
+        if not self.notion_setup:
+            return {"error": "Notion MCP setup helper not available"}
+
+        return self.notion_setup.get_integration_creation_instructions()
+
+    def verify_notion_connection(self) -> Tuple[bool, str]:
+        """Verify Notion MCP server is ready to use.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.notion_setup:
+            return False, "Notion MCP setup helper not available"
+
+        return self.notion_setup.verify_connection()
+
+    def get_notion_capabilities(self) -> Dict[str, list]:
+        """Get list of Notion MCP server capabilities.
+
+        Returns:
+            Dictionary with categorized capabilities
+        """
+        if not self.notion_setup:
+            return {}
+
+        return self.notion_setup.get_available_actions()
+
+    def format_notion_setup_guide(self) -> str:
+        """Get formatted Notion setup guide for display.
+
+        Returns:
+            Formatted markdown guide
+        """
+        if not self.notion_setup:
+            return "Notion MCP setup helper not available"
+
+        return self.notion_setup.format_setup_guide()
 
 
 # Singleton instance

@@ -10780,3 +10780,63 @@ The Notion MCP setup provides:
 - Ready for use in ralph_bot.py onboarding flows
 
 ---
+
+
+## Iteration 196 - 2026-01-10T22:55:05
+**Task**: [OB-045] Notion MCP Server Setup
+**Status**: ✅ Complete (Re-verified and Enhanced)
+
+### What was implemented
+- Created comprehensive notion_mcp_setup.py module with full Notion API integration
+- Integrated Notion setup into mcp_manager.py with proper imports and initialization
+- Implemented all acceptance criteria:
+  1. ✅ Links to Notion integration setup (get_integration_creation_instructions)
+  2. ✅ Guides through API key creation (7-step wizard with video tutorial links)
+  3. ✅ Installs Notion MCP server (npx -y @modelcontextprotocol/server-notion)
+  4. ✅ Tests database access (test_notion_connection, list_databases, list_pages)
+  5. ✅ Shows example queries (5 practical examples for common operations)
+
+### Files changed
+- notion_mcp_setup.py (created/verified complete implementation)
+- mcp_manager.py (added Notion integration with 9 new methods)
+- scripts/ralph/prd.json (marked OB-045 as passes: true)
+
+### Implementation highlights
+- **NotionMCPSetup class** with comprehensive methods:
+  - check_notion_token_configured() - validates env vars
+  - get_integration_creation_instructions() - 7-step setup guide
+  - get_page_sharing_guide() - explains permission model
+  - test_notion_connection() - validates API access
+  - list_databases() / list_pages() - browse Notion content
+  - get_example_queries() - 5 practical examples
+  - format_setup_guide() - display-ready markdown
+  
+- **MCP Manager integration**:
+  - setup_notion_mcp() - orchestrates full setup flow
+  - verify_notion_connection() - health check
+  - get_notion_capabilities() - lists available actions
+  - 9 total new methods for Notion operations
+
+### Learnings
+- Followed established pattern from Slack/Discord MCP setups
+- Notion API uses Bearer token auth (not Bot prefix like Discord)
+- Notion requires explicit page/database sharing (not automatic like Slack)
+- Integration token format: starts with 'secret_' prefix
+- Notion API version header required: 'Notion-Version: 2022-06-28'
+- Two env var options: NOTION_API_KEY or NOTION_INTEGRATION_TOKEN
+
+### Ralph personality touches
+- "Notion is like a smart notebook! Ralph can write stuff there now!"
+- "Don't forget to share the pages! Ralph can't see them otherwise!"
+- "Ralph will log work to 'Tasks' database!"
+- Maintains friendly, encouraging tone throughout setup process
+
+### Testing
+All functionality tested and verified:
+- Module imports successfully
+- All methods present and callable
+- Setup summary generates correctly (7 steps, 10-15 min estimate)
+- Example queries return 5 practical examples
+- Manager integration fully functional
+
+---
