@@ -4792,7 +4792,7 @@
         "onboarding_wizard.py",
         "git_helper.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-031",

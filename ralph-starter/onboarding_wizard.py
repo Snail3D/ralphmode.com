@@ -11,6 +11,14 @@ from typing import Dict, Any, Optional, List, Tuple
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+# Import git helper for first commit assistant (OB-030)
+try:
+    from git_helper import get_git_helper
+    GIT_HELPER_AVAILABLE = True
+except ImportError:
+    GIT_HELPER_AVAILABLE = False
+    logging.warning("Git helper not available for first commit assistant")
+
 # Import Ralph personality module for narration
 try:
     from ralph_personality import get_ralph_narrator
@@ -114,6 +122,13 @@ class OnboardingWizard:
             self.api_key_manager = None
             self.api_key_validation_available = False
             self.logger.warning("API key validation not available")
+
+        # Import git helper (OB-030: First Commit Assistant)
+        if GIT_HELPER_AVAILABLE:
+            self.git_helper = get_git_helper()
+        else:
+            self.git_helper = None
+            self.logger.warning("Git helper not available for first commit assistant")
 
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
@@ -6069,6 +6084,547 @@ You're still in control! 🔐
 "I'm admin but I promise not to go crazy with power!" 😊
 
 [More about Bot Permissions](https://core.telegram.org/bots/features#group-admin-bots)"""
+
+
+    # First Commit Assistant (OB-030)
+
+    def get_first_commit_intro_message(self) -> str:
+        """Get introduction message for first git commit.
+
+        Returns:
+            Intro message with Ralph's personality
+        """
+        return """*🎉 Time for Your First Commit!*
+
+This is SO EXCITING! Ralph gonna help you make your FIRST GIT COMMIT!
+
+**What's a commit?**
+Think of it like saving your game!
+→ You made some changes to your code
+→ Git takes a SNAPSHOT of everything
+→ You can go back to this point ANYTIME!
+
+**Why commits are cool:**
+✨ You can undo mistakes!
+✨ You can see what changed!
+✨ You can work with other people!
+✨ It's like a time machine for code!
+
+**What Ralph gonna do:**
+1. 📋 Show you what files changed
+2. ✅ Help you pick what to save (stage them)
+3. 📝 Help you write a good commit message
+4. 💾 Save the snapshot (commit!)
+5. 🚀 Send it to GitHub (push!)
+
+*Ralph says:*
+"This is like making history! YOUR code history!" 📜✨
+
+*Ready to make your mark?*
+"""
+
+    def get_first_commit_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for first commit intro.
+
+        Returns:
+            InlineKeyboardMarkup with action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("📋 Show Me What Changed", callback_data="first_commit_status")],
+            [InlineKeyboardButton("⏭️ Skip (I'll do it later)", callback_data="first_commit_skip")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_git_status_explanation_message(self, untracked: List[str], modified: List[str]) -> str:
+        """Get message explaining git status with file lists.
+
+        Args:
+            untracked: List of untracked files
+            modified: List of modified files
+
+        Returns:
+            Formatted status explanation
+        """
+        total_changes = len(untracked) + len(modified)
+
+        if total_changes == 0:
+            return """*✅ Everything's Clean!*
+
+Good news! Your working directory is clean!
+
+**What this means:**
+→ All changes are already committed
+→ No new files to add
+→ Nothing to commit right now!
+
+*Ralph says:*
+"Your code is all saved up! Good job!" 🎉
+
+*What now?*
+When you make changes to files or add new files, come back and we'll commit them!
+"""
+
+        message = f"""*📋 Here's What Changed!*
+
+Ralph found **{total_changes} file(s)** with changes!
+
+"""
+
+        if untracked:
+            message += f"""**🆕 New Files ({len(untracked)}):**
+These files are brand new - Git hasn't seen them before!
+"""
+            for file in untracked[:10]:  # Show first 10
+                message += f"  • `{file}`\n"
+            if len(untracked) > 10:
+                message += f"  ... and {len(untracked) - 10} more!\n"
+            message += "\n"
+
+        if modified:
+            message += f"""**✏️ Modified Files ({len(modified)}):**
+These files were changed since your last commit!
+"""
+            for file in modified[:10]:  # Show first 10
+                message += f"  • `{file}`\n"
+            if len(modified) > 10:
+                message += f"  ... and {len(modified) - 10} more!\n"
+            message += "\n"
+
+        message += """*What Ralph gonna do:*
+Ralph will add ALL these files to your commit!
+Like putting them all in a box before wrapping it up!
+
+*Ready to continue?*
+"""
+        return message
+
+    def get_git_status_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for git status view.
+
+        Returns:
+            InlineKeyboardMarkup with action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Add All & Continue", callback_data="first_commit_add_all")],
+            [InlineKeyboardButton("⏭️ Skip This Step", callback_data="first_commit_skip")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_commit_message_guide_message(self) -> str:
+        """Get guide for writing a good commit message.
+
+        Returns:
+            Commit message best practices guide
+        """
+        return """*📝 Time to Write Your Commit Message!*
+
+This is the DESCRIPTION of what you did!
+Think of it like a label on a box!
+
+**Good Commit Messages:**
+✅ "Add initial project setup"
+✅ "Fix login button styling"
+✅ "Update README with installation steps"
+✅ "Add user authentication system"
+
+**Bad Commit Messages:**
+❌ "stuff"
+❌ "fixed it"
+❌ "asdf"
+❌ "changes"
+
+**Ralph's Tips:**
+1. **Start with a verb** (Add, Fix, Update, Remove)
+2. **Be specific** (What did you change?)
+3. **Keep it short** (50-72 characters)
+4. **Start with capital letter**
+5. **Don't end with period**
+
+*Examples:*
+→ "Add initial Python files and setup"
+→ "Fix environment variable configuration"
+→ "Update onboarding wizard with git helper"
+
+*What Ralph wants to know:*
+**What did you do in this commit?**
+
+*Type your commit message now:*
+(Ralph will check if it's good!)
+"""
+
+    def get_commit_message_feedback_message(self, is_valid: bool, feedback: str, user_message: str) -> str:
+        """Get feedback on commit message quality.
+
+        Args:
+            is_valid: Whether message passes validation
+            feedback: Validation feedback message
+            user_message: The user's proposed message
+
+        Returns:
+            Formatted feedback message
+        """
+        if is_valid:
+            return f"""*✅ Great Commit Message!*
+
+Your message: `{user_message}`
+
+{feedback}
+
+**Why Ralph likes it:**
+→ Clear and descriptive!
+→ Follows best practices!
+→ Future you will understand it!
+
+*Ready to commit with this message?*
+"""
+        else:
+            return f"""*⚠️ Let's Make It Better!*
+
+Your message: `{user_message}`
+
+**Ralph says:** {feedback}
+
+*Try again!*
+Type a better commit message:
+
+*Remember:*
+→ Be descriptive
+→ Start with a verb (Add, Fix, Update)
+→ Keep it clear and short
+→ Start with capital letter
+
+*You got this!*
+"""
+
+    def get_commit_message_keyboard(self, is_valid: bool) -> InlineKeyboardMarkup:
+        """Get keyboard for commit message feedback.
+
+        Args:
+            is_valid: Whether message is valid
+
+        Returns:
+            InlineKeyboardMarkup with appropriate buttons
+        """
+        if is_valid:
+            keyboard = [
+                [InlineKeyboardButton("💾 Commit with This Message", callback_data="first_commit_execute")],
+                [InlineKeyboardButton("✏️ Try Different Message", callback_data="first_commit_retry_message")]
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("💡 Suggest a Message", callback_data="first_commit_suggest")],
+                [InlineKeyboardButton("⏭️ Skip This Step", callback_data="first_commit_skip")]
+            ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_commit_executing_message(self, commit_message: str) -> str:
+        """Get message shown while commit is being created.
+
+        Args:
+            commit_message: The commit message being used
+
+        Returns:
+            Execution progress message
+        """
+        return f"""*💾 Creating Your Commit!*
+
+Ralph is working on it!
+
+**Commit message:** `{commit_message}`
+
+**What Ralph doing:**
+1. ✅ Added files to staging area
+2. 🔄 Creating commit...
+3. ⏳ Almost done...
+
+*Ralph says:*
+"Me making history! YOUR code history!" 📜✨
+"""
+
+    def get_commit_success_message(self, commit_message: str, is_first: bool = False) -> str:
+        """Get success message after commit is created.
+
+        Args:
+            commit_message: The commit message used
+            is_first: Whether this is the user's first ever commit
+
+        Returns:
+            Success celebration message
+        """
+        celebration = "🎉🎊🚀✨🎈" if is_first else "✅"
+
+        message = f"""*{celebration} COMMIT SUCCESSFUL! {celebration}*
+
+"""
+
+        if is_first:
+            message += """**🎉 CONGRATULATIONS! 🎉**
+This was your FIRST GIT COMMIT EVER!
+
+You're now officially a developer who knows version control!
+Ralph is SO PROUD! 👏👏👏
+
+"""
+
+        message += f"""**Your commit:** `{commit_message}`
+
+**What just happened:**
+✅ Git took a snapshot of your code
+✅ Changes are now saved in history
+✅ You can go back to this point anytime
+✅ Your code is safe!
+
+**Next: Push to GitHub**
+Right now your commit is ONLY on your computer!
+Let's send it to GitHub so it's backed up in the cloud!
+
+*Ralph says:*
+"Now let's put it in the cloud where everyone can see your awesome work!" ☁️
+
+*Ready to push?*
+"""
+        return message
+
+    def get_commit_success_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard after successful commit.
+
+        Returns:
+            InlineKeyboardMarkup with next action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🚀 Push to GitHub", callback_data="first_commit_push")],
+            [InlineKeyboardButton("✅ Done (I'll push later)", callback_data="first_commit_complete")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_push_explanation_message(self, branch: str = "main") -> str:
+        """Get explanation of what git push does.
+
+        Args:
+            branch: Branch name to push to
+
+        Returns:
+            Push explanation message
+        """
+        return f"""*🚀 Time to Push to GitHub!*
+
+**What's "pushing"?**
+Think of it like uploading your save file to the cloud!
+
+**Right now:**
+→ Your commit is on YOUR computer only
+→ If computer breaks, it's GONE!
+→ Nobody else can see it
+
+**After pushing:**
+→ Commit is on GitHub (in the cloud!)
+→ It's backed up safely
+→ Other people can see it
+→ You can access it from anywhere!
+
+**What Ralph gonna do:**
+1. Connect to GitHub (using your SSH key!)
+2. Upload your commit to the cloud
+3. Set up tracking (so future pushes are easier!)
+
+**The command:**
+`git push -u origin {branch}`
+
+**Breakdown:**
+→ `push` = send commits to GitHub
+→ `-u` = set up tracking (only needed first time!)
+→ `origin` = GitHub (the remote server)
+→ `{branch}` = your branch name
+
+*Ralph says:*
+"Let's back up your work before your cat walks on the keyboard!" 🐱
+
+*Ready?*
+"""
+
+    def get_push_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for push action.
+
+        Returns:
+            InlineKeyboardMarkup with push buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🚀 Push Now!", callback_data="first_commit_push_execute")],
+            [InlineKeyboardButton("⏭️ I'll Push Later", callback_data="first_commit_complete")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_push_executing_message(self, branch: str = "main") -> str:
+        """Get message shown while push is in progress.
+
+        Args:
+            branch: Branch being pushed
+
+        Returns:
+            Push progress message
+        """
+        return f"""*🚀 Pushing to GitHub!*
+
+Ralph is sending your code to the cloud!
+
+**Branch:** `{branch}`
+**Remote:** `origin` (GitHub)
+
+**What happening:**
+1. 🔐 Authenticating with GitHub...
+2. 📤 Uploading your commit...
+3. ☁️ Syncing with cloud...
+4. ⏳ Almost there...
+
+*This might take a few seconds!*
+"""
+
+    def get_push_success_message(self, branch: str = "main") -> str:
+        """Get success message after push completes.
+
+        Args:
+            branch: Branch that was pushed
+
+        Returns:
+            Success celebration message
+        """
+        return f"""*🎉 PUSHED SUCCESSFULLY! 🎉*
+
+Your code is now on GitHub! ☁️✨
+
+**What just happened:**
+✅ Commit uploaded to GitHub
+✅ Code is backed up in the cloud
+✅ Tracking is set up for future pushes
+✅ Your code is SAFE!
+
+**Check it out:**
+Go to your GitHub repository and you'll see:
+→ Your commit message
+→ All the files you added
+→ Timestamp of when you committed
+→ Your contribution graph got a green square! 🟩
+
+**Future pushes:**
+Now you can just type `git push` and it works!
+No need for the extra flags anymore!
+
+*Ralph says:*
+"Look at you! Making commits and pushing like a PRO! Me so proud!" 🏆
+
+**🎊 First Commit Mission: COMPLETE! 🎊**
+
+You now know:
+✅ How to check git status
+✅ How to add files
+✅ How to write commit messages
+✅ How to create commits
+✅ How to push to GitHub
+
+*You're a Git master now!* 🎓
+"""
+
+    def get_push_error_message(self, error: str) -> str:
+        """Get error message if push fails.
+
+        Args:
+            error: Error message from git
+
+        Returns:
+            Helpful error explanation
+        """
+        return f"""*⚠️ Push Had a Problem*
+
+Don't worry! This happens! Let's fix it!
+
+**Error:** {error}
+
+**Common causes:**
+1. **No internet connection**
+   → Check your WiFi!
+
+2. **SSH key not added to GitHub**
+   → Did you add your SSH key?
+   → Try the SSH test: `ssh -T git@github.com`
+
+3. **No remote set up**
+   → Need to connect your repo to GitHub first
+   → Run: `git remote add origin <your-repo-url>`
+
+4. **Wrong branch name**
+   → Your branch might be called 'master' not 'main'
+   → Try: `git push -u origin master`
+
+5. **First push to new repo**
+   → Sometimes takes a moment
+   → Try again in a few seconds
+
+*What to do:*
+1. Check the error message above
+2. Try the suggested fix
+3. Or skip for now and push later!
+
+*Ralph says:*
+"Git is tricky sometimes! But we'll figure it out!" 💪
+
+*What do you want to do?*
+"""
+
+    def get_push_error_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for push error recovery.
+
+        Returns:
+            InlineKeyboardMarkup with retry options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔄 Try Again", callback_data="first_commit_push_execute")],
+            [InlineKeyboardButton("📚 Show Troubleshooting", callback_data="first_commit_push_help")],
+            [InlineKeyboardButton("✅ I'll Fix It Later", callback_data="first_commit_complete")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_suggested_commit_message_display(self, suggestion: str) -> str:
+        """Get message showing suggested commit message.
+
+        Args:
+            suggestion: Auto-generated suggestion
+
+        Returns:
+            Formatted suggestion message
+        """
+        return f"""*💡 Ralph's Suggestion!*
+
+Based on your changes, Ralph thinks this would be good:
+
+**Suggested message:** `{suggestion}`
+
+**Why this suggestion:**
+→ Describes what you added/changed
+→ Follows commit message best practices
+→ Clear and professional
+
+*What do you want to do:*
+→ Use this message as-is
+→ Edit it to make it better
+→ Write your own from scratch
+
+*Type your choice or a new message:*
+"""
+
+    def get_suggested_commit_keyboard(self, suggestion: str) -> InlineKeyboardMarkup:
+        """Get keyboard for suggested commit message.
+
+        Args:
+            suggestion: The suggested message
+
+        Returns:
+            InlineKeyboardMarkup with suggestion actions
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Use This Message", callback_data=f"first_commit_use_suggestion:{suggestion}")],
+            [InlineKeyboardButton("✏️ Write My Own", callback_data="first_commit_custom_message")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
