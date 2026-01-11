@@ -13684,3 +13684,48 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 6. 🆕 Monitor: Groq prompt caching effectiveness (automatic, just measure)
 
 ---
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [SG-016] GIFs Like Real People - Setup Then Punchline
+**Status**: ✅ Complete
+
+### What was implemented
+- Added GIF_SETUPS constant with natural setup messages for different moods
+- Modified send_ralph_gif() to support setup messages before GIFs
+- Modified send_worker_gif() to support setup messages before GIFs
+- Created get_gif_setup() helper to auto-generate contextual setups
+- Setup messages now appear 0.8s before GIF (comedic timing!)
+- "Yo this is literally me right now" → GIF (natural texting flow)
+
+### Files changed
+- ralph_bot.py:
+  - Added GIF_SETUPS dict (lines 1150-1206) with 9 mood categories
+  - Added get_gif_setup() method (lines 9592-9605)
+  - Updated send_ralph_gif() with setup support (line 9607+)
+  - Updated send_worker_gif() with setup support (line 9639+)
+
+### Learnings
+- GIFs without context feel spammy - setup makes them LAND
+- "Setup then punchline" is how real people text GIFs
+- The 0.8s pause is critical - just enough time to read setup, then BAM
+- Auto-generated setups (default use_setup=True) ensure consistency
+- Can still pass custom setup_message for specific situations
+- Quality over quantity - sparse GIFs with setup > constant GIF spam
+- Examples that work:
+  - Ralph: "This is me right now" → happy GIF
+  - Worker: "Yo this is literally me right now" → working GIF
+  - Worker: "When the tests finally pass:" → relieved GIF
+
+### Key patterns
+- Setup creates anticipation → GIF delivers punchline
+- Natural language setups ("Current mood:", "Me at my desk like")
+- Optional parameter design: auto-generate OR custom message
+- Comedic timing matters: 0.8s pause is the sweet spot
+- GIF_SETUPS organized by speaker + mood for easy lookup
+
+### GIF Setup Categories Added
+- ralph_happy, ralph_thinking, ralph_silly, ralph_approved, ralph_laughing
+- worker_working, worker_relieved, worker_stressed, worker_celebrating
+- Each category has 4 natural variations to avoid repetition
+
+---

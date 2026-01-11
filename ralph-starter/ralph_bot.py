@@ -1147,6 +1147,64 @@ _The team's souls collectively leave their bodies._""",
         "There are only 10 types of people in the world: those who understand binary and those who don't.",
     ]
 
+    # SG-016: GIF Setup Messages - Setup then punchline, like real texting
+    GIF_SETUPS = {
+        "ralph_happy": [
+            "Yo check me out",
+            "This is me right now",
+            "Me when I'm the manager:",
+            "Feeling good today",
+        ],
+        "ralph_thinking": [
+            "Hold on lemme think about this",
+            "Brain is working hard",
+            "Processing...",
+            "Me trying to understand:",
+        ],
+        "ralph_silly": [
+            "This is me being silly",
+            "I'm in my element",
+            "Look at me go:",
+            "Classic me:",
+        ],
+        "ralph_approved": [
+            "That's the good stuff",
+            "YES this is it",
+            "Now we're talking!",
+            "Approved vibes:",
+        ],
+        "ralph_laughing": [
+            "That's hilarious omg",
+            "Can't stop laughing",
+            "This got me:",
+            "HAHA wait look at this",
+        ],
+        "worker_working": [
+            "Yo this is literally me right now",
+            "Current mood:",
+            "Me at my desk like",
+            "The grind never stops:",
+        ],
+        "worker_relieved": [
+            "When the tests finally pass:",
+            "That feeling when it works:",
+            "Phew, dodged that one",
+            "Victory feels like:",
+        ],
+        "worker_stressed": [
+            "Me looking at this deadline:",
+            "This is what I'm dealing with",
+            "Current state of panic:",
+            "How I feel about production right now:",
+        ],
+        "worker_celebrating": [
+            "WE DID IT",
+            "Ship it energy:",
+            "Success looks like:",
+            "Team right now:",
+        ],
+    }
+
 
 class ComedicTiming:
     """Timing system for creating natural, comedic conversation flow.
@@ -9531,8 +9589,46 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             return "relieved"
         return "working"
 
-    async def send_ralph_gif(self, context, chat_id: int, mood: str = "happy"):
-        """Send a Ralph/Simpsons GIF."""
+    def get_gif_setup(self, mood: str, speaker: str = "ralph") -> str:
+        """SG-016: Get a natural setup message for a GIF.
+
+        Args:
+            mood: The GIF mood/emotion
+            speaker: "ralph" or "worker"
+
+        Returns:
+            Random setup message, or None if no setup available
+        """
+        key = f"{speaker}_{mood}"
+        if key in self.GIF_SETUPS:
+            return random.choice(self.GIF_SETUPS[key])
+        return None
+
+    async def send_ralph_gif(self, context, chat_id: int, mood: str = "happy", setup_message: str = None, use_setup: bool = True):
+        """Send a Ralph/Simpsons GIF with optional setup message.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID to send to
+            mood: GIF mood/search term
+            setup_message: Optional setup text before GIF (SG-016: "this is you right now")
+            use_setup: If True and no setup_message provided, auto-generate one (default True)
+        """
+        # SG-016: Setup before GIF - like real texting
+        final_setup = setup_message
+        if final_setup is None and use_setup:
+            final_setup = self.get_gif_setup(mood, speaker="ralph")
+
+        if final_setup:
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=final_setup
+                )
+                await asyncio.sleep(0.8)  # Quick pause before punchline
+            except Exception as e:
+                logger.error(f"Failed to send GIF setup: {e}")
+
         gif_url = self.get_gif(mood, speaker="ralph")
         if gif_url:
             try:
@@ -9540,8 +9636,31 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             except Exception as e:
                 logger.error(f"Failed to send Ralph GIF: {e}")
 
-    async def send_worker_gif(self, context, chat_id: int, mood: str = "working"):
-        """Send a worker/office meme GIF."""
+    async def send_worker_gif(self, context, chat_id: int, mood: str = "working", setup_message: str = None, use_setup: bool = True):
+        """Send a worker/office meme GIF with optional setup message.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID to send to
+            mood: GIF mood/search term
+            setup_message: Optional setup text before GIF (SG-016: "yo this is literally you")
+            use_setup: If True and no setup_message provided, auto-generate one (default True)
+        """
+        # SG-016: Setup before GIF - like real texting
+        final_setup = setup_message
+        if final_setup is None and use_setup:
+            final_setup = self.get_gif_setup(mood, speaker="worker")
+
+        if final_setup:
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=final_setup
+                )
+                await asyncio.sleep(0.8)  # Quick pause before punchline
+            except Exception as e:
+                logger.error(f"Failed to send GIF setup: {e}")
+
         gif_url = self.get_gif(mood, speaker="worker")
         if gif_url:
             try:
