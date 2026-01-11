@@ -9475,3 +9475,64 @@ Standard wizard method structure:
 This pattern makes the codebase consistent and maintainable!
 
 ---
+
+## Iteration [OB-037] - 2026-01-10
+**Task**: [OB-037] Group Chat Setup Guide
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive group chat setup guide to onboarding_wizard.py
+- Created 8 new methods covering complete group chat onboarding workflow
+- Step-by-step instructions for adding bot to Telegram groups
+- Detailed admin rights setup (why needed, which permissions to grant)
+- Test commands to verify bot works in group (3 test scenarios)
+- Privacy mode troubleshooting (common issue when bot can't see messages)
+- Comprehensive troubleshooting guide (6 common problems with solutions)
+- Success celebration message with pro tips for group usage
+
+Added to ralph_bot.py:
+- 8 callback handlers for group chat setup navigation
+- group_setup_start - Entry point
+- group_setup_instructions - Detailed steps
+- group_test_commands - Verification tests
+- group_privacy_help - Privacy mode fixes
+- group_setup_help - Full troubleshooting
+- group_setup_done - Success confirmation
+- group_admin_rights_info - Admin permissions explainer
+- setup_back_group - Navigation helper
+
+### Files changed
+- onboarding_wizard.py (384 lines added)
+- ralph_bot.py (107 lines added)
+- scripts/ralph/prd.json (marked OB-037 as passes: true)
+
+### Learnings
+- Group chat setup is trickier than private chat - requires admin rights AND privacy mode configuration
+- Privacy mode MUST be disabled BEFORE adding bot to group, or bot won't see messages
+- Users often forget to remove/re-add bot after changing privacy mode (setting only applies on join!)
+- Admin rights explanation is critical - users need to understand WHY bot needs permissions
+- Test commands are essential for verification - gives users confidence setup worked
+- Troubleshooting MUST cover "bot only responds to commands" (privacy mode issue #1)
+- The pattern continues: guide → instructions → tests → troubleshooting → success
+
+### Key Technical Details
+- Privacy mode is set in BotFather with /setprivacy command
+- Privacy changes only apply when bot JOINS group (must remove/re-add after changing!)
+- Admin rights needed: see messages, send messages, optionally delete/pin
+- Group setup is optional but enables team collaboration
+- Bot behavior should be same in groups vs private (code should handle both)
+
+### Pattern Reinforcement
+Following the proven wizard pattern from OB-036:
+1. Overview message (why groups are useful)
+2. Step-by-step instructions (create group, add bot, make admin)
+3. Interactive keyboard (navigate between sections)
+4. Test commands (verify it works)
+5. Privacy help (most common issue)
+6. Troubleshooting (comprehensive problem solving)
+7. Success message (celebrate + tips)
+8. Admin rights explainer (educate users)
+
+This task completes the group chat onboarding flow! Users can now confidently set up Ralph for team collaboration.
+
+---
