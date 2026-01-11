@@ -13821,3 +13821,36 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 8. Then team reactions
 
 ---
+
+## Iteration 262 - 2026-01-11
+**Task**: [SG-029] Response Freshness Tracking
+**Status**: ✅ Complete
+
+### What was implemented
+- Added difflib import for efficient text similarity comparison
+- Updated track_response() to store last 50 responses per user (was 10)
+- Created check_response_similarity() function using difflib.SequenceMatcher
+- Integrated similarity checking into call_boss() with automatic regeneration
+- Integrated similarity checking into call_worker() with automatic regeneration
+- Added logging when regeneration happens (logger.info with similarity score)
+- Implemented max 3 regeneration attempts to prevent infinite loops
+- Similarity threshold set to >70% as specified in acceptance criteria
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Response freshness is critical for character believability and user engagement
+- difflib.SequenceMatcher provides fast, simple similarity checking without expensive embeddings
+- Regeneration loop with escalating freshness prompts is effective ("COMPLETELY change your approach")
+- Tracking 50 responses gives better coverage while keeping memory usage reasonable
+- Checking last 20 responses balances thoroughness vs performance
+- Fresh > fast - worth the extra API call to maintain quality user experience
+- Similarity check is especially important for greetings, reactions, acknowledgments
+- Session-based tracking allows natural repeats across different sessions
+
+### Pattern discovered
+- Regeneration pattern: attempt loop → check similarity → if similar, strengthen prompt → retry
+- This pattern can be reused for other quality checks (tone, length, etc.)
+
+---
