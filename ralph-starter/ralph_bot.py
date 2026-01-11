@@ -3861,42 +3861,61 @@ If asked about something you didn't observe, honestly say you don't know."""},
         # Keep last 20 entries
         self.token_history[user_id] = self.token_history[user_id][-20:]
 
-    def get_ralph_token_observation(self, user_id: int, current_tokens: int) -> Optional[str]:
-        """Ralph notices token usage patterns and comments like a manager."""
+    def get_ralph_token_observation(self, user_id: int, current_tokens: int) -> Optional[tuple]:
+        """Ralph notices token usage patterns and comments like a manager.
+
+        Returns:
+            Tuple of (observation, situation_type) or None
+            situation_type can be: "verbose", "efficient", "trend_up"
+        """
         history = self.token_history.get(user_id, [])
 
         if len(history) < 2:
             return None  # Not enough data yet
 
+        # RM-015: Only trigger 30% of the time (doesn't happen every time)
+        if random.random() > 0.3:
+            return None
+
         avg_tokens = sum(history[:-1]) / len(history[:-1])
         last_tokens = history[-1] if history else 0
 
-        observations = []
+        situation = None
+        situation_type = None
 
         # Compare to average
         if current_tokens > avg_tokens * 1.5:
-            observations = [
-                f"Wow, that was {current_tokens} words! That's way more than usual! *scribbles in notebook* I'm putting a gold star next to your name.",
-                f"Hmmm, {current_tokens} words... that's a lot more than before! Are you okay? Do you need juice?",
-                f"*squints at paper* {current_tokens}... that's bigger than last time! My daddy says bigger is better. Unless it's vegetables.",
-                f"You used {current_tokens} words! That's like... *counts fingers* ...MORE! I'm writing this down.",
-            ]
+            situation = f"The worker just used {current_tokens} words, which is way more than their usual {int(avg_tokens)} words average."
+            situation_type = "verbose"
         elif current_tokens < avg_tokens * 0.5:
-            observations = [
-                f"Only {current_tokens} words? That was fast! Are you a wizard? I knew a wizard once. He was a leprechaun.",
-                f"Wow, {current_tokens} words! So quick! I'm gonna tell my cat about you.",
-                f"*looks impressed* {current_tokens}! That's way less than before! Efficiency! I learned that word yesterday.",
-                f"Speedy! {current_tokens} words! My daddy says 'time is money' but I don't know where to spend it.",
-            ]
+            situation = f"The worker just used {current_tokens} words, which is way less than their usual {int(avg_tokens)} words average. Very efficient!"
+            situation_type = "efficient"
         elif len(history) >= 5 and all(t > avg_tokens for t in history[-3:]):
-            observations = [
-                "I noticed you've been using more words lately. *taps head* Manager brain! I see patterns!",
-                "The numbers are going up! That's good, right? Unless it's bad. Is it bad?",
-            ]
+            situation = f"The worker has been using more words lately. The trend is going up."
+            situation_type = "trend_up"
 
-        if observations:
-            return random.choice(observations)
-        return None
+        if not situation:
+            return None
+
+        # RM-015: Generate fresh observation in Ralph's voice using AI
+        prompt = f"""You are Ralph Wiggum from The Simpsons, acting as a manager. {situation}
+
+Make a brief, funny observation about this in Ralph's voice. Ralph is:
+- Genuinely enthusiastic about noticing patterns (even if he doesn't understand them)
+- Says things like "I'm learnding!", mentions his cat, talks about paste
+- Uses simple words but tries to sound managerial
+- Sweet and well-meaning despite being clueless
+- Might count on fingers, scribble in a notebook, or reference his daddy
+
+Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT use any previous examples - generate something completely fresh."""
+
+        messages = [
+            {"role": "system", "content": "You are Ralph Wiggum. Be authentic, funny, and brief."},
+            {"role": "user", "content": prompt}
+        ]
+
+        observation = self.call_groq(BOSS_MODEL, messages, max_tokens=80)
+        return (observation, situation_type)
 
     # ==================== GIF SUPPORT ====================
 
@@ -5230,23 +5249,53 @@ _The team nods in unison._
         if self.should_send_gif():
             await self.send_worker_gif(context, chat_id, worker_mood)
 
-        # Ralph might notice the token usage
-        ralph_observation = self.get_ralph_token_observation(user_id, token_count)
-        if ralph_observation:
+        # RM-015: Ralph might notice the token usage (returns tuple or None)
+        observation_result = self.get_ralph_token_observation(user_id, token_count)
+        if observation_result:
+            ralph_observation, situation_type = observation_result
+
             await asyncio.sleep(1)
             await self.send_styled_message(
                 context, chat_id, "Ralph", None, self.ralph_misspell(ralph_observation),
                 topic="word count",
                 with_typing=True
             )
-            # Next time, workers will be more efficient!
-            if token_count > 50:  # If it was a lot
-                session["efficiency_mode"] = True
-            else:
-                session["efficiency_mode"] = False
 
             if self.should_send_gif():
                 await self.send_ralph_gif(context, chat_id, "thinking")
+
+            # RM-015: Workers actually respond to efficiency pressure!
+            await asyncio.sleep(ComedicTiming.normal())
+
+            # Generate worker response based on situation type
+            worker_response_prompt = ""
+            if situation_type == "verbose":
+                worker_response_prompt = f"Ralph just noticed you used a lot of words ({token_count}). React briefly - maybe apologize, make an excuse, or promise to be more concise. Stay in character as {name}."
+                # Next time, workers will be more efficient!
+                session["efficiency_mode"] = True
+            elif situation_type == "efficient":
+                worker_response_prompt = f"Ralph just praised you for being efficient with only {token_count} words. React briefly with pride or modesty. Stay in character as {name}."
+                session["efficiency_mode"] = False
+            elif situation_type == "trend_up":
+                worker_response_prompt = f"Ralph noticed you've been using more words lately. React briefly - maybe defend yourself or promise to do better. Stay in character as {name}."
+                session["efficiency_mode"] = True
+
+            if worker_response_prompt:
+                messages = [
+                    {"role": "system", "content": f"You are {name}, {title}. {worker['personality']}"},
+                    {"role": "user", "content": worker_response_prompt}
+                ]
+                worker_reaction = self.call_groq(WORKER_MODEL, messages, max_tokens=60)
+
+                await self.send_styled_message(
+                    context, chat_id, name, title, worker_reaction,
+                    topic="efficiency pressure",
+                    with_typing=True
+                )
+
+                if self.should_send_gif():
+                    reaction_mood = "nervous" if situation_type in ["verbose", "trend_up"] else "happy"
+                    await self.send_worker_gif(context, chat_id, reaction_mood)
 
         # Continue the session...
         await context.bot.send_message(
