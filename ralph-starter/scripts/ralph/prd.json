@@ -4949,7 +4949,7 @@
         "onboarding_wizard.py",
         "bot_tester.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-040",

@@ -10221,3 +10221,46 @@ Worker reactions:
 - Add validation to ensure generated PRD doesn't overwrite existing one without confirmation
 
 ---
+
+## Iteration [Latest] - 2026-01-10 23:15
+**Task**: [OB-039] Bot Testing Walkthrough
+**Status**: ✅ Complete
+
+### What was implemented
+- Created bot_tester.py module with BotTester class for managing interactive testing flow
+- Added STEP_BOT_TEST constant to OnboardingWizard (inserted between STEP_THEME and STEP_COMPLETE)
+- Added "bot_tested" step to ProgressTracker.SETUP_STEPS for tracking test completion
+- Integrated test acknowledgment in ralph_bot.py handle_text() - bot responds to messages during test
+- Added handle_bot_test_callback() in ralph_bot.py for bot_test_complete and bot_test_skip
+- Modified theme_continue callback to transition to STEP_BOT_TEST instead of STEP_COMPLETE
+- Added bot_tested flag to init_onboarding_state() initialization
+- Created 5 UI methods in onboarding_wizard.py: get_bot_test_intro_message(), get_bot_test_acknowledgment(), get_bot_test_command_prompt(), get_bot_test_completion_message(), get_bot_test_keyboard()
+
+### Files changed
+- bot_tester.py (new file, 213 lines)
+- onboarding_wizard.py (added import, initialization, 5 new methods, state tracking)
+- progress_tracker.py (added bot_tested step)
+- ralph_bot.py (added routing, handler, message acknowledgment)
+
+### Learnings
+- Onboarding flow integration pattern: Add step constant → Add to progress tracker → Create handler methods → Route callbacks → Handle messages in appropriate step
+- Fallback pattern: Always provide fallback messages in wizard methods when helper module isn't available (e.g., `if self.bot_tester:` with else clause)
+- State-based message routing: Check `state.get("step")` in handle_text() to intercept messages during specific onboarding phases
+- Callback routing order matters: Add new callback handlers near related handlers (bot_test near character/theme handlers)
+- Interactive testing UX: Acknowledge user's test message immediately with personalized response including their text
+- Skip option importance: Users should always have escape hatch - added bot_test_skip alongside bot_test_complete
+- Testing state transition: STEP_THEME → STEP_BOT_TEST → STEP_COMPLETE ensures testing happens right before completion
+- Import pattern consistency: Import at top with try/except, set availability flag, check before use in __init__
+
+### Testing approach
+- Ran py_compile on all 4 modified files to verify syntax
+- No errors found in syntax check
+- Integration testing would require live Telegram bot instance
+
+### Architecture notes
+- BotTester class is stateless - all methods are helpers for message generation
+- Real test state is tracked in onboarding_state dict in ralph_bot.py
+- Test progression: intro → user sends message → acknowledgment → finish or skip
+- Bot testing is optional (skip button) but encouraged (placed right before completion for momentum)
+
+---
