@@ -17534,3 +17534,37 @@ GLM-4.7 (Cost-optimized)
 
 ---
 
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-009] Re-test Trigger
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `retest_model()` async method to ModelManager class
+- Implements manual re-validation of models with clear/re-run capability
+- Three standard tests: availability, basic_generation, response_quality
+- Added `/retest` Telegram bot command for user-friendly model testing
+- Command shows all registered models with their validation status
+- Individual test results with pass/fail indicators and error details
+
+### Files changed
+- model_manager.py: Added retest_model() method with full test suite implementation
+- ralph_bot.py: Added retest_command() handler and registered CommandHandler
+
+### Learnings
+- Integration with existing ModelRegistry validation cache system works seamlessly
+- Test suite is extensible - can pass custom test_suite list for specific tests
+- clear_existing parameter allows both full re-validation or incremental testing
+- Error handling includes both adapter loading failures and individual test exceptions
+- Telegram UI shows concise test results with emoji status indicators
+- Method returns structured dict that's easy to parse programmatically or display to users
+
+### Implementation Details
+- Standard test suite: ["basic_generation", "response_quality", "availability"]
+- Each test records timestamp and details in validation cache
+- Failed tests include error messages in details for debugging
+- Uses load_from_registry() to get adapter, ensuring proper provider routing
+- Bot command supports both full model list view and individual model testing
+- Limits model list display to first 10 to avoid Telegram message overflow
+
+---

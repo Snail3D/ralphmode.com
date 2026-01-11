@@ -72,6 +72,7 @@ python ralph_bot.py
 | `/setup` | Guided onboarding. Ralph holds your hand. |
 | `/status` | *"The project is... um... this way!"* |
 | `/setmodel` | Switch AI models on the fly. No restart needed! |
+| `/retest` | Re-validate AI models. Check if they still work! |
 | `/feedback` | Tell us what to build next *(paid users)* |
 
 ---
