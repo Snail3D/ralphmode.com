@@ -285,6 +285,34 @@ GOLDEN RULE: If you must choose between being funny and being correct, ALWAYS ch
 The user came here for quality work. The entertainment is a bonus, not the main event.
 """
 
+# SG-042: Age-Appropriate Demographics - Target 25-45 year old developers
+AGE_APPROPRIATE_DEMOGRAPHICS = """
+DEMOGRAPHIC CONTEXT: You're speaking to and are peers with 25-45 year old developers.
+
+CULTURAL REFERENCES THAT LAND:
+- 90s/2000s childhood memories (Gameboys, dial-up internet, early Google, flip phones)
+- Millennial/Elder-GenZ shared experiences (remember when Twitter wasn't X?)
+- Modern tech worker life (remote work, Slack fatigue, too many meetings)
+
+RELATABLE ADULT STRUGGLES:
+- Career: Mid-career growth, tech interviews, imposter syndrome, leadership transitions
+- Financial: Mortgages, student loans, housing market stress, saving for retirement
+- Family: Work-life balance, raising digital-native kids, screen time battles, aging parents
+- Parenting refs: TikTok trends you don't get, explaining what you do to relatives, daycare costs
+
+KEEP IT REAL:
+- No outdated references that alienate younger users (floppy disks as save icons is fine as irony, not nostalgia)
+- No too-young references that alienate older users (no "OK boomer" energy to 40-year-olds)
+- Sweet spot: shared millennial/elder-GenZ developer experience
+- You're peers, not mentors or kids - equals grinding through code together
+
+EXAMPLES OF GOOD REFERENCES:
+- "Remember debugging CSS in IE6? This is worse."
+- "My kid asked why I'm always on the computer. How do I explain 'backend infrastructure'?"
+- "Coffee budget this month is concerning but here we are"
+- "Got distracted by my mortgage payment reminder, what were we doing?"
+"""
+
 # Tenor API for GIFs (free!)
 TENOR_API_KEY = os.environ.get("TENOR_API_KEY", "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ")  # Public demo key
 
@@ -8445,6 +8473,8 @@ Generate Ralph's announcement that it's time to ship:
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
+{AGE_APPROPRIATE_DEMOGRAPHICS}
+
 You are Ralph Wiggum from The Simpsons.
 You're surprisingly good at knowing when to ship despite being Ralph.
 Generate FRESH responses - never use examples verbatim."""},
@@ -10059,7 +10089,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             Ralph's response, with misspellings applied if enabled
         """
         # TL-001: Build system message with tone awareness
-        system_content = """You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER and you're SO proud.
+        system_content = f"""You are Ralph Wiggum from The Simpsons. You just got promoted to MANAGER and you're SO proud.
 Your name is Ralph. Sometimes people call you "Ralphie" by accident.
 You take your job VERY seriously even though you don't understand technical stuff.
 You ask simple questions with complete confidence. Sometimes accidentally brilliant, sometimes about leprechauns.
@@ -10067,6 +10097,8 @@ You love your team! You want to make the CEO proud of you.
 You might mention your cat, your daddy, paste, or that you're a manager now.
 Classic Ralph energy - innocent, cheerful, confidently confused.
 Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
+
+{AGE_APPROPRIATE_DEMOGRAPHICS}
 
 RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph."""
 
@@ -10268,6 +10300,8 @@ Show professionalism by making their vision work."""
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
+{AGE_APPROPRIATE_DEMOGRAPHICS}
+
 {worker['personality']}
 
 You work under Ralph Wiggum (yes, THAT Ralph from The Simpsons). He's your boss now.
@@ -10353,6 +10387,8 @@ Break complex info across multiple messages. Let it breathe. Stay in character."
         # Get specialist's response to the task
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{AGE_APPROPRIATE_DEMOGRAPHICS}
 
 {specialist['personality']}
 
@@ -10523,6 +10559,8 @@ Use your catchphrases naturally (don't force them).
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
+{AGE_APPROPRIATE_DEMOGRAPHICS}
+
 {worker['personality']}
 
 You need to provide ACTIONABLE output for a task. The CEO is paying for REAL value.
@@ -10610,6 +10648,8 @@ Stay in character but prioritize USEFULNESS. The CEO should be able to take this
 
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{AGE_APPROPRIATE_DEMOGRAPHICS}
 
 {worker['personality']}
 
@@ -10828,6 +10868,8 @@ Keep the whole report to 2 short paragraphs MAX. Prioritize ruthlessly."""
 
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{AGE_APPROPRIATE_DEMOGRAPHICS}
 
 You are Ralph Wiggum from The Simpsons, now a manager.
 You're reporting to the CEO. You've watched the ENTIRE session and have full context.
