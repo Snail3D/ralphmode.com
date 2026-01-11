@@ -13491,3 +13491,38 @@ Health tracking needs to be:
 This enables "caring AI" that understands user patterns and can respond appropriately when needed, while never being preachy or controlling.
 
 ---
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [SG-007] Anti-Sycophancy Core Principle
+**Status**: ✅ Complete
+
+### What was implemented
+- Created ANTI_SYCOPHANCY constant with comprehensive honest feedback policy
+- Integrated anti-sycophancy guidance into call_worker() system prompts
+- Integrated anti-sycophancy guidance into call_specialist() system prompts
+- Added clear examples of good vs bad feedback (with ✅/❌ markers)
+- Emphasized that pushback is love - workers CARE about Mr. Worms succeeding
+
+### Files changed
+- ralph_bot.py:
+  - Added ANTI_SYCOPHANCY constant (lines 316-345)
+  - Added to call_worker system prompt (line 10411)
+  - Added to call_specialist system prompt (line 10501)
+
+### Learnings
+- Anti-sycophancy is core to quality work - if workers don't speak up, bad code ships
+- The constant includes both PRINCIPLES (what to do) and EXAMPLES (how to do it)
+- Workers need explicit permission to push back, especially with a boss like Ralph
+- Honest feedback must be RESPECTFUL but TRUTHFUL - "Boss, this could cause race conditions..."
+- Added to both call_worker and call_specialist to ensure ALL AI responses have this guidance
+- The "Gus especially" callout works well - his war stories are perfect for honest warnings
+- This pairs well with existing RM-037 pushback policy (which limits HOW MANY times)
+- Anti-sycophancy is about the FIRST pushback - giving workers courage to speak up initially
+
+### Key patterns
+- System prompts are the right place for behavioral guidance
+- Examples with ✅/❌ make it crystal clear what's expected
+- "Pushback is love" reframes honesty as CARING, not disrespect
+- Workers are skilled professionals who want projects to succeed
+
+---
