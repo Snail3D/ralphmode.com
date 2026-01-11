@@ -8558,3 +8558,86 @@ Check priority_order for exact sequence.
   - Enthusiasm without minimizing importance
 
 ---
+
+---
+
+## Iteration [Ralph Auto] - 2026-01-10 13:15 UTC
+**Task**: [OB-035] Setup Resume Functionality
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive setup state persistence system using existing database infrastructure
+- Created setup_state.py module with SetupStateManager class:
+  - save_setup_state() - Saves onboarding state to BotSession.session_data as JSON
+  - load_setup_state() - Loads saved state from database
+  - has_incomplete_setup() - Detects resumable setups (checks progress threshold, expiration)
+  - is_setup_stale() - Determines if setup is too old (>48 hours)
+  - get_setup_age_message() - Human-readable age formatting ("2 days ago", "5 hours ago", etc.)
+  - clear_setup_state() - Deletes saved state for fresh restart
+  - mark_setup_complete() - Updates session status to "completed"
+  - get_resume_message() - Generates progress summary showing completed/pending steps
+  - Uses BotSession model with status="onboarding" and session_data JSON field
+  - MIN_STEPS_FOR_RESUME = 1 prevents trivial resume prompts
+  - SETUP_EXPIRATION_HOURS = 48 for stale detection
+- Updated onboarding_wizard.py with resume functionality:
+  - Integrated SetupStateManager in __init__() with graceful degradation
+  - Modified init_onboarding_state() to include started_at ISO timestamp
+  - check_for_incomplete_setup() - Wrapper to detect resumable setups
+  - get_resume_setup_message() - Delegates to state manager for progress display
+  - get_resume_setup_keyboard() - Resume/Restart/Show Progress buttons
+  - save_state(), load_state(), clear_state(), mark_complete() - Clean API wrappers
+  - get_restart_confirmation_message() - Warns about progress loss on restart
+  - get_restart_confirmation_keyboard() - Confirm/Cancel/Back options
+  - get_stale_setup_message() - Handles expired setups with recommendation
+  - get_stale_setup_keyboard() - Emphasizes "Start Fresh (Recommended)" for stale
+  - state_persistence_available flag for graceful fallback
+
+### Files changed
+- setup_state.py (new file, 327 lines)
+- onboarding_wizard.py (+215 lines of resume functionality)
+- scripts/ralph/prd.json (marked OB-035 as passes: true)
+
+### Learnings
+- Reusing existing infrastructure is better than new tables
+  - BotSession already has user_id, session tracking, JSON blob storage
+  - status="onboarding" differentiates from regular coding sessions
+  - session_data JSON field perfect for flexible state storage
+  - No migrations needed, works immediately
+- Progress thresholds prevent spam
+  - MIN_STEPS_FOR_RESUME=1 means user must complete at least one step
+  - Prevents resume prompt for users who just opened /setup and left
+  - Balances helpfulness vs annoyance
+- Expiration prevents zombie state
+  - 48-hour threshold is generous but prevents ancient setups
+  - Stale setups get different UI (emphasizes restart over resume)
+  - Age display helps user understand if setup is salvageable
+- Human-readable time is important UX
+  - "2 days ago" > "2024-01-08T12:30:45Z"
+  - Different granularity based on age (days vs hours vs minutes)
+  - "Just now" for very recent (<1 minute)
+- Graceful degradation for reliability
+  - state_persistence_available flag set at __init__
+  - All resume methods check flag before using state_manager
+  - Returns sensible defaults (False, None) if unavailable
+  - Bot still works even if database down (just no resume)
+- State should track timestamps
+  - started_at crucial for age calculation and stale detection
+  - Use ISO format (datetime.isoformat()) for JSON serialization
+  - Parse back with datetime.fromisoformat()
+- Clear user choices reduce friction
+  - "Resume Setup (Recommended)" - default action is clear
+  - "Start Fresh" - alternative is obvious
+  - "Show My Progress" - third option for cautious users
+  - Restart requires confirmation to prevent accidental data loss
+- Different messages for different scenarios
+  - Fresh incomplete setup: "Wanna pick up where you left off?"
+  - Stale setup: "That's pretty old! Ralph recommends starting fresh!"
+  - Restart confirmation: "Warning: This will erase your current progress!"
+  - Each scenario has appropriate tone and recommendation
+- Database session management patterns
+  - Use context manager (with get_db() as db:)
+  - Query once, update in same transaction
+  - Commit explicitly after changes
+  - Handle exceptions at service layer, not DB layer
+
+---
