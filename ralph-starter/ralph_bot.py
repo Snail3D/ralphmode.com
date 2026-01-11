@@ -6039,6 +6039,37 @@ Your style: {worker['style']}
 
         return ' '.join(result)
 
+    def get_banned_topic_deflection(self, topic: str) -> str:
+        """AC-005: Generate an in-character deflection message when a banned topic is mentioned.
+
+        Args:
+            topic: The banned topic that was detected
+
+        Returns:
+            An in-character deflection message from Ralph
+        """
+        deflections = [
+            f"Whoa whoa whoa! The boss said we can't talk about {topic} anymore. "
+            "Something about... uh... reasons. Yeah. Let's talk about something else!",
+
+            f"Ohhh boy. Yeah, {topic} is on the no-no list now. "
+            "Mr. Worms was real clear about that one. Sorry!",
+
+            f"I got a sticky note here that says 'NO {topic.upper()}' in big letters. "
+            "Not sure why but the boss is the boss!",
+
+            f"Uh oh! That's a banned topic right there. {topic} is off limits. "
+            "How about we work on something else instead?",
+
+            f"Me fail English? That's unpossible! But seriously, can't discuss {topic}. "
+            "Boss's orders. Let's do something fun instead!",
+
+            f"Nope nope nope! {topic} is verboten. That's German or something. "
+            "Anyway, the boss banned it so... yeah. What else ya got?",
+        ]
+
+        return self.ralph_misspell(random.choice(deflections))
+
     def detect_admin_command(self, text: str) -> bool:
         """AC-001: Detect if text is an admin command trigger phrase.
 
@@ -10304,6 +10335,20 @@ _Grab some popcorn..._
                 logging.info(f"AC-006: Ignored text message from muted user {telegram_id}")
                 return  # No response, no acknowledgment
 
+        # AC-005: Check if message contains banned topics
+        if USER_MANAGER_AVAILABLE and self.user_manager:
+            is_banned, matched_topic = self.user_manager.is_topic_banned(text)
+            if is_banned:
+                logging.info(f"AC-005: Blocked text message from user {telegram_id} - contains banned topic '{matched_topic}'")
+                # Send in-character deflection
+                deflection = self.get_banned_topic_deflection(matched_topic)
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None,
+                    deflection,
+                    with_typing=True
+                )
+                return
+
         # OB-039: Handle bot test walkthrough - acknowledge user's test message
         if user_id in self.onboarding_state:
             state = self.onboarding_state[user_id]
@@ -11147,6 +11192,120 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 text=f"❌ Error processing mute command: {str(e)}"
             )
 
+    async def handle_admin_ban_topic_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int):
+        """AC-005: Parse and execute ban topic/unban topic commands from voice input.
+
+        Examples:
+            "ban topic politics"
+            "unban topic crypto"
+            "list banned topics"
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            command_text: The command text (after admin trigger phrase)
+            admin_user_id: The admin's user ID
+        """
+        import re
+
+        if not USER_MANAGER_AVAILABLE or not self.user_manager:
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text="❌ User manager not available - topic banning disabled"
+            )
+            return
+
+        try:
+            command_lower = command_text.lower().strip()
+
+            # AC-005: List banned topics
+            if 'list banned' in command_lower or command_lower == 'list':
+                banned_topics = self.user_manager.get_banned_topics()
+
+                if not banned_topics:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text="✅ **No Banned Topics**\n\nNo topics are currently banned."
+                    )
+                else:
+                    topic_list = '\n'.join([f"• `{topic}`" for topic in banned_topics])
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"🚫 **Banned Topics** ({len(banned_topics)})\n\n{topic_list}",
+                        parse_mode='Markdown'
+                    )
+
+                logging.info(f"AC-005: Admin {admin_user_id} listed banned topics: {len(banned_topics)} found")
+                return
+
+            # AC-005: Parse topic keyword
+            # Match patterns like "ban topic politics", "unban topic crypto"
+            topic_match = re.search(r'(?:ban|unban)\s+topic\s+(.+)', command_lower, re.IGNORECASE)
+
+            if not topic_match:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Could not parse topic.\n\n"
+                         "Examples:\n"
+                         "• 'ban topic politics'\n"
+                         "• 'unban topic crypto'\n"
+                         "• 'list banned topics'"
+                )
+                logging.warning(f"AC-005: Could not parse topic from command: {command_text}")
+                return
+
+            topic = topic_match.group(1).strip()
+
+            # AC-005: Ban topic
+            if 'unban' not in command_lower and 'ban' in command_lower:
+                success = self.user_manager.ban_topic(topic)
+
+                if success:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"🚫 **Topic Banned**\n\n"
+                             f"Topic `{topic}` is now banned.\n"
+                             f"Messages containing this topic will be blocked with an in-character deflection.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-005: Admin {admin_user_id} banned topic '{topic}'")
+                else:
+                    # Already banned
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"ℹ️ Topic `{topic}` is already banned.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-005: Topic '{topic}' already banned")
+
+            # AC-005: Unban topic
+            elif 'unban' in command_lower:
+                success = self.user_manager.unban_topic(topic)
+
+                if success:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"✅ **Topic Unbanned**\n\n"
+                             f"Topic `{topic}` is now unbanned.\n"
+                             f"Messages about this topic are allowed again.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-005: Admin {admin_user_id} unbanned topic '{topic}'")
+                else:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"ℹ️ Topic `{topic}` is not currently banned.",
+                        parse_mode='Markdown'
+                    )
+                    logging.info(f"AC-005: Topic '{topic}' was not banned")
+
+        except Exception as e:
+            logging.error(f"AC-005: Error handling ban topic command: {e}", exc_info=True)
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text=f"❌ Error processing ban topic command: {str(e)}"
+            )
+
     async def handle_admin_tier_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int, chat_id: int):
         """AC-007: Parse and execute tier promotion/demotion commands from voice input.
 
@@ -11384,6 +11543,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         # AC-006: Parse mute/unmute commands
         elif 'mute' in command_lower or 'unmute' in command_lower or 'list muted' in command_lower:
             await self.handle_admin_mute_command(update, context, command_text, user_id)
+        # AC-005: Parse ban topic/unban topic commands
+        elif 'ban topic' in command_lower or 'unban topic' in command_lower or 'list banned' in command_lower:
+            await self.handle_admin_ban_topic_command(update, context, command_text, user_id)
         # AC-007: Parse tier change commands (promote/demote/make)
         elif 'promote' in command_lower or 'demote' in command_lower or 'make' in command_lower and ('power user' in command_lower or 'chatter' in command_lower or 'viewer' in command_lower or 'tier' in command_lower):
             await self.handle_admin_tier_command(update, context, command_text, user_id, chat_id)
@@ -11480,6 +11642,20 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                     # AC-001: Process admin command silently (no chat output)
                     await self.process_admin_voice_command(update, context, transcription)
                     return
+
+                # AC-005: Check if voice transcription contains banned topics
+                if USER_MANAGER_AVAILABLE and self.user_manager:
+                    is_banned, matched_topic = self.user_manager.is_topic_banned(transcription)
+                    if is_banned:
+                        logging.info(f"AC-005: Blocked voice message from user {telegram_id} - contains banned topic '{matched_topic}'")
+                        # Send in-character deflection
+                        deflection = self.get_banned_topic_deflection(matched_topic)
+                        await self.send_styled_message(
+                            context, chat_id, "Ralph", None,
+                            deflection,
+                            with_typing=True
+                        )
+                        return
 
                 # VO-004: Handle unclear audio gracefully
                 if intent_data.get('needs_clarification') or intent_data['clarity'] == 'unclear':

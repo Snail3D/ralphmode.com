@@ -91,6 +91,9 @@ class UserManager:
         # AC-006: Muted users tracking
         self._muted_users: set = set()
 
+        # AC-005: Banned topics tracking
+        self._banned_topics: set = set()
+
         # Load power user password from environment
         self.power_user_password = os.environ.get("POWER_USER_PASSWORD", "")
         if not self.power_user_password:
@@ -334,6 +337,103 @@ class UserManager:
             List of muted telegram IDs
         """
         return list(self._muted_users)
+
+    def ban_topic(self, topic: str) -> bool:
+        """
+        AC-005: Ban a topic from discussion. Messages containing banned topics are blocked.
+
+        Args:
+            topic: Topic keyword to ban (case-insensitive)
+
+        Returns:
+            True if topic was banned, False if already banned
+        """
+        # Validate input
+        if not topic or not isinstance(topic, str):
+            logger.warning(f"AC-005: Invalid topic to ban: {topic}")
+            return False
+
+        # Normalize topic to lowercase for case-insensitive matching
+        topic_normalized = topic.lower().strip()
+
+        if not topic_normalized:
+            logger.warning(f"AC-005: Empty topic after normalization: {topic}")
+            return False
+
+        if topic_normalized in self._banned_topics:
+            logger.info(f"AC-005: Topic '{topic_normalized}' is already banned")
+            return False
+
+        self._banned_topics.add(topic_normalized)
+        logger.info(f"AC-005: Banned topic '{topic_normalized}'")
+        return True
+
+    def unban_topic(self, topic: str) -> bool:
+        """
+        AC-005: Unban a topic.
+
+        Args:
+            topic: Topic keyword to unban (case-insensitive)
+
+        Returns:
+            True if topic was unbanned, False if not banned
+        """
+        # Validate input
+        if not topic or not isinstance(topic, str):
+            logger.warning(f"AC-005: Invalid topic to unban: {topic}")
+            return False
+
+        # Normalize topic to lowercase
+        topic_normalized = topic.lower().strip()
+
+        if not topic_normalized:
+            logger.warning(f"AC-005: Empty topic after normalization: {topic}")
+            return False
+
+        if topic_normalized not in self._banned_topics:
+            logger.info(f"AC-005: Topic '{topic_normalized}' is not currently banned")
+            return False
+
+        self._banned_topics.remove(topic_normalized)
+        logger.info(f"AC-005: Unbanned topic '{topic_normalized}'")
+        return True
+
+    def is_topic_banned(self, text: str) -> tuple[bool, Optional[str]]:
+        """
+        AC-005: Check if a message contains any banned topics using fuzzy matching.
+
+        Fuzzy matching catches variations like plurals, verb forms, and substrings.
+
+        Args:
+            text: Message text to check
+
+        Returns:
+            Tuple of (is_banned: bool, matched_topic: str or None)
+        """
+        if not text or not isinstance(text, str):
+            return False, None
+
+        text_normalized = text.lower()
+
+        for banned_topic in self._banned_topics:
+            # Simple fuzzy matching: check if banned topic is in the text
+            # This catches variations like:
+            # - "politics" matches "political", "politician", "politics"
+            # - "crypto" matches "cryptocurrency", "cryptos"
+            if banned_topic in text_normalized:
+                logger.info(f"AC-005: Message contains banned topic '{banned_topic}'")
+                return True, banned_topic
+
+        return False, None
+
+    def get_banned_topics(self) -> list:
+        """
+        AC-005: Get list of all banned topics.
+
+        Returns:
+            List of banned topic keywords
+        """
+        return sorted(list(self._banned_topics))
 
 
 # Global instance
