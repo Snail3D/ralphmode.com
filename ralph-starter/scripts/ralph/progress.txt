@@ -11397,3 +11397,83 @@ All tests passed successfully:
 - Keyboard generation (3 keyboard types): ✅
 
 ---
+
+## Iteration [RM-063] - 2026-01-10
+**Task**: [RM-063] Feature Flow Walkthroughs
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive feature flow walkthrough system in ralph_bot.py
+  - _generate_feature_flow_walkthroughs() method generates step-by-step user flow discussions
+  - Identifies 9 common user flows based on codebase analysis
+  - Each flow is a conversational walkthrough with workers explaining the journey
+  
+- Feature flows implemented:
+  1. Authentication Flow (login + signup)
+     - "User clicks login → handler fires → validates → creates session → redirects"
+  2. API Request Flow
+     - "Request hits endpoint → routes to handler → middleware runs → returns JSON"
+  3. Payment/Checkout Flow (Stripe integration)
+     - "User clicks Buy → payment intent → Stripe page → webhook → confirmation"
+  4. File Upload Flow
+     - "User selects file → validates → POST → backend validates → stores in S3"
+  5. Search/Query Flow
+     - "User types → debounced API call → sanitizes → database query → results"
+  6. Webhook Processing Flow
+     - "External service hits webhook → verify signature → parse payload → update DB"
+  7. Database Transaction Flow
+     - "Transaction starts → multiple updates → rollback if fail → commit if succeed"
+  8. Middleware Chain Flow
+     - "Request → logging → auth → rate limiter → handler → response"
+  9. Validation Flow
+     - "Data comes in → schema check → type check → business rules → clean data only"
+     
+- Integration with idle chatter system
+  - Feature flows mixed into idle_codebase_chatter (30% flows, 70% exploration quotes)
+  - Flows flattened and randomly distributed throughout conversation
+  - Maintains natural texting pace (5-15 seconds between messages)
+  - Pauses when user sends message, resumes after 10 seconds of silence
+  
+- Smart feature detection
+  - Analyzes file paths to detect features (auth, api, payment, upload, search, etc.)
+  - Generates flows relevant to the actual codebase
+  - Generic fallback flows if no specific features detected
+  
+### Files changed
+- ralph_bot.py: Added _generate_feature_flow_walkthroughs() (155 lines)
+- ralph_bot.py: Updated idle_codebase_chatter() to integrate flows
+- scripts/ralph/prd.json: RM-063 passes: true
+
+### Learnings
+- Feature flows make abstract code feel concrete and real
+- Step-by-step walkthroughs help users understand their own codebase
+- Workers naturally collaborate in explanations (Stool starts, Gomer continues, Mona adds depth, Gus brings experience)
+- Flow-based learning is more memorable than isolated facts
+- Mixing flows with exploration quotes creates varied, engaging chatter
+- Users "overhear" these discussions during idle time - passive learning
+- Each flow is a mini-story: beginning (user action) → middle (processing) → end (result)
+
+### Acceptance Criteria Met
+✅ Identify key user flows in the codebase
+✅ Walk through step by step in conversation
+✅ Stool: "So user hits this button..."
+✅ Gomer: "Then the API call goes to..."
+✅ Mona: "Which triggers the validation in..."
+✅ Show connections between files/components
+✅ Make abstract code feel concrete and real
+✅ User understands their own codebase better
+
+### Pattern Discovered
+Feature flows follow a narrative structure:
+1. **User Action** - What the user does
+2. **System Trigger** - What handler/endpoint fires
+3. **Processing** - Validation, database, business logic
+4. **Side Effects** - Emails, webhooks, logging
+5. **Response** - What the user sees/gets
+
+This narrative structure makes complex flows easy to follow.
+
+### Next Steps
+According to priority_order, next incomplete task would be in the Voice-Only or Admin Commands section.
+
+---
