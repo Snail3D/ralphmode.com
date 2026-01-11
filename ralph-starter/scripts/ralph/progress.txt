@@ -11709,3 +11709,76 @@ This feature prevents the #1 cause of API key leaks: accidental commits to publi
 ✅ User can literally talk to their dev team (full voice pipeline)
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [RM-062] Authentic Feature Discoveries - No Glazing
+**Status**: ✅ Complete
+
+### What was implemented
+- Created _generate_authentic_feature_discoveries() method in ralph_bot.py
+- Detects 15 types of genuinely interesting code patterns from codebase analysis
+- Workers explain WHY patterns are cool, not just WHAT they are
+- ZERO glazing - only real observations with actual technical explanations
+- Integrated into idle_codebase_chatter flow (50% of discoveries included)
+- Each discovery includes mechanism explanation and problem it solves
+
+### Patterns detected
+1. Caching/performance optimizations (Redis, Memcache)
+2. Middleware/interceptor patterns
+3. Database migrations (Alembic, Flyway)
+4. Async/background workers (Celery, queues)
+5. Event-driven architecture (listeners, subscribers)
+6. API versioning (v1, v2)
+7. Rate limiting/throttling
+8. WebSockets/real-time features (Socket.io)
+9. Dependency injection/IoC
+10. Health checks/monitoring
+11. Circuit breaker pattern
+12. Schema validation
+13. Code splitting/lazy loading (Webpack, Vite)
+14. Database indexing
+15. API documentation (Swagger, OpenAPI)
+
+### Files changed
+- ralph_bot.py (added _generate_authentic_feature_discoveries at line 4565)
+- ralph_bot.py (integrated into idle_codebase_chatter at line 4869-4882)
+
+### Learnings
+- Workers need to sound like real devs, not corporate PR
+- Explain the MECHANISM: "Smart - database doesn't get hammered on every request"
+- Explain the BENEFIT: "That's how you avoid the 'works on my machine' database nightmare"
+- Use authentic reactions: "That's actually sophisticated. Most people don't think about that until production burns"
+- Mix discoveries at 50% rate - they're high-value content but shouldn't overwhelm
+
+### Example authentic discoveries
+- Gus: "Huh, they're caching responses. Smart - database doesn't get hammered on every request."
+- Stool: "Yo they're using background workers. So like, user clicks button, returns instantly, actual work happens later."
+- Gomer: "API versioning. Smart. They can ship v2 without breaking everyone on v1."
+- Gus: "Circuit breaker pattern. If external API is down, stops hammering it and fails gracefully."
+- Mona: "Event-driven architecture. When something happens, multiple systems can react independently."
+
+### Acceptance criteria met
+✅ ZERO glazing - no fake 'wow this is amazing!' BS
+✅ Point out genuinely interesting patterns/features
+✅ Explain WHY it's interesting with actual mechanisms
+✅ Show the flow and how things work
+✅ Backend insights about clever implementation details
+✅ Workers react like devs finding cool code: 'Huh, that's actually smart'
+✅ Character-appropriate responses (Gus grumpy wisdom, Stool casual observations)
+✅ Genuine human excitement, not corporate enthusiasm
+
+### Technical patterns discovered
+- File analysis from session.get("analysis", {})
+- Pattern detection via file path inspection (has_cache, has_middleware, etc.)
+- Character-appropriate voice for each worker
+- Integration point in idle_codebase_chatter uses random insertion to mix content types
+- List comprehensions with any() for efficient pattern matching
+
+### Gotchas to avoid
+- Don't be generic - explain the actual mechanism
+- Don't glaze - if it's not actually interesting, don't mention it
+- Keep it conversational - 1-2 sentences max per discovery
+- Make sure explanation shows understanding, not just buzzword dropping
+- Workers should sound smart AND casual, not academic
+
+---
