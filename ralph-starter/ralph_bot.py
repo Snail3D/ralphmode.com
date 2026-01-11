@@ -9252,6 +9252,17 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 else:
                     logger.info("TL-004: Message deletion disabled (DELETE_ORIGINAL_MESSAGES=false)")
 
+                # RM-061: Acknowledge voice input - "Oh! Mr. Worms is calling!"
+                acknowledgment = self.ralph_misspell(
+                    "Oh! Mr. Worms is calling in! I'm listening boss!"
+                )
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None, acknowledgment,
+                    topic="voice input acknowledged",
+                    with_typing=False  # No typing delay - quick acknowledgment
+                )
+                logger.info(f"RM-061: Acknowledged voice input from user {user_id}")
+
                 # Create a synthetic text message to process through existing handle_text
                 original_text = update.message.text
                 update.message.text = intent_data['extracted_message']
