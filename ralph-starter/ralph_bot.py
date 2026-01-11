@@ -7522,6 +7522,9 @@ FRESHNESS REQUIREMENT:
         # Check if we should give a mid-session progress report
         await self.maybe_give_progress_report(context, chat_id, user_id)
 
+        # SG-035: Check if Ralph should call it and ship
+        await self.maybe_call_ship_it(context, chat_id, user_id)
+
     async def _final_task_celebration(self, context, chat_id: int, user_id: int, task_title: str = None):
         """Big celebration for completing the final task!
 
@@ -7640,6 +7643,239 @@ FRESHNESS REQUIREMENT:
                 return True
 
         return False
+
+    def check_ship_it_threshold(self, user_id: int) -> dict:
+        """SG-035: Check if Ralph should call it and ship.
+
+        Ralph evaluates:
+        - Are major items done?
+        - Only minor/nice-to-have items remaining?
+        - Token costs getting high?
+        - Time to be pragmatic and ship?
+
+        Returns dict with:
+            - should_ship: bool
+            - reason: str (why Ralph thinks we should/shouldn't ship)
+            - confidence: str ("high", "medium", "low")
+        """
+        if user_id not in self.quality_metrics:
+            return {"should_ship": False, "reason": "No metrics yet", "confidence": "low"}
+
+        m = self.quality_metrics[user_id]
+        session = self.active_sessions.get(user_id, {})
+
+        tasks_done = m.get("tasks_completed", 0)
+        tasks_total = m.get("tasks_identified", 0)
+
+        # Need at least some work to consider shipping
+        if tasks_total == 0 or tasks_done == 0:
+            return {"should_ship": False, "reason": "Just getting started", "confidence": "high"}
+
+        completion_pct = (tasks_done / tasks_total) * 100
+        actionable_items = m.get("actionable_items", [])
+
+        # Analyze remaining tasks by priority
+        remaining_tasks = [item for item in actionable_items if item.get("status") != "completed"]
+        high_priority_remaining = [t for t in remaining_tasks if t.get("priority") == "high"]
+        medium_priority_remaining = [t for t in remaining_tasks if t.get("priority") == "medium"]
+        low_priority_remaining = [t for t in remaining_tasks if t.get("priority") == "low"]
+
+        # Check token usage (proxy for time/cost)
+        total_tokens = m.get("total_groq_tokens", 0)
+        high_token_usage = total_tokens > 50000  # Arbitrary threshold for "expensive"
+
+        # Check blockers - don't ship if we're stuck
+        active_blockers = m.get("blockers_hit", 0) - m.get("blockers_resolved", 0)
+        if active_blockers > 0:
+            return {
+                "should_ship": False,
+                "reason": "We still have blockers to resolve",
+                "confidence": "high"
+            }
+
+        # CASE 1: High completion (80%+) and no high-priority items left
+        if completion_pct >= 80 and len(high_priority_remaining) == 0:
+            if len(medium_priority_remaining) == 0:
+                return {
+                    "should_ship": True,
+                    "reason": "Major items are done, only nice-to-haves left",
+                    "confidence": "high"
+                }
+            elif len(medium_priority_remaining) <= 2:
+                return {
+                    "should_ship": True,
+                    "reason": "Core work is done, just polish remaining",
+                    "confidence": "medium"
+                }
+
+        # CASE 2: All high-priority done, medium mostly done
+        if len(high_priority_remaining) == 0 and len(medium_priority_remaining) <= 1:
+            return {
+                "should_ship": True,
+                "reason": "All the important stuff is done",
+                "confidence": "medium"
+            }
+
+        # CASE 3: Token costs getting high, good progress made
+        if high_token_usage and completion_pct >= 60:
+            if len(high_priority_remaining) == 0:
+                return {
+                    "should_ship": True,
+                    "reason": "Tokens are expensive and we got the key stuff done",
+                    "confidence": "medium"
+                }
+
+        # CASE 4: Excellent progress (90%+) - time to call it
+        if completion_pct >= 90:
+            return {
+                "should_ship": True,
+                "reason": "We're at 90% - perfect is the enemy of done",
+                "confidence": "high"
+            }
+
+        # Default: keep working
+        return {
+            "should_ship": False,
+            "reason": "Still have important work to do",
+            "confidence": "medium"
+        }
+
+    async def maybe_call_ship_it(self, context, chat_id: int, user_id: int):
+        """SG-035: Ralph decides if it's time to ship.
+
+        Called after task completion. Ralph evaluates if major work is done
+        and only minor items remain. If so, he calls it and triggers session wrap-up.
+
+        This is Ralph's boss instinct - knowing when to stop chasing perfection.
+        """
+        # Don't check too frequently - only after meaningful progress
+        m = self.quality_metrics.get(user_id, {})
+        session = self.active_sessions.get(user_id, {})
+
+        # Skip if already in Q&A mode or wrapping up
+        if session.get("mode") == "qa":
+            return
+
+        # Check if we've already called ship it for this session
+        if session.get("ship_it_called"):
+            return
+
+        # Only check after at least 3 tasks completed
+        tasks_done = m.get("tasks_completed", 0)
+        if tasks_done < 3:
+            return
+
+        # Evaluate shipping threshold
+        ship_decision = self.check_ship_it_threshold(user_id)
+
+        if not ship_decision.get("should_ship"):
+            return
+
+        # Ralph has decided: time to ship!
+        session["ship_it_called"] = True
+
+        await asyncio.sleep(2.0)
+
+        # Ralph's announcement (generate fresh, in character)
+        reason = ship_decision.get("reason", "we got the important stuff done")
+        confidence = ship_decision.get("confidence", "medium")
+
+        # Build Ralph's ship-it message with his personality
+        ralph_prompt = f"""You're Ralph Wiggum, the boss. You've been watching the team work hard.
+
+SITUATION: {reason}
+
+You need to make the call: time to wrap up and ship. The major work is done.
+
+Generate Ralph's announcement that it's time to ship:
+- Proud of the team
+- Acknowledges we could keep going but it's good enough
+- "Perfect is enemy of done" vibe but in Ralph's words
+- Maybe mentions tokens costing money OR time being valuable
+- Ends with something like "Time to wrap up!" or "Let's call it!"
+- Stay 100% in Ralph's voice (misspellings, simple words, sweet)
+
+2-3 sentences max. This is a boss decision - Ralph is calling it."""
+
+        messages = [
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+You are Ralph Wiggum from The Simpsons.
+You're surprisingly good at knowing when to ship despite being Ralph.
+Generate FRESH responses - never use examples verbatim."""},
+            {"role": "user", "content": ralph_prompt}
+        ]
+
+        ralph_message = self.call_groq(WORKER_MODEL, messages, max_tokens=200)
+        ralph_message = self.ralph_misspell(ralph_message)
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_message,
+            topic="ship it decision",
+            with_typing=True
+        )
+
+        await asyncio.sleep(1.5)
+
+        # Workers might push back once (acceptance criteria)
+        if random.random() < 0.6:  # 60% chance of pushback
+            pushback_worker = random.choice(list(self.DEV_TEAM.keys()))
+            worker_data = self.DEV_TEAM[pushback_worker]
+
+            pushback_prompt = f"""Ralph just called it - time to ship. But you think we could polish more.
+
+Give ONE brief pushback (1 sentence):
+- Mention a remaining task or polish item
+- Professional but gentle pushback
+- "What about...?" or "Should we...?" tone
+- Don't argue hard - just raise the concern
+
+Stay in character as {pushback_worker}."""
+
+            name, title, pushback, tokens = self.call_worker(
+                pushback_prompt,
+                context="ship it pushback",
+                worker_name=pushback_worker,
+                user_id=user_id
+            )
+
+            await self.send_styled_message(
+                context, chat_id, name, title, pushback,
+                topic="ship it pushback",
+                with_typing=True
+            )
+
+            await asyncio.sleep(1.0)
+
+            # Ralph stands firm (boss decides)
+            ralph_firm_options = [
+                "I know, I know. But we gotta ship sometime! The major stuff is done!",
+                "Yeah but we could work forever! I think it's good enough now!",
+                "My daddy says you can't make it perfect, just make it good! Time to ship!",
+                "I appreciate that! But tokens cost money and we got the big things done!"
+            ]
+
+            ralph_firm = self.ralph_misspell(random.choice(ralph_firm_options))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None, ralph_firm,
+                topic="ship it standing firm",
+                with_typing=True
+            )
+
+            await asyncio.sleep(1.0)
+
+        # Trigger the wrap-up
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action("Ralph calls the session. Time to deliver the report."),
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(1.5)
+
+        # Deliver the final report
+        await self.deliver_ralph_report(context, chat_id, user_id)
 
     async def maybe_give_progress_report(self, context, chat_id: int, user_id: int):
         """Give a mid-session progress report if we're at a milestone.
