@@ -2743,7 +2743,7 @@
         "admin_handler.py",
         "rate_limiter.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AC-005",

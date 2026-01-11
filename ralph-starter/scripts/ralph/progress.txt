@@ -12592,3 +12592,38 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Fuzzy matching is intentionally simple to catch variations without false positives
 
 ---
+
+## Iteration [AC-004] - 2026-01-11 15:30 UTC
+**Task**: [AC-004] Configurable Cooldown Values by Admin
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced `handle_admin_cooldown_command()` in ralph_bot.py with natural language support
+- Added "cooldown off" command to disable cooldowns (globally or per-user)
+- Implemented simplified syntax: "cooldown 1 minute" (no "set" required)
+- Added @mention support pattern (numeric IDs working, username resolution noted for future)
+- Immediate effect with private admin confirmation
+- Created comprehensive test suite (test_ac004_cooldown.py)
+
+### Files changed
+- ralph_bot.py: Enhanced handle_admin_cooldown_command() (lines 10987-11151)
+- test_ac004_cooldown.py: New test file with regex pattern validation
+- scripts/ralph/prd.json: Marked AC-004 as complete
+
+### Learnings
+- AC-003 already had basic cooldown infrastructure in place
+- AC-004 builds on AC-003 by adding simpler, more natural command syntax
+- Regex patterns handle multiple command formats: "cooldown off", "cooldown X minutes", "for user Y"
+- @mention support requires Telegram API username resolution - deferred with helpful error message
+- Singular/plural unit display (1 minute vs 5 minutes) improves UX
+- All changes use existing USER_COOLDOWNS dict from admin_handler.py
+- Private confirmation messages keep admin actions invisible in group chats
+
+### Command Examples Supported
+✅ "admin command: cooldown off" - disable all cooldowns
+✅ "admin command: cooldown off for user 123456789" - disable for specific user
+✅ "admin command: cooldown 1 minute for user 123456789" - set 1 minute cooldown
+✅ "admin command: cooldown 10 minutes for user 987654" - set 10 minute cooldown
+✅ "admin command: set cooldown 5 minutes for user 123" - backward compatible with AC-003
+
+---
