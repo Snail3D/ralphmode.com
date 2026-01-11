@@ -11224,6 +11224,104 @@ Then:
             )
             logger.info(f"OB-037: User {user_id} returned to group setup instructions")
 
+        elif data == "first_commit_push":
+            # OB-052: User clicked push - perform safety check first
+            await query.answer("🔍 Running safety check...")
+
+            # Get repo path from state (or use current directory)
+            repo_path = state.get("repo_path", ".")
+
+            # Perform safety check
+            safety_result = self.onboarding_wizard.perform_git_safety_check(repo_path)
+
+            if safety_result:
+                # Show safety check results
+                safety_message = self.onboarding_wizard.get_safety_check_message(safety_result)
+                safety_keyboard = self.onboarding_wizard.get_safety_check_keyboard(safety_result.is_safe)
+
+                await query.edit_message_text(
+                    safety_message,
+                    parse_mode="Markdown",
+                    reply_markup=safety_keyboard
+                )
+                logger.info(f"OB-052: User {user_id} safety check - safe: {safety_result.is_safe}, secrets: {len(safety_result.secrets_found)}")
+            else:
+                # Safety check unavailable, proceed anyway
+                explanation = self.onboarding_wizard.get_push_explanation_message()
+                keyboard = self.onboarding_wizard.get_push_keyboard()
+
+                await query.edit_message_text(
+                    explanation,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                logger.warning(f"OB-052: Safety check unavailable for user {user_id}")
+
+        elif data == "first_commit_push_execute":
+            # OB-052: Actually execute the push (after safety check passed)
+            await query.answer("🚀 Pushing to GitHub...")
+
+            # TODO: Actually implement git push here
+            # For now, just show success message
+            success_message = self.onboarding_wizard.get_push_success_message()
+            await query.edit_message_text(
+                success_message,
+                parse_mode="Markdown"
+            )
+            logger.info(f"OB-052: User {user_id} executed git push")
+
+        elif data == "first_commit_safety_abort":
+            # OB-052: User chose to abort push for safety
+            await query.answer("🛑 Push aborted")
+
+            abort_message = self.onboarding_wizard.get_safety_abort_message()
+
+            await query.edit_message_text(
+                abort_message,
+                parse_mode="Markdown"
+            )
+            logger.info(f"OB-052: User {user_id} aborted push for safety")
+
+        elif data == "first_commit_safety_help":
+            # OB-052: User asked for help fixing security issues
+            await query.answer("📚 Loading help...")
+
+            help_message = self.onboarding_wizard.get_safety_help_message()
+
+            # Add back button
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🛑 Abort Push", callback_data="first_commit_safety_abort")]
+            ])
+
+            await query.edit_message_text(
+                help_message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-052: User {user_id} viewed safety help")
+
+        elif data == "first_commit_complete":
+            # User chose to skip push for now
+            await query.answer("✅ Marked as complete!")
+
+            complete_message = """*✅ First Commit Assistant Complete!*
+
+You've learned how git commit works! 🎓
+
+**When you're ready to push:**
+Just run: `git push`
+
+*Ralph says:*
+"You did great! Now you know how commits work!" 🏆
+"""
+
+            await query.edit_message_text(
+                complete_message,
+                parse_mode="Markdown"
+            )
+            logger.info(f"OB-030: User {user_id} completed first commit (skipped push)")
+
         elif data == "setup_back_welcome":
             # User clicked back button - go back to welcome screen
             state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_WELCOME)

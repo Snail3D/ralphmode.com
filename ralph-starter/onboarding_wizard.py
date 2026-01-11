@@ -74,6 +74,14 @@ except ImportError:
     PROJECT_SCAFFOLDER_AVAILABLE = False
     logging.warning("Project scaffolder not available")
 
+# Import git safety checker for OB-052
+try:
+    from git_safety import get_git_safety_checker, GitSafetyResult
+    GIT_SAFETY_AVAILABLE = True
+except ImportError:
+    GIT_SAFETY_AVAILABLE = False
+    logging.warning("Git safety checker not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -7526,6 +7534,164 @@ Think of it like uploading your save file to the cloud!
             [InlineKeyboardButton("⏭️ I'll Push Later", callback_data="first_commit_complete")]
         ]
         return InlineKeyboardMarkup(keyboard)
+
+    def perform_git_safety_check(self, repo_path: str) -> Optional[GitSafetyResult]:
+        """OB-052: Perform git safety check before push.
+
+        Args:
+            repo_path: Path to git repository
+
+        Returns:
+            GitSafetyResult if check performed, None if unavailable
+        """
+        if not GIT_SAFETY_AVAILABLE:
+            logging.warning("OB-052: Git safety checker not available")
+            return None
+
+        try:
+            checker = get_git_safety_checker(repo_path)
+            result = checker.check_before_push()
+            return result
+        except Exception as e:
+            logging.error(f"OB-052: Git safety check failed: {e}")
+            return None
+
+    def get_safety_check_message(self, result: GitSafetyResult) -> str:
+        """OB-052: Get safety check message with Ralph's explanations.
+
+        Args:
+            result: Git safety check result
+
+        Returns:
+            Formatted safety check message
+        """
+        if not GIT_SAFETY_AVAILABLE:
+            return ""
+
+        checker = get_git_safety_checker(".")
+
+        # Start with Ralph's explanation
+        message = checker.get_ralph_explanation()
+
+        # Add file preview
+        message += "\n\n" + checker.format_file_preview(result.files_to_push)
+
+        # Add warnings if any
+        if result.warnings:
+            message += "\n\n*⚠️ Warnings:*\n"
+            for warning in result.warnings:
+                message += f"→ {warning}\n"
+
+        # Add secret warnings if found
+        if result.secrets_found:
+            message += "\n" + checker.format_secret_warnings(result.secrets_found)
+            message += "\n" + checker.get_emergency_abort_message()
+        else:
+            # All clear!
+            message += "\n\n*✅ Security Check: PASSED!*\n"
+            message += "No secrets detected! Safe to push! 🔒\n"
+
+        # Add public repo warning
+        message += "\n" + checker.get_public_repo_warning()
+
+        return message
+
+    def get_safety_check_keyboard(self, is_safe: bool) -> InlineKeyboardMarkup:
+        """OB-052: Get keyboard based on safety check result.
+
+        Args:
+            is_safe: Whether it's safe to push
+
+        Returns:
+            InlineKeyboardMarkup with appropriate options
+        """
+        if is_safe:
+            # Safe to push - offer to proceed or cancel
+            keyboard = [
+                [InlineKeyboardButton("✅ Looks Good - Push!", callback_data="first_commit_push_execute")],
+                [InlineKeyboardButton("❌ Wait - Let Me Fix Something", callback_data="first_commit_safety_abort")]
+            ]
+        else:
+            # Secrets detected - must abort!
+            keyboard = [
+                [InlineKeyboardButton("🛑 Abort Push (Fix Secrets First)", callback_data="first_commit_safety_abort")],
+                [InlineKeyboardButton("📚 How to Fix This?", callback_data="first_commit_safety_help")]
+            ]
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_safety_help_message(self) -> str:
+        """OB-052: Get help message for fixing security issues.
+
+        Returns:
+            Help message with instructions
+        """
+        return """*🔒 How to Fix Secret Exposure*
+
+**Step 1: Move secrets to .env file**
+1. Create a `.env` file in your project root
+2. Move ALL secrets there:
+   ```
+   GROQ_API_KEY=your_key_here
+   TELEGRAM_BOT_TOKEN=your_token_here
+   ```
+
+**Step 2: Update your code**
+Replace hardcoded values with:
+```python
+import os
+api_key = os.getenv('GROQ_API_KEY')
+```
+
+**Step 3: Ensure .gitignore includes .env**
+```
+.env
+__pycache__/
+venv/
+```
+
+**Step 4: Create .env.example (safe template)**
+```
+GROQ_API_KEY=your_groq_key_here
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+
+**Step 5: Try again!**
+After fixing, try the push again!
+
+*Ralph says:*
+"Secrets in .env, code stays clean!" 🧼
+"""
+
+    def get_safety_abort_message(self) -> str:
+        """OB-052: Get message when user aborts push for safety.
+
+        Returns:
+            Abort confirmation message
+        """
+        return """*🛑 Push Aborted - Good Call!*
+
+Better safe than sorry! Ralph proud of you for being careful! 🦺
+
+**What to do now:**
+1. Fix the security issues Ralph found
+2. Move secrets to `.env` file
+3. Make sure `.gitignore` has `.env` in it
+4. Try the commit again!
+
+**When ready:**
+Use these commands:
+```
+git add .
+git commit -m "Fix: Move secrets to .env"
+git push
+```
+
+*Ralph says:*
+"Safety first! Me help you protect your secrets!" 🔐
+
+Type /setup when you're ready to try again!
+"""
 
     def get_push_executing_message(self, branch: str = "main") -> str:
         """Get message shown while push is in progress.
