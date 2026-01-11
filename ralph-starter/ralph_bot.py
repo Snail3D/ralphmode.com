@@ -1221,6 +1221,10 @@ class RalphBot:
         self.last_reality_check: Dict[int, datetime] = {}  # Track when last reality check happened
         self.reality_check_cooldown = 7200  # 120 minutes between reality checks (2 hours)
 
+        # SG-032: Background Accountability Checklist - Track requirement evaluation
+        self.last_accountability_check: Dict[int, datetime] = {}  # Track when last check happened
+        self.accountability_check_cooldown = 1800  # 30 minutes between checks
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -7539,6 +7543,9 @@ FRESHNESS REQUIREMENT:
         # Check if we should give a mid-session progress report
         await self.maybe_give_progress_report(context, chat_id, user_id)
 
+        # SG-032: Run periodic accountability check
+        await self.run_accountability_check(context, chat_id, user_id)
+
         # SG-035: Check if Ralph should call it and ship
         await self.maybe_call_ship_it(context, chat_id, user_id)
 
@@ -8284,6 +8291,247 @@ Stay in character as {pushback_worker}."""
                 topic="requirement_ack",
                 with_typing=True
             )
+
+    # ==================== SG-032: BACKGROUND ACCOUNTABILITY CHECKLIST ====================
+
+    def evaluate_requirement_accountability(self, user_id: int, requirement: Dict[str, Any]) -> str:
+        """SG-032: Evaluate if a requirement has been addressed.
+
+        Returns "yes" (addressed), "no" (not addressed), or "maybe" (unclear).
+
+        Args:
+            user_id: User session ID
+            requirement: Requirement dict with 'requirement' and 'status' keys
+
+        Returns:
+            Evaluation status: "yes", "no", or "maybe"
+        """
+        req_text = requirement.get("requirement", "")
+        req_status = requirement.get("status", "pending")
+
+        # If already marked as completed, it's a clear "yes"
+        if req_status == "completed":
+            return "yes"
+
+        # If marked as in_progress, it's a "maybe"
+        if req_status == "in_progress":
+            return "maybe"
+
+        # If still pending and session has active work, it's likely "no" or "maybe"
+        session = self.active_sessions.get(user_id, {})
+        session_context = self.get_session_context(user_id)
+
+        # Check if requirement appears in recent session context (simplified check)
+        # This is a basic heuristic - more sophisticated would use AI
+        if req_text.lower() in session_context.lower():
+            return "maybe"  # It's being discussed/worked on
+
+        return "no"  # Not addressed yet
+
+    def get_accountability_checklist_status(self, user_id: int) -> Dict[str, Any]:
+        """SG-032: Get accountability checklist status for all requirements.
+
+        Returns:
+            Dict with counts of yes/no/maybe and list of evaluations
+        """
+        requirements = self.get_session_requirements(user_id)
+
+        if not requirements:
+            return {"yes": 0, "no": 0, "maybe": 0, "evaluations": []}
+
+        evaluations = []
+        counts = {"yes": 0, "no": 0, "maybe": 0}
+
+        for req in requirements:
+            evaluation = self.evaluate_requirement_accountability(user_id, req)
+            counts[evaluation] += 1
+            evaluations.append({
+                "requirement": req.get("requirement", ""),
+                "status": req.get("status", "pending"),
+                "evaluation": evaluation
+            })
+
+        return {
+            "yes": counts["yes"],
+            "no": counts["no"],
+            "maybe": counts["maybe"],
+            "evaluations": evaluations,
+            "total": len(requirements)
+        }
+
+    async def run_accountability_check(self, context, chat_id: int, user_id: int):
+        """SG-032: Run accountability check and trigger team discussion if needed.
+
+        Checks if too many "maybes" have accumulated (3+) and if so,
+        Ralph or a worker prompts the team to review what Mr. Worms asked for.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+        """
+        # Check if we should run the check (cooldown)
+        now = datetime.now()
+        last_check = self.last_accountability_check.get(user_id)
+        if last_check:
+            time_since_check = (now - last_check).total_seconds()
+            if time_since_check < self.accountability_check_cooldown:
+                return  # Too soon
+
+        # Get checklist status
+        checklist = self.get_accountability_checklist_status(user_id)
+
+        if checklist["total"] == 0:
+            return  # No requirements to check
+
+        # Update last check time
+        self.last_accountability_check[user_id] = now
+
+        # If 3+ maybes, trigger team self-check
+        if checklist["maybe"] >= 3:
+            await self.trigger_team_accountability_moment(context, chat_id, user_id, checklist)
+
+    async def trigger_team_accountability_moment(self, context, chat_id: int, user_id: int, checklist: Dict[str, Any]):
+        """SG-032: Team pauses to review if they're actually addressing Mr. Worms' concerns.
+
+        Ralph or a worker says "Hold on, did we actually do what Mr. Worms asked about X?"
+        Workers check themselves and discuss.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+            checklist: Accountability checklist status dict
+        """
+        maybe_items = [e for e in checklist["evaluations"] if e["evaluation"] == "maybe"]
+
+        if not maybe_items:
+            return
+
+        # Ralph notices something's off
+        ralph_concerns = [
+            f"Hold on team... did we actually do what Mr. Worms asked about?",
+            f"Wait wait wait... I'm looking at my notes. Did we check everything boss wanted?",
+            f"Um, team? I think we might have missed some stuff Mr. Worms said...",
+            f"Hey everybody! I need to make sure - are we doing what the boss asked?",
+        ]
+
+        ralph_msg = self.ralph_misspell(random.choice(ralph_concerns))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            ralph_msg,
+            with_typing=True
+        )
+        await asyncio.sleep(self.timing.dramatic_pause())
+
+        # Pick a worker to review the list
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
+
+        # Worker checks the specific "maybe" items
+        maybe_list = "\n".join([f"• {item['requirement'][:60]}..." if len(item['requirement']) > 60 else f"• {item['requirement']}" for item in maybe_items[:3]])
+
+        worker_review = f"Let me check... {checklist['maybe']} things we're not sure about:\n\n{maybe_list}\n\nWe should verify these."
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker["title"],
+            worker_review,
+            with_typing=True
+        )
+        await asyncio.sleep(self.timing.thinking())
+
+        # Another worker responds
+        other_workers = [w for w in self.DEV_TEAM.keys() if w != worker_name]
+        responder_name = random.choice(other_workers)
+        responder = self.DEV_TEAM[responder_name]
+
+        responses = [
+            "Good catch. Let's make sure we cover all of those.",
+            "Yeah, we need to double-check we actually did what he asked.",
+            "Right. We don't want to show Mr. Worms something that misses his requirements.",
+            "Agreed. Let's review those before we keep going.",
+        ]
+
+        await self.send_styled_message(
+            context, chat_id, responder_name, responder["title"],
+            random.choice(responses),
+            with_typing=True
+        )
+
+    async def review_accountability_checklist_before_end(self, context, chat_id: int, user_id: int):
+        """SG-032: Review accountability checklist before session ends.
+
+        Shows final status of all requirements - what was addressed, what wasn't.
+        Ralph presents this to Mr. Worms.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+        """
+        checklist = self.get_accountability_checklist_status(user_id)
+
+        if checklist["total"] == 0:
+            return  # No requirements to review
+
+        # Ralph presents the checklist review
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=self.format_action("Ralph flips through his notes with serious concentration"),
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(1.5)
+
+        intro = f"Okay Mr. Worms! Let me check if we did everything you asked...\n\n📋 *Requirements Checklist:*"
+        ralph_intro = self.ralph_misspell(intro)
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            ralph_intro,
+            with_typing=True
+        )
+        await asyncio.sleep(1.0)
+
+        # Show each requirement with its status
+        for eval_item in checklist["evaluations"]:
+            req_text = eval_item["requirement"]
+            evaluation = eval_item["evaluation"]
+
+            # Format based on evaluation
+            if evaluation == "yes":
+                emoji = "✅"
+                status_text = "*Done!*"
+            elif evaluation == "no":
+                emoji = "❌"
+                status_text = "*Not done*"
+            else:  # maybe
+                emoji = "❓"
+                status_text = "*Unclear*"
+
+            req_display = f"{emoji} {req_text[:80]}..." if len(req_text) > 80 else f"{emoji} {req_text}"
+
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"{req_display}\n{status_text}",
+                parse_mode="Markdown"
+            )
+            await asyncio.sleep(0.8)
+
+        # Ralph's summary
+        if checklist["no"] > 0 or checklist["maybe"] > 0:
+            summary = f"So boss... we did {checklist['yes']} things for sure. But {checklist['no'] + checklist['maybe']} might need more work!"
+        else:
+            summary = f"We got everything you asked for Mr. Worms! All {checklist['yes']} things!"
+
+        ralph_summary = self.ralph_misspell(summary)
+
+        await asyncio.sleep(self.timing.thinking())
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            ralph_summary,
+            with_typing=True
+        )
 
     def ask_ralph(self, user_id: int, question: str) -> str:
         """Ask Ralph a question about the session. He remembers everything."""
@@ -9964,6 +10212,11 @@ _He has a crayon-written report in his hands._
         )
 
         await asyncio.sleep(2)
+
+        # SG-032: Review accountability checklist before final summary
+        await self.review_accountability_checklist_before_end(context, chat_id, user_id)
+
+        await asyncio.sleep(1.5)
 
         # Include quality metrics summary
         quality_summary = self.get_quality_summary(user_id)
