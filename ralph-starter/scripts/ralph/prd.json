@@ -2052,7 +2052,7 @@
         "ralph_bot.py",
         "character_data.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SG-042",
@@ -2097,7 +2097,7 @@
         "ralph_bot.py",
         "character_data.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SG-044",
