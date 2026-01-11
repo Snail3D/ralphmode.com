@@ -34,6 +34,14 @@ except ImportError:
     BOT_TESTER_AVAILABLE = False
     logging.warning("Bot tester not available")
 
+# Import dependency checker for OB-025
+try:
+    from dependency_checker import get_dependency_checker, InstallationResult
+    DEPENDENCY_CHECKER_AVAILABLE = True
+except ImportError:
+    DEPENDENCY_CHECKER_AVAILABLE = False
+    logging.warning("Dependency checker not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -158,6 +166,13 @@ class OnboardingWizard:
         else:
             self.bot_tester = None
             self.logger.warning("Bot tester not available")
+
+        # Import dependency checker (OB-025: Dependency Installation Wizard)
+        if DEPENDENCY_CHECKER_AVAILABLE:
+            self.dependency_checker = get_dependency_checker()
+        else:
+            self.dependency_checker = None
+            self.logger.warning("Dependency checker not available")
 
         # Import theme manager (OB-040: Visual Theme Selector)
         try:
@@ -8463,6 +8478,170 @@ Ralph here to help! Don't give up! 💪"""
 → Create a GitHub issue
 
 Ralph believe in you! You got this! 💪"""
+
+    # ===== OB-025: Dependency Installation Wizard =====
+
+    async def run_dependency_installation(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        project_path: str,
+        requirements_path: Optional[str] = None
+    ) -> Tuple[bool, str]:
+        """Run dependency installation with progress feedback.
+
+        Args:
+            update: Telegram update object
+            context: Telegram context
+            project_path: Path to the project directory (for npm install)
+            requirements_path: Path to requirements.txt (for pip install)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not DEPENDENCY_CHECKER_AVAILABLE or not self.dependency_checker:
+            return False, "Dependency checker not available"
+
+        chat_id = update.effective_chat.id
+        message = await context.bot.send_message(
+            chat_id=chat_id,
+            text="🔧 *Installing Dependencies*\n\nRalph here! Let me get your dependencies set up...",
+            parse_mode="Markdown"
+        )
+
+        # Progress callback to update Telegram message
+        async def progress_callback(msg: str):
+            try:
+                await message.edit_text(
+                    f"🔧 *Installing Dependencies*\n\n{msg}",
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to update progress: {e}")
+
+        try:
+            # Run npm install if project_path provided
+            npm_success = False
+            npm_message = ""
+            if project_path:
+                await progress_callback("Starting npm install... 📦")
+                npm_result, npm_message, npm_error = await self.dependency_checker.run_npm_install(
+                    project_path,
+                    progress_callback
+                )
+                npm_success = npm_result == InstallationResult.SUCCESS
+
+            # Run pip install if requirements_path provided
+            pip_success = False
+            pip_message = ""
+            if requirements_path:
+                await progress_callback("Starting pip install... 🐍")
+                pip_result, pip_message, pip_error = await self.dependency_checker.run_pip_install(
+                    requirements_path,
+                    progress_callback
+                )
+                pip_success = pip_result == InstallationResult.SUCCESS
+
+            # Determine overall success
+            all_success = (
+                (npm_success if project_path else True) and
+                (pip_success if requirements_path else True)
+            )
+
+            if all_success:
+                final_msg = "✅ *Installation Complete!*\n\n"
+                if npm_success:
+                    final_msg += "📦 npm dependencies installed\n"
+                if pip_success:
+                    final_msg += "🐍 Python dependencies installed\n"
+                final_msg += "\nYou're all set! Let's keep going! 🎉"
+                await message.edit_text(final_msg, parse_mode="Markdown")
+                return True, "Dependencies installed successfully"
+            else:
+                # Show failure with retry option
+                error_msg = "❌ *Installation Failed*\n\n"
+                if project_path and not npm_success:
+                    error_msg += f"npm: {npm_message}\n"
+                if requirements_path and not pip_success:
+                    error_msg += f"pip: {pip_message}\n"
+
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Retry", callback_data="dep_install_retry")],
+                    [InlineKeyboardButton("⏭️ Skip (Advanced)", callback_data="dep_install_skip")],
+                    [InlineKeyboardButton("❓ Help", callback_data="dep_install_help")]
+                ]
+                await message.edit_text(
+                    error_msg,
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                return False, "Installation failed"
+
+        except Exception as e:
+            self.logger.error(f"Dependency installation error: {e}")
+            await message.edit_text(
+                f"❌ *Installation Error*\n\n{str(e)}\n\nTry again or skip for now.",
+                parse_mode="Markdown"
+            )
+            return False, str(e)
+
+    def get_dependency_install_help_message(self) -> str:
+        """Get help message for dependency installation issues.
+
+        Returns:
+            Help message with troubleshooting tips
+        """
+        return """*Dependency Installation Help* 🆘
+
+**Common Issues:**
+
+**npm install fails:**
+→ Make sure Node.js is installed (node --version)
+→ Check internet connection
+→ Try deleting node_modules and package-lock.json
+→ Run: `npm cache clean --force`
+
+**pip install fails:**
+→ Make sure Python is installed (python3 --version)
+→ Check internet connection
+→ Try upgrading pip: `pip3 install --upgrade pip`
+→ Check for conflicting package versions
+
+**Permission errors:**
+→ Don't use sudo with npm (can cause issues)
+→ For pip, consider using a virtual environment
+→ On Mac/Linux: check file permissions
+
+**Network issues:**
+→ Check firewall settings
+→ Try using a different network
+→ Check if you're behind a proxy
+
+**Still stuck?**
+→ You can skip for now and install manually later
+→ Check the full error message for clues
+→ Ask for help in the community
+
+Ralph here to help! Don't give up! 💪"""
+
+    def get_dependency_install_keyboard(self, show_retry: bool = True) -> InlineKeyboardMarkup:
+        """Get keyboard for dependency installation.
+
+        Args:
+            show_retry: Whether to show retry button
+
+        Returns:
+            Keyboard with installation options
+        """
+        keyboard = []
+        if show_retry:
+            keyboard.append([InlineKeyboardButton("🔄 Retry Installation", callback_data="dep_install_retry")])
+        keyboard.extend([
+            [InlineKeyboardButton("❓ Get Help", callback_data="dep_install_help")],
+            [InlineKeyboardButton("⏭️ Skip (Advanced)", callback_data="dep_install_skip")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="setup_back")]
+        ])
+        return InlineKeyboardMarkup(keyboard)
 
 
 def get_onboarding_wizard() -> OnboardingWizard:

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Dependency Checker for Ralph Mode (OB-023)
+Dependency Checker for Ralph Mode (OB-023, OB-025)
 
 Checks system dependencies (Node.js, npm, etc.) for onboarding wizard.
 Provides version detection, comparison, and upgrade guidance.
+Handles dependency installation with progress feedback.
 """
 
 import logging
 import subprocess
 import re
-from typing import Tuple, Optional, Dict, Any
+import asyncio
+from typing import Tuple, Optional, Dict, Any, Callable
 from enum import Enum
 
 
@@ -19,6 +21,14 @@ class DependencyStatus(Enum):
     OUTDATED = "outdated"
     NOT_FOUND = "not_found"
     ERROR = "error"
+
+
+class InstallationResult(Enum):
+    """Result of a dependency installation attempt."""
+    SUCCESS = "success"
+    FAILURE = "failure"
+    SKIPPED = "skipped"
+    CANCELLED = "cancelled"
 
 
 class DependencyChecker:
@@ -253,6 +263,169 @@ curl -L https://www.npmjs.com/install.sh | sh
 npm --version
 ```
 """
+
+    async def run_npm_install(
+        self,
+        project_path: str,
+        progress_callback: Optional[Callable[[str], None]] = None
+    ) -> Tuple[InstallationResult, str, Optional[str]]:
+        """Run npm install with progress feedback.
+
+        Args:
+            project_path: Path to the project directory
+            progress_callback: Optional callback for progress updates
+
+        Returns:
+            Tuple of (result, message, error_details)
+            - result: InstallationResult enum
+            - message: Human-readable message
+            - error_details: Error details if failed, None otherwise
+        """
+        try:
+            if progress_callback:
+                progress_callback("Starting npm install... 📦")
+
+            # Run npm install
+            process = await asyncio.create_subprocess_exec(
+                "npm", "install",
+                cwd=project_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+
+            # Stream output
+            stdout_lines = []
+            stderr_lines = []
+
+            async def read_stdout():
+                async for line in process.stdout:
+                    line_str = line.decode().strip()
+                    stdout_lines.append(line_str)
+                    if progress_callback and line_str:
+                        progress_callback(f"npm: {line_str}")
+
+            async def read_stderr():
+                async for line in process.stderr:
+                    line_str = line.decode().strip()
+                    stderr_lines.append(line_str)
+
+            # Wait for both streams and process completion
+            await asyncio.gather(read_stdout(), read_stderr())
+            await process.wait()
+
+            if process.returncode == 0:
+                if progress_callback:
+                    progress_callback("npm install completed successfully! ✅")
+                return (
+                    InstallationResult.SUCCESS,
+                    "Dependencies installed successfully",
+                    None
+                )
+            else:
+                error_msg = "\n".join(stderr_lines) if stderr_lines else "Unknown error"
+                if progress_callback:
+                    progress_callback(f"npm install failed ❌")
+                return (
+                    InstallationResult.FAILURE,
+                    f"npm install failed (exit code {process.returncode})",
+                    error_msg
+                )
+
+        except FileNotFoundError:
+            return (
+                InstallationResult.FAILURE,
+                "npm not found - please install Node.js first",
+                None
+            )
+        except Exception as e:
+            self.logger.error(f"npm install failed: {e}")
+            return (
+                InstallationResult.FAILURE,
+                f"npm install error: {str(e)}",
+                str(e)
+            )
+
+    async def run_pip_install(
+        self,
+        requirements_path: str,
+        progress_callback: Optional[Callable[[str], None]] = None
+    ) -> Tuple[InstallationResult, str, Optional[str]]:
+        """Run pip install with progress feedback.
+
+        Args:
+            requirements_path: Path to requirements.txt
+            progress_callback: Optional callback for progress updates
+
+        Returns:
+            Tuple of (result, message, error_details)
+            - result: InstallationResult enum
+            - message: Human-readable message
+            - error_details: Error details if failed, None otherwise
+        """
+        try:
+            if progress_callback:
+                progress_callback("Starting pip install... 🐍")
+
+            # Run pip install
+            process = await asyncio.create_subprocess_exec(
+                "pip3", "install", "-r", requirements_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+
+            # Stream output
+            stdout_lines = []
+            stderr_lines = []
+
+            async def read_stdout():
+                async for line in process.stdout:
+                    line_str = line.decode().strip()
+                    stdout_lines.append(line_str)
+                    if progress_callback and line_str:
+                        # Show meaningful progress lines
+                        if "Collecting" in line_str or "Installing" in line_str or "Successfully" in line_str:
+                            progress_callback(f"pip: {line_str}")
+
+            async def read_stderr():
+                async for line in process.stderr:
+                    line_str = line.decode().strip()
+                    stderr_lines.append(line_str)
+
+            # Wait for both streams and process completion
+            await asyncio.gather(read_stdout(), read_stderr())
+            await process.wait()
+
+            if process.returncode == 0:
+                if progress_callback:
+                    progress_callback("pip install completed successfully! ✅")
+                return (
+                    InstallationResult.SUCCESS,
+                    "Python dependencies installed successfully",
+                    None
+                )
+            else:
+                error_msg = "\n".join(stderr_lines) if stderr_lines else "Unknown error"
+                if progress_callback:
+                    progress_callback(f"pip install failed ❌")
+                return (
+                    InstallationResult.FAILURE,
+                    f"pip install failed (exit code {process.returncode})",
+                    error_msg
+                )
+
+        except FileNotFoundError:
+            return (
+                InstallationResult.FAILURE,
+                "pip3 not found - please install Python first",
+                None
+            )
+        except Exception as e:
+            self.logger.error(f"pip install failed: {e}")
+            return (
+                InstallationResult.FAILURE,
+                f"pip install error: {str(e)}",
+                str(e)
+            )
 
     def check_all_dependencies(self) -> Dict[str, Any]:
         """Check all required dependencies.
