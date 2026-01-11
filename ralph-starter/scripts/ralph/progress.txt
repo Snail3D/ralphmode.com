@@ -9070,3 +9070,40 @@ According to priority_order, next incomplete task is OB-008: Environment File Cr
   ✅ Shows .env.example for reference
 
 ---
+
+## Iteration N - 2026-01-10 18:00 UTC
+**Task**: [OB-009] API Key Validation Service
+**Status**: ✅ Complete
+
+### What was implemented
+- Added test_telegram_token() method to api_key_manager.py that validates Telegram bot tokens using the getMe API endpoint
+- Added test_groq_key() method to api_key_manager.py that validates Groq API keys with actual inference calls
+- Extended existing test_anthropic_key() functionality (already existed)
+- Integrated API key manager with onboarding_wizard.py for seamless user experience
+- Created async test methods (test_anthropic_key, test_telegram_token, test_groq_key) in onboarding wizard
+- Added Ralph-themed UI messages for test progress and results
+- Implemented retry flows and error handling for failed validations
+- Created comprehensive test suite (test_api_validation.py) that validates all functionality
+
+### Files changed
+- api_key_manager.py - Added test_telegram_token() and test_groq_key() methods
+- onboarding_wizard.py - Added validation integration, test methods, UI messages, and keyboards
+- test_api_validation.py - New test suite to verify implementation
+
+### Learnings
+- API key validation should happen in two stages: format validation first (fast), then live API test (slower but thorough)
+- The api_key_manager already had test_anthropic_key() from a previous iteration - good pattern to follow
+- Telegram's getMe endpoint is perfect for validating bot tokens (fast, no side effects)
+- Groq's test calls need to use minimal tokens to avoid unnecessary costs
+- Error messages should be specific (distinguish between format errors, auth errors, rate limits, etc.)
+- Always provide retry flows - users often paste keys with extra spaces or partial content
+- Ralph's personality shines in the progress and result messages - keeps onboarding fun
+
+### Gotchas to avoid
+- Don't forget to handle rate limiting gracefully - a valid key can still fail if user is throttled
+- Make sure to trim/strip keys before validation - users often accidentally include whitespace
+- The test methods should be async in the wizard but sync in the manager (to allow both patterns)
+- Always provide a "skip for now" option - users might not have keys ready during setup
+- Test scripts are valuable for future maintenance and regression testing
+
+---
