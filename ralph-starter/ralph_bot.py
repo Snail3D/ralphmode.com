@@ -5432,6 +5432,18 @@ _{ralph_response}_
                         # Trigger the explanation exchange
                         await self.explain_like_ralph_is_5(context, chat_id, concept, worker_name=speaker, user_id=user_id)
 
+                # RM-059: 5-10% chance workers ask user a question
+                # Makes user feel like part of the team
+                if random.random() < random.uniform(0.05, 0.10):
+                    await asyncio.sleep(self.timing.rapid_banter())
+
+                    # Check if we should stop
+                    if user_id not in self.active_sessions or user_id not in self.idle_chatter_task:
+                        break
+
+                    # Generate a question for the user
+                    await self.worker_asks_user_question(context, chat_id, user_id, speaker)
+
                 # Wait texting pace before next message (5-15 seconds)
                 await asyncio.sleep(random.uniform(5, 15))
 
@@ -5444,6 +5456,108 @@ _{ralph_response}_
             # Clean up task reference
             if user_id in self.idle_chatter_task:
                 del self.idle_chatter_task[user_id]
+
+    async def worker_asks_user_question(self, context, chat_id: int, user_id: int, worker_name: str):
+        """RM-059: Worker asks the user a question about the codebase.
+
+        5-10% chance during idle chatter that a worker asks the user a question.
+        Questions about codebase ("Did you write this part?") or intent ("What were you going for here?").
+        User answer gets incorporated into discussion.
+        If no answer in 30 sec, worker says "No worries, we'll figure it out."
+        Makes user feel like part of the team.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            worker_name: Which worker is asking
+        """
+        session = self.active_sessions.get(user_id, {})
+        worker = self.DEV_TEAM.get(worker_name, self.DEV_TEAM["Stool"])
+
+        # Question templates about the codebase
+        codebase_questions = [
+            "Did you write this part?",
+            "Hey Mr. Worms, did you build this auth system?",
+            "Is this your code or did you inherit it?",
+            "Mr. Worms - you wrote this originally?",
+            "Did you set up this database structure?",
+            "Is this your architecture or legacy code?",
+            "Did you design this API yourself?",
+        ]
+
+        # Question templates about intent
+        intent_questions = [
+            "What were you going for here?",
+            "Hey boss, what was the thinking behind this approach?",
+            "Mr. Worms - what's the goal with this feature?",
+            "What were you trying to achieve with this?",
+            "What was your vision for this part?",
+            "Boss, what's the main use case here?",
+            "What problem were you solving with this?",
+        ]
+
+        # Mix both types of questions
+        all_questions = codebase_questions + intent_questions
+        question = random.choice(all_questions)
+
+        # Send the question
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker["title"],
+            question,
+            topic="💭 Overheard",
+            use_buttons=False,
+            with_typing=True
+        )
+
+        # Store that we asked a question and when
+        if user_id not in self.conversation_context:
+            self.conversation_context[user_id] = {}
+
+        self.conversation_context[user_id]['pending_worker_question'] = {
+            'worker': worker_name,
+            'question': question,
+            'asked_at': datetime.now()
+        }
+
+        # Start a 30-second timer - if user doesn't answer, worker says "no worries"
+        async def timeout_no_answer():
+            """If user doesn't answer in 30 seconds, worker says it's okay"""
+            try:
+                await asyncio.sleep(30)
+
+                # Check if question is still pending
+                conv_ctx = self.conversation_context.get(user_id, {})
+                if 'pending_worker_question' in conv_ctx:
+                    # User didn't answer, send fallback
+                    fallback_responses = [
+                        "No worries, we'll figure it out",
+                        "All good, we'll work it out",
+                        "That's cool, we can figure it out from the code",
+                        "No problem, we'll piece it together",
+                        "It's all good, we'll sort it out",
+                    ]
+
+                    fallback = random.choice(fallback_responses)
+
+                    await self.send_styled_message(
+                        context, chat_id, worker_name, worker["title"],
+                        fallback,
+                        topic="💭 Overheard",
+                        use_buttons=False,
+                        with_typing=True
+                    )
+
+                    # Clear the pending question
+                    del conv_ctx['pending_worker_question']
+
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                logging.error(f"RM-059: Error in timeout_no_answer: {e}")
+
+        # Start timeout task
+        asyncio.create_task(timeout_no_answer())
 
     async def handle_worker_interrupt(self, context, chat_id: int, user_id: int, worker_name: str, user_question: str):
         """RM-056: Handle when user interrupts a worker to ask a question.
@@ -9371,6 +9485,71 @@ _Grab some popcorn..._
                 logger.error(f"OB-049: Env manager not available for user {user_id}")
 
             return
+
+        # RM-059: Handle user answering a worker's question
+        if user_id in self.conversation_context:
+            conv_ctx = self.conversation_context[user_id]
+            if 'pending_worker_question' in conv_ctx:
+                # User is answering a worker's question!
+                question_data = conv_ctx['pending_worker_question']
+                worker_name = question_data['worker']
+                worker = self.DEV_TEAM.get(worker_name, self.DEV_TEAM["Stool"])
+
+                # Clear pending question (so timeout doesn't fire)
+                del conv_ctx['pending_worker_question']
+
+                # Worker acknowledges the answer
+                acknowledgments = [
+                    "Oh cool, thanks!",
+                    "Gotcha, that makes sense",
+                    "Ah okay, good to know",
+                    "Thanks boss, that helps",
+                    "Perfect, that clarifies things",
+                    "Okay yeah, that's what I thought",
+                    "Ah I see, thanks!",
+                ]
+
+                acknowledgment = random.choice(acknowledgments)
+
+                await self.send_styled_message(
+                    context, chat_id, worker_name, worker["title"],
+                    acknowledgment,
+                    topic="💭 Overheard",
+                    use_buttons=False,
+                    with_typing=True
+                )
+
+                # Optional: Worker shares the answer with the team (30% chance)
+                if random.random() < 0.30:
+                    await asyncio.sleep(self.timing.rapid_banter())
+
+                    # Pick another worker to share with
+                    other_workers = [w for w in self.DEV_TEAM.keys() if w != worker_name]
+                    if other_workers:
+                        other_worker_name = random.choice(other_workers)
+                        other_worker = self.DEV_TEAM[other_worker_name]
+
+                        # Worker shares what they learned
+                        share_templates = [
+                            f"So Mr. Worms said {text[:50]}...",
+                            f"Boss just told me - {text[:50]}...",
+                            f"FYI, he said {text[:50]}...",
+                            f"Heads up - he mentioned {text[:50]}...",
+                        ]
+
+                        share_msg = random.choice(share_templates)
+                        if len(text) > 50:
+                            share_msg = share_msg.replace("...", "... (more)")
+
+                        await self.send_styled_message(
+                            context, chat_id, worker_name, worker["title"],
+                            share_msg,
+                            topic="💭 Overheard",
+                            use_buttons=False,
+                            with_typing=True
+                        )
+
+                return  # Don't process as normal message
 
         # RM-053: Track user message timestamp and pause idle chatter
         self.last_user_message_time[user_id] = datetime.now()
