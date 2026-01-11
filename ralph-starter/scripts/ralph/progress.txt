@@ -15636,3 +15636,49 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 - Ready for natural language detection of patience changes (future enhancement)
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-11 15:45 UTC
+**Task**: [BM-002] Embarrassed Asking Variations
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_embarrassed_memory_prompt() method to RalphNarrator class in ralph_personality.py
+- Created 66 unique variations of Ralph asking "what were we doing?" with embarrassment
+- Organized into thematic categories:
+  - Direct admissions (5 variations)
+  - Blame deflection (5 variations)
+  - Self-deprecating (5 variations)
+  - Hopeful/optimistic despite forgetting (5 variations)
+  - Physical comedy references (5 variations)
+  - Apologetic but sweet (5 variations)
+  - Comparison to other things Ralph forgot (5 variations)
+  - Hopeful recovery attempts (5 variations)
+  - Worker involvement (5 variations)
+  - Time-based confusion (5 variations)
+  - Genuine concern (5 variations)
+  - Creative/unique (5 variations)
+  - Additional variations (11 variations)
+- Each prompt maintains Ralph's characteristic speech patterns ("me", "Ralph", broken grammar)
+- Uses misspell() with 30% chance for authentic Ralph voice
+- Returns a random variation each time to keep interactions fresh
+
+### Files changed
+- ralph_personality.py (lines 251-360)
+
+### Learnings
+- The RalphNarrator class already had excellent structure for personality methods
+- Using higher misspelling chance (30% vs 20%) makes memory prompts feel more genuine
+- Categorizing variations helps ensure diversity in tone and approach
+- Ralph's embarrassment should feel relatable, not annoying - mix of sweet and funny
+- The method is standalone - can be called from ralph_bot.py when detecting memory gaps
+- Variations include worker mentions to maintain team fiction ("workers forgot too!")
+
+### Integration notes
+- Ready to integrate with BM-001 (Between-Session Memory Gap detection)
+- Can be used in session start scenarios when Ralph has no context
+- Could be triggered when user says "remember?" or "we were working on..."
+- Future: Track which variations have been used to avoid repetition within same session
+- Method follows same pattern as other get_* methods (get_encouragement, get_celebration, etc.)
+
+---
+
