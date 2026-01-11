@@ -11195,3 +11195,37 @@ All functionality tested and verified:
 - Virtual environment activation commands are platform-specific
 
 ---
+
+## Iteration [OB-024-Integration] - 2026-01-10
+**Task**: [OB-024] Python Environment Setup - Onboarding Wizard Integration
+**Status**: ✅ Complete
+
+### What was implemented
+- Integrated setup_venv.py into onboarding_wizard.py
+- Added VENV_SETUP_AVAILABLE import flag and module initialization
+- Added STEP_PYTHON_ENV to the onboarding flow
+- Created 9 new methods for Python environment setup in onboarding wizard:
+  * get_python_env_intro_message() - Ralph-personality introduction
+  * get_python_env_keyboard() - Interactive buttons (Start/Help/Skip)
+  * get_python_version_check_message() - Version validation with upgrade guides
+  * get_venv_creation_message() - Progress message during creation
+  * get_venv_success_message() - Success with activation instructions
+  * get_requirements_install_message() - Installation start message
+  * get_requirements_success_message() - Celebration with package count
+  * get_venv_error_message() - Troubleshooting for venv failures
+  * get_requirements_error_message() - Troubleshooting for install failures
+  * setup_python_environment() - Async orchestration method with full workflow
+
+### Files changed
+- onboarding_wizard.py: Added 388 lines with complete Python env setup integration
+
+### Learnings
+- Onboarding wizard uses consistent message/keyboard pattern for each step
+- Ralph's personality requires kid-friendly explanations (e.g., "separate room for each project")
+- Error messages need comprehensive troubleshooting guides (upgrade Python, install venv module, etc.)
+- Integration uses async/await pattern with Telegram message updates
+- Progress callback pattern allows real-time updates during package installation
+- Success messages include next steps to maintain momentum
+- All acceptance criteria met: version check, venv creation, requirements install, package verification
+
+---
