@@ -50,6 +50,14 @@ except ImportError:
     VENV_SETUP_AVAILABLE = False
     logging.warning("Virtual environment setup not available")
 
+# Import Claude Code CLI setup for OB-026
+try:
+    from claude_code_setup import get_claude_code_setup
+    CLAUDE_CODE_SETUP_AVAILABLE = True
+except ImportError:
+    CLAUDE_CODE_SETUP_AVAILABLE = False
+    logging.warning("Claude Code CLI setup not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -61,6 +69,7 @@ class OnboardingWizard:
     STEP_GITHUB = "github"
     STEP_REPO = "repo"
     STEP_PYTHON_ENV = "python_env"  # OB-024: Python environment setup
+    STEP_CLAUDE_CLI = "claude_cli"  # OB-026: Claude Code CLI installation
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_BOT_TEST = "bot_test"  # OB-039: Bot testing walkthrough
@@ -3908,6 +3917,233 @@ Or tell Ralph what error you're seeing!
         except Exception as e:
             self.logger.error(f"Python environment setup error: {e}")
             return False, f"Setup error: {str(e)}"
+
+    # Claude Code CLI Installation (OB-026)
+
+    async def setup_claude_cli(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE
+    ) -> Tuple[bool, str]:
+        """Guide user through Claude Code CLI installation.
+
+        Args:
+            update: Telegram update object
+            context: Callback context
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not CLAUDE_CODE_SETUP_AVAILABLE:
+            return False, "Claude Code CLI setup not available"
+
+        try:
+            claude_setup = get_claude_code_setup()
+
+            # Check if already installed
+            status = await claude_setup.check_claude_installed()
+
+            if status.installed:
+                success_msg = self.get_claude_cli_already_installed_message(status.version or "unknown")
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(success_msg, parse_mode='Markdown')
+                return True, "Claude Code CLI already installed"
+
+            # Check npm first
+            npm_installed, npm_version = await claude_setup.check_npm_installed()
+            if not npm_installed:
+                npm_error_msg = self.get_npm_not_installed_message()
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(
+                        npm_error_msg,
+                        parse_mode='Markdown',
+                        reply_markup=self.get_npm_install_keyboard()
+                    )
+                return False, "npm not installed"
+
+            # Show installation guide
+            install_msg = self.get_claude_cli_install_message()
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    install_msg,
+                    parse_mode='Markdown',
+                    reply_markup=self.get_claude_cli_install_keyboard()
+                )
+
+            return True, "Claude CLI installation guide shown"
+
+        except Exception as e:
+            self.logger.error(f"Claude CLI setup error: {e}")
+            return False, f"Setup error: {str(e)}"
+
+    async def verify_claude_cli_installation(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE
+    ) -> Tuple[bool, str]:
+        """Verify Claude Code CLI installation.
+
+        Args:
+            update: Telegram update object
+            context: Callback context
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not CLAUDE_CODE_SETUP_AVAILABLE:
+            return False, "Claude Code CLI setup not available"
+
+        try:
+            claude_setup = get_claude_code_setup()
+            results = await claude_setup.verify_installation()
+
+            if results["success"]:
+                version = results["checks"]["claude"]["version"]
+                success_msg = self.get_claude_cli_success_message(version or "unknown")
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(success_msg, parse_mode='Markdown')
+                return True, f"Claude CLI installed: {version}"
+            else:
+                error_key = results.get("error", "unknown_error")
+                error_msg = self.get_claude_cli_error_message(error_key)
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(
+                        error_msg,
+                        parse_mode='Markdown',
+                        reply_markup=self.get_claude_cli_troubleshooting_keyboard(error_key)
+                    )
+                return False, f"Claude CLI not installed: {error_key}"
+
+        except Exception as e:
+            self.logger.error(f"Claude CLI verification error: {e}")
+            return False, f"Verification error: {str(e)}"
+
+    def get_claude_cli_install_message(self) -> str:
+        """Get Claude Code CLI installation message."""
+        if not CLAUDE_CODE_SETUP_AVAILABLE:
+            return "Claude Code CLI setup not available"
+
+        claude_setup = get_claude_code_setup()
+        install_cmd = claude_setup.get_install_command()
+
+        return f"""🎯 *Time to Install Claude Code CLI!*
+
+Claude Code is your autonomous coding partner. Let's get it installed!
+
+📦 *Installation Command:*
+```bash
+{install_cmd}
+```
+
+👆 *Tap to copy* the command above, then run it in your terminal.
+
+⏱️ This might take a minute or two. I'll wait right here!
+
+Once it's done, come back and tap "✅ I've installed it" below."""
+
+    def get_claude_cli_already_installed_message(self, version: str) -> str:
+        """Get message for when Claude CLI is already installed."""
+        return f"""✅ *Claude Code CLI Already Installed!*
+
+Great news! You've already got Claude Code CLI version `{version}` installed.
+
+We're all set to move on to the next step! 🎉"""
+
+    def get_npm_not_installed_message(self) -> str:
+        """Get message for when npm is not installed."""
+        return """⚠️ *Oops! npm Not Found*
+
+We need npm (Node Package Manager) to install Claude Code CLI.
+
+🔧 *How to Install npm:*
+
+**Option 1: Install Node.js (includes npm)**
+👉 Visit: https://nodejs.org
+Download and install the LTS version
+
+**Option 2: Use nvm (Node Version Manager)**
+👉 Visit: https://github.com/nvm-sh/nvm
+Follow the installation instructions
+
+After installing, verify with:
+```bash
+node --version && npm --version
+```
+
+Once you've installed npm, come back and we'll continue! 🚀"""
+
+    def get_claude_cli_success_message(self, version: str) -> str:
+        """Get success message after Claude CLI verification."""
+        return f"""🎉 *Perfect! Claude Code CLI is Ready!*
+
+Version: `{version}` ✅
+
+You're all set up with Claude Code! This is going to be fun. 😊
+
+Let's keep moving! 🚀"""
+
+    def get_claude_cli_error_message(self, error_key: str) -> str:
+        """Get error message with troubleshooting for Claude CLI issues."""
+        if not CLAUDE_CODE_SETUP_AVAILABLE:
+            return "Claude Code CLI setup not available"
+
+        claude_setup = get_claude_code_setup()
+        troubleshooting = claude_setup.get_troubleshooting_for_issue(error_key)
+
+        if not troubleshooting:
+            return """⚠️ *Hmm, Something's Not Right*
+
+I couldn't verify your Claude Code CLI installation.
+
+Please try:
+1. Running `claude --version` in your terminal
+2. Checking if the installation completed successfully
+3. Restarting your terminal
+
+Need help? Check the docs: https://docs.anthropic.com/claude-code"""
+
+        issue = troubleshooting["issue"]
+        solutions = troubleshooting["solutions"]
+
+        solutions_text = "\n".join([f"  {i+1}. {sol}" for i, sol in enumerate(solutions)])
+
+        return f"""⚠️ *Issue Detected: {issue}*
+
+📚 *Troubleshooting Steps:*
+
+{solutions_text}
+
+💡 *Still stuck?*
+Check out the full docs: {claude_setup.get_docs_url()}
+
+Once you've fixed it, tap "🔄 Try Again" below!"""
+
+    def get_claude_cli_install_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Claude CLI installation."""
+        keyboard = [
+            [InlineKeyboardButton("✅ I've installed it", callback_data="claude_cli_verify")],
+            [InlineKeyboardButton("❓ Help / Troubleshooting", callback_data="claude_cli_help")],
+            [InlineKeyboardButton("⏭️ Skip for now", callback_data="claude_cli_skip")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_npm_install_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for npm installation."""
+        keyboard = [
+            [InlineKeyboardButton("📖 Node.js Download", url="https://nodejs.org")],
+            [InlineKeyboardButton("📖 nvm GitHub", url="https://github.com/nvm-sh/nvm")],
+            [InlineKeyboardButton("✅ I've installed npm", callback_data="claude_cli_npm_check")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_claude_cli_troubleshooting_keyboard(self, error_key: str) -> InlineKeyboardMarkup:
+        """Get keyboard for Claude CLI troubleshooting."""
+        keyboard = [
+            [InlineKeyboardButton("🔄 Try Again", callback_data="claude_cli_verify")],
+            [InlineKeyboardButton("📚 View Documentation", url="https://docs.anthropic.com/claude-code")],
+            [InlineKeyboardButton("⏭️ Skip for now", callback_data="claude_cli_skip")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
 
     # Setup Resume Functionality (OB-035)
 
