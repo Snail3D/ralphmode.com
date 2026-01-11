@@ -574,6 +574,118 @@ class RalphNarrator:
         question_list = questions.get(context, questions["general"])
         return RalphNarrator.misspell(random.choice(question_list), chance=0.25)
 
+    @staticmethod
+    def get_summary_attempt() -> str:
+        """Get Ralph's attempt at summarizing what happened.
+
+        Ralph tries to recap but often gets it hilariously wrong, misses key points,
+        or focuses on irrelevant details. Sweet but inaccurate summaries.
+
+        Returns:
+            A Ralph-style summary attempt (often wrong but endearing)
+        """
+        summaries = [
+            # Comically oversimplified
+            "So Ralph thinks we made the thing do the stuff!",
+            "Okay so we fixed the broken part! Me think!",
+            "Ralph pretty sure we added code to computor!",
+            "Me believe we made it better! Or different! One of those!",
+            "So basically we pushed the buttons and it worked! Right?",
+
+            # Wrong focus entirely
+            "Ralph remember the team ate sandwiches and fixed bug! ...wait, mostly sandwiches!",
+            "Me think we talked about thing and then... Ralph forgot middle part but end was good!",
+            "So we started working and then Ralph saw cat outside and then it was done!",
+            "Ralph knows we did important stuff! And also Ralph found shiny penny!",
+            "Me pretty sure we... wait, what was Ralph saying?",
+
+            # Mixing up details
+            "So we added the database to the... no wait, the database added us? Ralph confused!",
+            "Me think we fixed frontend but might have been backend! Or frontend! Ralph not sure!",
+            "So basically we deployed to production! Or was it testing? Same thing!",
+            "Ralph believes we wrote TypeScript! Or was it JavaScrippy? Close enough!",
+            "Me remember we used that library thing! The one with the name! You know the one!",
+
+            # Overly literal
+            "Ralph watched workers type on keyboards! Lots of typing! So much typing!",
+            "Me saw code go from red to green! Like magic but with letters!",
+            "So workers moved files from one place to other place! Very organized!",
+            "Ralph counted 47 commits! Or maybe 5! Numbers hard!",
+            "Me observed team drinking coffee and making computor happy!",
+
+            # Hilariously vague
+            "Ralph think we did good job on the... you know... the thing!",
+            "So basically everything is better now! Me think!",
+            "Me pretty sure problem is solved! Or moved! One of those!",
+            "Ralph believes we accomplished the task thing!",
+            "So we did stuff and now it's different! Success!",
+
+            # Missing crucial details
+            "Ralph remember we changed code! Don't remember which code but definitely code!",
+            "Me think we fixed the error! Or was it warning? Ralph forget difference!",
+            "So team talked about solution and then... magic happened? Ralph wasn't paying attention!",
+            "Ralph knows we did important step! But forget which step! But it was important!",
+            "Me recall we updated something! In the project! Probably!",
+
+            # Endearing but wrong
+            "Ralph think we saved the day! Like superhero but with computor!",
+            "So basically we're geniuses now! Me helped!",
+            "Ralph believes we made impossible become unpossible! Wait...",
+            "Me think we broke record for fastest coding! Or slowest! One was fast!",
+            "So we finished task and earned gold star! Ralph loves stars!",
+
+            # Getting lost mid-summary
+            "Okay so first we did the thing, then we... uh... Ralph forget!",
+            "Me was following along but then brain took nap! What we talking about?",
+            "Ralph started strong but ending is fuzzy! We did good though!",
+            "So we began by... and then we... me need notes!",
+            "Ralph had it all remembered but then sneezed and forgot!",
+
+            # Focused on wrong metrics
+            "Ralph counted 17 coffee breaks! Very productive!",
+            "Me noticed team used 43 exclamation points! Must be excited!",
+            "So workers typed approximately million characters! Ralph counted!",
+            "Ralph observed 12 sighs and 5 celebrat! Me take notes!",
+            "Me tracked 23 'hmms' and 8 'ahas'! Science!",
+
+            # Confusing cause and effect
+            "So problem went away because we looked at it! Ralph's theory!",
+            "Me think code fixed itself when we weren't looking!",
+            "Ralph believes bug got scared and left! We very intimidating!",
+            "So computor decided to work right! Good computor!",
+            "Me think our positive energy healed the error!",
+
+            # Sweet but useless
+            "Ralph just happy to be here and help!",
+            "Me don't know what happened but everyone smiling so must be good!",
+            "Ralph feels like we did great job at the doing things!",
+            "Me proud of team even though Ralph not sure what we did!",
+            "So in conclusion: yay! Ralph's summary complete!",
+
+            # Almost right but not quite
+            "So we pushed to GitHub! Or pulled from GitHub! One of the hub things!",
+            "Ralph thinks we merged the branch! Or branched the merge! Close enough!",
+            "Me believe we committed the changes! Or changed the commits!",
+            "So we tested the production! Or produced the tests! Same result!",
+            "Ralph pretty sure we debugged! Or bugged! But definitely one of those!",
+
+            # Confidently incorrect
+            "Ralph DEFINITELY remembers we used Python! ...this is Python project, right?",
+            "Me 100% certain we fixed backend! Unless it was frontend! But one of ends!",
+            "So we absolutely deployed! To somewhere! Ralph very confident!",
+            "Ralph knows for sure we updated dependencies! Or maybe independencies!",
+            "Me positive we wrote tests! Or fixed tests! Or looked at tests!",
+
+            # Additional variations
+            "So Ralph thinks: code go in, app come out! Can't explain that!",
+            "Me believe we turned the have-not into the have! ...or vice versa!",
+            "Ralph suspects we optimized! Everything faster now! Probably!",
+            "So summary is: team good, code good, Ralph confused but happy!",
+            "Me conclusion: success happened! Details fuzzy but vibes immaculate!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(summaries), chance=0.35)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
