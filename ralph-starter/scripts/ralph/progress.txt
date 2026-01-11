@@ -7478,3 +7478,48 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Creates fun dynamic between team (Ralph notices → Worker reacts → Banter)
 
 ---
+
+## Iteration - 2026-01-10 17:15
+**Task**: [RM-016] Specialist Agent Infrastructure
+**Status**: ✅ Complete
+
+### What was implemented
+- Created SPECIALISTS dict (empty for now, ready for specialists to be added)
+- Dict structure mirrors DEV_TEAM with added fields:
+  - catchphrases: List of signature phrases
+  - entry_animation: How they enter the scene (e.g., "Frinky rushes in with blueprints")
+  - exit_animation: How they leave after task completion
+- Implemented async call_specialist() method (lines 4326-4403)
+- Method handles: entry animation, greeting, task response, exit animation
+- Specialists summoned by Ralph or workers with summoned_by parameter
+- Added specialist color emoji placeholders in CHARACTER_COLORS
+- Specialists work like consultants: called in → provide expert advice → leave
+- Entry/exit animations create cinematic feel
+- Method returns dict with specialist, response, and specialty
+
+### Files changed
+- ralph_bot.py:
+  - SPECIALISTS dict added (lines 360-372)
+  - CHARACTER_COLORS updated with specialist color placeholders (lines 384-387)
+  - call_specialist() async method added (lines 4326-4403)
+  - Infrastructure ready for RM-017+ (Frinky, 册子, Willie)
+
+### Learnings
+- Specialists are different from core team: they come and go
+- Entry/exit animations make their arrival feel special
+- Async method allows proper timing and message sequencing
+- summoned_by parameter creates proper context for specialist
+- Color emoji system extensible for unlimited specialists
+- Infrastructure pattern allows easy addition of new specialists
+- Consultants vs employees: specialists solve specific problems then leave
+- Creates "calling in the expert" moments for complex tasks
+
+### Acceptance Criteria Met
+✅ SPECIALISTS dict similar to DEV_TEAM structure
+✅ Each specialist has: name, title, personality, specialty, catchphrases
+✅ call_specialist(name, task) method exists
+✅ Specialists can be summoned by Ralph or workers (summoned_by param)
+✅ Entry/exit animations for specialists (built into call_specialist)
+✅ Specialists have their own color emoji prefix (in CHARACTER_COLORS)
+
+---

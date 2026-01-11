@@ -347,7 +347,7 @@
       "files_likely_modified": [
         "ralph_bot.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-017",
@@ -4126,6 +4126,144 @@
         "requirements.txt"
       ],
       "passes": true
+    },
+    {
+      "id": "TC-001",
+      "category": "PRD Organization",
+      "title": "Task File Extraction",
+      "description": "Extract likely files from task descriptions. Analyze task titles and descriptions to determine which files will be modified.",
+      "acceptance_criteria": [
+        "extract_file_hints(task) function exists",
+        "Parses task description for file mentions",
+        "Recognizes common patterns (e.g., 'in ralph_bot.py', 'modify the handler')",
+        "Returns list of likely file paths",
+        "Handles tasks with no clear file hints gracefully"
+      ],
+      "files_likely_modified": [
+        "prd_organizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-002",
+      "category": "PRD Organization",
+      "title": "Task Semantic Embeddings",
+      "description": "Generate semantic embeddings for PRD tasks to enable similarity clustering. Use local or API-based embedding model.",
+      "acceptance_criteria": [
+        "generate_embeddings(tasks) function exists",
+        "Uses Groq or local embedding model",
+        "Returns vector embeddings for each task",
+        "Caches embeddings to avoid re-computation",
+        "Handles API failures gracefully"
+      ],
+      "files_likely_modified": [
+        "task_embeddings.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-003",
+      "category": "PRD Organization",
+      "title": "Hybrid Task Clustering",
+      "description": "Cluster tasks by combining file hints and semantic similarity. Group related tasks together for maximum context retention.",
+      "acceptance_criteria": [
+        "hybrid_cluster(file_hints, embeddings) function exists",
+        "Combines file-based and semantic-based similarity",
+        "Creates logical clusters (Voice, Security, UI, etc.)",
+        "Handles edge cases (tasks in multiple clusters)",
+        "Returns ordered list of clusters"
+      ],
+      "files_likely_modified": [
+        "prd_organizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-004",
+      "category": "PRD Organization",
+      "title": "Task Dependency Graph",
+      "description": "Map dependencies between tasks. Some tasks must be completed before others (e.g., database schema before queries).",
+      "acceptance_criteria": [
+        "build_dependency_graph(tasks) function exists",
+        "Identifies explicit dependencies from descriptions",
+        "Infers implicit dependencies (e.g., handler needs model)",
+        "Returns DAG (directed acyclic graph)",
+        "Detects circular dependencies and warns"
+      ],
+      "files_likely_modified": [
+        "dependency_graph.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-005",
+      "category": "PRD Organization",
+      "title": "Cluster Ordering by Dependencies",
+      "description": "Order clusters using topological sort based on dependency graph. Ensure foundational tasks come before dependent ones.",
+      "acceptance_criteria": [
+        "topological_sort(clusters, graph) function exists",
+        "Respects dependency order within and between clusters",
+        "Foundational clusters (database, models) come first",
+        "UI/Polish clusters come last",
+        "Handles cycles by breaking at lowest cost edge"
+      ],
+      "files_likely_modified": [
+        "prd_organizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-006",
+      "category": "PRD Organization",
+      "title": "New Task Insertion",
+      "description": "Insert new tasks into the most appropriate existing cluster. Maintain cluster coherence as PRD grows.",
+      "acceptance_criteria": [
+        "insert_new_task(task, clusters) function exists",
+        "Finds best-fit cluster using similarity",
+        "Respects priority overrides (boss tasks go to top)",
+        "Rebalances clusters if needed",
+        "Updates priority_order in prd.json"
+      ],
+      "files_likely_modified": [
+        "prd_organizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-007",
+      "category": "PRD Organization",
+      "title": "PRD Reorganization Command",
+      "description": "Add /reorganize command to trigger PRD re-clustering. Allows boss to optimize task order on demand.",
+      "acceptance_criteria": [
+        "/reorganize command in ralph_bot.py",
+        "Calls cluster_tasks() and updates prd.json",
+        "Reports clustering results to Telegram",
+        "Shows cluster summary (Voice: 5 tasks, Security: 8 tasks, etc.)",
+        "Requires Tier 1 (Owner) permission"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "prd_organizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TC-008",
+      "category": "PRD Organization",
+      "title": "Auto-Cluster on Startup",
+      "description": "Automatically re-cluster PRD when ralph.sh starts a new build session. Ensures optimal task order without manual intervention.",
+      "acceptance_criteria": [
+        "ralph.sh calls prd_organizer.py before loop starts",
+        "Clustering runs in <10 seconds",
+        "Updates priority_order in prd.json",
+        "Logs cluster summary to progress.txt",
+        "Skips if no changes since last cluster"
+      ],
+      "files_likely_modified": [
+        "scripts/ralph/ralph.sh",
+        "prd_organizer.py"
+      ],
+      "passes": false
     }
   ],
   "priority_order": [
@@ -4152,6 +4290,15 @@
     "SEC-028 - Telegram Bot Security",
     "SEC-029 - LLM Security (Prompt Injection)",
     "SEC-030 - Supply Chain Security",
+    "--- TASK CLUSTERING (PRD Organization) ---",
+    "TC-001 - Task File Extraction",
+    "TC-002 - Task Semantic Embeddings",
+    "TC-003 - Hybrid Task Clustering",
+    "TC-004 - Task Dependency Graph",
+    "TC-005 - Cluster Ordering by Dependencies",
+    "TC-006 - New Task Insertion",
+    "TC-007 - PRD Reorganization Command",
+    "TC-008 - Auto-Cluster on Startup",
     "--- FEEDBACK LOOP (RLHF Self-Building System) ---",
     "FB-001 - Feedback command handler",
     "FB-002 - Subscription gate (Builder+/Priority only)",
