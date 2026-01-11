@@ -250,6 +250,7 @@ class User(Base):
     ban_reason = Column(Text, nullable=True)
     quality_score = Column(Float, default=50.0)  # User reputation (0-100)
     version_preference = Column(String(20), default="stable")  # VM-003: stable, beta, alpha
+    location = Column(String(255), nullable=True)  # SG-018: User location for local good news (city, state/country)
 
     # Relationships
     sessions = relationship("BotSession", back_populates="user", lazy="dynamic")
@@ -430,6 +431,35 @@ class UserGifHistory(Base):
     def __repr__(self):
         callback_marker = "🔄" if self.is_callback else ""
         return f"<UserGifHistory(telegram_id={self.telegram_id}, mood={self.mood}, speaker={self.speaker}{callback_marker})>"
+
+
+class GoodNewsCache(Base):
+    """
+    SG-018: Local Good News Integration
+
+    Caches good news stories to avoid constantly hitting APIs.
+    Stores location-specific stories for personalized local news.
+    """
+
+    __tablename__ = "good_news_cache"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    location = Column(String(255), nullable=True, index=True)  # City/region for location-based news (NULL for global)
+    title = Column(String(500), nullable=False)
+    description = Column(Text, nullable=True)
+    url = Column(String(1000), nullable=True)
+    source = Column(String(100), nullable=True)  # Source name
+    published_at = Column(DateTime, nullable=True)
+    cached_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Indexes for efficient lookups
+    __table_args__ = (
+        Index("idx_news_location_cached", "location", "cached_at"),  # For location-based fresh news
+    )
+
+    def __repr__(self):
+        location_str = f"location={self.location}" if self.location else "global"
+        return f"<GoodNewsCache({location_str}, title={self.title[:50]})>"
 
 
 # =============================================================================

@@ -188,7 +188,7 @@ except ImportError:
 
 # QS-003 & FQ-003: Import database for /mystatus command
 try:
-    from database import get_db, User, Feedback
+    from database import get_db, User, Feedback, GoodNewsCache
     DATABASE_AVAILABLE = True
 except ImportError:
     DATABASE_AVAILABLE = False
@@ -10149,6 +10149,161 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             except Exception as e:
                 logger.error(f"Failed to send worker GIF: {e}")
 
+    # ==================== SG-018: LOCAL GOOD NEWS INTEGRATION ====================
+
+    def get_local_good_news(self, telegram_id: int) -> Optional[dict]:
+        """
+        SG-018: Fetch good news local to user's location.
+
+        Uses cached news to avoid API hammering. Falls back to global news if no local news available.
+
+        Args:
+            telegram_id: User's Telegram ID
+
+        Returns:
+            Dictionary with news story or None
+        """
+        try:
+            from database import get_db, User, GoodNewsCache
+
+            with get_db() as db:
+                # Get user's location
+                user = db.query(User).filter(User.telegram_id == telegram_id).first()
+                location = user.location if user else None
+
+                # Try to get cached local news first (within last 6 hours)
+                six_hours_ago = datetime.utcnow() - timedelta(hours=6)
+
+                if location:
+                    # Try location-specific news first
+                    local_news = db.query(GoodNewsCache).filter(
+                        GoodNewsCache.location == location,
+                        GoodNewsCache.cached_at >= six_hours_ago
+                    ).order_by(GoodNewsCache.cached_at.desc()).all()
+
+                    if local_news:
+                        story = random.choice(local_news)
+                        return {
+                            'title': story.title,
+                            'description': story.description,
+                            'url': story.url,
+                            'source': story.source,
+                            'location': story.location,
+                            'is_local': True
+                        }
+
+                # Fallback to global good news
+                global_news = db.query(GoodNewsCache).filter(
+                    GoodNewsCache.location.is_(None),
+                    GoodNewsCache.cached_at >= six_hours_ago
+                ).order_by(GoodNewsCache.cached_at.desc()).all()
+
+                if global_news:
+                    story = random.choice(global_news)
+                    return {
+                        'title': story.title,
+                        'description': story.description,
+                        'url': story.url,
+                        'source': story.source,
+                        'location': None,
+                        'is_local': False
+                    }
+
+                # No cached news, fetch fresh news
+                return self._fetch_fresh_good_news(location)
+
+        except Exception as e:
+            logger.error(f"SG-018: Error fetching good news: {e}")
+            return None
+
+    def _fetch_fresh_good_news(self, location: Optional[str] = None) -> Optional[dict]:
+        """
+        SG-018: Fetch fresh good news from APIs/RSS feeds.
+
+        Uses Reddit's UpliftingNews as a free, reliable source.
+
+        Args:
+            location: User's location for filtering (optional)
+
+        Returns:
+            Dictionary with news story or None
+        """
+        try:
+            # Use Reddit's UpliftingNews (free, no API key needed)
+            # Reddit's JSON API is public and doesn't require authentication
+            url = "https://www.reddit.com/r/UpliftingNews/hot.json?limit=25"
+
+            headers = {
+                'User-Agent': 'RalphModeBot/1.0'
+            }
+
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                posts = data['data']['children']
+
+                if posts:
+                    # Filter for posts with decent upvotes (quality signal)
+                    good_posts = [p for p in posts if p['data']['ups'] > 100]
+
+                    if not good_posts:
+                        good_posts = posts  # Fallback to all posts
+
+                    # Pick a random good news story
+                    post = random.choice(good_posts)['data']
+
+                    story = {
+                        'title': post['title'],
+                        'description': post.get('selftext', '')[:500] if post.get('selftext') else None,
+                        'url': f"https://reddit.com{post['permalink']}",
+                        'source': 'r/UpliftingNews',
+                        'location': location,
+                        'is_local': False  # Reddit doesn't have location filtering
+                    }
+
+                    # Cache the story
+                    self._cache_good_news_story(story)
+
+                    return story
+
+        except Exception as e:
+            logger.error(f"SG-018: Error fetching fresh good news: {e}")
+
+        return None
+
+    def _cache_good_news_story(self, story: dict):
+        """
+        SG-018: Cache a good news story to reduce API calls.
+
+        Args:
+            story: Dictionary with news story data
+        """
+        try:
+            from database import get_db, GoodNewsCache
+
+            with get_db() as db:
+                # Check if story already cached (by URL)
+                existing = db.query(GoodNewsCache).filter(
+                    GoodNewsCache.url == story['url']
+                ).first()
+
+                if not existing:
+                    cached_story = GoodNewsCache(
+                        location=story.get('location'),
+                        title=story['title'],
+                        description=story.get('description'),
+                        url=story.get('url'),
+                        source=story.get('source'),
+                        published_at=datetime.utcnow(),
+                        cached_at=datetime.utcnow()
+                    )
+                    db.add(cached_story)
+                    db.commit()
+                    logger.info(f"SG-018: Cached good news story: {story['title'][:50]}")
+
+        except Exception as e:
+            logger.error(f"SG-018: Error caching good news story: {e}")
+
     # ==================== SG-010: RALPH'S SIMPLE WISDOM ====================
 
     def should_share_wisdom(self, user_id: int, situation_type: str = None) -> bool:
@@ -16253,6 +16408,114 @@ Use `/version <type>` to switch!
             reply_markup=keyboard
         )
 
+    async def setlocation_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /setlocation command - SG-018: Local Good News Integration.
+
+        Allows users to set their location for personalized local good news.
+        Usage: /setlocation City, State or /setlocation City, Country
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"SG-018: User {telegram_id} requested location setup via /setlocation command")
+
+        # Check if location was provided
+        if not context.args or len(context.args) == 0:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="*Set Your Location* 📍\n\n"
+                     "Tell Ralph where you're at so he can share good news from your area!\n\n"
+                     "*Usage:*\n"
+                     "`/setlocation San Francisco, CA`\n"
+                     "`/setlocation London, UK`\n"
+                     "`/setlocation Tokyo, Japan`\n\n"
+                     "Don't worry - Ralph only uses this for finding local good news. "
+                     "Your privacy matters! 🔒",
+                parse_mode="Markdown"
+            )
+            return
+
+        # Join all args to get full location
+        location = " ".join(context.args)
+
+        # Store location in database
+        try:
+            from database import get_db, User
+
+            with get_db() as db:
+                # Get or create user
+                user = db.query(User).filter(User.telegram_id == telegram_id).first()
+                if not user:
+                    user = User(telegram_id=telegram_id)
+                    db.add(user)
+
+                # Update location
+                user.location = location
+                db.commit()
+
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"*Location Set!* ✅\n\n"
+                         f"Ralph will now look for good news in *{location}*!\n\n"
+                         f"\"I'm on it boss! Finding happy stuff near you!\" - Ralph\n\n"
+                         f"_Change anytime with /setlocation_",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"SG-018: User {telegram_id} location set to: {location}")
+
+        except Exception as e:
+            logger.error(f"SG-018: Error setting location for user {telegram_id}: {e}")
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="Oops! Ralph got confused setting your location. Try again? 🤔",
+                parse_mode="Markdown"
+            )
+
+    async def goodnews_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /goodnews command - SG-018: Test command to fetch and display good news."""
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"SG-018: User {telegram_id} requested good news via /goodnews command")
+
+        # Fetch good news
+        news = self.get_local_good_news(telegram_id)
+
+        if news:
+            location_context = ""
+            if news.get('is_local') and news.get('location'):
+                location_context = f"📍 *From {news['location']}*\n\n"
+            elif not news.get('is_local'):
+                location_context = "🌍 *Global Good News*\n\n"
+
+            message = (
+                f"{location_context}"
+                f"✨ *{news['title']}*\n\n"
+            )
+
+            if news.get('description'):
+                message += f"{news['description'][:200]}...\n\n"
+
+            message += f"Source: {news['source']}\n"
+
+            if news.get('url'):
+                message += f"[Read more]({news['url']})"
+
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=message,
+                parse_mode="Markdown",
+                disable_web_page_preview=False
+            )
+
+            logger.info(f"SG-018: Sent good news to user {telegram_id}: {news['title'][:50]}")
+        else:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="Uh oh! Ralph couldn't find any good news right now. Try again in a bit! 🤔",
+                parse_mode="Markdown"
+            )
+
     async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle /reorganize command - TC-007: PRD Reorganization Command.
@@ -18115,6 +18378,8 @@ To update your Git config:
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
         app.add_handler(CommandHandler("templates", self.templates_command))  # OB-027
         app.add_handler(CommandHandler("hacktest", self.hacktest_command))  # SEC-031
+        app.add_handler(CommandHandler("setlocation", self.setlocation_command))  # SG-018
+        app.add_handler(CommandHandler("goodnews", self.goodnews_command))  # SG-018
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
