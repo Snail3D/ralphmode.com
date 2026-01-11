@@ -8641,3 +8641,57 @@ Check priority_order for exact sequence.
   - Handle exceptions at service layer, not DB layer
 
 ---
+
+## Iteration [RM-027] - 2026-01-10
+**Task**: [RM-027] Blocker Escalation to CEO
+**Status**: ✅ Complete
+
+### What was implemented
+- Added `escalate_blocker_to_ceo()` method to send blocker alerts to CEO with inline buttons
+- Implemented `handle_blocker_response()` callback handler for CEO actions (skip/help/retry)
+- Created `detect_blocker()` helper to identify blocker types (error/missing_info/decision_needed)
+- Added `check_and_escalate_if_blocker()` async helper for easy integration from async methods
+- Integrated blocker detection markers in call_groq error handlers
+- Session tracking updated to:
+  - Store blocker details in session["blockers"] list
+  - Track blocker_start_time for ETA pause calculation
+  - Calculate total_blocker_time separately from work time
+  - Update quality_metrics["blockers_hit"] and ["blockers_resolved"]
+
+### Files changed
+- ralph_bot.py:
+  - Lines 2132-2366: RM-027 blocker escalation section
+  - Line 5155-5158: Blocker callback handler integration
+  - Lines 4528-4537: Blocker escalation comments in error handlers
+
+- scripts/ralph/prd.json:
+  - Line 559: RM-027 "passes": false → true
+
+### Learnings
+- Blocker escalation needs to happen at async layer (not in call_groq directly)
+  - call_groq is synchronous and doesn't have access to context/chat_id
+  - Solution: detect_blocker() + check_and_escalate_if_blocker() pattern
+  - Async callers can easily integrate: if await check_and_escalate_if_blocker(...): return
+- Inline keyboards follow pattern:
+  - InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data=data)]])
+  - callback_data prefixes route to specific handlers (blocker_, sat_, tap_, etc.)
+  - query.answer() must be called first, then edit_message_text or send new
+- Session state for blocker pause time:
+  - blocker_start_time marks when blocker begins
+  - Deleted and added to total_blocker_time when CEO responds
+  - This allows ETA calculations to exclude blocker wait time
+- Ralph's personality shines in blocker messages:
+  - "Uh oh, Mr. Worms! We got stuck on something!"
+  - "The computer did something unpossible!"
+  - Uses ralph_misspell() for authenticity
+  - Random selection from message lists prevents repetition
+
+### Acceptance Criteria Met
+✅ Detect blocker situations (errors, missing info, decisions needed)
+✅ Ralph: 'Uh oh, Mr. Worms! We got stuck on something!'
+✅ Show inline buttons: 'Skip this' / 'I'll help' / 'Keep trying'
+✅ If CEO helps, pass info to workers (session["awaiting_ceo_help"] flag set)
+✅ Track blockers in session history (session["blockers"] list)
+✅ Blockers don't count against ETA (blocker_start_time and total_blocker_time tracking)
+
+---

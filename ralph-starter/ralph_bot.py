@@ -2129,6 +2129,242 @@ class RalphBot:
                 text="Oops! Something went wrong recording your feedback. Sorry about that!"
             )
 
+    # ==================== RM-027: BLOCKER ESCALATION ====================
+
+    async def escalate_blocker_to_ceo(self, context, chat_id: int, user_id: int, blocker_type: str, error_message: str):
+        """
+        RM-027: Escalate a blocker to the CEO with options.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            blocker_type: Type of blocker (error, missing_info, decision_needed)
+            error_message: Description of the blocker
+        """
+        # Track this blocker
+        if user_id not in self.quality_metrics:
+            self.quality_metrics[user_id] = {}
+
+        metrics = self.quality_metrics[user_id]
+        metrics["blockers_hit"] = metrics.get("blockers_hit", 0) + 1
+
+        # Store blocker details in session
+        session = self.active_sessions.get(user_id, {})
+        if "blockers" not in session:
+            session["blockers"] = []
+
+        blocker_data = {
+            "type": blocker_type,
+            "message": error_message,
+            "timestamp": datetime.now().isoformat(),
+            "status": "pending"
+        }
+        session["blockers"].append(blocker_data)
+
+        # Pause ETA tracking - mark blocker start time
+        session["blocker_start_time"] = datetime.now()
+
+        # Ralph's escalation message (varies based on blocker type)
+        ralph_messages = {
+            "error": [
+                "Uh oh, Mr. Worms! We got stuck on something!",
+                "Mr. Worms! The computer did something unpossible!",
+                "Boss! Boss! We hit a snag and I don't know what to do!"
+            ],
+            "missing_info": [
+                "Mr. Worms! The team needs to ask you something!",
+                "Hey boss! We need your brain for a second!",
+                "Mr. Worms! We're missing a piece of the puzzle!"
+            ],
+            "decision_needed": [
+                "Mr. Worms! We need you to make a choice!",
+                "Boss! The team can't decide - you gotta pick!",
+                "Mr. Worms! This one's above my pay grade!"
+            ]
+        }
+
+        ralph_message = random.choice(ralph_messages.get(blocker_type, ralph_messages["error"]))
+        ralph_message = self.ralph_misspell(ralph_message)
+
+        # Build the escalation message
+        escalation_text = f"""🚨 *BLOCKER ALERT* 🚨
+
+_{ralph_message}_
+
+*What happened:*
+{error_message}
+
+*What do you want to do?*"""
+
+        # Create inline buttons for CEO response
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⏭️ Skip this", callback_data=f"blocker_skip_{len(session['blockers'])-1}")],
+            [InlineKeyboardButton("🤝 I'll help", callback_data=f"blocker_help_{len(session['blockers'])-1}")],
+            [InlineKeyboardButton("🔄 Keep trying", callback_data=f"blocker_retry_{len(session['blockers'])-1}")],
+        ])
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=escalation_text,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        logger.info(f"RM-027: Escalated {blocker_type} blocker to CEO for user {user_id}")
+
+    async def handle_blocker_response(self, query, context, user_id: int, data: str):
+        """
+        RM-027: Handle CEO's response to blocker escalation.
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User ID
+            data: Callback data (blocker_skip_0, blocker_help_0, blocker_retry_0)
+        """
+        await query.answer()
+
+        # Parse callback data: blocker_action_index
+        parts = data.split("_")
+        if len(parts) != 3:
+            logger.error(f"RM-027: Invalid blocker callback data: {data}")
+            return
+
+        action = parts[1]  # skip, help, retry
+        blocker_index = int(parts[2])
+
+        session = self.active_sessions.get(user_id)
+        if not session or "blockers" not in session:
+            await query.edit_message_text("Error: Session or blocker not found.")
+            return
+
+        if blocker_index >= len(session["blockers"]):
+            await query.edit_message_text("Error: Invalid blocker index.")
+            return
+
+        blocker = session["blockers"][blocker_index]
+
+        # Resume ETA tracking - calculate blocker duration
+        if "blocker_start_time" in session:
+            blocker_duration = (datetime.now() - session["blocker_start_time"]).total_seconds()
+            session["total_blocker_time"] = session.get("total_blocker_time", 0) + blocker_duration
+            del session["blocker_start_time"]
+
+        # Handle the action
+        if action == "skip":
+            blocker["status"] = "skipped"
+            metrics = self.quality_metrics.get(user_id, {})
+            metrics["blockers_resolved"] = metrics.get("blockers_resolved", 0) + 1
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Okay boss! We'll skip this one and move on!",
+                "Got it! Moving to the next thing!",
+                "Alright Mr. Worms! We'll come back to that later maybe!"
+            ]))
+
+            await query.edit_message_text(
+                f"{query.message.text}\n\n✅ *CEO DECISION: Skip this*\n\n_{ralph_response}_",
+                parse_mode="Markdown"
+            )
+
+        elif action == "help":
+            blocker["status"] = "ceo_helping"
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Oh thank you Mr. Worms! What should we do?",
+                "Yes! Please help us! What's the plan?",
+                "You're the best boss! Tell us what to do!"
+            ]))
+
+            # Store that CEO is helping - next message will be treated as help
+            session["awaiting_ceo_help"] = blocker_index
+
+            await query.edit_message_text(
+                f"{query.message.text}\n\n💬 *CEO DECISION: I'll help*\n\n_{ralph_response}_\n\nPlease send your instructions or information to help us!",
+                parse_mode="Markdown"
+            )
+
+        elif action == "retry":
+            blocker["status"] = "retrying"
+            metrics = self.quality_metrics.get(user_id, {})
+            metrics["blockers_resolved"] = metrics.get("blockers_resolved", 0) + 1
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Okay team! Let's try again! Maybe it'll work this time!",
+                "Alright boys! One more time with feeling!",
+                "Got it boss! We'll give it another shot!"
+            ]))
+
+            await query.edit_message_text(
+                f"{query.message.text}\n\n🔄 *CEO DECISION: Keep trying*\n\n_{ralph_response}_",
+                parse_mode="Markdown"
+            )
+
+            # TODO: Actual retry logic would go here (re-attempt the failed operation)
+
+        logger.info(f"RM-027: CEO chose '{action}' for blocker {blocker_index} for user {user_id}")
+
+    def detect_blocker(self, error_message: str, context_info: str = "") -> Tuple[bool, str, str]:
+        """
+        RM-027: Detect if an error/situation is a blocker that needs CEO escalation.
+
+        Args:
+            error_message: The error message or situation description
+            context_info: Additional context about where/how the error occurred
+
+        Returns:
+            Tuple of (is_blocker, blocker_type, escalation_message)
+            blocker_type can be: "error", "missing_info", "decision_needed"
+        """
+        error_lower = error_message.lower()
+
+        # Check for API errors that are blockers
+        if any(keyword in error_lower for keyword in ["timeout", "rate limit", "api key", "unauthorized", "forbidden"]):
+            return (True, "error", f"API Error: {error_message}\n\nContext: {context_info}")
+
+        # Check for missing information
+        if any(keyword in error_lower for keyword in ["missing", "required", "not found", "undefined"]):
+            return (True, "missing_info", f"Missing Information: {error_message}\n\nContext: {context_info}")
+
+        # Check for decisions needed
+        if any(keyword in error_lower for keyword in ["choose", "select", "decide", "which", "option"]):
+            return (True, "decision_needed", f"Decision Needed: {error_message}\n\nContext: {context_info}")
+
+        # Not a blocker - just a regular error
+        return (False, "", "")
+
+    async def check_and_escalate_if_blocker(self, context, chat_id: int, user_id: int, response: str, operation_context: str = "") -> bool:
+        """
+        RM-027: Helper method to check if a response indicates a blocker and escalate if needed.
+
+        Use this in async methods after calling AI or performing operations that might fail.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            response: The response from an operation (might contain error indicators)
+            operation_context: Description of what operation was being performed
+
+        Returns:
+            True if blocker was escalated, False otherwise
+
+        Example usage:
+            response = self.call_groq(model, messages)
+            if await self.check_and_escalate_if_blocker(context, chat_id, user_id, response, "Generating worker response"):
+                return  # Blocker escalated, exit early
+
+        """
+        # Check if response indicates an error (e.g., fallback response)
+        is_blocker, blocker_type, escalation_msg = self.detect_blocker(response, operation_context)
+
+        if is_blocker:
+            await self.escalate_blocker_to_ceo(context, chat_id, user_id, blocker_type, escalation_msg)
+            return True
+
+        return False
+
     async def _finish_onboarding(self, context, chat_id: int, user_id: int, skipped: bool = False):
         """Finish onboarding and transition to analysis results.
 
@@ -4320,12 +4556,15 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
         except requests.exceptions.Timeout:
             logger.error("SEC-029: Groq API timeout")
+            # RM-027: This is a blocker - callers should check for fallback response and escalate
             return get_fallback_response("general")
         except requests.exceptions.RequestException as e:
             logger.error(f"SEC-029: Groq API error: {e}")
+            # RM-027: This is a blocker - callers should check for fallback response and escalate
             return get_fallback_response("general")
         except Exception as e:
             logger.error(f"SEC-029: Unexpected error in call_groq: {e}")
+            # RM-027: This is a blocker - callers should check for fallback response and escalate
             return get_fallback_response("general")
 
     def call_boss(self, message: str, apply_misspellings: bool = True, tone_context: str = "", user_id: int = None) -> str:
@@ -5150,6 +5389,11 @@ _Drop a zip file to get started!_
         # FB-003: Handle feedback type selection
         if data.startswith("feedback_type_"):
             await self.handle_feedback_type_selection(query, context, user_id, data)
+            return
+
+        # RM-027: Handle blocker response callbacks
+        if data.startswith("blocker_"):
+            await self.handle_blocker_response(query, context, user_id, data)
             return
 
         await query.answer()
