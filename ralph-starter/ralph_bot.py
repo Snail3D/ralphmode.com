@@ -26,6 +26,7 @@ import logging
 import requests
 import base64
 import random
+import difflib
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -8036,8 +8037,50 @@ Quality checks: {m['quality_checks_passed']} passed, {m['quality_checks_failed']
             "opener": response[:50].lower().strip() if len(response) > 0 else ""
         })
 
-        # Keep only last 10 responses
-        self.recent_responses[user_id] = self.recent_responses[user_id][-10:]
+        # SG-029: Keep last 50 responses for better freshness tracking
+        self.recent_responses[user_id] = self.recent_responses[user_id][-50:]
+
+    def check_response_similarity(self, user_id: int, new_response: str, character_name: str = "") -> tuple:
+        """SG-029: Check if new response is too similar to recent responses.
+
+        Args:
+            user_id: The user ID
+            new_response: The candidate response to check
+            character_name: Name of the character (for filtering recent responses)
+
+        Returns:
+            tuple: (is_too_similar: bool, similarity_score: float, matched_response: str)
+        """
+        if user_id not in self.recent_responses or not self.recent_responses[user_id]:
+            return (False, 0.0, "")
+
+        recent = self.recent_responses[user_id]
+        new_text = new_response.lower().strip()
+
+        # Filter by character if specified, or check all recent responses
+        if character_name:
+            responses_to_check = [r for r in recent if r["character"] == character_name]
+        else:
+            responses_to_check = recent
+
+        # Check against recent responses (especially important for short responses)
+        max_similarity = 0.0
+        matched_text = ""
+
+        for r in responses_to_check[-20:]:  # Check last 20 responses
+            old_text = r["text"]
+
+            # Use difflib's SequenceMatcher for simple similarity check
+            similarity = difflib.SequenceMatcher(None, new_text, old_text).ratio()
+
+            if similarity > max_similarity:
+                max_similarity = similarity
+                matched_text = old_text
+
+        # SG-029: >70% similar = regenerate
+        is_too_similar = max_similarity > 0.70
+
+        return (is_too_similar, max_similarity, matched_text)
 
     def get_freshness_prompt(self, user_id: int, character_name: str = "") -> str:
         """Generate a freshness prompt based on recent responses.
@@ -10455,21 +10498,50 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
             {"role": "system", "content": system_content},
             {"role": "user", "content": message}
         ]
-        response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
 
-        # Apply Ralph's authentic misspellings
-        if apply_misspellings:
-            response = self.ralph_misspell(response)
+        # SG-029: Response freshness with regeneration
+        max_attempts = 3  # Limit regeneration attempts
+        attempt = 0
+        response = None
+
+        while attempt < max_attempts:
+            response = self.call_groq(BOSS_MODEL, messages, max_tokens=150)
+
+            # Apply Ralph's authentic misspellings
+            if apply_misspellings:
+                response_with_misspellings = self.ralph_misspell(response)
+            else:
+                response_with_misspellings = response
+
+            # SG-029: Check similarity if user_id provided
+            if user_id is not None:
+                is_similar, similarity, matched = self.check_response_similarity(
+                    user_id, response_with_misspellings, "Ralph"
+                )
+
+                if is_similar:
+                    attempt += 1
+                    logger.info(f"SG-029: Ralph response too similar ({similarity:.2f}) to recent response. Regenerating (attempt {attempt}/{max_attempts})")
+                    # Add stronger freshness requirement for next attempt
+                    system_content += "\n\nIMPORTANT: Your last response was too similar to previous ones. COMPLETELY change your approach, vocabulary, and structure!"
+                    messages[0]["content"] = system_content
+                    continue
+                else:
+                    # Response is fresh enough
+                    break
+            else:
+                # No user_id, can't check similarity
+                break
 
         # RM-010: Track this response for freshness
         if user_id is not None:
-            self.track_response(user_id, response, "Ralph")
+            self.track_response(user_id, response_with_misspellings, "Ralph")
 
         # SS-005: Track scene elements mentioned in Ralph's response
         if user_id is not None:
-            self._track_scene_elements(user_id, response)
+            self._track_scene_elements(user_id, response_with_misspellings)
 
-        return response
+        return response_with_misspellings
 
     def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None, issue_context: str = "general", is_pushback: bool = False) -> tuple:
         """Get response from a specific team member. Returns (name, title, response, tokens).
@@ -10614,8 +10686,8 @@ Show professionalism by making their vision work."""
         # SG-013: Add workload awareness context
         workload_prompt = self.get_workload_awareness_prompt(user_id)
 
-        messages = [
-            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+        # Build initial system content
+        system_content = f"""{WORK_QUALITY_PRIORITY}
 
 {AGE_APPROPRIATE_DEMOGRAPHICS}
 
@@ -10649,10 +10721,41 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {workload_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
-Break complex info across multiple messages. Let it breathe. Stay in character."""},
+Break complex info across multiple messages. Let it breathe. Stay in character."""
+
+        messages = [
+            {"role": "system", "content": system_content},
             {"role": "user", "content": message}
         ]
-        response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
+
+        # SG-029: Response freshness with regeneration
+        max_attempts = 3  # Limit regeneration attempts
+        attempt = 0
+        response = None
+
+        while attempt < max_attempts:
+            response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
+
+            # SG-029: Check similarity if user_id provided
+            if user_id is not None:
+                is_similar, similarity, matched = self.check_response_similarity(
+                    user_id, response, worker_name
+                )
+
+                if is_similar:
+                    attempt += 1
+                    logger.info(f"SG-029: {worker_name} response too similar ({similarity:.2f}) to recent response. Regenerating (attempt {attempt}/{max_attempts})")
+                    # Add stronger freshness requirement for next attempt
+                    system_content += "\n\nIMPORTANT: Your last response was too similar to previous ones. COMPLETELY change your approach, vocabulary, and structure!"
+                    messages[0]["content"] = system_content
+                    continue
+                else:
+                    # Response is fresh enough
+                    break
+            else:
+                # No user_id, can't check similarity
+                break
+
         token_count = len(response.split())  # Rough word count as proxy
 
         # RM-037: Increment pushback counter if this was a pushback
