@@ -2762,7 +2762,7 @@
         "admin_handler.py",
         "content_filter.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "AC-006",

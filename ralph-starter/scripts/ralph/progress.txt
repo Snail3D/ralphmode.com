@@ -12551,3 +12551,44 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Occasional references (1 in 10) keep it natural vs. forced
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [AC-005] Banned Subjects/Topics List Management
+**Status**: ✅ Complete
+
+### What was implemented
+- Admin can ban topics via voice commands: "admin command: ban topic [topic]"
+- Admin can unban topics: "admin command: unban topic [topic]"
+- Admin can list banned topics: "admin command: list banned topics"
+- Messages containing banned topics are automatically blocked (fuzzy matching)
+- In-character deflection responses from Ralph when topics are detected
+- Case-insensitive and fuzzy matching (e.g., "crypto" matches "cryptocurrency")
+
+### Files changed
+- user_manager.py:
+  - Added `_banned_topics` set for storage
+  - Added `ban_topic()`, `unban_topic()`, `get_banned_topics()` methods
+  - Added `is_topic_banned()` for fuzzy matching
+- ralph_bot.py:
+  - Added `handle_admin_ban_topic_command()` for processing admin commands
+  - Added `get_banned_topic_deflection()` for in-character responses
+  - Added topic filtering in `handle_text()` and `handle_voice()` handlers
+  - Integrated command routing in `process_admin_voice_command()`
+- test_ac005_banned_topics.py:
+  - Comprehensive test suite covering all acceptance criteria
+  - All 12 tests pass successfully
+
+### Learnings
+- Fuzzy matching uses simple substring checking: "crypto" in "cryptocurrency"
+- Topics are normalized to lowercase for consistent case-insensitive matching
+- Deflection messages maintain Ralph's personality with misspellings
+- Topic filtering happens early in message handlers, before any other processing
+- Admin commands are processed silently with private confirmation
+
+### Patterns discovered
+- Storage pattern matches muted users: simple set() for in-memory tracking
+- Admin command routing uses elif chain checking for keyword triggers
+- In-character responses use `ralph_misspell()` for consistency
+- Fuzzy matching is intentionally simple to catch variations without false positives
+
+---
