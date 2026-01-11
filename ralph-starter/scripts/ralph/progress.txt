@@ -9601,3 +9601,45 @@ Updated the following methods to use tutorial library:
 - Multi-language tutorial support
 
 ---
+
+## Iteration [OB-032] - 2026-01-10
+**Task**: [OB-032] Story Mode Narration
+**Status**: ✅ Complete
+
+### What was implemented
+- Created ralph_personality.py module with RalphNarrator class
+- Implemented Ralph's characteristic misspellings (unpossible, computor, congradulations, etc.)
+- Added context-aware encouragement messages (general, progress, error, milestone)
+- Added celebration messages for completed milestones with random variety
+- Integrated humorous error messages that maintain Ralph's voice
+- Added step introduction narrations for major onboarding steps
+- Enhanced skip messages with Ralph's understanding tone
+- Added goodbye messages for setup completion
+- Integrated narrator throughout onboarding_wizard.py at key touchpoints:
+  * Progress messages now include encouragement based on completion
+  * Success messages include celebrations
+  * Help/error messages include humor
+  * Step introductions add narration
+  * Skip confirmations feel more personable
+  * Completion celebration is more engaging
+
+### Files changed
+- ralph_personality.py (NEW) - Dedicated module for Ralph's personality
+- onboarding_wizard.py - Integrated narrator at 6+ key points
+
+### Learnings
+- Ralph's personality works best when it's random and fresh, not canned responses
+- The misspelling system should be applied probabilistically (20% chance) to feel natural
+- Context matters - different types of messages (progress vs error vs milestone) need different tones
+- The narrator is optional (graceful degradation) - checks if available before using
+- String formatting with f-strings makes it easy to inject personality at key moments
+- Separating personality logic into its own module makes it reusable across the codebase
+
+### Acceptance Criteria Met
+✅ Ralph personality throughout setup - Narrator integrated at all major steps
+✅ Encouraging messages at each step - Context-aware encouragement system
+✅ Celebrates milestones - Celebration messages when tasks complete
+✅ Handles errors with humor - Error messages maintain Ralph's voice
+✅ Optional skip for returning users - Skip messages enhanced with Ralph's understanding
+
+---
