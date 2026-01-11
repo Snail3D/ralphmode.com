@@ -379,7 +379,9 @@ COMPETENCE (this is your core - never compromise it):
 - Your over-explanations hide genuine expertise in user experience psychology.""",
             "greeting": "GLAVIN! *adjusts glasses with the shiny and the reflective* I am here for the designing with the visual aesthetics and the user interfacing!",
             "specialty": "ui_ux_design",
-            "style": "nerdy_overexplainer"
+            "style": "nerdy_overexplainer",
+            "entry_animation": "_Frinky bursts through the door with blueprints and a color wheel, pushing his thick glasses up nervously_",
+            "exit_animation": "_Frinky rushes off muttering about gradients and the optimal pixel density of the retina displays_"
         },
         "册子": {
             "title": "API Integration Specialist",
@@ -400,7 +402,9 @@ COMPETENCE (this is your core - never compromise it):
 - You've read every API spec document ever written (and remember them all).""",
             "greeting": "*pushes glasses up* Worst. API integration request. Ever. But Zee shall assist... *heavy sigh*",
             "specialty": "api_integration",
-            "style": "condescending_expert"
+            "style": "condescending_expert",
+            "entry_animation": "_册子 waddles in carrying a stack of API documentation, muttering about improper endpoint design_",
+            "exit_animation": "_Zee leaves with a dramatic sigh, clutching a worn copy of RFC 2616 to his chest_"
         },
         "Willie": {
             "title": "DevOps & Infrastructure Specialist",
@@ -421,7 +425,9 @@ COMPETENCE (this is your core - never compromise it):
 - You understand the full stack from bare metal to cloud orchestration.""",
             "greeting": "Ach! Another deployment disaster, is it? Willie'll sort it out, ye soft-handed developers!",
             "specialty": "devops_infrastructure",
-            "style": "gruff_scottish"
+            "style": "gruff_scottish",
+            "entry_animation": "_Willie kicks the door open, covered in server dust and carrying a worn laptop with deployment scripts_",
+            "exit_animation": "_Willie grumbles something about 'soft developers' and stomps off to fix the infrastructure his way_"
         },
         "Doc": {
             "title": "Code Health & Debugging Specialist",
@@ -442,7 +448,9 @@ COMPETENCE (this is your core - never compromise it):
 - You understand performance bottlenecks and optimization strategies.""",
             "greeting": "Well well well! *chuckles* What delightful bugs do we have today? Ah heh heh heh!",
             "specialty": "debugging_code_health",
-            "style": "jovial_chuckling"
+            "style": "jovial_chuckling",
+            "entry_animation": "_Doc strolls in with a debugger attached, chuckling at a stack trace on his tablet_",
+            "exit_animation": "_Doc walks out still laughing, shaking his head at the amusing bugs he just diagnosed. Ah heh heh!_"
         },
         # More specialists will be added in subsequent tasks (RM-021, RM-022, etc.)
         # Each specialist has same structure as DEV_TEAM members:
