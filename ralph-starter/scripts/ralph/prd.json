@@ -4142,7 +4142,7 @@
       "files_likely_modified": [
         "prd_organizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TC-002",
@@ -4264,6 +4264,756 @@
         "prd_organizer.py"
       ],
       "passes": false
+    },
+    {
+      "id": "OB-001",
+      "category": "Onboarding Wizard",
+      "title": "Onboarding Entry Point - /setup Command",
+      "description": "Create the main entry point for onboarding. When user sends /setup, Ralph starts the friendly wizard to guide them through configuration.",
+      "acceptance_criteria": [
+        "/setup command handler exists",
+        "Displays welcome message with Ralph's personality",
+        "Shows overview of what will be configured",
+        "Asks if user wants guided or quick setup",
+        "Tracks onboarding progress in user state"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-002",
+      "category": "Onboarding Wizard",
+      "title": "SSH Key Generation Wizard",
+      "description": "Guide users through generating SSH keys for GitHub. Provide copy-paste commands and explain each step in kid-friendly language.",
+      "acceptance_criteria": [
+        "Detects if SSH key already exists",
+        "Provides copy button for ssh-keygen command",
+        "Explains what SSH keys are simply",
+        "Shows progress after key generation",
+        "Includes link to video tutorial"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-003",
+      "category": "Onboarding Wizard",
+      "title": "GitHub SSH Key Addition Guide",
+      "description": "Walk users through adding their SSH key to GitHub. Include screenshots/links and copy button for the public key.",
+      "acceptance_criteria": [
+        "Provides copy button for public key content",
+        "Links to GitHub SSH settings page",
+        "Links to video tutorial with timestamps",
+        "Verifies connection with ssh -T git@github.com",
+        "Celebrates success with Ralph personality"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-004",
+      "category": "Onboarding Wizard",
+      "title": "Repository Creation Wizard",
+      "description": "Help users create their first repository. Support both GitHub web UI and gh CLI methods.",
+      "acceptance_criteria": [
+        "Asks for project name",
+        "Offers GitHub web link or gh CLI command",
+        "Copy button for gh repo create command",
+        "Verifies repo exists after creation",
+        "Explains public vs private repos"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-005",
+      "category": "Onboarding Wizard",
+      "title": "Git Configuration Setup",
+      "description": "Configure git user.name and user.email. Make it easy with copy buttons and explain why this matters.",
+      "acceptance_criteria": [
+        "Asks for name and email",
+        "Provides copy buttons for git config commands",
+        "Verifies configuration with git config --list",
+        "Explains this appears in commit history",
+        "Kid-friendly explanation of version control"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-006",
+      "category": "Onboarding Wizard",
+      "title": "Anthropic API Key Setup",
+      "description": "Guide users through getting and configuring their Anthropic API key for Claude. Include signup link and safety reminders.",
+      "acceptance_criteria": [
+        "Links to Anthropic console signup",
+        "Video tutorial link for getting API key",
+        "Secure input field for key entry",
+        "Validates key format before saving",
+        "Explains API key security (never share)"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "api_key_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-007",
+      "category": "Onboarding Wizard",
+      "title": "Telegram Bot Creation Wizard",
+      "description": "Walk users through creating a Telegram bot via BotFather. Step-by-step with screenshots and copy buttons.",
+      "acceptance_criteria": [
+        "Links to @BotFather on Telegram",
+        "Step-by-step /newbot walkthrough",
+        "Copy button for bot token",
+        "Validates token format",
+        "Tests bot connection before proceeding"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-008",
+      "category": "Onboarding Wizard",
+      "title": "Environment File Creator",
+      "description": "Automatically create .env file with all required variables. Guide users through each value.",
+      "acceptance_criteria": [
+        "Creates .env file if not exists",
+        "Lists all required environment variables",
+        "Adds each variable as user provides it",
+        "Never commits .env to git (verify .gitignore)",
+        "Shows .env.example for reference"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "env_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-009",
+      "category": "Onboarding Wizard",
+      "title": "API Key Validation Service",
+      "description": "Test API keys before saving. Make a small API call to verify the key works.",
+      "acceptance_criteria": [
+        "Validates Anthropic key with test request",
+        "Validates Telegram token with getMe",
+        "Validates Groq key if provided",
+        "Clear error messages if invalid",
+        "Retry option on failure"
+      ],
+      "files_likely_modified": ["api_key_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-010",
+      "category": "Onboarding Wizard",
+      "title": "Groq API Key Setup (Optional)",
+      "description": "Guide users through getting Groq API key for fast inference. Mark as optional enhancement.",
+      "acceptance_criteria": [
+        "Links to Groq console",
+        "Explains Groq benefits (speed)",
+        "Validates key before saving",
+        "Skip option if user doesn't want it",
+        "Stores in .env file"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-011",
+      "category": "Onboarding Wizard",
+      "title": "OpenWeather API Setup (Optional)",
+      "description": "Guide users through getting OpenWeather API key for scene weather integration.",
+      "acceptance_criteria": [
+        "Links to OpenWeather signup",
+        "Explains weather affects Ralph's office scenes",
+        "Validates key with test request",
+        "Skip option available",
+        "Location configuration (city name)"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-012",
+      "category": "Onboarding Wizard",
+      "title": "Copy Button Component",
+      "description": "Create reusable copy-to-clipboard buttons for Telegram. One tap copies command/key to clipboard.",
+      "acceptance_criteria": [
+        "Inline button triggers copy action",
+        "Shows confirmation after copy",
+        "Works for commands, keys, code snippets",
+        "Handles long text gracefully",
+        "Mobile-friendly tap target"
+      ],
+      "files_likely_modified": ["telegram_utils.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-013",
+      "category": "Onboarding Wizard",
+      "title": "Progress Tracker UI",
+      "description": "Visual checklist showing onboarding progress. Updates as each step completes.",
+      "acceptance_criteria": [
+        "Shows all setup steps with status icons",
+        "Checkmarks for completed steps",
+        "Current step highlighted",
+        "Percentage complete displayed",
+        "Persistent across sessions"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "progress_tracker.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-014",
+      "category": "Onboarding Wizard",
+      "title": "YouTube Tutorial Library",
+      "description": "Curated list of helpful YouTube tutorials for each setup step. Include timestamps for specific sections.",
+      "acceptance_criteria": [
+        "Tutorial links for SSH, GitHub, API keys",
+        "Timestamps for relevant sections",
+        "Brief description of each video",
+        "Mobile-friendly link format",
+        "Updated regularly (version tracked)"
+      ],
+      "files_likely_modified": ["tutorial_library.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-015",
+      "category": "Onboarding Wizard",
+      "title": "Inline Help Tooltips",
+      "description": "Add ? buttons that explain terms and concepts. Kid-friendly explanations.",
+      "acceptance_criteria": [
+        "? button next to technical terms",
+        "Popup explanation on tap",
+        "Simple language (8th grade reading level)",
+        "Examples where helpful",
+        "Links to learn more"
+      ],
+      "files_likely_modified": ["telegram_utils.py", "help_tooltips.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-016",
+      "category": "Onboarding Wizard",
+      "title": "MCP Concept Explainer",
+      "description": "Explain what MCP (Model Context Protocol) is in simple terms. Why it matters and what it enables.",
+      "acceptance_criteria": [
+        "Simple explanation of MCP",
+        "Real-world analogies (like plugins)",
+        "Examples of what MCP enables",
+        "Links to official MCP docs",
+        "Video explainer link if available"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "mcp_explainer.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-017",
+      "category": "Onboarding Wizard",
+      "title": "MCP Server List Browser",
+      "description": "Show available pre-built MCP servers. Categories: databases, APIs, productivity tools.",
+      "acceptance_criteria": [
+        "Lists popular MCP servers",
+        "Categories: Database, API, Productivity, Dev Tools",
+        "Brief description of each",
+        "One-click install option",
+        "Search/filter functionality"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-018",
+      "category": "Onboarding Wizard",
+      "title": "GitHub MCP Server Setup",
+      "description": "Guide through connecting GitHub MCP server. Enables repo management from Ralph.",
+      "acceptance_criteria": [
+        "Checks for existing GitHub auth",
+        "Guides through gh auth login if needed",
+        "Installs GitHub MCP server",
+        "Verifies connection works",
+        "Shows what actions are now available"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "github_mcp_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-019",
+      "category": "Onboarding Wizard",
+      "title": "Database MCP Connection Wizard",
+      "description": "Connect to PostgreSQL, MySQL, MongoDB, or SQLite. Guide through connection string setup.",
+      "acceptance_criteria": [
+        "Asks which database type",
+        "Guides through connection string format",
+        "Secure credential handling",
+        "Tests connection before saving",
+        "Shows example queries once connected"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "database_mcp_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-020",
+      "category": "Onboarding Wizard",
+      "title": "Custom MCP Server Wizard",
+      "description": "Help users create MCP server for any API. Generates boilerplate and guides configuration.",
+      "acceptance_criteria": [
+        "Asks what API to connect to",
+        "Generates MCP server boilerplate",
+        "Guides through authentication setup",
+        "Creates example tools/resources",
+        "Tests before finalizing"
+      ],
+      "files_likely_modified": ["mcp_generator.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-021",
+      "category": "Onboarding Wizard",
+      "title": "MCP Health Check System",
+      "description": "Verify all MCP connections are working. Run periodically and on-demand.",
+      "acceptance_criteria": [
+        "Checks each configured MCP server",
+        "Reports status: healthy, degraded, down",
+        "Reconnect option for failed connections",
+        "Logs health check history",
+        "Alerts on connection loss"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "health_check.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-022",
+      "category": "Onboarding Wizard",
+      "title": "Credential Manager",
+      "description": "Secure storage for API keys and passwords. Encrypted at rest, easy to update.",
+      "acceptance_criteria": [
+        "Encrypts credentials before storing",
+        "Easy update/rotate functionality",
+        "List configured credentials (masked)",
+        "Delete credential option",
+        "Export/import for backup"
+      ],
+      "files_likely_modified": ["credential_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-023",
+      "category": "Onboarding Wizard",
+      "title": "Node.js Version Checker",
+      "description": "Check Node.js version and guide upgrade if needed. Ensure compatibility.",
+      "acceptance_criteria": [
+        "Detects installed Node.js version",
+        "Compares to minimum required (18+)",
+        "Links to Node.js download if outdated",
+        "nvm installation guide option",
+        "Verifies npm is also installed"
+      ],
+      "files_likely_modified": ["dependency_checker.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-024",
+      "category": "Onboarding Wizard",
+      "title": "Python Environment Setup",
+      "description": "Create virtual environment and install dependencies. Handle venv creation automatically.",
+      "acceptance_criteria": [
+        "Detects Python version (3.9+ required)",
+        "Creates venv if not exists",
+        "Activates venv for pip install",
+        "Installs from requirements.txt",
+        "Verifies all packages installed"
+      ],
+      "files_likely_modified": ["dependency_checker.py", "setup_venv.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-025",
+      "category": "Onboarding Wizard",
+      "title": "Dependency Installation Wizard",
+      "description": "Run npm install and pip install with progress feedback. Handle errors gracefully.",
+      "acceptance_criteria": [
+        "Shows installation progress",
+        "Handles npm install failures",
+        "Handles pip install failures",
+        "Retry option on failure",
+        "Skip option for advanced users"
+      ],
+      "files_likely_modified": ["dependency_checker.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-026",
+      "category": "Onboarding Wizard",
+      "title": "Claude Code CLI Installation Guide",
+      "description": "Guide through installing Claude Code CLI. npm install -g @anthropic-ai/claude-code",
+      "acceptance_criteria": [
+        "Checks if claude command exists",
+        "Provides npm install command with copy button",
+        "Verifies installation with claude --version",
+        "Troubleshooting for common issues",
+        "Links to Claude Code documentation"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "claude_code_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-027",
+      "category": "Onboarding Wizard",
+      "title": "Project Template Selector",
+      "description": "Choose from starter templates. Ralph pattern, web app, API, etc.",
+      "acceptance_criteria": [
+        "Lists available templates",
+        "Preview of what each includes",
+        "One-click scaffolding",
+        "Customization options",
+        "Creates PRD from template"
+      ],
+      "files_likely_modified": ["template_manager.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-028",
+      "category": "Onboarding Wizard",
+      "title": "PRD Template Generator",
+      "description": "Generate starting PRD based on project type. Pre-populated with common tasks.",
+      "acceptance_criteria": [
+        "Asks about project type",
+        "Generates appropriate tasks",
+        "Includes acceptance criteria templates",
+        "Sets up priority order",
+        "Explains PRD structure"
+      ],
+      "files_likely_modified": ["prd_generator.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-029",
+      "category": "Onboarding Wizard",
+      "title": "Folder Structure Creator",
+      "description": "Set up standard project folder structure. Scripts, configs, source code organization.",
+      "acceptance_criteria": [
+        "Creates scripts/ralph/ directory",
+        "Creates config directory",
+        "Creates tests directory",
+        "Adds .gitignore",
+        "Explains each folder's purpose"
+      ],
+      "files_likely_modified": ["project_scaffolder.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-030",
+      "category": "Onboarding Wizard",
+      "title": "First Commit Assistant",
+      "description": "Help users make their first git commit. Stage, commit, push with guidance.",
+      "acceptance_criteria": [
+        "Guides through git add",
+        "Helps write commit message",
+        "Explains commit best practices",
+        "Handles git push with upstream",
+        "Celebrates first commit!"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "git_helper.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-031",
+      "category": "Onboarding Wizard",
+      "title": "Rollback Functionality",
+      "description": "Allow undoing setup steps. Restore previous state if something goes wrong.",
+      "acceptance_criteria": [
+        "Tracks each setup change",
+        "Undo button for recent changes",
+        "Restores files to previous state",
+        "Clears invalid configurations",
+        "Explains what was undone"
+      ],
+      "files_likely_modified": ["rollback_manager.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-032",
+      "category": "Onboarding Wizard",
+      "title": "Story Mode Narration",
+      "description": "Ralph narrates the onboarding journey. 'Now we're getting you connected to the interwebs!'",
+      "acceptance_criteria": [
+        "Ralph personality throughout setup",
+        "Encouraging messages at each step",
+        "Celebrates milestones",
+        "Handles errors with humor",
+        "Optional skip for returning users"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "ralph_personality.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-033",
+      "category": "Onboarding Wizard",
+      "title": "Quick Setup Mode",
+      "description": "Fast path for experienced users. Minimal prompts, just the essentials.",
+      "acceptance_criteria": [
+        "Single command starts quick setup",
+        "Detects existing configurations",
+        "Only asks for missing pieces",
+        "No tutorials or explanations",
+        "Completes in under 2 minutes"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-034",
+      "category": "Onboarding Wizard",
+      "title": "Setup Completion Celebration",
+      "description": "Celebrate when setup is complete. Show what's now possible.",
+      "acceptance_criteria": [
+        "Congratulations message from Ralph",
+        "Summary of what was configured",
+        "Next steps suggestions",
+        "Links to tutorials/docs",
+        "Share achievement option"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-035",
+      "category": "Onboarding Wizard",
+      "title": "Setup Resume Functionality",
+      "description": "Resume interrupted setup from where user left off. Persistent progress.",
+      "acceptance_criteria": [
+        "Saves progress to database",
+        "Detects incomplete setup on /setup",
+        "Offers to resume or restart",
+        "Shows what's already done",
+        "Handles expired/stale setups"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "setup_state.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-036",
+      "category": "Onboarding Wizard",
+      "title": "Telegram Bot Permissions Guide",
+      "description": "Guide through setting bot permissions via BotFather. Privacy mode, inline mode, etc.",
+      "acceptance_criteria": [
+        "Explains each permission option",
+        "Recommends settings for Ralph",
+        "Copy commands for BotFather",
+        "Verifies settings applied",
+        "Links to Telegram bot docs"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-037",
+      "category": "Onboarding Wizard",
+      "title": "Group Chat Setup Guide",
+      "description": "Help add bot to groups and configure admin rights. Step-by-step with screenshots.",
+      "acceptance_criteria": [
+        "Guide for adding bot to group",
+        "Explains admin rights needed",
+        "Tests bot can read/write in group",
+        "Handles privacy mode issues",
+        "Troubleshooting common issues"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-038",
+      "category": "Onboarding Wizard",
+      "title": "Webhook vs Polling Explainer",
+      "description": "Explain difference between webhook and polling. Help user choose appropriate method.",
+      "acceptance_criteria": [
+        "Simple explanation of both methods",
+        "Pros and cons comparison",
+        "Recommendation based on use case",
+        "Setup guide for chosen method",
+        "Test to verify working"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-039",
+      "category": "Onboarding Wizard",
+      "title": "Bot Testing Walkthrough",
+      "description": "Interactive test of bot functionality. Send test message, verify response.",
+      "acceptance_criteria": [
+        "Prompts user to send test message",
+        "Bot acknowledges receipt",
+        "Tests basic commands work",
+        "Reports any issues found",
+        "Suggests fixes for problems"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "bot_tester.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-040",
+      "category": "Onboarding Wizard",
+      "title": "Visual Theme Selector",
+      "description": "Choose visual theme for Ralph interactions. Light, dark, colorful, minimal.",
+      "acceptance_criteria": [
+        "Preview of each theme",
+        "One-tap selection",
+        "Saves preference to user profile",
+        "Applies immediately",
+        "Custom color option"
+      ],
+      "files_likely_modified": ["theme_manager.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-041",
+      "category": "Onboarding Wizard",
+      "title": "Character Avatar Selection",
+      "description": "Choose which character guides you. Ralph, Stool, Mona, Gomer, or Gus.",
+      "acceptance_criteria": [
+        "Shows all available characters",
+        "Brief personality description",
+        "Preview of their style",
+        "Saves selection to profile",
+        "Can change later in settings"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py", "user_preferences.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-042",
+      "category": "Onboarding Wizard",
+      "title": "Notification Preferences",
+      "description": "Configure when and how Ralph notifies you. Build complete, errors, milestones.",
+      "acceptance_criteria": [
+        "Toggle for each notification type",
+        "Quiet hours setting",
+        "Summary vs instant options",
+        "Test notification button",
+        "Saves to user profile"
+      ],
+      "files_likely_modified": ["notification_settings.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-043",
+      "category": "Onboarding Wizard",
+      "title": "Slack MCP Server Setup",
+      "description": "Connect Slack workspace for notifications and interaction.",
+      "acceptance_criteria": [
+        "Links to Slack app creation",
+        "Guides through OAuth setup",
+        "Installs Slack MCP server",
+        "Tests message sending",
+        "Configures default channel"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "slack_mcp_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-044",
+      "category": "Onboarding Wizard",
+      "title": "Discord MCP Server Setup",
+      "description": "Connect Discord server for community features.",
+      "acceptance_criteria": [
+        "Links to Discord bot creation",
+        "Guides through token setup",
+        "Installs Discord MCP server",
+        "Tests bot connection",
+        "Configures default channel"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "discord_mcp_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-045",
+      "category": "Onboarding Wizard",
+      "title": "Notion MCP Server Setup",
+      "description": "Connect Notion for documentation and planning integration.",
+      "acceptance_criteria": [
+        "Links to Notion integration setup",
+        "Guides through API key creation",
+        "Installs Notion MCP server",
+        "Tests database access",
+        "Shows example queries"
+      ],
+      "files_likely_modified": ["mcp_manager.py", "notion_mcp_setup.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-046",
+      "category": "Onboarding Wizard",
+      "title": "Setup Troubleshooting Guide",
+      "description": "Common problems and solutions during setup. Searchable FAQ.",
+      "acceptance_criteria": [
+        "Lists common setup issues",
+        "Step-by-step solutions",
+        "Search functionality",
+        "Links to support channels",
+        "Submit new issue option"
+      ],
+      "files_likely_modified": ["troubleshooting.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-047",
+      "category": "Onboarding Wizard",
+      "title": "Setup Verification Suite",
+      "description": "Final check that everything is configured correctly. Green checkmarks for all systems.",
+      "acceptance_criteria": [
+        "Checks all required configurations",
+        "Checks all optional configurations",
+        "Visual status dashboard",
+        "Fix suggestions for issues",
+        "Export configuration report"
+      ],
+      "files_likely_modified": ["setup_verifier.py", "onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-048",
+      "category": "Onboarding Wizard",
+      "title": "Onboarding Analytics",
+      "description": "Track where users get stuck in onboarding. Improve based on data.",
+      "acceptance_criteria": [
+        "Tracks time spent on each step",
+        "Records abandonment points",
+        "Logs errors encountered",
+        "Privacy-respecting (anonymized)",
+        "Dashboard for admin review"
+      ],
+      "files_likely_modified": ["onboarding_analytics.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-049",
+      "category": "Onboarding Wizard",
+      "title": "Re-onboarding Flow",
+      "description": "Allow users to reconfigure existing setup. Update API keys, change settings.",
+      "acceptance_criteria": [
+        "/reconfigure command",
+        "Shows current configuration",
+        "Edit individual settings",
+        "Warns about destructive changes",
+        "Keeps history of changes"
+      ],
+      "files_likely_modified": ["onboarding_wizard.py"],
+      "passes": false
+    },
+    {
+      "id": "OB-050",
+      "category": "Onboarding Wizard",
+      "title": "Onboarding Documentation Generator",
+      "description": "Generate personalized README based on user's setup. Custom instructions for their config.",
+      "acceptance_criteria": [
+        "Generates README.md for project",
+        "Includes configured services",
+        "Custom commands for their setup",
+        "Getting started instructions",
+        "Troubleshooting specific to config"
+      ],
+      "files_likely_modified": ["doc_generator.py", "onboarding_wizard.py"],
+      "passes": false
     }
   ],
   "priority_order": [
@@ -4299,6 +5049,57 @@
     "TC-006 - New Task Insertion",
     "TC-007 - PRD Reorganization Command",
     "TC-008 - Auto-Cluster on Startup",
+    "--- ONBOARDING WIZARD (Zero-Friction Setup) ---",
+    "OB-001 - Onboarding Entry Point - /setup Command",
+    "OB-002 - SSH Key Generation Wizard",
+    "OB-003 - GitHub SSH Key Addition Guide",
+    "OB-004 - Repository Creation Wizard",
+    "OB-005 - Git Configuration Setup",
+    "OB-006 - Anthropic API Key Setup",
+    "OB-007 - Telegram Bot Creation Wizard",
+    "OB-008 - Environment File Creator",
+    "OB-009 - API Key Validation Service",
+    "OB-010 - Groq API Key Setup (Optional)",
+    "OB-011 - OpenWeather API Setup (Optional)",
+    "OB-012 - Copy Button Component",
+    "OB-013 - Progress Tracker UI",
+    "OB-014 - YouTube Tutorial Library",
+    "OB-015 - Inline Help Tooltips",
+    "OB-016 - MCP Concept Explainer",
+    "OB-017 - MCP Server List Browser",
+    "OB-018 - GitHub MCP Server Setup",
+    "OB-019 - Database MCP Connection Wizard",
+    "OB-020 - Custom MCP Server Wizard",
+    "OB-021 - MCP Health Check System",
+    "OB-022 - Credential Manager",
+    "OB-023 - Node.js Version Checker",
+    "OB-024 - Python Environment Setup",
+    "OB-025 - Dependency Installation Wizard",
+    "OB-026 - Claude Code CLI Installation Guide",
+    "OB-027 - Project Template Selector",
+    "OB-028 - PRD Template Generator",
+    "OB-029 - Folder Structure Creator",
+    "OB-030 - First Commit Assistant",
+    "OB-031 - Rollback Functionality",
+    "OB-032 - Story Mode Narration",
+    "OB-033 - Quick Setup Mode",
+    "OB-034 - Setup Completion Celebration",
+    "OB-035 - Setup Resume Functionality",
+    "OB-036 - Telegram Bot Permissions Guide",
+    "OB-037 - Group Chat Setup Guide",
+    "OB-038 - Webhook vs Polling Explainer",
+    "OB-039 - Bot Testing Walkthrough",
+    "OB-040 - Visual Theme Selector",
+    "OB-041 - Character Avatar Selection",
+    "OB-042 - Notification Preferences",
+    "OB-043 - Slack MCP Server Setup",
+    "OB-044 - Discord MCP Server Setup",
+    "OB-045 - Notion MCP Server Setup",
+    "OB-046 - Setup Troubleshooting Guide",
+    "OB-047 - Setup Verification Suite",
+    "OB-048 - Onboarding Analytics",
+    "OB-049 - Re-onboarding Flow",
+    "OB-050 - Onboarding Documentation Generator",
     "--- FEEDBACK LOOP (RLHF Self-Building System) ---",
     "FB-001 - Feedback command handler",
     "FB-002 - Subscription gate (Builder+/Priority only)",

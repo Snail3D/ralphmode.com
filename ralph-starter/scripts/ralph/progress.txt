@@ -7523,3 +7523,46 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Specialists have their own color emoji prefix (in CHARACTER_COLORS)
 
 ---
+
+## Iteration - 2026-01-10 18:00
+**Task**: [TC-001] Task File Extraction
+**Status**: ✅ Complete
+
+### What was implemented
+- Created prd_organizer.py with extract_file_hints() function
+- Function extracts file paths from tasks via multiple methods:
+  1. Explicit files_likely_modified field
+  2. Regex patterns in title/description ("in ralph_bot.py", module names)
+  3. File mentions in acceptance_criteria
+  4. Category-based inference (Security → sanitizer.py, Admin → admin_handler.py)
+  5. Task ID prefix inference (RM- → ralph_bot.py, SEC- → sanitizer.py)
+- Returns Set[str] of file paths (deduped automatically)
+- Handles tasks with no file hints gracefully (returns empty set)
+- Comprehensive module pattern matching (ralph_bot, scene_manager, etc.)
+- Built-in test suite with 5 test cases covering all extraction methods
+
+### Files changed
+- prd_organizer.py:
+  - extract_file_hints(task) function (lines 11-169)
+  - Multiple extraction strategies with fallbacks
+  - Test suite verifying all acceptance criteria (lines 172-237)
+- scripts/ralph/prd.json:
+  - TC-001 "passes" changed from false to true
+
+### Learnings
+- Multiple extraction strategies provide redundancy and accuracy
+- Category-based inference catches tasks that don't explicitly mention files
+- Task ID prefixes are reliable indicators of file scope
+- Set data structure prevents duplicate file entries
+- Regex patterns capture both explicit ("ralph_bot.py") and implicit ("ralph_bot" → "ralph_bot.py") mentions
+- Test-driven development ensures acceptance criteria are actually met
+- Foundation for TC-002 (embeddings) and TC-003 (clustering)
+
+### Acceptance Criteria Met
+✅ extract_file_hints(task) function exists
+✅ Parses task description for file mentions
+✅ Recognizes common patterns (e.g., 'in ralph_bot.py', 'modify the handler')
+✅ Returns list of likely file paths (as Set[str])
+✅ Handles tasks with no clear file hints gracefully
+
+---
