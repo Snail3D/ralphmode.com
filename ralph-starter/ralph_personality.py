@@ -808,6 +808,132 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(compensations), chance=0.3)
 
+    @staticmethod
+    def get_clarification_loop() -> str:
+        """Get Ralph's attempt to verify understanding.
+
+        Ralph tries to rephrase what he heard to confirm he understood correctly.
+        Often slightly wrong but shows he's trying to grasp the concept.
+
+        Returns:
+            A clarification attempt from Ralph ("Wait, so you mean...")
+        """
+        clarifications = [
+            # Standard clarification openings
+            "Wait, so you mean we should do the thing?",
+            "So if Ralph understands right, we're making this work?",
+            "Let me see if Ralph got this - we're changing that part?",
+            "Okay so basically we need to fix the code?",
+            "Me think you're saying we should try different way?",
+
+            # Slightly wrong interpretations
+            "Wait, so you mean we delete everything? No? Okay what then?",
+            "So Ralph should break it first then fix it? That right?",
+            "Me think you want Ralph to make it faster by making it smaller?",
+            "Wait, you saying we should use different color? Oh, not color? What then?",
+            "So basically turn it off and on again? Classic!",
+
+            # Overly simplified
+            "So we're making bad thing good thing?",
+            "Wait, so broken becomes not-broken?",
+            "Me translate: make computor happy instead of sad?",
+            "Ralph hears: change wrong to right?",
+            "So basically fix the boo-boo?",
+
+            # Checking specific details
+            "Wait, did you say frontend or backend? Ralph missed that part!",
+            "So we're testing on the... which environment again?",
+            "Me want to double-check - we're deploying to where?",
+            "Wait, so this file or that file? Ralph confused on which!",
+            "Did you say TypeScript or JavaScript? Sound similar to Ralph!",
+
+            # Confirming actions
+            "Okay so Ralph should commit now? Or wait? Which one?",
+            "Me making sure - we're pushing to GitHub right?",
+            "Wait, so run tests first? Or deploy first? Ralph forget order!",
+            "So we merge then test? Or test then merge? One of those!",
+            "Me double-checking - we're adding feature not removing?",
+
+            # Timing confirmations
+            "Wait, you mean do it now? Or later? Ralph wants to get timing right!",
+            "So this is for today or tomorrow? Me need to know!",
+            "Ralph making sure - urgent or can wait?",
+            "Wait, you mean right now this second? Or soon-ish?",
+            "Me clarifying - before lunch or after lunch?",
+
+            # Scale/scope checking
+            "Wait, so just this one file? Or all the files?",
+            "Me want make sure - small change or big change?",
+            "So we're fixing one bug or multiple bugs?",
+            "Ralph checking - this whole feature or just part?",
+            "Wait, you mean entire database or just one table?",
+
+            # Method verification
+            "So we're using that library you mentioned? The one with name?",
+            "Wait, manual way or automatic way? Which you prefer?",
+            "Me confirming - we're writing test first or code first?",
+            "So Ralph should use old method or new method?",
+            "Wait, copy-paste okay or need write from scratch?",
+
+            # Tentative understanding
+            "Me think Ralph understands but let me check - we're optimizing?",
+            "Wait, Ralph's brain says you want refactor? That right?",
+            "So if Ralph heard correctly, we're migrating something?",
+            "Me pretty sure you said update dependencies? Or Ralph confused?",
+            "Wait, Ralph thinks you mean add validation? Yes?",
+
+            # Double-checking purpose
+            "So this is to make it faster? Or more secure? Ralph forget which!",
+            "Wait, we're doing this for users or for developers?",
+            "Me making sure - this for bug fix or new feature?",
+            "So the reason is performance? Or readability? Or both?",
+            "Ralph wants to understand - why we doing this again?",
+
+            # Confirming the "who"
+            "Wait, Ralph does this or workers do this?",
+            "So me personally or whole team?",
+            "Ralph making sure - this Ralph's job or someone else job?",
+            "Wait, you telling Ralph or you telling workers?",
+            "Me confused - am Ralph doing thing or watching thing?",
+
+            # Outcome checking
+            "So at end, thing will be working? That the goal?",
+            "Wait, when done, users will be happy? That right?",
+            "Me making sure - success looks like what exactly?",
+            "Ralph checking - we know it worked how?",
+            "So when finished, we see what result?",
+
+            # Priority checking
+            "Wait, this most important thing? Or other stuff first?",
+            "So Ralph should do this before that? Me checking order!",
+            "Me making sure - this urgent or normal priority?",
+            "Ralph wants to know - can wait or must do now?",
+            "Wait, everything else can wait for this?",
+
+            # Relationship checking
+            "So this connected to other task? Or separate?",
+            "Wait, this depends on thing we did yesterday?",
+            "Me checking - this breaks other stuff or safe?",
+            "Ralph making sure - this affects what else?",
+            "Wait, this part of bigger project?",
+
+            # Process verification
+            "So steps are: one, two, three? Ralph got it right?",
+            "Wait, me do A then B then C? That order?",
+            "Ralph checking sequence - first this, then that?",
+            "So process is: start here, end there?",
+            "Me making sure - what comes after what?",
+
+            # Additional variations
+            "Wait, Ralph paraphrase: you want the thing to do stuff?",
+            "So in Ralph words, we're making improvement?",
+            "Me translate what you said - fix problem?",
+            "Ralph interpret: make better version?",
+            "Wait, me simplify what you mean - upgrade?",
+        ]
+
+        return RalphNarrator.misspell(random.choice(clarifications), chance=0.25)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
