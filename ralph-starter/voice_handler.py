@@ -2,6 +2,9 @@
 """
 Voice Handler - VO-004: Voice-to-Intent Pipeline
 Handles voice messages: transcription, tone analysis, and intent extraction.
+
+VE-009/VE-010: Now includes AUDIO-BASED emotion detection.
+Ralph doesn't just hear words - he hears HOW they were said.
 """
 
 import os
@@ -11,6 +14,13 @@ import json
 from typing import Optional, Tuple, Dict, Any
 from telegram import Update
 from telegram.ext import ContextTypes
+
+# VE-009: Import audio-based emotion detector
+try:
+    from emotion_detector import detect_emotion, get_scene_translation, EmotionResult
+    EMOTION_DETECTOR_AVAILABLE = True
+except ImportError:
+    EMOTION_DETECTOR_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +39,17 @@ class VoiceHandler:
         context: ContextTypes.DEFAULT_TYPE
     ) -> Optional[Dict[str, Any]]:
         """
-        VO-004: Full voice-to-intent pipeline.
+        VO-004 + VE-009/VE-010: Full voice-to-intent pipeline with emotion detection.
         Process voice message through complete pipeline:
-        1. Transcribe audio
-        2. Analyze tone
-        3. Extract intent
-        4. Handle unclear audio gracefully
+        1. Download audio
+        2. Analyze audio for emotion (VE-009 - AUDIO-BASED)
+        3. Transcribe audio
+        4. Analyze tone from text
+        5. Combine audio emotion + text tone
+        6. Extract intent
+        7. Handle unclear audio gracefully
+
+        Ralph doesn't just hear words - he hears HOW they were said.
 
         Args:
             update: Telegram update object with voice message
@@ -45,46 +60,88 @@ class VoiceHandler:
                 'transcription': str,
                 'tone': dict,
                 'intent': dict,
+                'audio_emotion': dict,  # NEW: Audio-based emotion
+                'scene_translation': dict,  # NEW: How Ralph "sees" the emotion
                 'success': bool
             }
         """
         try:
-            # Step 1: Transcribe
-            transcription = await self.transcribe_voice(update, context)
+            # Step 0: Download audio file first (needed for both emotion and transcription)
+            voice = update.message.voice
+            if not voice:
+                logger.error("VO-004: No voice message in update")
+                return self._empty_result()
+
+            voice_file = await context.bot.get_file(voice.file_id)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.ogg') as tmp_file:
+                tmp_path = tmp_file.name
+                await voice_file.download_to_drive(tmp_path)
+
+            logger.info(f"VO-004: Downloaded voice file to {tmp_path}")
+
+            # Step 1: VE-009 - Analyze AUDIO for emotion (before transcription)
+            audio_emotion = None
+            scene_translation = {}
+            if EMOTION_DETECTOR_AVAILABLE:
+                try:
+                    audio_emotion = detect_emotion(tmp_path)
+                    scene_translation = get_scene_translation(audio_emotion)
+                    logger.info(f"VE-009: Audio emotion detected: {audio_emotion.primary_emotion} "
+                               f"(confidence: {audio_emotion.confidence:.2f})")
+                except Exception as e:
+                    logger.error(f"VE-009: Audio emotion detection failed: {e}")
+                    audio_emotion = None
+
+            # Step 2: Transcribe
+            transcription = await self._call_groq_whisper(tmp_path)
+
+            # Clean up temp file
+            try:
+                os.unlink(tmp_path)
+            except Exception as e:
+                logger.warning(f"VO-002: Failed to delete temp file {tmp_path}: {e}")
 
             if not transcription:
                 logger.error("VO-004: Transcription failed")
                 return {
                     'transcription': None,
                     'tone': self._fallback_tone(),
-                    'intent': {
-                        'intent_type': 'unclear',
-                        'confidence': 'low',
-                        'action_required': False,
-                        'extracted_message': '',
-                        'clarity': 'unclear',
-                        'needs_clarification': True
-                    },
+                    'intent': self._fallback_intent(''),
+                    'audio_emotion': self._audio_emotion_to_dict(audio_emotion),
+                    'scene_translation': scene_translation,
                     'success': False
                 }
 
-            # Step 2: Analyze tone
+            # Step 3: Analyze tone from TEXT
             tone_data = await self.analyze_tone(transcription)
 
-            # Step 3: Extract intent (passing tone for context)
+            # Step 4: VE-011 - Combine audio emotion with text tone
+            if audio_emotion and audio_emotion.primary_emotion != "neutral":
+                # Audio emotion takes precedence - it's what they actually SOUNDED like
+                tone_data['audio_emotion'] = audio_emotion.primary_emotion
+                tone_data['audio_confidence'] = audio_emotion.confidence
+                tone_data['audio_intensity'] = audio_emotion.intensity
+                # Override text-based tone if audio is confident
+                if audio_emotion.confidence > 0.5:
+                    tone_data['primary_tone'] = audio_emotion.primary_emotion
+                    tone_data['intensity'] = 'high' if audio_emotion.intensity > 0.7 else 'medium' if audio_emotion.intensity > 0.4 else 'low'
+
+            # Step 5: Extract intent (passing combined tone for context)
             intent_data = await self.extract_intent(transcription, tone_data)
 
-            # Step 4: Check if we need clarification
+            # Step 6: Check if we need clarification
             if intent_data.get('needs_clarification', False):
                 logger.warning(f"VO-004: Voice message needs clarification: {transcription}")
 
             logger.info(f"VO-004: Pipeline complete - Intent: {intent_data['intent_type']}, "
-                       f"Tone: {tone_data['primary_tone']}")
+                       f"Tone: {tone_data['primary_tone']}, Audio: {audio_emotion.primary_emotion if audio_emotion else 'N/A'}")
 
             return {
                 'transcription': transcription,
                 'tone': tone_data,
                 'intent': intent_data,
+                'audio_emotion': self._audio_emotion_to_dict(audio_emotion),
+                'scene_translation': scene_translation,
                 'success': True
             }
 
@@ -94,8 +151,35 @@ class VoiceHandler:
                 'transcription': None,
                 'tone': self._fallback_tone(),
                 'intent': self._fallback_intent(''),
+                'audio_emotion': None,
+                'scene_translation': {},
                 'success': False
             }
+
+    def _audio_emotion_to_dict(self, emotion) -> Optional[Dict[str, Any]]:
+        """Convert EmotionResult to dictionary."""
+        if emotion is None:
+            return None
+        return {
+            'primary_emotion': emotion.primary_emotion,
+            'confidence': emotion.confidence,
+            'intensity': emotion.intensity,
+            'secondary_emotion': emotion.secondary_emotion,
+            'pitch_mean': emotion.pitch_mean,
+            'speed': emotion.speed,
+            'volume': emotion.volume
+        }
+
+    def _empty_result(self) -> Dict[str, Any]:
+        """Return empty result for failed pipeline."""
+        return {
+            'transcription': None,
+            'tone': self._fallback_tone(),
+            'intent': self._fallback_intent(''),
+            'audio_emotion': None,
+            'scene_translation': {},
+            'success': False
+        }
 
     async def transcribe_voice(
         self,
