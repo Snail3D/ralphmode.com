@@ -7566,3 +7566,56 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Handles tasks with no clear file hints gracefully
 
 ---
+
+## Iteration - 2026-01-10 18:30
+**Task**: [TC-002] Task Semantic Embeddings
+**Status**: ✅ Complete
+
+### What was implemented
+- Created task_embeddings.py with generate_embeddings() function
+- Dual-mode embedding generation:
+  1. sentence-transformers (optional, high quality) - all-MiniLM-L6-v2 model
+  2. TF-IDF (fallback, no dependencies) - sklearn based
+- Intelligent caching system using pickle:
+  - task_hash() generates stable hash from task ID + content
+  - Embeddings cached to .embedding_cache.pkl
+  - Avoid re-computing unchanged tasks
+- task_to_text() combines task fields with weighting:
+  - Title weighted 3x (most important)
+  - Category weighted 2x
+  - Description + acceptance criteria
+- Helper functions:
+  - cosine_similarity() for vector comparison
+  - find_similar_tasks() to discover related tasks
+- Graceful API failure handling (falls back to TF-IDF)
+- Comprehensive test suite with similarity validation
+
+### Files changed
+- task_embeddings.py:
+  - generate_embeddings(tasks, use_cache=True) main function (lines 125-188)
+  - generate_embeddings_transformers() for high-quality embeddings (lines 94-122)
+  - generate_embeddings_tfidf() for fast fallback (lines 56-91)
+  - Caching infrastructure: load_cache(), save_cache() (lines 39-54)
+  - task_to_text() for text extraction (lines 18-36)
+  - test_embeddings() validates all functionality (lines 276-336)
+- scripts/ralph/prd.json:
+  - TC-002 "passes" changed from false to true
+
+### Learnings
+- TF-IDF is fast but similarity scores are lower with small datasets
+- sentence-transformers provides much better semantic understanding
+- Caching is CRITICAL - embedding generation is expensive
+- Task hashing prevents cache invalidation from irrelevant changes
+- Weighting title/category higher improves clustering accuracy
+- Dual-mode design allows deployment without heavy dependencies
+- Fallback strategy ensures system always works
+- Foundation ready for TC-003 (hybrid clustering)
+
+### Acceptance Criteria Met
+✅ generate_embeddings(tasks) function exists
+✅ Uses Groq or local embedding model (uses sentence-transformers or TF-IDF)
+✅ Returns vector embeddings for each task (as Dict[task_id -> np.ndarray])
+✅ Caches embeddings to avoid re-computation (pickle-based cache)
+✅ Handles API failures gracefully (falls back to TF-IDF)
+
+---
