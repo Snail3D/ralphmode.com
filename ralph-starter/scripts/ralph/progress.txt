@@ -7349,3 +7349,44 @@ Weather integration pattern:
 6. Track whether real weather was used (for debugging/analytics)
 
 ---
+
+## Iteration 13 - 2026-01-10
+**Task**: [RM-013] Polish Bribe System
+**Status**: ✅ Complete
+
+### What was implemented
+- Replaced fixed asyncio.sleep() timings with ComedicTiming helper methods for natural flow
+- Used rapid_banter_send() for quick exchanges (worker nervously offers joke, Ralph excitedly accepts)
+- Worker delivers joke with send_styled_message() and typing indicator
+- Added punchline_setup() pause (1.0-1.5s) before Ralph reacts - lets the joke land
+- Ralph's laugh now AI-generated with call_boss() - fresh every time, specific to what he found funny
+- Ralph's transition back to asking "what did you want to tell me?" also AI-generated for variety
+- Better flow: nervous offer → excitement → joke delivery → pause → genuine laugh → settle → ready for news
+
+### Files changed
+- ralph_bot.py (worker_bribes_ralph method)
+
+### Learnings
+- Comedic timing is the difference between canned/robotic and genuinely funny
+- AI-generated laughs are way better than hardcoded "Hahaha!" - Ralph can misunderstand jokes in funny ways
+- The pause before the reaction is crucial - don't rush the punchline
+- Using timing helpers (rapid_banter, normal_response, punchline_setup) creates natural conversation rhythm
+- Even transitions need variety - having Ralph ask "what did you want to tell me?" in different ways keeps it fresh
+
+### Pattern discovered
+Bribe system flow (natural comedy timing):
+1. Worker nervously offers joke → rapid_banter_send()
+2. Pause (normal_response timing) 
+3. Ralph excitedly accepts → rapid_banter_send()
+4. Quick transition (rapid_banter timing)
+5. Worker delivers joke → send_styled_message(with_typing=True)
+6. GIF enhances the moment
+7. Pause before reaction (punchline_setup timing) ← CRITICAL for comedy
+8. Ralph laughs (AI-generated, specific to joke) → rapid_banter_send()
+9. GIF after laugh
+10. Let laugh settle (normal_response timing)
+11. Ralph transitions to business (AI-generated) → rapid_banter_send()
+
+Key insight: Every exchange should use appropriate timing helper, not raw asyncio.sleep()
+
+---
