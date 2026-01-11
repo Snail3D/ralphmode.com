@@ -7390,3 +7390,47 @@ Bribe system flow (natural comedy timing):
 Key insight: Every exchange should use appropriate timing helper, not raw asyncio.sleep()
 
 ---
+
+## Iteration - 2026-01-10 17:05
+**Task**: [RM-014] Expand MUD Scenarios
+**Status**: ✅ Complete
+
+### What was implemented
+- Expanded SCENARIOS from 7 to 12 unique scenarios
+- Added 5 new scenarios that cover common dev team situations:
+  - THE FRAMEWORK MIGRATION: Epic migrations with breaking changes
+  - THE PRODUCTION FIRE: High-pressure incident response
+  - THE REFACTOR THAT GREW: "Just a quick cleanup" that spirals
+  - THE DEPENDENCY HELL: Package manager nightmares
+  - THE FRIDAY AFTERNOON: The dreaded late Friday prod request
+- Added 'variables' dict to ALL scenarios for randomized elements
+- Each scenario now has 2+ variable elements that get randomly selected
+- Created apply_scenario_variables() method to apply randomization
+- Added mood-based team reactions (11 different mood states)
+- Scenarios stored in session for potential future reference
+
+### Files changed
+- ralph_bot.py:
+  - SCENARIOS list expanded from 7 to 12 entries
+  - Each scenario now has 'variables' dict with multiple options
+  - New apply_scenario_variables() method (lines 5041-5062)
+  - Enhanced _start_ralph_session() to use variable system
+  - Added mood_reactions dict with 11 different team reaction styles
+
+### Learnings
+- Variable elements make scenarios feel fresh without requiring 100 scenarios
+- Each scenario can now appear different each time it's selected
+- Mood-based reactions add depth to the opening sequence
+- The combination of 12 scenarios × multiple variables = effectively hundreds of unique openings
+- Team reactions tied to mood create better narrative consistency
+- Storing scenario in session allows potential future callbacks to the opening
+- Comedy timing enhanced by varying team reactions based on scenario tone
+
+### Acceptance Criteria Met
+✅ At least 10 unique scenarios (now 12)
+✅ Variable elements within each scenario (all 12 have variable dicts)
+✅ Team reactions vary per scenario mood (11 mood types with unique reactions)
+✅ Sets proper tone for the session (mood drives team energy)
+✅ Never feels like same opening twice (variables ensure variety)
+
+---
