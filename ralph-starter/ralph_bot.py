@@ -4621,6 +4621,142 @@ _{ralph_response}_
 
         logging.info(f"RM-031: Handled CEO management directive '{directive_type}' for user {user_id}")
 
+    # ==================== RM-032: CHAIN OF COMMAND ENFORCEMENT ====================
+
+    async def enforce_chain_of_command(self, context, chat_id: int, user_id: int, worker_name: str, worker_title: str):
+        """
+        RM-032: Ralph enforces chain of command - workers can't talk directly to CEO.
+
+        Sometimes workers try to respond directly to Mr. Worms.
+        Ralph catches it and corrects them.
+        Workers apologize sheepishly.
+        Sometimes Ralph lets it slide if in good mood.
+        """
+        session = self.active_sessions.get(user_id, {})
+        team_mood = self.get_team_mood(user_id)
+
+        # RM-032: 15% chance worker tries to address CEO directly
+        if random.random() > 0.15:
+            return  # No violation this time
+
+        # Worker accidentally tries to address the CEO
+        worker = self.DEV_TEAM.get(worker_name)
+        if not worker:
+            return
+
+        # Generate the attempted direct message to CEO
+        direct_address_attempts = [
+            f"Mr. Worms, I think we should—",
+            f"Actually Mr. Worms, if I could just—",
+            f"Mr. Worms! Mr. Worms! I have an idea about—",
+            f"Hey Mr. Worms, what if we—",
+            f"Oh! Mr. Worms, I wanted to show you—",
+            f"Mr. Worms, can I ask you about—",
+            f"So Mr. Worms, the thing is—"
+        ]
+
+        attempted_message = random.choice(direct_address_attempts)
+
+        await asyncio.sleep(ComedicTiming.interruption())
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker_title,
+            attempted_message,
+            topic="chain_violation",
+            with_typing=True
+        )
+
+        # RM-032: Ralph's mood determines if he lets it slide
+        # High team mood (>70) = Ralph is in good mood, might let it slide
+        # 30% chance to let it slide when mood is good
+        if team_mood > 70 and random.random() < 0.30:
+            await asyncio.sleep(ComedicTiming.interruption())
+
+            ralph_lets_it_slide = [
+                "Eh, it's okay this time! You can talk to Mr. Worms! I'm in a good mood!",
+                "You know what? Go ahead! I'm feeling nice today!",
+                "It's fine! Mr. Worms won't mind! We're all friends here!",
+                "Ah, don't worry about it! Mr. Worms likes hearing from you guys!"
+            ]
+
+            ralph_response = self.ralph_misspell(random.choice(ralph_lets_it_slide))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_response,
+                topic="chain_leniency",
+                with_typing=True
+            )
+
+            logging.info(f"RM-032: Ralph let {worker_name} slide on chain of command (good mood)")
+            return
+
+        # Ralph catches it and corrects them
+        await asyncio.sleep(ComedicTiming.interruption())
+
+        ralph_corrections = [
+            "Hey! That's not using the chain of command!",
+            "Whoa whoa whoa! You talk to ME, I talk to Mr. Worms! Back to work!",
+            "Hold it! Remember the rules! You → Me → Mr. Worms!",
+            "Excuse me! I'm still the manager here! Go through me!",
+            "Stop stop stop! Chain of command people! You know the drill!",
+            "Wait a minute! I'm supposed to be the one talking to Mr. Worms!",
+            "Hey! Let's not forget who's the boss here! That's ME! Then Mr. Worms!"
+        ]
+
+        ralph_correction = self.ralph_misspell(random.choice(ralph_corrections))
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            ralph_correction,
+            topic="chain_enforcement",
+            with_typing=True
+        )
+
+        # Worker apologizes sheepishly
+        await asyncio.sleep(ComedicTiming.normal())
+
+        # Generate apology based on worker personality
+        apology_prompt = f"""You just tried to speak directly to Mr. Worms (the CEO) and Ralph (your boss) just caught you and reminded you about chain of command.
+
+You need to apologize to Ralph. Be sheepish but stay in character.
+
+Examples of tone (don't copy these):
+- If you're casual: "My bad boss, wasn't thinking!"
+- If you're professional: "My apologies, Ralph. Won't happen again."
+- If you're sarcastic: "Right right, chain of command. Got it."
+
+Stay true to your personality. 1 sentence only."""
+
+        messages = [
+            {"role": "system", "content": f"{worker['personality']}\n\nYou work under Ralph. He just corrected you for breaking chain of command."},
+            {"role": "user", "content": apology_prompt}
+        ]
+
+        apology = self.call_groq(WORKER_MODEL, messages, max_tokens=50)
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker_title,
+            apology,
+            topic="chain_apology",
+            with_typing=True
+        )
+
+        logging.info(f"RM-032: Enforced chain of command - {worker_name} tried to address CEO directly, Ralph corrected")
+
+    # ==================== RM-030: CEO SENTIMENT ANALYSIS ====================
+
+    def analyze_ceo_sentiment(self, text: str) -> str:
+        """
+        RM-030: Analyze CEO message sentiment to determine Ralph's response tone.
+
+        Args:
+            text: CEO's message text
+
+        Returns:
+            Sentiment: 'urgent', 'upset', 'happy', or 'neutral'
+        """
+        text_lower = text.lower()
+
         # Check for urgent indicators (highest priority)
         urgent_indicators = [
             'asap', 'urgent', 'immediately', 'now', 'right now', 'drop everything',
@@ -6972,6 +7108,9 @@ _The team nods in unison._
             topic="project explanation",
             with_typing=True
         )
+
+        # RM-032: Chain of command enforcement - workers occasionally try to address CEO directly
+        await self.enforce_chain_of_command(context, chat_id, user_id, name, title)
 
         # Maybe a worker GIF (office memes, NOT Ralph)
         worker_mood = self.detect_mood_worker(worker_response)
