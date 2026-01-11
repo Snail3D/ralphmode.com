@@ -7022,6 +7022,11 @@ _Drop a zip file to get started!_
             await self.handle_theme_callback(query, context, user_id, data)
             return
 
+        # OB-041: Handle character selection callbacks
+        if data.startswith("character_"):
+            await self.handle_character_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -9105,6 +9110,28 @@ Use `/version <type>` to switch!
             reply_markup=keyboard
         )
 
+    async def character_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /character command - OB-041: Character Avatar Selection.
+
+        Allows users to change their guide character preference.
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"OB-041: User {telegram_id} requested character selector via /character command")
+
+        # Get character selection message and keyboard
+        message = self.onboarding_wizard.get_character_selection_message()
+        keyboard = self.onboarding_wizard.get_character_selection_keyboard()
+
+        # Send character selection interface
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=message,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
     async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle /reorganize command - TC-007: PRD Reorganization Command.
@@ -9996,6 +10023,111 @@ To update your Git config:
                     parse_mode="Markdown"
                 )
 
+    async def handle_character_callback(self, query, context, user_id: int, data: str):
+        """Handle character selection button callbacks - OB-041.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'character_preview:Ralph', 'character_select:Stool')
+        """
+        await query.answer()
+
+        logger.info(f"OB-041: Processing character callback: {data} for user {user_id}")
+
+        # Handle character preview
+        if data.startswith("character_preview:"):
+            character = data.split(":", 1)[1]
+            preview_text = self.onboarding_wizard.get_character_preview_message(character)
+            keyboard = self.onboarding_wizard.get_character_preview_keyboard(character)
+
+            await query.edit_message_text(
+                preview_text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-041: Showed {character} preview to user {user_id}")
+
+        # Handle character selection
+        elif data.startswith("character_select:"):
+            character = data.split(":", 1)[1]
+
+            # Save character preference
+            try:
+                saved = await self.onboarding_wizard.save_character_preference(
+                    user_id,
+                    character
+                )
+
+                if saved:
+                    confirmation_text = self.onboarding_wizard.get_character_confirmation_message(character)
+
+                    # If in onboarding, show continue button
+                    if user_id in self.onboarding_state:
+                        keyboard = InlineKeyboardMarkup([
+                            [InlineKeyboardButton("✅ Continue Setup", callback_data="character_continue")]
+                        ])
+                    else:
+                        # Standalone character change
+                        keyboard = None
+
+                    await query.edit_message_text(
+                        confirmation_text,
+                        parse_mode="Markdown",
+                        reply_markup=keyboard
+                    )
+                    logger.info(f"OB-041: User {user_id} selected {character} as guide")
+                else:
+                    await query.edit_message_text(
+                        "*Oops!* Something went wrong saving your character preference. Try again?",
+                        parse_mode="Markdown"
+                    )
+                    logger.error(f"OB-041: Failed to save character for user {user_id}")
+
+            except Exception as e:
+                logger.error(f"OB-041: Error in character selection: {e}")
+                await query.edit_message_text(
+                    "*Uh oh!* Had a problem saving that. Ralph will look into it!",
+                    parse_mode="Markdown"
+                )
+
+        # Handle back to character list
+        elif data == "character_back":
+            message = self.onboarding_wizard.get_character_selection_message()
+            keyboard = self.onboarding_wizard.get_character_selection_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-041: Showed character list to user {user_id}")
+
+        # Handle continue after character selection (during onboarding)
+        elif data == "character_continue":
+            if user_id in self.onboarding_state:
+                state = self.onboarding_state[user_id]
+                # Move to theme step after character selection
+                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_THEME)
+                self.onboarding_state[user_id] = state
+
+                # Show theme selection
+                theme_message = self.onboarding_wizard.get_theme_selection_message()
+                theme_keyboard = self.onboarding_wizard.get_theme_selection_keyboard()
+
+                await query.edit_message_text(
+                    theme_message,
+                    parse_mode="Markdown",
+                    reply_markup=theme_keyboard
+                )
+                logger.info(f"OB-041: User {user_id} continued to theme selection")
+            else:
+                await query.edit_message_text(
+                    "Character saved! You're all set.",
+                    parse_mode="Markdown"
+                )
+
     async def handle_troubleshooting_callback(self, query, context, user_id: int, data: str):
         """Handle troubleshooting guide button callbacks.
 
@@ -10134,6 +10266,7 @@ To update your Git config:
         app.add_handler(CommandHandler("password", self.password_command))  # MU-002
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(CommandHandler("theme", self.theme_command))  # OB-040
+        app.add_handler(CommandHandler("character", self.character_command))  # OB-041
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049

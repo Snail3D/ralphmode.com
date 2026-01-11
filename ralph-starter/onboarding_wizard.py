@@ -36,6 +36,7 @@ class OnboardingWizard:
     STEP_SSH_KEY = "ssh_key"
     STEP_GITHUB = "github"
     STEP_REPO = "repo"
+    STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_COMPLETE = "complete"
 
@@ -150,6 +151,16 @@ class OnboardingWizard:
             self.theme_manager = None
             self.theme_manager_available = False
             self.logger.warning("Theme manager not available")
+
+        # Import user preferences (OB-041: Character Avatar Selection)
+        try:
+            from user_preferences import get_user_preferences
+            self.user_prefs = get_user_preferences()
+            self.user_prefs_available = True
+        except ImportError:
+            self.user_prefs = None
+            self.user_prefs_available = False
+            self.logger.warning("User preferences not available")
 
         # Import doc generator (OB-050: Onboarding Documentation Generator)
         try:
@@ -6942,6 +6953,144 @@ Your theme is set to **{theme_name}**!
 All my messages will use this style from now on. You can change it later if you want!
 
 *Ready to keep going?*"""
+
+    # ==================== OB-041: CHARACTER AVATAR SELECTION ====================
+
+    def get_character_selection_message(self) -> str:
+        """Get message for character avatar selection step.
+
+        Returns:
+            Character selection message with Ralph's personality
+        """
+        return """*Who's gonna be your guide?* 🎭
+
+Before we get started, pick someone from the team to show ya the ropes! They'll help you set things up and be your main contact.
+
+*Here's who we got:*
+
+**👦 Ralph (Me!)** - Your lovable boss who makes things happen (somehow)
+**👨‍💻 Stool** - Chill frontend dev with coffee and good vibes
+**🍩 Gomer** - Backend genius hiding behind donut jokes
+**🎷 Mona** - The smartest person in the room (she'll tell you)
+**☕ Gus** - 25-year veteran who's seen it all
+
+*Tap a button to meet 'em!*"""
+
+    def get_character_selection_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for character selection.
+
+        Returns:
+            InlineKeyboardMarkup with character options
+        """
+        if not self.user_prefs_available:
+            # Fallback if user preferences not available
+            keyboard = [
+                [InlineKeyboardButton("Continue with Ralph", callback_data="character_select:Ralph")]
+            ]
+            return InlineKeyboardMarkup(keyboard)
+
+        from user_preferences import UserPreferences
+
+        keyboard = [
+            [InlineKeyboardButton("👦 Ralph (Me!)", callback_data="character_preview:Ralph")],
+            [InlineKeyboardButton("👨‍💻 Stool", callback_data="character_preview:Stool")],
+            [InlineKeyboardButton("🍩 Gomer", callback_data="character_preview:Gomer")],
+            [InlineKeyboardButton("🎷 Mona", callback_data="character_preview:Mona")],
+            [InlineKeyboardButton("☕ Gus", callback_data="character_preview:Gus")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_character_preview_message(self, character: str) -> str:
+        """Get preview of a character.
+
+        Args:
+            character: Character name (Ralph, Stool, Gomer, Mona, or Gus)
+
+        Returns:
+            Preview message showing character personality
+        """
+        if not self.user_prefs_available:
+            return "Character preview not available. Using Ralph as default."
+
+        from user_preferences import UserPreferences
+
+        char_info = UserPreferences.AVAILABLE_CHARACTERS.get(character)
+        if not char_info:
+            return "Invalid character selected."
+
+        preview_text = f"""*{character} - {char_info['title']}*
+_{char_info['description']}_
+
+*Sample:*
+"{char_info['personality_preview']}"
+
+*Wanna go with {character}?*"""
+
+        return preview_text
+
+    def get_character_preview_keyboard(self, character: str) -> InlineKeyboardMarkup:
+        """Get keyboard for character preview with select option.
+
+        Args:
+            character: Character name
+
+        Returns:
+            InlineKeyboardMarkup with select/back buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton(f"✅ Choose {character}", callback_data=f"character_select:{character}")],
+            [InlineKeyboardButton("⬅️ Back to Characters", callback_data="character_back")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    async def save_character_preference(
+        self,
+        user_id: int,
+        character: str
+    ) -> bool:
+        """Save user's character preference.
+
+        Args:
+            user_id: Telegram user ID
+            character: Selected character name
+
+        Returns:
+            True if saved successfully
+        """
+        if not self.user_prefs_available:
+            self.logger.warning("OB-041: User preferences not available")
+            return False
+
+        try:
+            success = self.user_prefs.set_guide_character(user_id, character)
+            if success:
+                self.logger.info(f"OB-041: Saved character '{character}' for user {user_id}")
+            else:
+                self.logger.error(f"OB-041: Failed to save character for user {user_id}")
+            return success
+
+        except Exception as e:
+            self.logger.error(f"OB-041: Error saving character preference: {e}")
+            return False
+
+    def get_character_confirmation_message(self, character: str) -> str:
+        """Get confirmation message after character is selected.
+
+        Args:
+            character: Selected character name
+
+        Returns:
+            Confirmation message
+        """
+        messages = {
+            "Ralph": "*Me?! You picked me?!* 😊\n\nAww shucks! I'm gonna be the bestest guide ever! Let's get you all set up!",
+            "Stool": "*Yo, that's what's up!* ☕\n\nLowkey honored you chose me. Let's build something that slaps!",
+            "Gomer": "*Woohoo!* 🍩\n\nYou picked the donut guy! D'oh, I mean... I'm gonna help you real good!",
+            "Mona": "*Excellent choice.* 🎷\n\nActually, statistically speaking, I was the optimal selection. Let's proceed logically.",
+            "Gus": "*Hmph. Good choice, kid.* ☕\n\nI've onboarded more devs than you've had hot dinners. Let's get this done right."
+        }
+
+        return messages.get(character, f"*Great choice!*\n\n{character} will be your guide! Let's keep going.")
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
