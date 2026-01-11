@@ -7434,3 +7434,47 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Never feels like same opening twice (variables ensure variety)
 
 ---
+
+## Iteration - 2026-01-10 17:10
+**Task**: [RM-015] Polish Token Observations
+**Status**: ✅ Complete
+
+### What was implemented
+- Changed token observation trigger from 100% to 30% (only fires sometimes)
+- Replaced static canned responses with AI-generated fresh observations
+- Ralph's observations are now dynamically created using call_groq()
+- Workers now actually respond to Ralph's efficiency pressure
+- Response varies by situation type:
+  - "verbose": Worker apologizes or makes excuse, efficiency_mode enabled
+  - "efficient": Worker shows pride or modesty, efficiency_mode disabled
+  - "trend_up": Worker defends themselves or promises improvement
+- Added situation_type return value from get_ralph_token_observation()
+- Worker reactions include appropriate GIFs (nervous or happy)
+- Creates genuine back-and-forth dynamic between Ralph and team
+
+### Files changed
+- ralph_bot.py:
+  - get_ralph_token_observation() now returns tuple (observation, situation_type) or None
+  - Added 30% random trigger chance (line 3877)
+  - Replaced static observation lists with AI prompt generation (lines 3900-3918)
+  - Updated caller in _start_ralph_session() to handle tuple return
+  - Added worker response system (lines 5267-5298)
+  - Workers react with character-appropriate responses
+  - Efficiency mode dynamically enabled/disabled based on situation
+
+### Learnings
+- AI-generated responses > static lists for freshness
+- Random triggering prevents feature fatigue ("here we go again")
+- Worker reactions make the feature feel like real team dynamics
+- Situation types allow nuanced responses (not one-size-fits-all)
+- Comedy timing enhanced by worker reactions to Ralph's observations
+- Efficiency mode creates actual consequences for verbosity
+- The feature now creates genuine "caught by boss" moments
+
+### Acceptance Criteria Met
+✅ Observations in Ralph's authentic voice (AI-generated with Ralph personality)
+✅ Doesn't trigger every single time (30% chance only)
+✅ Workers actually respond to efficiency pressure (with situation-specific reactions)
+✅ Creates fun dynamic between team (Ralph notices → Worker reacts → Banter)
+
+---
