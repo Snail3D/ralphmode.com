@@ -15520,3 +15520,84 @@ This separation allows each layer to evolve independently while maintaining clea
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 14:00 UTC
+**Task**: [AU-005] Autonomy-Aware Check-ins
+**Status**: ✅ Complete
+
+### What was implemented
+- Workers now adjust their behavior based on the current autonomy level
+- Integrated get_autonomy_prompt_context() into call_worker() function
+- Three autonomy levels supported:
+  - **AUTONOMOUS**: Workers make decisions independently, only check in with blockers
+  - **SUPERVISED**: Workers ask "Should I...?" and check in before significant changes
+  - **COLLABORATIVE**: Workers balance between asking permission and taking initiative
+- Autonomy context is now injected into all worker AI prompts
+
+### Files changed
+- ralph_bot.py (lines 12232-12235, 12270)
+
+### Learnings
+- The get_autonomy_prompt_context() function was already implemented in AU-001 but wasn't being used
+- call_worker() is the central function where all worker AI responses are generated
+- The autonomy prompt fits naturally into the existing prompt injection architecture
+- Workers will now automatically adjust their communication style based on user preferences
+- This completes the autonomy system: state tracking (AU-001), question scene (AU-002), natural language detection (AU-003, AU-004), and now behavior adaptation (AU-005)
+
+### Integration notes
+- Works seamlessly with existing autonomy level management (get_autonomy_level, set_autonomy_level)
+- Injected alongside other context prompts (workload, requirements, mood, etc.)
+- No breaking changes - defaults to "collaborative" when user_id is None
+- Ready for all three autonomy levels to influence worker behavior in real-time
+
+---
+## Iteration [Ralph Agent] - 2026-01-11 14:00 UTC
+**Task**: [AU-005] Autonomy-Aware Check-ins
+**Status**: ✅ Complete
+
+### What was implemented
+- Verified AU-005 was already implemented in call_worker() (line 12237-12240, 12275)
+- Added missing integration to call_boss() to ensure Ralph also respects autonomy
+- Both Ralph and workers now receive autonomy context in their AI prompts
+
+### How it works
+The system injects autonomy guidance into AI prompts using get_autonomy_prompt_context():
+
+**Autonomous level** ("trust your judgment"):
+- Workers: "I went ahead and...", "I figured..."
+- Confident, proactive language
+- Only escalate blockers or major choices
+
+**Collaborative level** (default):
+- Workers: "I'm thinking we could...", "What do you think?"
+- Balanced approach - propose and get feedback
+- Natural back-and-forth collaboration
+
+**Supervised level** ("check with me first"):
+- Workers: "Should I...?", "Want me to...?"
+- Ask permission before significant actions
+- More cautious, deliberate approach
+
+### Files changed
+- ralph_bot.py (added autonomy context to call_boss)
+- scripts/ralph/prd.json (marked AU-005 complete)
+
+### Learnings
+- The autonomy system was mostly implemented, just needed one integration point
+- get_autonomy_prompt_context() returns formatted prompt text
+- Workers already had this (line 12275), Ralph was missing it
+- The prompt injection happens for every AI call, ensuring consistency
+- No caching needed - context is lightweight
+
+### Integration notes
+- Works with AU-001 (state management), AU-002 (onboarding question), AU-004 (mid-session changes)
+- The full autonomy stack is now complete and integrated
+- Specialists (call_specialist) don't have autonomy context yet - could add if needed
+
+### Future considerations
+- Could add autonomy awareness to call_specialist() for consistency
+- Could track how often workers actually follow autonomy guidance (metrics)
+- Autonomy level could influence other systems (pacing, detail level, etc.)
+
+---
+
