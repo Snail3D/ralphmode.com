@@ -1329,6 +1329,490 @@ Ralph helps you keep it safe! 🛡️
         ]
         return InlineKeyboardMarkup(keyboard)
 
+    # Telegram Bot Creation Wizard (OB-007)
+
+    def get_telegram_bot_intro_message(self) -> str:
+        """Get introduction message for Telegram bot creation.
+
+        Returns:
+            Telegram bot creation introduction
+        """
+        return """*Time to Make Your Telegram Bot!* 🤖
+
+Ralph help you make a Telegram bot! This is how you talk to Ralph!
+
+*What's a Telegram bot?*
+Think of it like:
+• A phone number for your AI 📱
+• A way to chat with your code 💬
+• Your personal assistant that lives in Telegram 🤖
+
+*What you need:*
+1. Telegram app (download from telegram.org if you don't have it!)
+2. A name for your bot
+3. 2 minutes of your time!
+
+*How we gonna do this:*
+Ralph introduce you to **@BotFather** - he's the bot that makes bots!
+(Ralph know, it sounds confusing... a bot that makes bots! But it works!)
+
+*Ready to meet the BotFather?*
+"""
+
+    def get_telegram_bot_intro_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Telegram bot introduction.
+
+        Returns:
+            Keyboard with BotFather link
+        """
+        keyboard = [
+            [InlineKeyboardButton("👨‍💼 Talk to BotFather", url="https://t.me/BotFather")],
+            [InlineKeyboardButton("✅ I'm Ready!", callback_data="telegram_bot_ready")],
+            [InlineKeyboardButton("❓ What's Telegram?", callback_data="telegram_what_is")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_what_is_telegram_message(self) -> str:
+        """Get explanation of what Telegram is.
+
+        Returns:
+            Telegram explanation message
+        """
+        return """*What's Telegram? Ralph Explains!* 📱
+
+Telegram is a messaging app! Like WhatsApp or iMessage!
+
+*Why use Telegram for this?*
+• Free to use!
+• Works on phone AND computer! 📱💻
+• Has AMAZING bot support! 🤖
+• Super fast and reliable! ⚡
+• Works everywhere in the world! 🌍
+
+*How to get Telegram:*
+**On Phone:**
+• iPhone: App Store - search "Telegram"
+• Android: Play Store - search "Telegram"
+
+**On Computer:**
+• Go to: https://telegram.org/apps
+• Download for Windows/Mac/Linux
+• Or use the web version!
+
+*What Ralph needs:*
+You just need to create an account! Use your phone number!
+
+After you got Telegram, come back here and Ralph help you make a bot!
+
+*Got Telegram now?*
+"""
+
+    def get_what_is_telegram_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Telegram explanation.
+
+        Returns:
+            Keyboard with download links
+        """
+        keyboard = [
+            [InlineKeyboardButton("📥 Download Telegram", url="https://telegram.org/apps")],
+            [InlineKeyboardButton("✅ I Have Telegram!", callback_data="telegram_bot_ready")],
+            [InlineKeyboardButton("◀️ Back", callback_data="telegram_bot_intro")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_botfather_walkthrough_message(self) -> str:
+        """Get step-by-step walkthrough for using BotFather.
+
+        Returns:
+            BotFather walkthrough instructions
+        """
+        return """*Let's Make Your Bot!* 🏭
+
+Okay! Follow these steps EXACTLY!
+
+**Step 1: Open BotFather**
+Click the link below or search "@BotFather" in Telegram
+(Look for the official one - blue checkmark!)
+
+**Step 2: Start the conversation**
+Click "START" or send: `/start`
+BotFather will say hello!
+
+**Step 3: Create new bot**
+Send this command: `/newbot`
+BotFather will ask you some questions!
+
+**Step 4: Choose a name** (what people see)
+Examples:
+• "My Ralph Bot"
+• "Code Assistant Bot"
+• "Super Cool Helper"
+Whatever you want! This is the DISPLAY name!
+
+**Step 5: Choose a username** (must be unique!)
+Must end with "bot"!
+Examples:
+• `my_ralph_bot`
+• `code_helper_2024_bot`
+• `supercool_bot`
+
+Try a few names - some might be taken!
+
+**Step 6: Get your token!** 🔑
+BotFather will give you a TOKEN!
+It looks like: `1234567890:ABCdefGHIjklMNOpqrSTUvwxyz`
+
+⚠️ **IMPORTANT:** This token is SECRET!
+Copy it and save it somewhere safe!
+
+*Ready to start?*
+"""
+
+    def get_botfather_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for BotFather walkthrough.
+
+        Returns:
+            Keyboard with BotFather link and actions
+        """
+        keyboard = [
+            [InlineKeyboardButton("👨‍💼 Open BotFather", url="https://t.me/BotFather")],
+            [InlineKeyboardButton("✅ I Got My Token!", callback_data="telegram_token_received")],
+            [InlineKeyboardButton("📋 Show Steps Again", callback_data="telegram_show_steps")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="telegram_bot_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_token_entry_message(self) -> str:
+        """Get message for entering the bot token.
+
+        Returns:
+            Token entry request message
+        """
+        return """*Send Ralph Your Bot Token!* 🔑
+
+Perfect! Now Ralph needs your bot token!
+
+*What to send:*
+Paste the WHOLE token that BotFather gave you!
+
+*What it looks like:*
+```
+1234567890:ABCdefGHIjklMNOpqrSTUvwxyz-abcdefgh
+```
+
+*Where to find it:*
+1. Look at your chat with BotFather
+2. Find the message that says "Use this token to access the HTTP API"
+3. Copy the ENTIRE token
+4. Paste it here!
+
+**SECURITY NOTE:**
+• This token is a SECRET!
+• Ralph will save it safely in your `.env` file
+• Never share it with anyone!
+• Anyone with this token can control your bot!
+
+*Ready? Paste your token now:*
+"""
+
+    def validate_telegram_token_format(self, token: str) -> bool:
+        """Validate that the Telegram bot token has the correct format.
+
+        Args:
+            token: The bot token to validate
+
+        Returns:
+            True if format is valid, False otherwise
+        """
+        import re
+
+        if not token:
+            return False
+
+        token = token.strip()
+
+        # Telegram tokens are in format: 123456789:ABCdefGHIjklMNOpqrSTUvwxyz
+        # Bot ID (numbers) : Auth token (alphanumeric and special chars)
+        pattern = r'^\d{8,10}:[A-Za-z0-9_-]{35,}$'
+
+        return bool(re.match(pattern, token))
+
+    def get_telegram_token_invalid_message(self, token: str) -> str:
+        """Get message for invalid bot token format.
+
+        Args:
+            token: The invalid token that was provided
+
+        Returns:
+            Error message explaining what's wrong
+        """
+        issues = []
+
+        if not token or not token.strip():
+            issues.append("❌ The token is empty!")
+        elif ':' not in token:
+            issues.append("❌ Token should have a colon `:` in the middle!")
+            issues.append("   Format: `123456789:ABCdefGHIjklMNOpqr`")
+        else:
+            parts = token.split(':')
+            if len(parts) != 2:
+                issues.append("❌ Token should have exactly ONE colon!")
+            else:
+                bot_id, auth_token = parts
+                if not bot_id.isdigit():
+                    issues.append("❌ First part (before `:`) should be only numbers!")
+                if len(bot_id) < 8:
+                    issues.append("❌ Bot ID is too short!")
+                if len(auth_token) < 30:
+                    issues.append("❌ Auth token (after `:`) is too short!")
+
+        return f"""*Hmm... That Token Doesn't Look Right!* 🤔
+
+Ralph found some problems:
+
+{chr(10).join(issues)}
+
+*What Telegram tokens look like:*
+✅ Format: `123456789:ABCdefGHIjklMNOpqrSTUvwxyz`
+✅ Two parts separated by a colon `:`
+✅ First part: 8-10 digits (your bot's ID)
+✅ Second part: 35+ characters (letters, numbers, - and _)
+
+*Common mistakes:*
+• Didn't copy the whole token (copy ALL of it!)
+• Added extra spaces at the beginning or end
+• Copied the wrong message from BotFather
+• Token got split across two lines (make sure it's one line!)
+
+*Try again!*
+1. Go back to your chat with @BotFather
+2. Find the token (the long string after "Use this token")
+3. Copy THE WHOLE THING (including the colon!)
+4. Paste it here!
+
+*Example from BotFather:*
+```
+Done! Congratulations on your new bot.
+...
+Use this token to access the HTTP API:
+1234567890:ABCdefGHI-jklMNOpqrSTUvwxyz123
+```
+Copy that ENTIRE bottom line!
+"""
+
+    def get_telegram_token_success_message(self) -> str:
+        """Get success message after bot token is saved.
+
+        Returns:
+            Success celebration message
+        """
+        return """*Bot Token Saved!* 🎉🤖
+
+Ralph GOT IT! Your bot token is safe!
+
+*What Ralph just did:*
+✅ Validated your token format
+✅ Saved it to your `.env` file
+✅ Made sure it's secure (only on YOUR computer!)
+
+*What this means:*
+🤖 Your bot is ready to come to life!
+💬 Ralph can now control your bot!
+🔐 The token is stored safely (never goes to GitHub!)
+
+*Next, let's test if it works!*
+
+Ralph gonna try to connect to your bot...
+This usually takes just a second!
+
+*Testing the connection...*
+"""
+
+    def get_telegram_test_message(self, success: bool, bot_info: Optional[Dict[str, Any]] = None, error: Optional[str] = None) -> str:
+        """Get message after testing bot connection.
+
+        Args:
+            success: Whether the test was successful
+            bot_info: Bot information if successful
+            error: Error message if failed
+
+        Returns:
+            Test result message
+        """
+        if success and bot_info:
+            bot_name = bot_info.get('first_name', 'Unknown')
+            bot_username = bot_info.get('username', 'Unknown')
+
+            return f"""*🎊 BOT IS ALIVE! 🎊*
+
+Ralph connected to your bot!
+
+*Your Bot Info:*
+👤 Name: **{bot_name}**
+🔗 Username: @{bot_username}
+✅ Status: Active and Ready!
+
+*What this means:*
+• Your bot token works!
+• The bot is online!
+• Ralph can send messages through it!
+
+*Next steps:*
+• Ralph can help you configure the bot
+• Set up commands and features
+• Start chatting with your bot!
+
+Try talking to your bot! Search for @{bot_username} in Telegram and click START!
+
+*Ready to continue setup?*
+"""
+        else:
+            error_msg = error or "Unknown error"
+            return f"""*❌ Connection Failed* 😔
+
+Ralph tried to connect to your bot but something went wrong!
+
+*Error:*
+{error_msg}
+
+*Why this might happen:*
+• Token might be wrong (typo when copying?)
+• Token might be revoked (did you delete the bot?)
+• Internet connection issue
+• Telegram might be having problems (rare!)
+
+*What to do:*
+1. Check if you copied the ENTIRE token
+2. Make sure you didn't delete the bot in BotFather
+3. Try the token again
+4. If nothing works, create a NEW bot and get a new token!
+
+*Want to try again?*
+"""
+
+    def get_telegram_test_keyboard(self, success: bool) -> InlineKeyboardMarkup:
+        """Get keyboard after bot connection test.
+
+        Args:
+            success: Whether the test was successful
+
+        Returns:
+            Keyboard with next steps
+        """
+        if success:
+            keyboard = [
+                [InlineKeyboardButton("✅ Continue Setup", callback_data="setup_continue_next")],
+                [InlineKeyboardButton("🔄 Test Again", callback_data="telegram_test_again")],
+                [InlineKeyboardButton("📚 Bot Configuration Tips", callback_data="telegram_config_tips")],
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("🔄 Try Different Token", callback_data="telegram_retry_token")],
+                [InlineKeyboardButton("🆕 Create New Bot", callback_data="telegram_new_bot")],
+                [InlineKeyboardButton("❓ Get Help", callback_data="telegram_test_help")],
+                [InlineKeyboardButton("⏭️ Skip for Now", callback_data="setup_skip_telegram")],
+            ]
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_telegram_bot_help_message(self) -> str:
+        """Get help message for Telegram bot creation issues.
+
+        Returns:
+            Troubleshooting help
+        """
+        return """*Ralph Help With Telegram Bot!* 🆘
+
+**Common Problems:**
+
+**Problem 1: "Can't find BotFather"**
+→ Search EXACTLY: `@BotFather` in Telegram
+→ Look for the one with a BLUE CHECKMARK ✅
+→ Don't talk to fake BotFathers!
+
+**Problem 2: "Username already taken"**
+→ Try adding numbers: `my_bot_2024_bot`
+→ Try underscores: `my_cool_bot`
+→ Remember: must end with `bot`!
+
+**Problem 3: "BotFather not responding"**
+→ Click START in the chat
+→ Make sure you have internet connection
+→ Wait a few seconds - he's busy!
+
+**Problem 4: "Lost my token!"**
+→ Go back to BotFather
+→ Send: `/mybots`
+→ Select your bot
+→ Click "API Token"
+→ BotFather will show it again!
+
+**Problem 5: "Token doesn't work"**
+→ Make sure you copied ALL of it
+→ Check for spaces at the ends
+→ Make sure it's ONE line (not split across two)
+→ Try regenerating the token in BotFather
+
+**Problem 6: "I deleted my bot by accident!"**
+→ No problem! Just make a new one!
+→ Use `/newbot` again
+→ Pick a different username
+
+*Need a video tutorial?*
+🎥 [How to Create a Telegram Bot](https://www.youtube.com/watch?v=example)
+
+*Still stuck?*
+Tell Ralph exactly what error you seeing!
+"""
+
+    def get_telegram_config_tips_message(self) -> str:
+        """Get bot configuration tips message.
+
+        Returns:
+            Configuration tips and best practices
+        """
+        return """*Bot Configuration Tips!* ⚙️
+
+Now that your bot is working, here are some tips!
+
+**1. Set a Profile Picture** 🖼️
+• Go to BotFather → `/mybots`
+• Select your bot → Edit Bot → Edit Botpic
+• Upload a cool image!
+• Makes your bot look professional!
+
+**2. Set a Description** 📝
+• BotFather → `/mybots` → Edit Bot → Edit Description
+• Write what your bot does!
+• Shows up when people first talk to your bot!
+
+**3. Set an About Text** ℹ️
+• BotFather → `/mybots` → Edit Bot → Edit About
+• Short description (max 120 characters)
+• Shows on bot's profile page!
+
+**4. Set Commands** ⌨️
+• BotFather → `/mybots` → Edit Bot → Edit Commands
+• List what commands your bot responds to!
+• Example: `start - Start the bot`
+
+**5. Privacy Settings** 🔒
+• BotFather → `/mybots` → Bot Settings → Group Privacy
+• Turn OFF if you want bot to see all group messages
+• Turn ON if bot should only see commands
+
+**6. Inline Mode** (Optional) 🔍
+• BotFather → `/mybots` → Bot Settings → Inline Mode
+• Allows using bot inline: `@yourbotname query`
+• Cool feature but not required!
+
+*Ralph's Advice:*
+You don't NEED to do all this now! Your bot works!
+But these make it look MORE professional! ✨
+
+*Ready to continue?*
+"""
+
     # Repository Creation Wizard (OB-004)
 
     def get_repo_creation_intro_message(self) -> str:
