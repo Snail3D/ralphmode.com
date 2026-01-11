@@ -2554,7 +2554,10 @@ _{ralph_message}_
 
     def detect_conflict(self, worker_responses: List[Dict[str, str]], context: str = "") -> Tuple[bool, str, List[str]]:
         """
-        RM-038: Detect if workers have a real technical conflict that needs Ralph's guidance.
+        RM-038 & RM-040: Detect if workers have a real technical conflict that needs Ralph's guidance.
+
+        RM-040: Distinguishes trivial disagreements from real blocking conflicts.
+        Only real conflicts warrant escalation.
 
         Args:
             worker_responses: List of dicts with 'worker_name' and 'response' keys
@@ -2562,50 +2565,103 @@ _{ralph_message}_
 
         Returns:
             Tuple of (is_conflict, conflict_description, involved_workers)
+            - is_conflict: True only if this is a REAL blocking conflict, not trivial
+            - conflict_description: Description of the conflict
+            - involved_workers: List of workers involved
         """
         if len(worker_responses) < 2:
             return (False, "", [])
+
+        # RM-040: Trivial conflict indicators (should NOT escalate)
+        trivial_signals = [
+            # Code style preferences
+            "naming", "name this", "call it", "indent", "spacing", "format",
+            "camelcase", "snake_case", "prettier", "eslint", "style guide",
+            "comment", "docstring",
+            # Minor preferences
+            "prefer", "i like", "personally", "my style", "i usually",
+            "could also", "another way", "alternatively",
+            # Cosmetic
+            "color", "font", "layout", "margin", "padding", "ui tweak"
+        ]
+
+        # RM-040: Real conflict indicators (SHOULD escalate)
+        real_conflict_signals = [
+            # Security concerns
+            "security", "vulnerability", "exploit", "xss", "sql injection",
+            "csrf", "authentication", "authorization", "encrypt", "decrypt",
+            "insecure", "leak", "expose",
+            # Architecture decisions
+            "architecture", "design pattern", "refactor", "restructure",
+            "database schema", "api design", "microservice", "monolith",
+            "scalability", "scale", "distributed",
+            # Missing requirements
+            "requirement", "unclear", "missing", "don't understand",
+            "need clarification", "spec", "ambiguous", "undefined",
+            # Blockers
+            "blocker", "blocked", "can't proceed", "stuck", "won't work",
+            "impossible", "breaking change", "backward compatibility",
+            "dependency", "conflict", "incompatible",
+            # Critical technical issues
+            "performance", "memory leak", "race condition", "deadlock",
+            "data loss", "corrupt", "crash", "fail"
+        ]
 
         # Look for disagreement keywords in responses
         disagreement_signals = [
             "disagree", "not sure about", "actually", "but", "however",
             "alternative", "different approach", "i think we should",
             "wouldn't recommend", "concern", "issue with", "problem with",
-            "rather", "instead"
+            "rather", "instead", "wrong", "mistake"
         ]
 
-        # Check for technical complexity indicators
-        complexity_signals = [
-            "depends on", "trade-off", "could break", "might cause",
-            "performance", "security", "bug", "error", "compatibility",
-            "technical debt", "refactor", "architecture"
-        ]
-
-        # Count disagreements
+        # Analyze responses
         disagreement_count = 0
-        complexity_count = 0
+        trivial_count = 0
+        real_conflict_count = 0
         involved_workers = []
 
         for response_data in worker_responses:
             response = response_data.get('response', '').lower()
             worker_name = response_data.get('worker_name', '')
 
-            if any(signal in response for signal in disagreement_signals):
+            # Check for disagreement
+            has_disagreement = any(signal in response for signal in disagreement_signals)
+
+            # Check if it's trivial or real
+            has_trivial = any(signal in response for signal in trivial_signals)
+            has_real = any(signal in response for signal in real_conflict_signals)
+
+            if has_disagreement:
                 disagreement_count += 1
                 if worker_name not in involved_workers:
                     involved_workers.append(worker_name)
 
-            if any(signal in response for signal in complexity_signals):
-                complexity_count += 1
-                if worker_name not in involved_workers:
-                    involved_workers.append(worker_name)
+                # Categorize the disagreement
+                if has_trivial and not has_real:
+                    trivial_count += 1
+                elif has_real:
+                    real_conflict_count += 1
 
-        # Real conflict = multiple disagreements + technical complexity
-        is_conflict = disagreement_count >= 2 and complexity_count >= 1
+        # RM-040: Only escalate if this is a REAL conflict, not trivial
+        # Real conflict requires:
+        # 1. Multiple workers disagreeing (2+)
+        # 2. At least one real conflict indicator
+        # 3. NOT just trivial style preferences
+        is_real_conflict = (
+            disagreement_count >= 2 and
+            real_conflict_count >= 1 and
+            trivial_count < disagreement_count  # Not ALL trivial
+        )
 
-        if is_conflict:
-            conflict_desc = f"Technical disagreement between {', '.join(involved_workers)} about {context}"
+        if is_real_conflict:
+            conflict_desc = f"Real technical conflict between {', '.join(involved_workers)} about {context}"
+            logger.info(f"RM-040: Real conflict detected - {real_conflict_count} real signals, {trivial_count} trivial signals")
             return (True, conflict_desc, involved_workers)
+
+        # Trivial disagreement - let workers handle it themselves
+        if disagreement_count >= 1 and trivial_count >= 1:
+            logger.info(f"RM-040: Trivial disagreement detected - workers can resolve at their level")
 
         return (False, "", [])
 

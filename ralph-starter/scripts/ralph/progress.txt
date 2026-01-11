@@ -9853,3 +9853,41 @@ All tests passed! The progress tracker displays correctly:
 - Compact mode works for all states
 
 ---
+
+## Iteration 8 - 2026-01-10
+**Task**: [RM-040] Trivial vs Real Conflict Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced detect_conflict() method in ralph_bot.py to distinguish trivial vs real conflicts
+- Added trivial_signals list covering code style, naming, formatting, minor preferences, cosmetics
+- Added real_conflict_signals list covering security, architecture, requirements, blockers, critical technical issues
+- Conflict categorization logic: tracks disagreement_count, trivial_count, real_conflict_count
+- Real conflict requires: 2+ disagreements, 1+ real conflict indicator, NOT all trivial
+- Trivial conflicts are detected but NOT escalated - workers handle at their level
+- Added logging for both real conflicts (escalate) and trivial conflicts (informational)
+- Updated docstrings to reference both RM-038 and RM-040
+
+### Files changed
+- ralph_bot.py (detect_conflict method enhanced, lines 2555-2666)
+- scripts/ralph/prd.json (marked RM-040 as passes: true)
+
+### Learnings
+- Conflict detection needs CONTEXT-AWARE categorization, not just keyword matching
+- Trivial = style/naming/cosmetics - workers can resolve themselves
+- Real = security/architecture/requirements/blockers - needs Ralph or CEO
+- Multi-tiered categorization prevents unnecessary escalations
+- Good UX: let workers handle small disagreements, only escalate blocking issues
+- Logging helps debug why conflicts were/weren't escalated
+- This pattern aligns with RM-039 (escalating to Mr. Worms for high stakes only)
+- Balance: too sensitive = alert fatigue, too lenient = miss real blockers
+
+### Acceptance Criteria Met
+✅ Trivial: code style, naming preferences, minor approach differences
+✅ Real: security concerns, architecture decisions, missing requirements, blockers
+✅ Trivial conflicts resolved at worker level (not escalated)
+✅ Real conflicts can go to Ralph (escalation enabled)
+✅ Only critical issues go to Mr. Worms (via Ralph's escalation flow)
+✅ AI assesses conflict severity before escalating (categorization logic)
+
+---
