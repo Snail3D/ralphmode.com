@@ -4597,7 +4597,7 @@
         "mcp_manager.py",
         "database_mcp_setup.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-020",
