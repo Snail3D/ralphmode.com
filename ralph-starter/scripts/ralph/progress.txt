@@ -15390,3 +15390,31 @@ Category Scores:
 - State changes should be logged with logger.info for debugging
 
 ---
+
+## Iteration [New] - 2026-01-11
+**Task**: [AU-002] Autonomy Question Scene
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 4th onboarding question about supervision preferences
+- Three clear options with friendly labels and emojis
+- Integrated into existing ONBOARDING_QUESTIONS list
+- Answer handler automatically calls set_autonomy_level()
+- Ralph's characteristic misspellings preserved ("supervishun", "stucked")
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Onboarding questions are the perfect place to gather user preferences
+- The existing onboarding flow is well-structured (questions → answers → reactions → next)
+- Question index 3 for autonomy (0-based, so it's the 4th question)
+- Answer values must match autonomy level names exactly for auto-detection
+- No need for special acknowledgment - Ralph's built-in reactions handle it
+
+### Integration notes
+- Works seamlessly with AU-001 (state management) and AU-004 (mid-session changes)
+- User can still change autonomy mid-session with natural language
+- Onboarding sets initial preference, not a permanent lock
+
+---
