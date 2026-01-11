@@ -11782,3 +11782,93 @@ This feature prevents the #1 cause of API key leaks: accidental commits to publi
 - Workers should sound smart AND casual, not academic
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [RM-058] Codebase Summary Generation
+**Status**: ✅ Complete
+
+### What was implemented
+- Added codebase_insights dict to session tracking (initialized in zip handler)
+- Created _store_codebase_insight() method to store worker discoveries by topic
+- Created answer_codebase_question() method to respond based on stored insights
+- Integrated automatic insight storage during idle chatter
+- Added question detection in handle_text() for codebase questions
+- 10 topic categories for classification
+
+### Files changed
+- ralph_bot.py (line 7798: added codebase_insights to session)
+- ralph_bot.py (line 4685-4709: _store_codebase_insight method)
+- ralph_bot.py (line 4711-4790: answer_codebase_question method)
+- ralph_bot.py (line 5042-5062: automatic insight storage in idle chatter)
+- ralph_bot.py (line 8959-8970: question detection in handle_text)
+
+### Topic categories
+1. auth - login, signin, signup, password, session, token
+2. database - db, sql, query, table, migration, schema
+3. api - endpoint, route, request, response
+4. frontend - ui, component, react, vue, angular, page
+5. backend - server, service, handler
+6. cache - redis, memcache
+7. queue - worker, async, background, celery
+8. webhook - callback
+9. payment - stripe, checkout, billing
+10. test - testing, spec, unit test
+
+### How it works
+**Storing insights during exploration:**
+- Workers discuss codebase during idle chatter
+- Each message is analyzed for topic keywords
+- If match found, insight stored: {insight, worker, timestamp}
+- Insights accumulate as workers explore
+
+**Answering questions:**
+- User asks: "How does the login work?"
+- System extracts topic from question ("auth" detected)
+- If insights exist for topic: worker explains based on stored knowledge
+- If no insights: worker admits "haven't looked at that yet"
+- Random worker selected to answer (authentic feel)
+- Can reference other workers: "Gomer checked that out. [insight]"
+
+### Example flows
+User: "How does the login work?"
+Stool: "Gomer checked that out. Auth handler validates credentials against the database."
+
+User: "What's the caching strategy?"
+Gus: "Yeah, I looked at that. They're caching responses. Smart - database doesn't get hammered on every request."
+
+User: "How do the webhooks work?"
+Mona: "Hmm, haven't looked at that yet. Lemme check..."
+
+### Learnings
+- Insights build organically as workers explore (not pre-loaded)
+- Topic-based storage allows relevant retrieval
+- Multiple insights per topic supported (workers build on each other)
+- Question detection uses simple heuristics: ends with '?' + question words
+- Workers sound natural when they don't know: "haven't looked at that yet"
+- Persistence through session creates growing knowledge base
+
+### Acceptance criteria met
+✅ Track codebase_insights dict with discoveries
+✅ Workers add insights as they 'explore': 'Found the auth logic!'
+✅ User can ask: 'How does the login work?'
+✅ Relevant worker explains based on stored insights
+✅ If unknown: 'Hmm, haven't looked at that yet. Lemme check...'
+✅ Insights persist through session
+✅ Workers build on each other's discoveries
+
+### Technical patterns discovered
+- Dictionary-based insight storage (topic → list of insights)
+- Keyword matching for topic classification
+- Random worker selection for authentic feel
+- Distinction between discovering worker and answering worker
+- Simple question detection (ends with '?' + question words in text)
+- Graceful degradation when no insights available
+
+### Gotchas to avoid
+- Don't pre-load insights - let them build organically during exploration
+- Question detection should be simple (don't over-engineer)
+- Workers should admit when they don't know (builds authenticity)
+- Topic matching uses 'in message_lower' not exact match
+- Break after first topic match to avoid duplicate storage
+
+---
