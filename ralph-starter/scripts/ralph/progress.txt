@@ -12743,3 +12743,53 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Pattern matching stats help identify which secrets are most commonly caught
 
 ---
+
+## Iteration [LATEST] - 2026-01-11
+**Task**: [SG-031] Ralph Doesn't Forget - Requirement Memory
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 'requirements' list to session state initialization
+- Created remember_requirement() method to store all Mr. Worms directives with timestamp and context
+- Created check_memory() method to search for previously mentioned topics
+- Created get_all_requirements() and format_requirements_for_prompt() for AI context
+- Added auto-capture in handle_text() - all non-trivial messages are remembered
+- Workers now check memory before asking questions to avoid duplicates
+- Workers reference what boss already said: "Oh wait, the boss already told us..."
+- Ralph includes all requirements in Q&A responses for complete context
+
+### Files changed
+- ralph_bot.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Session state is the perfect place for requirement memory - persists entire session
+- Simple keyword matching in check_memory() is effective for topic detection
+- Auto-capturing requirements on every message ensures nothing is forgotten
+- Workers referencing memory feels MORE natural than asking duplicate questions
+- Filtering out simple chat ("ok", "yes") and questions prevents noise in requirements
+- Including requirements in AI prompts gives Ralph/workers full context for responses
+- The pattern: capture -> store -> check -> reference creates a complete memory loop
+
+### Pattern for other features
+```python
+# 1. Add to session state
+session["feature_data"] = []
+
+# 2. Capture data points
+def remember_feature_item(user_id, data):
+    session = self.active_sessions.get(user_id)
+    session["feature_data"].append({"item": data, "timestamp": datetime.now()})
+
+# 3. Check before asking
+def check_feature_memory(user_id, query):
+    session = self.active_sessions.get(user_id, {})
+    items = session.get("feature_data", [])
+    # Search and return if found
+
+# 4. Include in prompts
+def format_feature_for_prompt(user_id):
+    # Format feature_data for AI context
+```
+
+---
