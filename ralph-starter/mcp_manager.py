@@ -493,6 +493,120 @@ class MCPManager:
 
         return self.slack_setup.format_setup_guide()
 
+    # OB-044: Discord MCP Server Setup Methods
+
+    def setup_discord_mcp(self) -> Dict[str, Any]:
+        """Guide through Discord MCP server setup.
+
+        Returns:
+            Dictionary with setup status and instructions
+        """
+        if not self.discord_setup:
+            return {
+                "success": False,
+                "error": "Discord MCP setup helper not available"
+            }
+
+        # Check all prerequisites
+        token_ok, token_msg = self.discord_setup.check_discord_token_configured()
+        server_ok, server_msg = self.discord_setup.check_mcp_server_installed()
+
+        return {
+            "discord_token": {
+                "configured": token_ok,
+                "message": token_msg
+            },
+            "mcp_server": {
+                "ready": server_ok,
+                "message": server_msg,
+                "install_instructions": self.discord_setup.get_install_instructions() if not server_ok else None
+            },
+            "bot_creation": {
+                "creation_guide": self.discord_setup.get_bot_creation_instructions(),
+                "token_guide": self.discord_setup.get_token_setup_guide()
+            },
+            "all_ready": token_ok and server_ok,
+            "setup_guide": self.discord_setup.get_setup_summary()
+        }
+
+    def test_discord_connection(self, token: str, channel_id: str = None) -> Tuple[bool, str, Optional[Dict]]:
+        """Test Discord bot connection.
+
+        Args:
+            token: Discord bot token
+            channel_id: Channel ID to test with
+
+        Returns:
+            Tuple of (success, message, response_data)
+        """
+        if not self.discord_setup:
+            return False, "Discord MCP setup helper not available", None
+
+        return self.discord_setup.test_discord_connection(token, channel_id)
+
+    def list_discord_channels(self, token: str, guild_id: str) -> Tuple[bool, List[Dict[str, Any]], str]:
+        """List Discord channels in a guild.
+
+        Args:
+            token: Discord bot token
+            guild_id: Discord server (guild) ID
+
+        Returns:
+            Tuple of (success, channels_list, error_message)
+        """
+        if not self.discord_setup:
+            return False, [], "Discord MCP setup helper not available"
+
+        return self.discord_setup.list_channels(token, guild_id)
+
+    def configure_discord_channel(self, channel_name: str, channel_id: str) -> Dict[str, Any]:
+        """Configure default Discord channel for notifications.
+
+        Args:
+            channel_name: Channel name
+            channel_id: Channel ID
+
+        Returns:
+            Configuration dictionary
+        """
+        if not self.discord_setup:
+            return {"error": "Discord MCP setup helper not available"}
+
+        return self.discord_setup.configure_default_channel(channel_name, channel_id)
+
+    def get_discord_bot_creation_guide(self) -> Dict[str, Any]:
+        """Get Discord bot creation instructions.
+
+        Returns:
+            Dictionary with bot creation steps
+        """
+        if not self.discord_setup:
+            return {"error": "Discord MCP setup helper not available"}
+
+        return self.discord_setup.get_bot_creation_instructions()
+
+    def format_discord_setup_guide(self) -> str:
+        """Get formatted Discord setup guide for display.
+
+        Returns:
+            Formatted markdown guide
+        """
+        if not self.discord_setup:
+            return "Discord MCP setup helper not available"
+
+        summary = self.discord_setup.get_setup_summary()
+        guide = f"**{summary['title']}**\n\n"
+        guide += f"⏱️ Estimated time: {summary['estimated_time']}\n"
+        guide += f"🎯 Difficulty: {summary['difficulty']}\n\n"
+        guide += f"💡 {summary['ralph_encouragement']}\n\n"
+        guide += "**Steps:**\n"
+        for step in summary['steps']:
+            status_icon = "⬜" if step['status'] == "pending" else "✅"
+            guide += f"{status_icon} {step['title']}\n"
+            guide += f"   → {step['action']}\n\n"
+
+        return guide
+
 
 # Singleton instance
 _mcp_manager_instance = None
