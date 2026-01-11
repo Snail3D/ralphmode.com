@@ -11139,14 +11139,47 @@ Stay in character ({worker['style']}). 1 sentence."""
 
             await self.send_styled_message(context, chat_id, name, title, giveup, with_typing=True)
 
-    def generate_ralph_report(self, session: Dict[str, Any]) -> str:
-        """Generate Ralph's end-of-session report to the CEO."""
+    def generate_ralph_report(self, session: Dict[str, Any], user_id: int) -> str:
+        """SG-033: Generate Ralph's end-of-session report to the CEO.
+
+        Now includes accountability checklist - honest about what was done and what wasn't.
+
+        Args:
+            session: Session dict
+            user_id: User ID for getting requirements
+        """
         project_name = session.get('project_name', 'the project')
         prd_summary = session.get('prd', {}).get('summary', 'various tasks')
         analysis = session.get('analysis', {})
         languages = analysis.get('languages', [])
         file_count = len(analysis.get('files', []))
         total_lines = analysis.get('total_lines', 0)
+
+        # SG-033: Get accountability checklist before generating report
+        checklist = self.get_accountability_checklist_status(user_id)
+
+        # Format requirements accountability for the prompt
+        accountability_section = ""
+        if checklist["total"] > 0:
+            accountability_section = f"""
+REQUIREMENTS ACCOUNTABILITY (Mr. Worms asked for these - report honestly):
+✅ Things we DEFINITELY did: {checklist['yes']}
+❌ Things we DIDN'T get to yet: {checklist['no']}
+❓ Things we're NOT SURE about: {checklist['maybe']}
+
+"""
+            # Add specific examples of each category
+            if checklist['evaluations']:
+                yes_items = [e['requirement'] for e in checklist['evaluations'] if e['evaluation'] == 'yes']
+                no_items = [e['requirement'] for e in checklist['evaluations'] if e['evaluation'] == 'no']
+                maybe_items = [e['requirement'] for e in checklist['evaluations'] if e['evaluation'] == 'maybe']
+
+                if yes_items:
+                    accountability_section += f"Things we did: {', '.join(yes_items[:2])}\n"
+                if no_items:
+                    accountability_section += f"Things we missed: {', '.join(no_items[:2])}\n"
+                if maybe_items:
+                    accountability_section += f"Things unclear: {', '.join(maybe_items[:2])}\n"
 
         prompt = f"""You are Ralph Wiggum reporting to the CEO about your team's work.
 
@@ -11156,6 +11189,7 @@ PROJECT CONTEXT:
 - Size: {file_count} files, {total_lines:,} lines of code
 - Tasks analyzed: {prd_summary}
 
+{accountability_section}
 You've been watching the WHOLE session. You saw everything. Now report.
 
 IMPORTANT: CEO is BUSY. Keep it punchy but VALUABLE and ACTIONABLE.
@@ -11171,13 +11205,16 @@ Your report MUST include:
 
 ⚠️ *WATCH OUT* - What's risky? What might break? What's incomplete?
    Be SPECIFIC: name files, features, or technical debt.
-   The CEO needs to know EXACTLY what to watch.
+   INCLUDE anything from the requirements we didn't do or are unsure about.
+   NO PRETENDING - if we missed something Mr. Worms asked for, SAY SO.
 
 👆 *TRY THIS NOW* - The ONE SPECIFIC thing to test immediately.
    Give actual steps: "Open X, click Y, check Z"
 
 You CANNOT lie. You saw everything and must report honestly.
-But you're proud of your team and frame things positively!
+If we missed requirements Mr. Worms asked for, ACKNOWLEDGE them in the report.
+"We didn't get to X yet" or "Not sure if we fully covered X" is REQUIRED if applicable.
+But you're proud of your team and frame things positively when you can!
 
 Stay in character as Ralph Wiggum:
 - Simple language, might mention your cat
@@ -11238,8 +11275,8 @@ _He has a crayon-written report in his hands._
 
         await asyncio.sleep(2)
 
-        # Generate the report
-        report = self.generate_ralph_report(session)
+        # SG-033: Generate the report with accountability checklist
+        report = self.generate_ralph_report(session, user_id)
 
         await context.bot.send_message(
             chat_id=chat_id,
