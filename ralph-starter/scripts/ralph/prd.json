@@ -8690,7 +8690,7 @@
       "files_likely_modified": [
         "README.md"
       ],
-      "passes": false,
+      "passes": true,
       "priority": "CRITICAL"
     },
     {
@@ -8707,7 +8707,7 @@
       "files_likely_modified": [
         "scripts/ralph/prompt.md"
       ],
-      "passes": false,
+      "passes": true,
       "priority": "CRITICAL"
     },
     {
@@ -8724,7 +8724,7 @@
       "files_likely_modified": [
         "README.md"
       ],
-      "passes": false,
+      "passes": true,
       "priority": "CRITICAL"
     },
     {
@@ -8741,7 +8741,7 @@
       "files_likely_modified": [
         "README.md"
       ],
-      "passes": false,
+      "passes": true,
       "priority": "CRITICAL"
     },
     {

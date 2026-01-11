@@ -70,10 +70,21 @@ python ralph_bot.py
 |---------|--------------|
 | `/start` | *"Hi, I'm Ralph!"* - Begin a new adventure |
 | `/setup` | Guided onboarding. Ralph holds your hand. |
-| `/status` | *"The project is... um... this way!"* |
+| `/status` | *"The project is... um... this way!"* - Session status |
+| `/mystatus` | Check your permissions and quality score |
+| `/report` | Get a detailed work summary |
+| `/lookaround` | See who's in the office right now |
 | `/setmodel` | Switch AI models on the fly. No restart needed! |
 | `/retest` | Re-validate AI models. Check if they still work! |
+| `/reorganize` | Re-cluster PRD tasks for optimal order |
 | `/feedback` | Tell us what to build next *(paid users)* |
+| `/theme` | Change visual theme |
+| `/character` | Select character avatar |
+| `/templates` | Browse project templates |
+| `/version` | Check current version |
+| `/analytics` | View usage analytics |
+| `/auditlog` | Security audit log *(owner only)* |
+| `/hacktest` | Run security tests *(owner only)* |
 
 ---
 
@@ -97,9 +108,9 @@ python ralph_bot.py
 ## 📊 Project Status
 
 ```
-████████████████████░░░░░░░░  59% Complete
+████████████████████░░░░░░░░  60% Complete
 
-541 Tasks Total | 321 Done | 220 To Go
+541 Tasks Total | 325 Done | 216 To Go
 ```
 
 Building autonomously. Ralph never sleeps. *(He tried once. It was unpossible.)*
