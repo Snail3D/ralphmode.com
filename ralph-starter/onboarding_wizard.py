@@ -47,6 +47,7 @@ class OnboardingWizard:
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_BOT_TEST = "bot_test"  # OB-039: Bot testing walkthrough
+    STEP_NOTIFICATIONS = "notifications"  # OB-042: Notification preferences
     STEP_COMPLETE = "complete"
 
     # Setup types
@@ -197,6 +198,16 @@ class OnboardingWizard:
             self.prd_generator = None
             self.prd_generator_available = False
             self.logger.warning("PRD generator not available")
+
+        # Import notification settings (OB-042: Notification Preferences)
+        try:
+            from notification_settings import get_notification_settings
+            self.notification_settings = get_notification_settings()
+            self.notification_settings_available = True
+        except ImportError:
+            self.notification_settings = None
+            self.notification_settings_available = False
+            self.logger.warning("Notification settings not available")
 
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
@@ -7384,6 +7395,232 @@ You're all set!"""
             ])
 
         return InlineKeyboardMarkup(buttons)
+
+    # OB-042: Notification Preferences
+    def get_notification_preferences_intro_message(self) -> str:
+        """Get intro message for notification preferences.
+
+        Returns:
+            Intro message with Ralph's personality
+        """
+        return """*Notification Settings* 🔔
+
+Ralph here! Let me help you set up when and how I should bug you.
+
+You can choose:
+• Which types of notifications to get
+• Whether you want instant updates or summaries
+• Quiet hours (so I don't wake you up!)
+
+Let's configure your preferences!"""
+
+    def get_notification_type_selection_message(self, current_settings: Dict[str, Any]) -> str:
+        """Get message for notification type selection.
+
+        Args:
+            current_settings: Current notification settings
+
+        Returns:
+            Message showing current settings
+        """
+        from notification_settings import NotificationSettings
+
+        ns = NotificationSettings
+        build_mode = current_settings.get(ns.NOTIF_BUILD_COMPLETE, ns.MODE_INSTANT)
+        errors_mode = current_settings.get(ns.NOTIF_ERRORS, ns.MODE_INSTANT)
+        milestones_mode = current_settings.get(ns.NOTIF_MILESTONES, ns.MODE_INSTANT)
+        idle_mode = current_settings.get(ns.NOTIF_IDLE_CHATTER, ns.MODE_INSTANT)
+        ralph_mode = current_settings.get(ns.NOTIF_RALPH_MOMENTS, ns.MODE_INSTANT)
+
+        return f"""*Configure Notification Types* 🔔
+
+Current settings:
+
+🏗 **Build Complete**: {build_mode.upper()}
+🚨 **Errors**: {errors_mode.upper()}
+🎯 **Milestones**: {milestones_mode.upper()}
+💬 **Idle Chatter**: {idle_mode.upper()}
+🎭 **Ralph Moments**: {ralph_mode.upper()}
+
+Tap a notification type below to change its mode:
+• **Instant** - Get notified right away
+• **Summary** - Get a summary later
+• **None** - Don't notify me
+
+Errors are always instant during quiet hours!"""
+
+    def get_notification_type_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for notification type selection.
+
+        Returns:
+            Keyboard with notification type options
+        """
+        from notification_settings import NotificationSettings
+        ns = NotificationSettings
+
+        buttons = [
+            [InlineKeyboardButton("🏗 Build Complete", callback_data=f"notif_type_{ns.NOTIF_BUILD_COMPLETE}")],
+            [InlineKeyboardButton("🚨 Errors", callback_data=f"notif_type_{ns.NOTIF_ERRORS}")],
+            [InlineKeyboardButton("🎯 Milestones", callback_data=f"notif_type_{ns.NOTIF_MILESTONES}")],
+            [InlineKeyboardButton("💬 Idle Chatter", callback_data=f"notif_type_{ns.NOTIF_IDLE_CHATTER}")],
+            [InlineKeyboardButton("🎭 Ralph Moments", callback_data=f"notif_type_{ns.NOTIF_RALPH_MOMENTS}")],
+            [InlineKeyboardButton("⏰ Quiet Hours", callback_data="notif_quiet_hours")],
+            [InlineKeyboardButton("✅ Done", callback_data="notif_preferences_complete")]
+        ]
+
+        return InlineKeyboardMarkup(buttons)
+
+    def get_notification_mode_selection_message(self, notif_type: str) -> str:
+        """Get message for notification mode selection.
+
+        Args:
+            notif_type: Type of notification being configured
+
+        Returns:
+            Message for mode selection
+        """
+        type_labels = {
+            "build_complete": "Build Complete",
+            "errors": "Errors",
+            "milestones": "Milestones",
+            "idle_chatter": "Idle Chatter",
+            "ralph_moments": "Ralph Moments"
+        }
+
+        label = type_labels.get(notif_type, notif_type)
+
+        return f"""*Configure: {label}* 🔔
+
+How do you want to be notified?
+
+**Instant** ⚡
+Get notified immediately when this happens
+
+**Summary** 📊
+Get a summary of these at the end of the session
+
+**None** 🔕
+Don't notify me about these at all
+
+Choose your preference:"""
+
+    def get_notification_mode_keyboard(self, notif_type: str) -> InlineKeyboardMarkup:
+        """Get keyboard for notification mode selection.
+
+        Args:
+            notif_type: Type of notification being configured
+
+        Returns:
+            Keyboard with mode options
+        """
+        from notification_settings import NotificationSettings
+        ns = NotificationSettings
+
+        buttons = [
+            [InlineKeyboardButton("⚡ Instant", callback_data=f"notif_mode_{notif_type}_{ns.MODE_INSTANT}")],
+            [InlineKeyboardButton("📊 Summary", callback_data=f"notif_mode_{notif_type}_{ns.MODE_SUMMARY}")],
+            [InlineKeyboardButton("🔕 None", callback_data=f"notif_mode_{notif_type}_{ns.MODE_NONE}")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="notif_back_to_types")]
+        ]
+
+        return InlineKeyboardMarkup(buttons)
+
+    def get_quiet_hours_config_message(self, current_settings: Dict[str, Any]) -> str:
+        """Get message for quiet hours configuration.
+
+        Args:
+            current_settings: Current notification settings
+
+        Returns:
+            Message for quiet hours setup
+        """
+        enabled = current_settings.get("quiet_hours_enabled", False)
+        start_time = current_settings.get("quiet_hours_start", "22:00")
+        end_time = current_settings.get("quiet_hours_end", "08:00")
+
+        status = "ENABLED ✅" if enabled else "DISABLED ❌"
+
+        return f"""*Quiet Hours* 🌙
+
+Status: **{status}**
+From: **{start_time}** to **{end_time}**
+
+During quiet hours, Ralph will only notify you about errors.
+All other notifications will wait until morning!
+
+Configure your quiet hours:"""
+
+    def get_quiet_hours_keyboard(self, enabled: bool) -> InlineKeyboardMarkup:
+        """Get keyboard for quiet hours configuration.
+
+        Args:
+            enabled: Whether quiet hours are currently enabled
+
+        Returns:
+            Keyboard with quiet hours options
+        """
+        toggle_text = "🔕 Disable Quiet Hours" if enabled else "🌙 Enable Quiet Hours"
+        toggle_data = "notif_quiet_disable" if enabled else "notif_quiet_enable"
+
+        buttons = [
+            [InlineKeyboardButton(toggle_text, callback_data=toggle_data)],
+            [InlineKeyboardButton("⏰ Set Start Time", callback_data="notif_quiet_start")],
+            [InlineKeyboardButton("⏰ Set End Time", callback_data="notif_quiet_end")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="notif_back_to_types")]
+        ]
+
+        return InlineKeyboardMarkup(buttons)
+
+    def get_test_notification_message(self) -> str:
+        """Get message for testing notifications.
+
+        Returns:
+            Test notification message
+        """
+        return """*Test Notification* 🔔
+
+🎉 Success! Ralph can send you notifications!
+
+This is what an instant notification looks like.
+You'll get these based on your preferences.
+
+Everything looks good!"""
+
+    async def save_notification_preference(
+        self,
+        user_id: int,
+        setting_key: str,
+        value: Any
+    ) -> bool:
+        """Save a notification preference.
+
+        Args:
+            user_id: Telegram user ID
+            setting_key: Setting to update
+            value: New value
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.notification_settings_available:
+            self.logger.warning("Notification settings not available")
+            return False
+
+        return self.notification_settings.update_setting(user_id, setting_key, value)
+
+    def get_notification_preferences_complete_message(self) -> str:
+        """Get completion message for notification preferences.
+
+        Returns:
+            Completion message
+        """
+        return """*Notification Settings Saved!* ✅
+
+Your notification preferences have been saved!
+
+You can change these anytime by running `/settings` and selecting "Notifications".
+
+Let's continue with setup!"""
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
