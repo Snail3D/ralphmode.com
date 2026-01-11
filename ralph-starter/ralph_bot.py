@@ -1473,6 +1473,7 @@ class RalphBot:
         self.last_bonus_banter: Dict[int, datetime] = {}  # RM-005: Track when last bonus banter happened
         self.last_deleted_message: Dict[int, datetime] = {}  # RM-006: Track when last deleted message happened
         self.last_background_chatter: Dict[int, datetime] = {}  # RM-008: Track when last background chatter happened
+        self.last_life_chatter: Dict[int, datetime] = {}  # SG-040: Track when last real life chatter happened
         self.quality_metrics: Dict[int, Dict] = {}  # Track quality metrics per session
         self.message_store: Dict[str, Dict] = {}  # Store full messages for button expansion (tap on shoulder)
         self.message_counter = 0  # Counter for unique message IDs
@@ -2710,6 +2711,23 @@ IMPORTANT:
                         self.last_background_chatter[user_id] = now
                         # Trigger background chatter in background (don't block current message)
                         asyncio.create_task(self.background_office_chatter(context, chat_id))
+
+                # SG-040: Real Life Background Chatter (workers mention real life stuff)
+                # Workers casually mention kid's orthodontist, car trouble, spouse's work drama, etc.
+                # Makes them feel like real humans with lives outside work
+                if name in self.DEV_TEAM:  # Only workers, not Ralph
+                    user_id = chat_id  # In DM, chat_id == user_id
+
+                    # Check if enough time has passed since last life chatter (at least 15 minutes)
+                    now = datetime.now()
+                    last_life = self.last_life_chatter.get(user_id)
+                    time_since_last_life = (now - last_life).total_seconds() if last_life else 9999
+
+                    # 10% chance and at least 15 minutes since last one (during lulls)
+                    if random.random() < 0.10 and time_since_last_life > 900:
+                        self.last_life_chatter[user_id] = now
+                        # Trigger real life chatter in background (don't block current message)
+                        asyncio.create_task(self.real_life_chatter(context, chat_id, name))
 
                 # RM-009: Ralph Moments (special occasions - gross/funny Ralph interruptions)
                 # Triggered based on time AND context (during active work sessions)
@@ -5067,6 +5085,115 @@ _{ralph_response}_
         user_id = chat_id  # In DM, chat_id == user_id
         if user_id in self.active_sessions:
             await self.worker_reacts_to_ralph_mood(context, chat_id, user_id)
+
+    async def real_life_chatter(self, context, chat_id: int, worker_name: str = None):
+        """SG-040: Workers casually mention real life stuff during lulls.
+
+        Workers mention things like:
+        - Kid's orthodontist appointment
+        - Spouse's work drama
+        - Car trouble
+        - Pet vet visits
+        - Other everyday life situations
+
+        Makes them feel like real humans with lives outside work.
+        ALWAYS generates fresh situations based on worker's family profile.
+        """
+        # Pick a random worker if none specified
+        if worker_name is None or worker_name not in self.WORKER_FAMILY_PROFILES:
+            worker_name = random.choice(list(self.WORKER_FAMILY_PROFILES.keys()))
+
+        profile = self.WORKER_FAMILY_PROFILES[worker_name]
+        user_id = chat_id  # For tracking
+
+        # Build context for AI to generate fresh life mention
+        life_context_parts = []
+
+        if profile.get("spouse_name"):
+            life_context_parts.append(f"spouse {profile['spouse_name']}")
+            if profile.get("spouse_job"):
+                life_context_parts.append(f"who works as {profile['spouse_job']}")
+
+        if profile.get("kids"):
+            kids_str = ", ".join(profile["kids"])
+            life_context_parts.append(f"kids: {kids_str}")
+
+        if profile.get("pet"):
+            life_context_parts.append(f"pet: {profile['pet']}")
+
+        if profile.get("hobbies"):
+            hobbies_str = ", ".join(profile["hobbies"])
+            life_context_parts.append(f"hobbies: {hobbies_str}")
+
+        if profile.get("responsibilities"):
+            resp_str = ", ".join(profile["responsibilities"])
+            life_context_parts.append(f"responsibilities: {resp_str}")
+
+        # Generate fresh life mention using AI
+        life_context = " | ".join(life_context_parts)
+        prompt = f"""Generate a brief, casual mention of a real-life situation {worker_name} is dealing with.
+
+{worker_name}'s life context: {life_context}
+
+Examples of TYPES of situations (NEVER use verbatim - generate fresh):
+- Orthodontist appointment for kid
+- Spouse's work stress/drama
+- Car trouble or repairs
+- Pet vet visit
+- Home repair issue
+- Family event coming up
+- Elderly parent care
+
+Generate ONE brief, natural mention (5-10 words). Keep it casual, not attention-seeking.
+Format: Just the mention itself, no quotes or formatting."""
+
+        messages = [
+            {"role": "system", "content": "You generate realistic, casual life mentions for workers. Always fresh, never repeat examples verbatim."},
+            {"role": "user", "content": prompt}
+        ]
+
+        life_mention = self.call_groq("llama-3.3-70b-versatile", messages, max_tokens=50)
+
+        # Send as brief aside during work
+        await asyncio.sleep(random.uniform(0.3, 0.8))
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_({worker_name} mutters while working) {life_mention.strip()}_",
+            parse_mode="Markdown"
+        )
+
+        # 30% chance another worker responds sympathetically
+        if random.random() < 0.30:
+            await asyncio.sleep(self.timing.brief_pause())
+
+            # Pick another worker to respond
+            other_workers = [w for w in self.DEV_TEAM.keys() if w != worker_name]
+            if other_workers:
+                other_worker = random.choice(other_workers)
+
+                # Generate sympathetic response
+                sympathy_prompt = f"""{other_worker} heard {worker_name} mention: '{life_mention.strip()}'
+
+Generate a brief (5-10 words) sympathetic/supportive response from {other_worker}.
+Examples of TYPES (NEVER use verbatim):
+- "Ugh, that sucks man."
+- "Hang in there."
+- "Let me know if you need anything."
+
+Generate ONE brief sympathetic response. Just the response, no quotes or formatting."""
+
+                sympathy_messages = [
+                    {"role": "system", "content": f"You generate brief sympathetic responses between coworkers. Character: {self.DEV_TEAM[other_worker]['personality']}"},
+                    {"role": "user", "content": sympathy_prompt}
+                ]
+
+                sympathy_response = self.call_groq("llama-3.3-70b-versatile", sympathy_messages, max_tokens=30)
+
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"_({other_worker} to {worker_name}) {sympathy_response.strip()}_",
+                    parse_mode="Markdown"
+                )
 
     async def ralph_moment(self, context, chat_id: int):
         """Random Ralph moment - gross/funny interruption that shows Ralph being Ralph.
