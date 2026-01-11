@@ -4402,7 +4402,7 @@
         "onboarding_wizard.py",
         "env_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-009",
