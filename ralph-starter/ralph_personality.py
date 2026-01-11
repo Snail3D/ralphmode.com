@@ -686,6 +686,128 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(summaries), chance=0.35)
 
+    @staticmethod
+    def get_compensation_enthusiasm() -> str:
+        """Get Ralph's over-the-top eagerness to make up for forgetting.
+
+        When Ralph forgets something, he becomes extra enthusiastic about making
+        amends. Overly eager, slightly desperate, but always sweet and genuine.
+
+        Returns:
+            An enthusiastic compensation offer from Ralph
+        """
+        compensations = [
+            # Over-eager promises
+            "Ralph work EXTRA hard now to make up for it!",
+            "Me do DOUBLE work! No, TRIPLE work! To make it right!",
+            "Ralph gonna be the bestest helper ever! Promise!",
+            "Me work so hard you forget Ralph forgot! Super hard!",
+            "Ralph stay late! Work overtime! Whatever it takes!",
+
+            # Desperate to please
+            "Please give Ralph another chance! Me do better!",
+            "Ralph promise to be more careful! Super duper careful!",
+            "Me won't let you down again! Ralph swears!",
+            "Give Ralph task! Any task! Me prove myself!",
+            "Ralph ready to show how good me can be!",
+
+            # Overly specific offers
+            "Ralph bring you coffee! And donut! And maybe pizza!",
+            "Me take notes this time! Lots of notes! All the notes!",
+            "Ralph write everything down! In permanent marker!",
+            "Me set 17 reminders! Won't forget again!",
+            "Ralph get workers to help me remember! Team effort!",
+
+            # Enthusiastic suggestions
+            "How about Ralph do it RIGHT NOW! Immediately!",
+            "Me start before you even finish talking! So eager!",
+            "Ralph already working on it! In me brain!",
+            "Me thinking about it constantly! No breaks!",
+            "Ralph focus like laser! Pew pew! But for work!",
+
+            # Overcompensating energy
+            "Ralph gonna knock this out of the park! HOME RUN!",
+            "Me bring 110% effort! Maybe 200%! Math hard but effort high!",
+            "Ralph channel inner superhero! Super Ralph activate!",
+            "Me turn forgetting into winning! Like magic!",
+            "Ralph make this the best thing ever! Epic level!",
+
+            # Sweet but excessive
+            "Ralph love you so much for being patient! Me grateful!",
+            "Me appreciate you more than words can say! So much words though!",
+            "Ralph thinks you're the bestest for giving second chance!",
+            "Me lucky to work with you! So lucky! Mega lucky!",
+            "Ralph never forget this kindness! ...unlike other things!",
+
+            # Eager beaver mode
+            "Ralph ready! So ready! Extra ready! Tell me what to do!",
+            "Me sitting at edge of seat waiting for instructions!",
+            "Ralph like coiled spring! Ready to bounce into action!",
+            "Me caffeinated and motivated! Let's go!",
+            "Ralph got game face on! Let's do this!",
+
+            # Trying too hard
+            "Me already made checklist of checklist! Super organized!",
+            "Ralph researched everything! Read whole internet!",
+            "Me practiced in mirror! Ralph ready!",
+            "Ralph did stretches! Mental and physical! Ready to work!",
+            "Me warmed up the computor! It's ready too!",
+
+            # Endearingly excessive
+            "Ralph clear whole schedule! Just for this! All day free!",
+            "Me canceled everything! You're priority one!",
+            "Ralph told everyone me busy! No interruptions!",
+            "Me put do not disturb sign on Ralph's forehead!",
+            "Ralph in the zone! The work zone!",
+
+            # Slightly desperate
+            "Please please please let Ralph help!",
+            "Me really really really want to make this right!",
+            "Ralph need to prove me can do it!",
+            "Me gotta show you Ralph's worth it!",
+            "Ralph want to earn back your trust! So bad!",
+
+            # Overpromising (sweetly)
+            "Ralph make this faster than fast! Like lightning!",
+            "Me do it better than ever before! Best version!",
+            "Ralph make it so good you cry happy tears!",
+            "Me deliver results that make everyone cheer!",
+            "Ralph create masterpiece! Work of art!",
+
+            # Team mobilization
+            "Me already briefed the team! Everyone ready!",
+            "Ralph got workers pumped up! Team spirit high!",
+            "Me organized war room! Strategic work planning!",
+            "Ralph assembled the dream team! For you!",
+            "Me got all hands on deck! Navy metaphor!",
+
+            # Creative compensation
+            "Ralph throw in bonus features! Free of charge!",
+            "Me add extra polish! Make it shine!",
+            "Ralph go above and beyond! Way above! So beyond!",
+            "Me include bells AND whistles! All the features!",
+            "Ralph make it premium quality! Gold standard!",
+
+            # Touching but overboard
+            "Me make Ralph's mom proud with this work!",
+            "Ralph put heart and soul into it! Both! Together!",
+            "Me pour all Ralph's energy into this! All of it!",
+            "Ralph give it everything me got! 100%! No, 1000%!",
+            "Me work like Ralph's life depends on it! (It doesn't but still!)",
+
+            # Additional variations
+            "Ralph transform into productivity machine! Beep boop!",
+            "Me activate beast mode! Rawr! But friendly rawr!",
+            "Ralph summon inner genius! Big brain time!",
+            "Me tap into hidden potential! Unlocked!",
+            "Ralph become unstoppable force! For good!",
+            "Me channel champions! Winners attitude!",
+            "Ralph rise to occasion! Like bread! But better!",
+            "Me exceed all expectations! Especially own!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(compensations), chance=0.3)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
