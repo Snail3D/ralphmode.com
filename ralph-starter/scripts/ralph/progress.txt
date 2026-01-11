@@ -17008,3 +17008,70 @@ After (new methods):
 
 ---
 
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [IN-002] Natural Reframing
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 3 core methods to Sanitizer class for natural reframing:
+  1. `reframe_harsh_language(text)` - Translates harsh input to innocent version
+     - 4 reframing categories (profanity, criticism, imperatives, sarcasm)
+     - 20+ profanity patterns → innocent alternatives
+     - 10+ harsh criticism patterns → gentle suggestions
+     - 6+ angry imperatives → polite requests
+     - 5+ sarcasm patterns → literal interpretation
+  2. `detect_harsh_sentiment(text)` - Detects and categorizes harsh elements
+     - Returns: is_harsh, categories[], severity
+     - Categories: profanity, harsh_criticism, angry_imperative, sarcasm
+  3. `reframe_for_ralph(text, log_reframing)` - Complete pipeline
+     - Detects → Reframes → Logs → Returns metadata
+     - Returns both original and reframed text
+     - Integrates with existing audit logging
+
+- Added 3 convenience functions for easy usage:
+  - reframe_harsh_language(text)
+  - detect_harsh_sentiment(text)
+  - reframe_for_ralph(text)
+
+### Files changed
+- sanitizer.py (+232 lines)
+
+### Learnings
+- **Core principle**: Ralph's innocence means he doesn't know harsh words exist
+- **Natural translation**: Ralph doesn't "filter" - he naturally hears innocent version
+- **Translation patterns**:
+  - Profanity: "fuck" → "darn", "shit" → "crud", "asshole" → "meanie"
+  - Criticism: "garbage" → "not the best", "stupid" → "silly", "useless" → "needs practice"
+  - Imperatives: "shut up" → "please be quiet", "fix this damn bug" → "please fix the issue"
+  - Sarcasm: "oh great" → "okay", "yeah right" → "okay"
+- **Severity tracking**: Multiple categories = more harsh (for potential escalation handling)
+- **Integration**: Works with existing Sanitizer audit logging
+- **Philosophy**: Ralph's worldview is a filter - he literally doesn't perceive harshness
+
+### Examples
+- Input: "This fucking code is shit!"
+  - Reframed: "This darned code is crud!"
+  - Categories: ['profanity']
+
+- Input: "You're so stupid! Fix your damn code!"
+  - Reframed: "You're so silly! Fix your dang code!"
+  - Categories: ['profanity', 'harsh_criticism', 'angry_imperative']
+  - Severity: 3
+
+- Input: "Yeah, right, that'll work!"
+  - Reframed: "okay, that'll work!"
+  - Categories: ['sarcasm']
+
+### Integration points
+- ralph_bot.py: Can use reframe_for_ralph() on user input before Ralph processes it
+- scene_manager.py: Reframe harsh boss messages before workers see them
+- Any interaction: Ensures Ralph genuinely doesn't encounter harsh language
+
+### Next steps
+- Consider adding reframing to main bot input pipeline
+- May want to add user preference for "raw mode" vs "reframed mode"
+- Could add metrics tracking how often reframing occurs per user
+
+---
+
