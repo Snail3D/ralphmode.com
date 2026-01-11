@@ -11477,3 +11477,57 @@ This narrative structure makes complex flows easy to follow.
 According to priority_order, next incomplete task would be in the Voice-Only or Admin Commands section.
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-10 14:30
+**Task**: [OB-029] Folder Structure Creator
+**Status**: ✅ Complete
+
+### What was implemented
+- Created project_scaffolder.py module with ProjectScaffolder class
+- Standard folder creation: scripts/ralph/, config/, tests/, src/, docs/
+- Comprehensive .gitignore generation (54 lines covering Python, secrets, IDE, Ralph-specific)
+- Ralph-style friendly explanations for each folder
+- Integration into onboarding_wizard.py with setup_project_folders() method
+- Success/error message formatting for Telegram
+- Support for custom additional folders
+- Intelligent .gitignore handling (appends missing entries if file exists)
+
+### Files changed
+- project_scaffolder.py (NEW)
+- onboarding_wizard.py (MODIFIED - added import, STEP_FOLDERS, setup_project_folders method)
+
+### Learnings
+- **Pattern**: The onboarding wizard follows a consistent pattern for setup steps:
+  - Import helper module at top with try/except
+  - Add STEP_* constant
+  - Create async setup_* method that takes (update, context)
+  - Add get_*_message() helper methods for Telegram formatting
+  - Return Tuple[bool, str] for success status and message
+  
+- **Gotchas**:
+  - .gitignore should handle existing files gracefully (append vs overwrite)
+  - Always use Pathlib for cross-platform compatibility
+  - Need to test with actual Telegram updates (callback_query may be None)
+  - PROJECT_SCAFFOLDER_AVAILABLE flag needed for graceful degradation
+  
+- **Design Choice**: Separated scaffolder logic (project_scaffolder.py) from wizard integration (onboarding_wizard.py)
+  - Allows scaffolder to be used standalone or via CLI
+  - Keeps wizard focused on Telegram interaction
+  - Makes testing easier (tested scaffolder independently)
+  
+- **Ralph Personality**: get_ralph_explanation() adds character-appropriate narration
+  - "Hi diddly ho!" opening
+  - Simple explanations ("Like settings and stuff")
+  - Security awareness ("We don't want bad guys getting your passwords!")
+  
+- **Testing**: Used tempfile.TemporaryDirectory() for isolated testing
+  - Verified all folders created
+  - Verified .gitignore has correct content (54 lines)
+  - No side effects on actual project
+
+### Next Steps
+- OB-030 (next in priority_order) will likely be: First Commit Assistant
+- Consider adding custom folder prompting in guided setup flow
+- May want to add folder structure validation command later
+
+---

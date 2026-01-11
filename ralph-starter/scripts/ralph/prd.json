@@ -4774,7 +4774,7 @@
       "files_likely_modified": [
         "project_scaffolder.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-030",
