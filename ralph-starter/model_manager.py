@@ -587,6 +587,265 @@ class ModelManager:
         """
         return self.registry.list_models(role=role, tags=tags, provider=provider)
 
+    def recommend_models(
+        self,
+        use_case: Optional[str] = None,
+        priority: str = "balanced",
+        hardware_constraint: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        MM-023: Suggest models by use case.
+
+        Recommends models based on:
+        - Use case (personality, coding, design, general)
+        - Priority (cost, speed, quality, privacy)
+        - Hardware constraints (cpu_only, gpu_available, cloud_only)
+
+        Args:
+            use_case: What you're using the model for
+                - "personality" - Ralph's character interactions
+                - "coding" - Worker agents doing actual coding
+                - "design" - UI/UX decisions (Frinky)
+                - "general" - General purpose recommendations
+                - None - Show all recommendations
+            priority: What matters most to you
+                - "cost" - Cheapest options (local > free tier > paid)
+                - "speed" - Fastest responses
+                - "quality" - Best output quality
+                - "privacy" - Data stays local
+                - "balanced" - Good mix of all factors
+            hardware_constraint: Your hardware situation
+                - "cpu_only" - No GPU, recommend lighter models
+                - "gpu_available" - Can run larger local models
+                - "cloud_only" - Only want cloud APIs
+                - None - Show all options
+
+        Returns:
+            List of recommendations with metadata and reasoning
+
+        Example:
+            # Get cheap models for personality work
+            recs = manager.recommend_models(use_case="personality", priority="cost")
+
+            # Get best quality coding models
+            recs = manager.recommend_models(use_case="coding", priority="quality")
+
+            # Get local models for privacy
+            recs = manager.recommend_models(priority="privacy")
+        """
+        recommendations = []
+
+        # Define model recommendations database
+        # Each recommendation includes: provider, model, use cases, pros/cons
+        model_database = [
+            {
+                "provider": ModelProvider.OLLAMA,
+                "model_id": "llama3.1:8b",
+                "name": "Llama 3.1 8B (Ollama)",
+                "use_cases": ["personality", "general"],
+                "pros": ["100% free", "runs locally", "private", "fast on CPU"],
+                "cons": ["needs 8GB RAM", "not great for complex coding"],
+                "cost_score": 10,  # 10 = free, 0 = most expensive
+                "speed_score": 8,
+                "quality_score": 6,
+                "privacy_score": 10,
+                "requires": "cpu_only",
+                "role": ModelRole.RALPH
+            },
+            {
+                "provider": ModelProvider.OLLAMA,
+                "model_id": "llama3.1:70b",
+                "name": "Llama 3.1 70B (Ollama)",
+                "use_cases": ["coding", "general"],
+                "pros": ["100% free", "high quality", "private", "excellent for coding"],
+                "cons": ["needs GPU + 48GB RAM", "slow on CPU"],
+                "cost_score": 10,
+                "speed_score": 5,
+                "quality_score": 9,
+                "privacy_score": 10,
+                "requires": "gpu_available",
+                "role": ModelRole.WORKER
+            },
+            {
+                "provider": ModelProvider.GROQ,
+                "model_id": "llama-3.1-70b-versatile",
+                "name": "Llama 3.1 70B (Groq)",
+                "use_cases": ["personality", "coding", "general"],
+                "pros": ["super fast (500+ tokens/sec)", "free tier", "great quality", "good for Ralph personality"],
+                "cons": ["cloud-based", "free tier has limits", "data leaves your machine"],
+                "cost_score": 8,  # Free tier, then paid
+                "speed_score": 10,
+                "quality_score": 9,
+                "privacy_score": 3,
+                "requires": "cloud_only",
+                "role": ModelRole.RALPH
+            },
+            {
+                "provider": ModelProvider.GROQ,
+                "model_id": "llama-3.3-70b-versatile",
+                "name": "Llama 3.3 70B (Groq)",
+                "use_cases": ["coding", "general"],
+                "pros": ["newest Llama", "excellent coding", "very fast", "free tier"],
+                "cons": ["cloud-based", "data leaves your machine"],
+                "cost_score": 8,
+                "speed_score": 10,
+                "quality_score": 9,
+                "privacy_score": 3,
+                "requires": "cloud_only",
+                "role": ModelRole.WORKER
+            },
+            {
+                "provider": ModelProvider.ANTHROPIC,
+                "model_id": "claude-sonnet-4",
+                "name": "Claude Sonnet 4",
+                "use_cases": ["coding", "general"],
+                "pros": ["best coding quality", "excellent reasoning", "reliable", "follows instructions well"],
+                "cons": ["expensive ($3/$15 per 1M tokens)", "slower than Groq", "cloud-based"],
+                "cost_score": 3,
+                "speed_score": 6,
+                "quality_score": 10,
+                "privacy_score": 3,
+                "requires": "cloud_only",
+                "role": ModelRole.BUILDER
+            },
+            {
+                "provider": ModelProvider.GLM,
+                "model_id": "GLM-4.7",
+                "name": "GLM-4.7 (Z.AI)",
+                "use_cases": ["design", "general"],
+                "pros": ["great for design decisions", "affordable", "good aesthetic sense"],
+                "cons": ["cloud-based", "not ideal for complex coding"],
+                "cost_score": 7,
+                "speed_score": 7,
+                "quality_score": 7,
+                "privacy_score": 3,
+                "requires": "cloud_only",
+                "role": ModelRole.DESIGN
+            },
+            {
+                "provider": ModelProvider.OLLAMA,
+                "model_id": "codellama:13b",
+                "name": "CodeLlama 13B (Ollama)",
+                "use_cases": ["coding"],
+                "pros": ["free", "local", "specialized for code", "runs on CPU"],
+                "cons": ["not as good as Claude", "verbose responses"],
+                "cost_score": 10,
+                "speed_score": 7,
+                "quality_score": 7,
+                "privacy_score": 10,
+                "requires": "cpu_only",
+                "role": ModelRole.WORKER
+            },
+            {
+                "provider": ModelProvider.OLLAMA,
+                "model_id": "mistral:7b",
+                "name": "Mistral 7B (Ollama)",
+                "use_cases": ["personality", "general"],
+                "pros": ["free", "fast", "good for chat", "runs on CPU"],
+                "cons": ["less capable than Llama 3.1", "shorter context"],
+                "cost_score": 10,
+                "speed_score": 9,
+                "quality_score": 6,
+                "privacy_score": 10,
+                "requires": "cpu_only",
+                "role": ModelRole.RALPH
+            }
+        ]
+
+        # Filter by use case
+        if use_case:
+            filtered = [m for m in model_database if use_case in m["use_cases"]]
+        else:
+            filtered = model_database
+
+        # Filter by hardware constraint
+        if hardware_constraint:
+            filtered = [m for m in filtered if m["requires"] == hardware_constraint]
+
+        # Sort by priority
+        if priority == "cost":
+            filtered.sort(key=lambda x: x["cost_score"], reverse=True)
+        elif priority == "speed":
+            filtered.sort(key=lambda x: x["speed_score"], reverse=True)
+        elif priority == "quality":
+            filtered.sort(key=lambda x: x["quality_score"], reverse=True)
+        elif priority == "privacy":
+            filtered.sort(key=lambda x: x["privacy_score"], reverse=True)
+        else:  # balanced
+            # Balanced score = average of all scores
+            filtered.sort(
+                key=lambda x: (x["cost_score"] + x["speed_score"] + x["quality_score"] + x["privacy_score"]) / 4,
+                reverse=True
+            )
+
+        # Format recommendations
+        for model in filtered:
+            recommendation = {
+                "provider": model["provider"].value,
+                "model_id": model["model_id"],
+                "name": model["name"],
+                "role": model["role"].value,
+                "use_cases": model["use_cases"],
+                "pros": model["pros"],
+                "cons": model["cons"],
+                "scores": {
+                    "cost": model["cost_score"],
+                    "speed": model["speed_score"],
+                    "quality": model["quality_score"],
+                    "privacy": model["privacy_score"]
+                },
+                "hardware_requirement": model["requires"],
+                "reasoning": self._generate_reasoning(model, use_case, priority)
+            }
+            recommendations.append(recommendation)
+
+        return recommendations
+
+    def _generate_reasoning(
+        self,
+        model: Dict[str, Any],
+        use_case: Optional[str],
+        priority: str
+    ) -> str:
+        """Generate human-readable reasoning for why a model is recommended"""
+        reasons = []
+
+        # Why it fits the use case
+        if use_case:
+            use_case_reasons = {
+                "personality": "Great for Ralph's character interactions and banter",
+                "coding": "Excellent at understanding and generating code",
+                "design": "Strong at making aesthetic and UI/UX decisions",
+                "general": "Versatile for various tasks"
+            }
+            if use_case in use_case_reasons:
+                reasons.append(use_case_reasons[use_case])
+
+        # Why it fits the priority
+        if priority == "cost":
+            if model["cost_score"] >= 8:
+                reasons.append("Free or very affordable")
+        elif priority == "speed":
+            if model["speed_score"] >= 8:
+                reasons.append("Extremely fast responses")
+        elif priority == "quality":
+            if model["quality_score"] >= 8:
+                reasons.append("Top-tier output quality")
+        elif priority == "privacy":
+            if model["privacy_score"] >= 8:
+                reasons.append("Runs locally, your data stays private")
+        else:  # balanced
+            avg_score = (model["cost_score"] + model["speed_score"] +
+                        model["quality_score"] + model["privacy_score"]) / 4
+            if avg_score >= 8:
+                reasons.append("Well-rounded with no major weaknesses")
+
+        # Add top pro
+        if model["pros"]:
+            reasons.append(model["pros"][0])
+
+        return ". ".join(reasons) + "."
+
 
 # Global singleton instance
 _model_manager: Optional[ModelManager] = None

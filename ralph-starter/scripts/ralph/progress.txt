@@ -17407,3 +17407,35 @@ Implemented by GLM-4.7
 GLM-4.7 (Cost-optimized)
 
 ---
+## Iteration - 2026-01-11
+**Task**: [MM-023] Model Recommendations
+**Status**: ✅ Complete
+
+### What was implemented
+- Added recommend_models() method to ModelManager class
+- Intelligent model suggestions based on use case (personality, coding, design, general)
+- Multi-factor scoring system: cost, speed, quality, privacy (all scored 0-10)
+- Priority-based sorting (cost, speed, quality, privacy, balanced)
+- Hardware constraint filtering (cpu_only, gpu_available, cloud_only)
+- Comprehensive model database with 8 popular models across providers
+- Detailed recommendations include: pros, cons, scores, reasoning, hardware requirements
+- Human-readable reasoning generation for each recommendation
+
+### Files changed
+- model_manager.py: Added recommend_models() and _generate_reasoning() methods
+- README.md: Added Smart Recommendations feature to feature list
+
+### Learnings
+- Model recommendations help users make informed decisions without deep AI knowledge
+- Scoring system makes it easy to compare models across different dimensions
+- Hardware constraints are critical - users need to know if they can run local models
+- Free/local options (Ollama) should be prioritized for cost-conscious users
+- Groq's speed (500+ tokens/sec) is a major differentiator for cloud options
+- Claude remains the quality leader for complex coding tasks despite higher cost
+- GLM fills a niche for design decisions at a lower price point than Claude
+- Multi-factor recommendations beat single-metric suggestions (balanced approach works)
+- Context-aware reasoning helps users understand WHY a model is recommended
+- This feature enables users to optimize their setup for their specific needs
+
+---
+
