@@ -9295,3 +9295,40 @@ Setup completion flow:
 - ralphmode.com URLs are placeholders (website not deployed yet per blockers)
 
 ---
+
+## Iteration 163 - 2026-01-10
+**Task**: [OB-049] Re-onboarding Flow
+**Status**: ✅ Complete
+
+### What was implemented
+- Created /reconfigure command for updating existing setup
+- Added configuration display showing current settings (values masked for security)
+- Implemented API key reconfiguration flow with destructive change warnings
+- Added configuration change history tracking with database persistence
+- Created helper methods in onboarding_wizard.py for reconfiguration UI
+- Added callback handlers in ralph_bot.py for all reconfigure buttons
+- Integrated text handler to accept new configuration values
+- Added config history methods to setup_state.py for persistence
+
+### Files changed
+- onboarding_wizard.py
+- ralph_bot.py
+- setup_state.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Reconfiguration requires careful security considerations (masked values, warnings)
+- Configuration history provides valuable audit trail for troubleshooting
+- Destructive change warnings prevent accidental misconfigurations
+- Separating display logic (onboarding_wizard) from flow logic (ralph_bot) keeps code clean
+- The existing state persistence pattern using BotSession works well for config history
+- Using context.user_data for awaiting input is the standard pattern across the codebase
+
+### Acceptance Criteria Met
+✅ /reconfigure command exists and is registered
+✅ Shows current configuration (with masked values)
+✅ Edit individual settings (API keys, admin, SSH, Git)
+✅ Warns about destructive changes before applying
+✅ Keeps history of changes in database
+
+---
