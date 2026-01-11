@@ -9551,6 +9551,88 @@ _Grab some popcorn..._
 
                 return  # Don't process as normal message
 
+        # VO-007: Detect large text pastes (>500 chars) and convert to scene presentation
+        if user_id in self.active_sessions and len(text) > 500:
+            session = self.active_sessions[user_id]
+
+            # Store full context for workers to reference
+            if 'context_documents' not in session:
+                session['context_documents'] = []
+
+            # Add this document to session context
+            doc_id = len(session['context_documents']) + 1
+            session['context_documents'].append({
+                'id': doc_id,
+                'content': text,
+                'provided_at': datetime.now(),
+                'length': len(text)
+            })
+
+            # Generate summary for scene presentation
+            summary_prompt = f"""Summarize this technical content in 1-2 sentences. Focus on what type of information it is, not the details.
+
+Content (first 1000 chars):
+{text[:1000]}...
+
+Examples:
+- "Technical specifications for the payment API"
+- "Database schema documentation with 15 tables"
+- "Error logs from the last production deploy"
+- "User requirements document for the new feature"
+
+Be specific about the TYPE but don't include actual details. 1-2 sentences max."""
+
+            messages = [
+                {"role": "system", "content": "You summarize technical documents concisely."},
+                {"role": "user", "content": summary_prompt}
+            ]
+
+            summary = self.call_groq("llama-3.3-70b-versatile", messages, max_tokens=150)
+
+            # Scene presentation - Mr. Worms hands over documentation
+            scene_descriptions = [
+                f"*Mr. Worms hands over a stack of technical documentation*",
+                f"*Mr. Worms slides over some documents*",
+                f"*Mr. Worms drops a folder on the table*",
+                f"*Mr. Worms shares some technical docs*",
+                f"*Mr. Worms hands the team some paperwork*",
+            ]
+
+            scene_desc = random.choice(scene_descriptions)
+
+            # Send scene message
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"{scene_desc}\n\n_{summary}_",
+                parse_mode="Markdown"
+            )
+
+            # Workers acknowledge receipt
+            await asyncio.sleep(self.timing.rapid_banter())
+
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+            worker = self.DEV_TEAM[worker_name]
+
+            acknowledgments = [
+                "Got it, thanks boss",
+                "Cool, I'll take a look",
+                "Alright, checking this out",
+                "Thanks, this helps",
+                "Perfect, this is useful",
+                "Sweet, I'll review this",
+            ]
+
+            ack = random.choice(acknowledgments)
+
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker["title"],
+                ack,
+                with_typing=True
+            )
+
+            logging.info(f"VO-007: Handled large paste ({len(text)} chars) from user {user_id}")
+            return  # Don't process as normal message
+
         # RM-053: Track user message timestamp and pause idle chatter
         self.last_user_message_time[user_id] = datetime.now()
         if user_id in self.idle_chatter_task:
