@@ -3704,6 +3704,15 @@ Mr. Worms wants to work together with the team.
                 ("🐢 No rush", "relaxed", "Nice and easy!"),
             ]
         },
+        # AU-002: Autonomy Question Scene
+        {
+            "question": "How much supervishun do you want, Mr. Worms? Should we check with you or just do stuff?",
+            "options": [
+                ("🤝 Let's work together", "collaborative", "Teamwork! We'll bounce ideas off ya!"),
+                ("🚁 Check with me first", "supervised", "Got it! We'll ask before we do anything big!"),
+                ("🏃 Just handle it", "autonomous", "You trust us! We'll come to you if we get stucked!"),
+            ]
+        },
     ]
 
     async def start_interactive_onboarding(self, context, chat_id: int, user_id: int, project_name: str):
@@ -3980,6 +3989,12 @@ Mr. Worms wants to work together with the team.
 
         # Store the answer
         state["answers"][question_index] = answer_value
+
+        # AU-002: If this is the autonomy question (question 3), set the autonomy level
+        if question_index == 3 and answer_value in ["collaborative", "supervised", "autonomous"]:
+            success = self.set_autonomy_level(user_id, answer_value, reason="Onboarding question response")
+            if success:
+                logger.info(f"AU-002: Set autonomy level to '{answer_value}' from onboarding for user {user_id}")
 
         # Ralph reacts to the answer
         question_data = self.ONBOARDING_QUESTIONS[question_index]
