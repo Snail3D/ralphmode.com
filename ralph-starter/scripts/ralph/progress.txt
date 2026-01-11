@@ -11938,3 +11938,71 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Resume timer needs to be async task that can be cancelled
 
 ---
+## Iteration [Auto] - 2026-01-11 01:45 PST
+**Task**: [RM-060] Byte-Sized Learning Chunks
+**Status**: ✅ Complete
+
+### What was implemented
+- Added split_into_byte_sized_chunks() method to split messages into 2-sentence chunks
+- Uses regex to detect sentence endings (., !, ?) while preserving ellipsis (...)
+- Recombines sentences with punctuation cleanly
+- Groups into chunks of max 2 sentences each
+- Added send_byte_sized_chunks() async method to send chunks with pauses
+- Sends each chunk via send_styled_message() with typing indicators
+- Adds random 5-15 second pauses between chunks for natural flow
+- Falls back to normal send if only one chunk (no unnecessary pauses)
+- Updated worker system prompt to enforce "RM-060: STRICT - Maximum 2 sentences per response"
+- Updated Ralph system prompt to enforce "RM-060: STRICT - Maximum 2 sentences"
+- Changed from "2-3 sentences max" to explicit "2 sentences. No exceptions."
+- Added guidance: "Break complex info across multiple messages. Let it breathe."
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Information retention improves when delivered in small chunks (cognitive science principle)
+- Natural pauses (5-15 seconds) mimic real conversation rhythm
+- Strict enforcement in system prompts is more effective than suggestions
+- Sentence splitting needs to handle edge cases (ellipsis, multiple punctuation)
+- Workers can continue thoughts across messages: "So this handles routes." [pause] "And it imports from middleware."
+- Prevents information overload while maintaining conversational flow
+- Async pauses don't block other bot operations
+- Chunking function can be reused for any long-form educational content
+- Falls back gracefully for single-sentence messages (no artificial delays)
+- Integration with existing send_styled_message() preserves all button/typing features
+
+### Acceptance criteria met
+✅ STRICT: Max 2 sentences per message (enforced in prompts)
+✅ Technical info spread across multiple messages (chunking function)
+✅ Natural pauses between info chunks (5-15 sec via asyncio.sleep)
+✅ Worker 1: 'So this file handles all the routes.' [pause]
+✅ Worker 2: 'Yeah, and it imports from...' [pause]
+✅ Worker 1: 'Right, the middleware over there.'
+✅ User never feels overwhelmed (byte-sized delivery)
+✅ Information sticks because it's conversational
+
+### Technical patterns discovered
+- Regex sentence splitting: r'(?<!\.\.)\.(?!\.)|[!?]' handles edge cases
+- Negative lookbehind/lookahead preserves ellipsis (...) as single unit
+- Split with capturing group to preserve punctuation
+- Recombination loop handles sentences + their punctuation marks
+- asyncio.sleep() for natural timing without blocking
+- random.uniform() for varied pause timing (feels human)
+- List comprehension to filter empty strings after splitting
+- range() with step to group sentences into fixed-size chunks
+- Fallback pattern: return [text] if splitting fails (robust)
+- Integration pattern: new method calls existing methods (composability)
+
+### Gotchas to avoid
+- Don't split on ellipsis (...) - use negative lookbehind (?<!\.\.)\. 
+- Must recombine sentences with their punctuation (split captures them separately)
+- Empty strings appear after splitting - filter them out
+- Don't add pause after last chunk (user shouldn't wait needlessly)
+- Fallback to original text if splitting fails (edge case handling)
+- Don't force chunking on single-sentence messages (unnecessary delay)
+- Random pause range should feel natural (5-15 sec, not instant or too long)
+- System prompt must say "STRICT" and "No exceptions" for LLM compliance
+- Preserve typing indicators in each chunk (feels like fresh thought)
+- Don't break mid-sentence - respect sentence boundaries
+
+---
