@@ -10319,3 +10319,49 @@ Worker reactions:
 - Consider adding notification preview/test feature before saving preferences
 
 ---
+
+## Iteration (OB-016) - 2026-01-10
+**Task**: [OB-016] MCP Concept Explainer
+**Status**: ✅ Complete
+
+### What was implemented
+- Created standalone `mcp_explainer.py` module with MCP concept explanations
+- Comprehensive explainer with real-world analogies (apps on phone, browser extensions)
+- Listed concrete examples: databases (PostgreSQL, MySQL, SQLite), APIs (GitHub, Slack, Discord, Notion), file system tools
+- Added links to official resources: https://modelcontextprotocol.io/, video tutorial, GitHub repos
+- Integrated into `onboarding_wizard.py` with import pattern matching existing modules
+- Added four methods to OnboardingWizard class:
+  - `get_mcp_explainer_message()` - full explanation in Ralph's voice
+  - `get_mcp_quick_explainer()` - 2-sentence summary
+  - `get_mcp_server_categories_display()` - formatted server list by category
+  - `get_mcp_benefits_display()` - benefits list display
+- Included fallback messages if MCP explainer module not available (resilience pattern)
+
+### Files changed
+- `mcp_explainer.py` (new) - 280 lines, singleton pattern with get_mcp_explainer()
+- `onboarding_wizard.py` - Added MCP explainer import and 4 new methods
+- `scripts/ralph/prd.json` - Updated OB-016 passes to true
+
+### Learnings
+- **Ralph's Voice**: MCP explanation uses Ralph's personality ("Me Ralph! Me explain MCP to you!", "unpossible became possible")
+- **Real-World Analogies Work**: Phone apps analogy makes technical concept accessible
+- **Fallback Pattern**: All integrations should have fallback messages in case dependencies unavailable
+- **Comprehensive Resources**: Users need multiple learning formats (docs, video, GitHub, examples)
+- **Categorization Helps**: Grouping MCP servers by category (Database, Development, Productivity, File System) makes it digestible
+- **Benefits Over Features**: Focus on what users can BUILD (database-driven features, GitHub automation) not just capabilities
+- **Test Early**: Python syntax checks and import tests caught issues before runtime
+- **Onboarding Integration Pattern**: New modules follow consistent pattern: try/except import, availability flag, fallback behavior
+
+### Technical Notes
+- Used singleton pattern with `get_mcp_explainer()` function
+- MCP explainer is independent module that can be reused outside onboarding
+- Server categories stored as structured data (dict with name, description, url)
+- Message methods return strings ready for Telegram markdown formatting
+- All acceptance criteria met:
+  ✅ Simple explanation of MCP
+  ✅ Real-world analogies (like plugins)
+  ✅ Examples of what MCP enables
+  ✅ Links to official MCP docs
+  ✅ Video explainer link
+
+---
