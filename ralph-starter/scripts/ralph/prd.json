@@ -4985,7 +4985,7 @@
         "onboarding_wizard.py",
         "user_preferences.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-042",

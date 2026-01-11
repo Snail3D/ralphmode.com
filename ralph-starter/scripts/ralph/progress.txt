@@ -10048,3 +10048,29 @@ All tests passed! The progress tracker displays correctly:
 ```
 
 ---
+
+## Iteration [Auto] - 2026-01-10 22:00
+**Task**: [OB-041] Character Avatar Selection
+**Status**: ✅ Complete
+
+### What was implemented
+- Created user_preferences.py module to store user preferences persistently
+- Added character avatar selection to onboarding flow with STEP_CHARACTER
+- Implemented character preview system showing personality samples
+- Added /character command for changing guide character anytime
+- Full callback handler system for character_preview, character_select, and character_back
+- Character selection flows seamlessly to theme selection in onboarding
+
+### Files changed
+- user_preferences.py (NEW) - Preferences storage with get/set methods
+- onboarding_wizard.py - Added character selection step and methods
+- ralph_bot.py - Added /character command and callback routing
+
+### Learnings
+- User preferences pattern follows theme manager pattern nicely
+- Character personality previews give users a taste before committing
+- Onboarding flow now goes: Setup -> Character -> Theme -> Complete
+- UserPreferences singleton pattern ensures consistent storage across modules
+- All 5 characters available: Ralph, Stool, Gomer, Mona, Gus
+
+---
