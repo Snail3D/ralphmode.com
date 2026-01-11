@@ -17568,3 +17568,27 @@ GLM-4.7 (Cost-optimized)
 - Limits model list display to first 10 to avoid Telegram message overflow
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-003] Role-Based Assignment
+**Status**: ✅ Complete (Already Implemented)
+
+### What was verified
+- ModelRole enum exists with RALPH, WORKER, BUILDER, DESIGN roles
+- register_model() method assigns adapters to roles
+- generate() method routes requests by role with fallback
+- ralph_bot.py uses ModelRole.RALPH and ModelRole.WORKER
+- /setmodel command supports all four roles
+- initialize_default_models() maps providers to roles
+
+### Files verified
+- model_manager.py (lines 40-45, 582-670, 1516-1589)
+- ralph_bot.py (imports and usage of ModelRole)
+
+### Learnings
+- Task was already complete but incorrectly marked as incomplete in PRD
+- Role-based routing enables mixing providers (Groq for Ralph, Claude for Builder, GLM for Design)
+- Fallback mechanism ensures requests succeed even if role-specific model unavailable
+- Registry persists role assignments across restarts
+
+---
