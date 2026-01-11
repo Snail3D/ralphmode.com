@@ -5039,7 +5039,7 @@
         "mcp_manager.py",
         "discord_mcp_setup.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-045",

@@ -10660,3 +10660,41 @@ Worker reactions:
 ✅ Configures default channel (configure_default_channel() with notification preferences)
 
 ---
+
+## Iteration 192 - 2026-01-10
+**Task**: [OB-044] Discord MCP Server Setup
+**Status**: ✅ Complete
+
+### What was implemented
+- Created discord_mcp_setup.py with full Discord bot setup wizard
+- Implemented check_discord_token_configured() for credential validation
+- Added get_bot_creation_instructions() with 7-step walkthrough
+- Built get_token_setup_guide() with security best practices
+- Implemented test_discord_connection() with rich embed formatting
+- Created list_channels() to browse Discord text channels
+- Added configure_default_channel() for notification setup
+- Integrated with mcp_manager.py alongside Slack and GitHub setups
+- Ralph-themed personality in all messages
+
+### Files changed
+- discord_mcp_setup.py (new file)
+- mcp_manager.py
+
+### Learnings
+- Discord bots require enabling "Message Content Intent" in developer portal
+- Discord uses numeric IDs for channels (unlike Slack's names)
+- Bot tokens start with base64 encoding (MTe... format)
+- Rich embeds make Discord notifications more engaging
+- Discord API v10 is current stable version
+- Bot permissions and intents are separate configurations
+- Invite links must be generated with correct OAuth2 scopes
+
+### Integration Points
+- Ready for use in onboarding wizard OB-001
+- Complements Slack (OB-043) and Notion (OB-045) integrations
+- Uses same MCP manager infrastructure as GitHub (OB-018)
+- Follows identical pattern to other MCP server setups
+- Can be tested via test_discord_connection() method
+- Configuration stored in same format as other MCP servers
+
+---
