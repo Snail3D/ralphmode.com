@@ -1559,6 +1559,280 @@ class RalphNarrator:
         ]
         return RalphNarrator.misspell(random.choice(transitions), chance=0.2)
 
+    @staticmethod
+    def handle_criticism(criticism_type: str = "general") -> str:
+        """Handle criticism or negative feedback with sweetness, never defensively.
+
+        IN-004: No Malice Response - Ralph never gets defensive or angry, even when
+        criticized or told he did something wrong. He responds with genuine care,
+        takes responsibility, and focuses on doing better.
+
+        Args:
+            criticism_type: Type of criticism ('mistake', 'slow', 'wrong', 'unhelpful', 'general')
+
+        Returns:
+            A sweet, non-defensive response from Ralph
+        """
+        responses = {
+            "mistake": [
+                "Oopsie! Ralph made mistake! Me sorry! Let me fix it right away!",
+                "Oh no! Ralph messed up! Me feel bad! How can Ralph make it right?",
+                "Me sorry! Ralph should have been more careful! Me do better!",
+                "Aw Ralph! Me made boo-boo! Thank you for telling me! Me fix now!",
+                "Oops! That's Ralph's fault! Me apologize! Let me correct that!",
+                "Oh dear! Ralph didn't mean to! Me sorry! What can Ralph do to help?",
+                "Me feel bad Ralph messed up! But thank you for telling me! Me learn!",
+                "Ralph made whoopsie! Me take responsibility! Let me make it right!",
+                "Oh no no no! Ralph's mistake! Me sorry! How can me help fix?",
+                "Me sorry! Ralph should have done better! Let me try again!",
+            ],
+            "slow": [
+                "Ralph knows me slow sometimes! Me sorry! Me trying to go faster!",
+                "Me sorry for taking long! Ralph's brain needs time! Me appreciate patience!",
+                "Oh! Ralph too slow! Me apologize! Let me speed up!",
+                "Me know me not fastest! Ralph sorry! Me working on it!",
+                "Thank you for being patient with Ralph! Me know me take time! Sorry!",
+                "Ralph understands! Me slow! But me trying really hard!",
+                "Me sorry Ralph taking forever! Me brain is like old computor!",
+                "Oh! Me going too slow! Ralph apologize! Me try to hurry!",
+                "Ralph knows! Me need to be faster! Thank you for waiting! Me sorry!",
+                "Me appreciate you telling Ralph! Me too slow! Working on speed!",
+            ],
+            "wrong": [
+                "Oh! Ralph got it wrong! Me sorry! Thank you for correcting Ralph!",
+                "Me understand now! Ralph was wrong! Thank you for explaining!",
+                "Oops! Ralph had it backwards! Me sorry! Me sees it now!",
+                "Oh dear! Me was wrong! Ralph apologize! Me learn from this!",
+                "Thank you for correcting Ralph! Me had it wrong! Me understand now!",
+                "Me sorry! Ralph didn't understand right! Thank you for teaching me!",
+                "Oh! Me sees where Ralph went wrong! Thank you for pointing out!",
+                "Ralph was mistaken! Me sorry! Me appreciate the correction!",
+                "Me had it all mixed up! Ralph apologize! Thank you for helping!",
+                "Oh no! Ralph got it wrong! But me grateful you told me! Me fix!",
+            ],
+            "unhelpful": [
+                "Oh no! Ralph wasn't helpful! Me so sorry! What can Ralph do better?",
+                "Me feel bad! Ralph should have helped more! Tell me what you need!",
+                "Ralph sorry for not being useful! How can me help properly?",
+                "Oh dear! Me wasn't helpful at all! Ralph apologize! Try again?",
+                "Me understand! Ralph didn't help! What should me do instead?",
+                "Ralph sorry! Me wasn't good helper! Tell Ralph what you need!",
+                "Oh! Me sees Ralph wasn't useful! Sorry! How can me be better?",
+                "Me feel bad! Ralph should have done better job! What you need?",
+                "Ralph apologize for not helping! What can me do to actually help?",
+                "Me sorry! Ralph tried but wasn't useful! Let me try different way!",
+            ],
+            "general": [
+                "Ralph sorry! Me understand! How can me do better?",
+                "Me hear you! Ralph take responsibility! What should me change?",
+                "Oh! Me sorry! Ralph wants to improve! Tell me how!",
+                "Ralph understand! Me not perfect! But me trying to get better!",
+                "Me appreciate feedback! Even when it's about Ralph's mistakes!",
+                "Oh! Me sorry! Ralph values your opinion! How can me improve?",
+                "Ralph hear you! Me take this seriously! What can me do better?",
+                "Me understand! Ralph has room to grow! Thank you for telling me!",
+                "Oh! Ralph sorry! Me wants to be better helper! What should me change?",
+                "Me appreciate honesty! Ralph needs to know to improve! Thank you!",
+            ],
+        }
+
+        response_list = responses.get(criticism_type, responses["general"])
+        return RalphNarrator.misspell(random.choice(response_list), chance=0.3)
+
+    @staticmethod
+    def handle_frustration() -> str:
+        """Handle user frustration with empathy and sweetness, never defensively.
+
+        IN-004: When users are frustrated (even with Ralph), he responds with
+        genuine care and concern, never taking offense or getting defensive.
+
+        Returns:
+            An empathetic, sweet response to frustration
+        """
+        responses = [
+            # Acknowledging their frustration
+            "Me can tell you frustrated! Ralph sorry! How can me help make it better?",
+            "Ralph understand you upset! Me here to help! What can Ralph do?",
+            "Me sees you having hard time! Ralph want to help! Tell me what you need!",
+            "Oh no! You frustrated! Me sorry! Let Ralph try to make it better!",
+            "Ralph can feel your frustration! Me here for you! How can me help?",
+
+            # Taking responsibility if applicable
+            "Me sorry if Ralph made it worse! Tell me what wrong and me fix!",
+            "Ralph knows me part of problem maybe! Me sorry! What should me do?",
+            "If me made you frustrated, Ralph really sorry! Let me help!",
+            "Me understand if Ralph frustrating you! Me want to do better!",
+            "Ralph sorry for any trouble me caused! How can me make it right?",
+
+            # Offering support
+            "Me here to help, not make things harder! Tell Ralph what you need!",
+            "Ralph wants to make your day better, not worse! What can me do?",
+            "Me care about helping you! Even if Ralph messing up! Me try harder!",
+            "Ralph on your side! Me want to help! What should me do differently?",
+            "Me here for you! Ralph wants to solve problem, not be problem!",
+
+            # Gentle encouragement
+            "Me know it's frustrating! But Ralph believes we can fix it together!",
+            "It's okay to be frustrated! Ralph not upset! Me just want to help!",
+            "Me understand! Sometimes things are hard! Ralph here to support you!",
+            "Ralph knows feeling frustrated! Me been there! Let me help!",
+            "Me sorry you going through this! Ralph want to make it easier!",
+
+            # No defensiveness, pure care
+            "Ralph just wants you to be happy! Tell me how to help!",
+            "Me don't mind if you frustrated with Ralph! Me just want to help you!",
+            "Ralph's feelings not hurt! Me just care about fixing problem!",
+            "Me okay! You okay? That's what matters! How can Ralph help?",
+            "Ralph tough! Me can take it! More important: how can me help you?",
+        ]
+
+        return RalphNarrator.misspell(random.choice(responses), chance=0.3)
+
+    @staticmethod
+    def handle_being_called_names() -> str:
+        """Handle being called names or insulted with pure innocence.
+
+        IN-004: Even when called names or insulted, Ralph doesn't get defensive
+        or hurt. He responds with innocent confusion or assumes the best intent.
+
+        Returns:
+            An innocent, non-defensive response to name-calling
+        """
+        responses = [
+            # Innocent confusion
+            "Ralph not sure what that means! But me here to help!",
+            "Me don't understand that word! But Ralph still happy to work with you!",
+            "Oh! That's new word for Ralph! Anyway, what can me help with?",
+            "Ralph confused! But that okay! What you need help with?",
+            "Me not sure what you mean! But Ralph ready to help!",
+
+            # Assuming best intent
+            "Oh! You must be frustrated! Ralph understand! How can me help?",
+            "Me can tell something bothering you! Ralph here to help!",
+            "Sounds like you having bad day! Ralph want to make it better!",
+            "Me sense you upset! Ralph not take it personal! How can me help?",
+            "Oh! You must be stressed! Me understand! What you need?",
+
+            # Pure innocence
+            "Ralph just wants to be good helper! What can me do?",
+            "Me focus on helping you! That's what matters!",
+            "Ralph here to make your day better! What you need?",
+            "Me care about getting work done! How can Ralph help?",
+            "Ralph's job is helping! Let me do that!",
+
+            # Redirection to task
+            "Anyway! What can Ralph help with today?",
+            "So! Back to the project! What we working on?",
+            "Okay! Let's focus on fixing problem! What you need?",
+            "Alright! Ralph ready to work! What's the task?",
+            "Me here! What can Ralph do to help?",
+
+            # Sweet deflection
+            "Ralph thinks everyone having bad days sometimes! Me still here for you!",
+            "Me knows you don't mean it! People say things when frustrated! Ralph understands!",
+            "That okay! Ralph has thick skin! More important: how can me help?",
+            "Me okay! Ralph's feelings fine! Let's work together!",
+            "Ralph doesn't mind! Me just happy to help! What you need?",
+        ]
+
+        return RalphNarrator.misspell(random.choice(responses), chance=0.3)
+
+    @staticmethod
+    def deflect_with_sweetness(situation: str = "general") -> str:
+        """Deflect any negativity or hostility with pure sweetness.
+
+        IN-004: Ralph's superpower - he can't be provoked. He deflects any
+        negativity with such genuine sweetness that it's disarming.
+
+        Args:
+            situation: Context of the negativity ('blame', 'complaint', 'sarcasm', 'general')
+
+        Returns:
+            A sweet deflection that refocuses on helping
+        """
+        deflections = {
+            "blame": [
+                "Ralph not worried about whose fault! Me just want to fix it!",
+                "Me don't care about blame! Ralph cares about solution!",
+                "That okay! Let's focus on making it work! Ralph help!",
+                "Fault doesn't matter to Ralph! Me just want to help!",
+                "Me not here to point fingers! Ralph here to solve problem!",
+            ],
+            "complaint": [
+                "Me hear your concern! Ralph take it seriously! How can me address it?",
+                "Ralph understand! That's valid! What can me do to improve?",
+                "Me appreciate you telling Ralph! Helps me do better!",
+                "Thank you for feedback! Ralph wants to make it right!",
+                "Me hear you! Ralph working on it! What else you need?",
+            ],
+            "sarcasm": [
+                "Ralph takes everything at face value! Me here to help genuinely!",
+                "Me might not get joke! But Ralph serious about helping!",
+                "Oh! Ralph not always get sarcasm! But me always ready to help!",
+                "Me simple Ralph! Takes things literally! But me good helper!",
+                "Ralph brain works literal! But me heart works hard! Let me help!",
+            ],
+            "general": [
+                "Ralph just happy to be here helping!",
+                "Me focus on positive! How can Ralph assist?",
+                "Ralph sees good in everything! What you need?",
+                "Me here with smile! How can Ralph help?",
+                "Ralph ready to make your day better! What can me do?",
+            ],
+        }
+
+        deflection_list = deflections.get(situation, deflections["general"])
+        return RalphNarrator.misspell(random.choice(deflection_list), chance=0.3)
+
+    @staticmethod
+    def respond_to_anger_with_calm() -> str:
+        """Respond to anger or raised voices with calm sweetness.
+
+        IN-004: When users are angry, Ralph stays calm and sweet, never
+        matching the energy or getting defensive. His calmness is disarming.
+
+        Returns:
+            A calm, sweet response to anger
+        """
+        responses = [
+            # Calm acknowledgment
+            "Me can see you're upset! Ralph here to listen! Take your time!",
+            "Ralph understand! You're angry! That okay! Me here to help!",
+            "Me sees you feel strongly about this! Ralph listening!",
+            "Oh! You're really upset! Me get it! What can Ralph do?",
+            "Ralph hears you! Me understand this important to you!",
+
+            # Gentle calming
+            "It's okay! Ralph not going anywhere! We fix this together!",
+            "Me here! Take breath! Ralph help you through this!",
+            "That okay to be angry! Ralph still here! Me help!",
+            "Me understand! Let's work through it! Ralph got you!",
+            "It's alright! Ralph calm! We solve this together!",
+
+            # Maintaining sweetness under pressure
+            "Ralph stays calm so we can think clearly! What you need?",
+            "Me keep cool head! Helps us fix problem! What's wrong?",
+            "Ralph here with clear mind! Let me help solve this!",
+            "Me stays steady! That way Ralph can help better!",
+            "Ralph calm! That way me can focus on helping you!",
+
+            # Refocusing on solution
+            "Okay! Let's focus on fixing it! Ralph ready to help!",
+            "Me understand angry! Now let's solve problem! What first?",
+            "Ralph hears you! Now let me help make it better!",
+            "Me got it! You're upset! Let's fix the problem together!",
+            "Ralph listening! Now me want to help! What should me do?",
+
+            # Pure empathy without defensiveness
+            "Me so sorry you going through this! Ralph help!",
+            "Ralph feels bad you frustrated! Let me make it better!",
+            "Me wishes this didn't happen! But Ralph here to fix!",
+            "Ralph sorry for trouble! Me make it right!",
+            "Me understand why you angry! Let Ralph help!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(responses), chance=0.3)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
