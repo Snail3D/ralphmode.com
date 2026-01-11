@@ -6140,6 +6140,88 @@ Your style: {worker['style']}
 
         return self.ralph_misspell(random.choice(deflections))
 
+    def is_off_topic_query(self, text: str) -> bool:
+        """SG-011: Detect if message is off-topic (religion, politics, philosophy, personal advice).
+
+        Args:
+            text: User's message text
+
+        Returns:
+            True if message is off-topic, False otherwise
+        """
+        if not text:
+            return False
+
+        text_lower = text.lower()
+
+        # Off-topic patterns to detect
+        off_topic_patterns = [
+            # Religion
+            'god', 'jesus', 'allah', 'buddha', 'religion', 'religious', 'pray', 'prayer',
+            'bible', 'quran', 'torah', 'church', 'mosque', 'temple', 'faith', 'believe in',
+            'spiritual', 'spirituality', 'soul', 'heaven', 'hell', 'salvation', 'worship',
+
+            # Politics
+            'democrat', 'republican', 'liberal', 'conservative', 'socialist', 'communist',
+            'election', 'vote', 'political', 'politics', 'government', 'president', 'congress',
+            'left wing', 'right wing', 'biden', 'trump',
+
+            # Philosophy / Meaning of life
+            'meaning of life', 'why do we exist', 'what is the purpose', 'existential',
+            'philosophy', 'philosophical', 'consciousness', 'free will', 'determinism',
+
+            # Personal advice (non-code)
+            'relationship advice', 'dating advice', 'should i break up', 'career advice',
+            'life advice', 'what should i do with my life', 'am i making the right choice',
+        ]
+
+        # Check if any pattern matches
+        for pattern in off_topic_patterns:
+            if pattern in text_lower:
+                return True
+
+        return False
+
+    def get_off_topic_redirect(self) -> tuple[str, str, str]:
+        """SG-011: Generate graceful redirect response when off-topic query detected.
+
+        Returns:
+            Tuple of (speaker_name, speaker_title, message)
+        """
+        # Mix of Ralph and worker responses
+        redirects = [
+            # Ralph responses
+            ("Ralph", None, "That's above my pay grade, Mr. Worms! I just do code stuff. Anyway, what were we working on?"),
+            ("Ralph", None, "Whoa, that's like... really big brain stuff. I don't know about that! But I'm good at Python!"),
+            ("Ralph", None, "My cat doesn't even understand that stuff and he's pretty smart! Let's stick to code, boss."),
+            ("Ralph", None, "Uh... I think Chief Wiggum handles that kind of thing. I just do the computer stuff!"),
+
+            # Gus responses
+            ("Gus", "Senior Dev", "I just do code. The big questions are for after work, over a beer."),
+            ("Gus", "Senior Dev", "Not my department, boss. I'm here to ship features, not solve the universe."),
+            ("Gus", "Senior Dev", "Been coding for 20 years - still don't have answers to that. But I can fix your bug."),
+
+            # Stool responses
+            ("Stool", "Frontend Dev", "Bruh, that's way too deep for me right now. Let's just build something cool."),
+            ("Stool", "Frontend Dev", "Yo I'm just here to make buttons look pretty. That philosophical stuff is above my paygrade."),
+
+            # Mona responses
+            ("Mona", "Tech Lead", "That falls outside my domain of expertise. Let's focus on the technical requirements."),
+            ("Mona", "Tech Lead", "Interesting question, but not something I can help with. Back to the code?"),
+
+            # Gomer responses
+            ("Gomer", "Backend Dev", "Mmm... donuts. Oh sorry, what? Yeah I don't do that kind of thinking. Just code."),
+            ("Gomer", "Backend Dev", "That's too heavy for me. I like simple: write code, eat donuts, go home."),
+        ]
+
+        speaker, title, message = random.choice(redirects)
+
+        # Apply Ralph's misspellings if it's Ralph speaking
+        if speaker == "Ralph":
+            message = self.ralph_misspell(message)
+
+        return speaker, title, message
+
     def detect_admin_command(self, text: str) -> bool:
         """AC-001: Detect if text is an admin command trigger phrase.
 
@@ -11908,6 +11990,17 @@ _Grab some popcorn..._
                     with_typing=True
                 )
                 return
+
+        # SG-011: Check if message is off-topic (religion, politics, philosophy, personal advice)
+        if self.is_off_topic_query(text):
+            logging.info(f"SG-011: Detected off-topic query from user {telegram_id}")
+            speaker, title, message = self.get_off_topic_redirect()
+            await self.send_styled_message(
+                context, chat_id, speaker, title,
+                message,
+                with_typing=True
+            )
+            return
 
         # SG-008: Check for excessive attachment and give gentle reality check if needed
         if self.should_give_reality_check(user_id, text):
