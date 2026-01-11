@@ -19,6 +19,14 @@ except ImportError:
     WEATHER_SERVICE_AVAILABLE = False
     logging.warning("SS-002: Weather service not available - using generated weather only")
 
+# SS-004: Import atmosphere detector for task-based atmosphere
+try:
+    from atmosphere_detector import detect_atmosphere as _detect_atmosphere
+    ATMOSPHERE_DETECTOR_AVAILABLE = True
+except ImportError:
+    ATMOSPHERE_DETECTOR_AVAILABLE = False
+    logging.warning("SS-004: Atmosphere detector not available - using default atmospheres only")
+
 logger = logging.getLogger(__name__)
 
 
@@ -229,16 +237,18 @@ class SceneManager:
         ]
     }
 
-    def generate_opening_scene(self, project_name: str = None, boss_tone: str = None, use_real_weather: bool = True, user_id: int = None) -> Dict[str, Any]:
+    def generate_opening_scene(self, project_name: str = None, boss_tone: str = None, use_real_weather: bool = True, user_id: int = None, user_directive: str = None) -> Dict[str, Any]:
         """
         Generate a unique opening scene for a session.
         SS-005: Now stores scene state for session consistency.
+        SS-004: Atmosphere matches task type from user directive.
 
         Args:
             project_name: Optional project name to reference
             boss_tone: TL-001: Optional tone from voice analysis (angry, happy, urgent, etc.)
             use_real_weather: SS-002: Whether to use real weather (default: True)
             user_id: SS-005: User ID to track scene state
+            user_directive: SS-004: User's task/directive to analyze for atmosphere
 
         Returns:
             Dictionary with scene elements:
@@ -248,6 +258,18 @@ class SceneManager:
             - mood: Overall mood/atmosphere
             - worker_order: List of workers in arrival order
         """
+        # SS-004: Detect atmosphere from user directive first (highest priority)
+        atmosphere_info = None
+        task_atmosphere = None
+        if user_directive and ATMOSPHERE_DETECTOR_AVAILABLE:
+            try:
+                atmosphere_info = _detect_atmosphere(user_directive)
+                task_atmosphere = atmosphere_info.get('atmosphere')
+                logger.info(f"SS-004: Detected '{task_atmosphere}' atmosphere from directive (task: {atmosphere_info.get('task_type')})")
+            except Exception as e:
+                logger.warning(f"SS-004: Failed to detect atmosphere: {e}")
+                atmosphere_info = None
+
         # SS-002: Try to get real weather first if configured
         weather_key = None
         real_weather_used = False
@@ -262,7 +284,12 @@ class SceneManager:
                 logger.warning(f"SS-002: Failed to get weather from service: {e}")
                 weather_key = None
 
-        # TL-001: Pick weather based on boss tone if provided (overrides real weather)
+        # SS-004: Atmosphere-based weather override (overrides real weather, but not boss tone)
+        if atmosphere_info and atmosphere_info.get('mood_override') and not boss_tone:
+            weather_key = atmosphere_info['mood_override']
+            logger.info(f"SS-004: Atmosphere '{task_atmosphere}' set weather to '{weather_key}'")
+
+        # TL-001: Pick weather based on boss tone if provided (overrides everything including atmosphere)
         if boss_tone and not real_weather_used:
             # Map tone to weather/mood
             tone_to_weather = {
@@ -339,20 +366,41 @@ class SceneManager:
 
         full_text = " ".join(scene_parts)
 
+        # SS-004: Override energy and worker mood based on task atmosphere
+        final_energy = time_info.get("energy", "neutral")
+        final_worker_mood = time_info.get("worker_mood", "working")
+
+        if atmosphere_info:
+            final_energy = atmosphere_info.get("energy", final_energy)
+            # Worker mood adapts to atmosphere
+            atmosphere_to_mood = {
+                "tense": "alert and focused",
+                "urgent": "intense, driven",
+                "excited": "energized and creative",
+                "focused": "calm and methodical",
+                "calm": "comfortable and steady",
+                "curious": "inquisitive and engaged",
+                "methodical": "systematic and thorough"
+            }
+            final_worker_mood = atmosphere_to_mood.get(task_atmosphere, final_worker_mood)
+
         scene_data = {
             "full_text": full_text,
             "weather": weather_key,
             "time": time_key,
             "time_str": time_str,
             "mood": mood,
-            "energy": time_info.get("energy", "neutral"),
-            "worker_mood": time_info.get("worker_mood", "working"),
+            "energy": final_energy,
+            "worker_mood": final_worker_mood,
             "worker_order": workers + ["Ralph"],  # Ralph always arrives last (he's the manager)
             "worker_arrivals": self.WORKER_ARRIVALS,
             "real_weather_used": real_weather_used,  # SS-002: Track if real weather was used
             "scene_elements": [],  # SS-005: Track persistent scene elements (coffee cups, etc.)
             "start_time": datetime.now(),  # SS-005: Track when scene started
-            "time_progression": 0  # SS-005: Track simulated time passage in minutes
+            "time_progression": 0,  # SS-005: Track simulated time passage in minutes
+            "atmosphere": task_atmosphere,  # SS-004: Track detected atmosphere
+            "task_type": atmosphere_info.get("task_type") if atmosphere_info else None,  # SS-004: Track task type
+            "atmosphere_confidence": atmosphere_info.get("confidence", 0.0) if atmosphere_info else 0.0  # SS-004: Track confidence
         }
 
         # SS-005: Store scene state for this session
@@ -437,7 +485,7 @@ class SceneManager:
 _scene_manager = SceneManager()
 
 
-def generate_opening_scene(project_name: str = None, boss_tone: str = None, use_real_weather: bool = True, user_id: int = None) -> Dict[str, Any]:
+def generate_opening_scene(project_name: str = None, boss_tone: str = None, use_real_weather: bool = True, user_id: int = None, user_directive: str = None) -> Dict[str, Any]:
     """
     Generate an opening scene (convenience function).
 
@@ -446,8 +494,9 @@ def generate_opening_scene(project_name: str = None, boss_tone: str = None, use_
         boss_tone: Optional boss tone from voice analysis
         use_real_weather: Whether to use real weather (SS-002)
         user_id: SS-005: User ID to track scene state
+        user_directive: SS-004: User's task/directive to analyze for atmosphere
     """
-    return _scene_manager.generate_opening_scene(project_name, boss_tone, use_real_weather, user_id)
+    return _scene_manager.generate_opening_scene(project_name, boss_tone, use_real_weather, user_id, user_directive)
 
 
 def get_worker_arrival(worker_name: str) -> str:
