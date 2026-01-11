@@ -12181,3 +12181,63 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Test button handlers separately - they're async and can have subtle timing issues
 
 ---
+
+## Iteration 223 - 2026-01-11 23:55
+**Task**: [VO-007] Context Paste Support
+**Status**: ✅ Complete
+
+### What was implemented
+- Large text paste detection (>500 chars) in handle_text()
+- AI-powered summarization focusing on content TYPE not details
+- Scene presentation: "*Mr. Worms hands over technical documentation*"
+- Full content storage in session['context_documents'] for worker reference
+- Only summary shown in chat to preserve immersion
+- Worker acknowledgment system with varied responses
+- Document tracking with id, content, timestamp, length
+- Early return to prevent normal text processing
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- 500 char threshold strikes right balance (catches docs, not long messages)
+- Summary should describe TYPE not DETAILS ("API specs" not "POST /users endpoint")
+- Scene descriptions create physical metaphor (handing over documents)
+- Storing full content separately allows workers to reference later
+- AI summarization better than truncation (understands context)
+- Varied acknowledgments prevent repetitive feel
+- Document metadata (id, timestamp, length) useful for future features
+- Return early prevents paste from triggering other handlers
+- Scene descriptions work without breaking voice-only philosophy
+- Workers can naturally say "the documents Mr. Worms provided" later
+
+### Acceptance criteria met
+✅ Detect large text pastes (>500 chars)
+✅ Summarize for scene presentation (AI-powered, focuses on type)
+✅ Scene: '*Mr. Worms hands over a stack of technical documentation*'
+✅ Full content passed to workers behind scenes (session['context_documents'])
+✅ Only summary/description shown in chat
+✅ Preserves immersion while allowing rich context
+✅ Workers can reference 'the documents Mr. Worms provided'
+
+### Technical patterns discovered
+- Text length check: len(text) > 500 for large paste detection
+- Document storage pattern: session['context_documents'] as list of dicts
+- AI summarization prompt: "Focus on TYPE not details"
+- Scene + summary combo: scene description + italicized summary
+- Metadata tracking: id, content, provided_at, length for each document
+- Worker selection: random.choice(list(self.DEV_TEAM.keys()))
+- Varied responses via random.choice() from curated lists
+- Early return pattern: process special case then return
+
+### Gotchas to avoid
+- Must check active_sessions before processing (only during sessions)
+- Initialize context_documents list if doesn't exist
+- Truncate content in summarization prompt (text[:1000]) to save tokens
+- Use max_tokens=150 for summary (keeps it concise)
+- Must return early to prevent double-processing as normal message
+- Store full content even though only summary shown (workers need it)
+- Scene description should be action not dialogue ("hands over" not "Here you go")
+- Summary should be italicized to differentiate from scene action
+
+---
