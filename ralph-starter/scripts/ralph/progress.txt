@@ -11300,3 +11300,45 @@ All functionality tested and verified:
 ✅ Shows example queries once connected - get_example_queries() returns 4+ examples per DB type
 
 ---
+
+## Iteration [OB-022] - 2026-01-10 23:24
+**Task**: OB-022 - Credential Manager
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `credential_manager.py` with full encryption at rest (AES-256-GCM)
+- Implemented secure credential storage using same encryption pattern as existing data_protection.py
+- Added set/get/update/delete operations for credentials
+- Implemented list functionality with masked values (shows first 4 and last 4 chars)
+- Added export/import for backup functionality
+- Created CLI interface for testing and manual operations
+- Uses DB_ENCRYPTION_KEY from .env for consistent encryption key management
+
+### Files changed
+- credential_manager.py (NEW)
+
+### Acceptance Criteria Met
+✅ Encrypts credentials before storing (AES-256-GCM with 96-bit nonce)
+✅ Easy update/rotate functionality (update command)
+✅ List configured credentials (masked by default, --show-values option)
+✅ Delete credential option (delete command)
+✅ Export/import for backup (with encrypted files)
+
+### Learnings
+- Reused existing encryption pattern from data_protection.py for consistency
+- Used AESGCM from cryptography library (same as existing codebase)
+- DB_ENCRYPTION_KEY in .env has duplicate entries but env var reads the last one
+- Credential manager stores encrypted JSON file at .credentials.enc
+- CLI interface makes testing and manual operations easy
+
+### Testing
+All operations tested successfully:
+- Set credential: ✅
+- List (masked): ✅
+- Update/rotate: ✅
+- Get credential: ✅
+- Export: ✅
+- Delete: ✅
+- Import: ✅
+
+---
