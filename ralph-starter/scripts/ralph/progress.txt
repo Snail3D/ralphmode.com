@@ -9332,3 +9332,45 @@ Setup completion flow:
 ✅ Keeps history of changes in database
 
 ---
+
+## Iteration 164 - 2026-01-10
+**Task**: [RM-028] Task Announcement Drama
+**Status**: ✅ Complete
+
+### What was implemented
+- Added task announcement system where Ralph announces new tasks to the team
+- Implemented team mood tracking (0-100 scale: 0=exhausted, 100=energized)
+- Created dynamic worker reactions based on mood and task context
+- Built mood adjustment system that responds to:
+  - Task difficulty (keywords like 'refactor', 'urgent', 'critical')
+  - Priority level (first priority adds stress, low priority relaxes)
+  - Task completion (boosts morale +8, milestone bonus +5 every 5 tasks)
+  - Consecutive tasks (mood decreases after 3+ tasks in a row)
+- Implemented 5 reaction types: exhausted, dreading, eager, stressed, neutral
+- Each reaction has group response + 1-2 individual worker responses
+- Ralph's announcements vary naturally ("Alright boys!", "Listen up everyone!", etc.)
+- Ralph reads task like it's new info to everyone
+
+### Files changed
+- ralph_bot.py (added announce_task_to_team method, mood tracking in sessions)
+- scripts/ralph/prd.json (marked RM-028 as complete)
+
+### Learnings
+- Team dynamics feel more real when mood affects reactions consistently
+- Task difficulty heuristics (keyword matching) works well for basic mood shifts
+- Mood restoration on task completion creates positive reinforcement loop
+- Random selection of 1-2 workers for individual reactions feels natural (not overwhelming)
+- Priority buttons flow (handle_priority_selection) was perfect integration point
+- Session state is ideal place for mood tracking (persists per user, resets on new session)
+- Variety in Ralph's announcements prevents repetition fatigue
+- Mood system creates emergent narrative: team gets tired, celebrates wins, dreads hard tasks
+
+### Acceptance Criteria Met
+✅ Ralph announces: "Alright boys!" or "Alright ladies and gents!"
+✅ Ralph: "I got some news from Mr. Worms. He's got another task for ya."
+✅ Workers react based on mood: groans ('Ahhhhh...') or excitement
+✅ Reaction depends on: how hard they've been working, task difficulty
+✅ Sometimes eager: "Let's do it!" - sometimes dreading: "Not another one..."
+✅ Ralph reads the task like it's new info to everyone
+
+---
