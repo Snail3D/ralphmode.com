@@ -1265,6 +1265,10 @@ class RalphBot:
         # SG-036: Natural Session Ends - Track when workers need to leave
         self.last_session_end_check: Dict[int, datetime] = {}  # Track when last check happened
 
+        # SG-038: Session Continuity - Track returning users
+        self.user_session_count: Dict[int, int] = {}  # Track how many sessions each user has had
+        self.last_session_time: Dict[int, datetime] = {}  # Track when user's last session ended
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -2900,8 +2904,40 @@ class RalphBot:
 
             await asyncio.sleep(random.uniform(0.5, 1.0))
 
-            # Worker greeting with styled button
+            # SG-038: Check if returning user and give appropriate greeting
             greeting = worker.get('greeting', 'Morning.')
+            if self.is_returning_user(user_id):
+                time_since = self.get_time_since_last_session(user_id)
+                session_count = self.user_session_count.get(user_id, 0)
+
+                # Generate "welcome back" greetings that reference continuity
+                welcome_back_greetings = {
+                    "Stool": [
+                        f"Hey Mr. Worms! Good to see you again. Ready to pick up where we left off {time_since}?",
+                        f"Yo boss, welcome back! We were just talking about continuing that work from {time_since}.",
+                        f"Oh hey! Mr. Worms is back. Let's keep building on what we started {time_since}.",
+                    ],
+                    "Gomer": [
+                        f"Oh! Mr. Worms! You're back! I was hoping we'd get to finish what we started {time_since}.",
+                        f"Mmm, Mr. Worms returned! Ready to keep working on that thing from {time_since}?",
+                        f"Woohoo! Boss is back! Should we continue where we left off {time_since}?",
+                    ],
+                    "Mona": [
+                        f"Ah, Mr. Worms. Good timing. I've been thinking about our work from {time_since}.",
+                        f"Welcome back. I have some ideas about continuing what we discussed {time_since}.",
+                        f"Mr. Worms. Good to see you again. Ready to pick up from {time_since}?",
+                    ],
+                    "Gus": [
+                        f"*nods* Mr. Worms. You're back. We can continue from {time_since} if you want.",
+                        f"Boss. {time_since.capitalize()} we left off on something. Ready to finish it?",
+                        f"Well well, look who's back. Time to wrap up what we started {time_since}?",
+                    ]
+                }
+
+                if name in welcome_back_greetings:
+                    greeting = random.choice(welcome_back_greetings[name])
+
+            # Worker greeting with styled button
             await self.send_styled_message(
                 context, chat_id, name, worker['title'], greeting,
                 topic="morning arrival",
@@ -2934,10 +2970,21 @@ class RalphBot:
         )
         await asyncio.sleep(1.0)
 
-        ralph_greeting = self.ralph_misspell(
-            f"Hi everyone! I'm the boss now! Mr. Worms sent us a new projeck called '{state.get('project_name', 'something')}'. "
-            "My cat would be so proud!"
-        )
+        # SG-038: Different greeting for returning users
+        if self.is_returning_user(user_id):
+            ralph_greetings = [
+                f"Mr. Worms! You came back! I'm so happy! Let's do more work stuff together!",
+                f"Hi Mr. Worms! I was hoping you'd come back! We can keep working on things!",
+                f"Mr. Worms! You're here again! I missed you! My cat missed you too! Let's work!",
+                f"Yay! Mr. Worms is back! We can finsh... finish what we started!",
+            ]
+            ralph_greeting = self.ralph_misspell(random.choice(ralph_greetings))
+        else:
+            ralph_greeting = self.ralph_misspell(
+                f"Hi everyone! I'm the boss now! Mr. Worms sent us a new projeck called '{state.get('project_name', 'something')}'. "
+                "My cat would be so proud!"
+            )
+
         await self.send_styled_message(
             context, chat_id, "Ralph", None, ralph_greeting,
             topic="arrival",
@@ -10719,6 +10766,70 @@ I'm not that smart, but I remember ALL of it!
         )
 
         logger.info(f"SG-036: Natural session end initiated by {worker_name} for user {user_id}")
+
+        # SG-038: Mark this session as ended for continuity tracking
+        self.mark_session_ended(user_id)
+
+    def mark_session_ended(self, user_id: int):
+        """SG-038: Mark that a session has ended for continuity tracking.
+
+        Tracks session count and last session time so workers can "remember"
+        returning users and create ongoing relationship fiction.
+
+        Args:
+            user_id: User session ID
+        """
+        # Increment session count
+        if user_id not in self.user_session_count:
+            self.user_session_count[user_id] = 0
+        self.user_session_count[user_id] += 1
+
+        # Mark session end time
+        self.last_session_time[user_id] = datetime.now()
+
+        logger.info(f"SG-038: Marked session ended for user {user_id}. Total sessions: {self.user_session_count[user_id]}")
+
+    def is_returning_user(self, user_id: int) -> bool:
+        """SG-038: Check if user is returning (has had previous sessions).
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            True if user has had at least one previous session
+        """
+        return user_id in self.user_session_count and self.user_session_count[user_id] > 0
+
+    def get_time_since_last_session(self, user_id: int) -> Optional[str]:
+        """SG-038: Get human-readable time since user's last session.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Human-readable time string (e.g., "a few hours", "yesterday") or None if no previous session
+        """
+        if user_id not in self.last_session_time:
+            return None
+
+        time_diff = datetime.now() - self.last_session_time[user_id]
+        hours = time_diff.total_seconds() / 3600
+
+        if hours < 1:
+            return "just a bit ago"
+        elif hours < 3:
+            return "a couple hours ago"
+        elif hours < 8:
+            return "earlier today"
+        elif hours < 24:
+            return "this morning" if datetime.now().hour > 12 else "last night"
+        elif hours < 48:
+            return "yesterday"
+        elif hours < 168:  # 1 week
+            days = int(hours / 24)
+            return f"{days} days ago"
+        else:
+            return "a while back"
 
     def should_trigger_natural_session_end(self, user_id: int) -> bool:
         """SG-036: Determine if a natural session end should trigger.
