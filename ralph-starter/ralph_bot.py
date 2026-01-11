@@ -18230,6 +18230,210 @@ Use `/version <type>` to switch!
                 parse_mode="Markdown"
             )
 
+    async def setmodel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handle /setmodel command - MM-004: Model Switching.
+
+        Switch AI models for different roles without restarting the bot.
+
+        Usage:
+            /setmodel - Show current models
+            /setmodel ralph groq - Switch Ralph to Groq
+            /setmodel worker anthropic - Switch workers to Anthropic
+            /setmodel builder anthropic - Switch builder to Anthropic
+            /setmodel design glm - Switch design to GLM
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+        args = context.args
+
+        logger.info(f"MM-004: User {telegram_id} requested /setmodel with args: {args}")
+
+        # Import model manager
+        from model_manager import get_model_manager, ModelRole, ModelProvider, ModelConfig
+        manager = get_model_manager()
+
+        # If no args, show current configuration
+        if not args:
+            current_models = manager.list_configured_models()
+            available_providers = manager.get_available_providers()
+
+            message_lines = [
+                "🤖 *Current Model Configuration*",
+                ""
+            ]
+
+            # Show current models
+            for role, model_id in current_models.items():
+                message_lines.append(f"• *{role.upper()}*: `{model_id}`")
+
+            message_lines.append("")
+            message_lines.append("*Available Providers:*")
+
+            # Show available providers
+            for provider, is_available in available_providers.items():
+                status = "✅" if is_available else "❌"
+                message_lines.append(f"{status} {provider.upper()}")
+
+            message_lines.append("")
+            message_lines.append("*Usage:*")
+            message_lines.append("`/setmodel <role> <provider>`")
+            message_lines.append("")
+            message_lines.append("*Examples:*")
+            message_lines.append("• `/setmodel ralph groq`")
+            message_lines.append("• `/setmodel worker anthropic`")
+            message_lines.append("• `/setmodel builder anthropic`")
+            message_lines.append("• `/setmodel design glm`")
+
+            await update.message.reply_text(
+                "\n".join(message_lines),
+                parse_mode="Markdown"
+            )
+            return
+
+        # Parse arguments
+        if len(args) < 2:
+            await update.message.reply_text(
+                "❌ Invalid usage!\n\n"
+                "Use: `/setmodel <role> <provider>`\n"
+                "Example: `/setmodel ralph groq`",
+                parse_mode="Markdown"
+            )
+            return
+
+        role_str = args[0].lower()
+        provider_str = args[1].lower()
+
+        # Map role string to ModelRole enum
+        role_map = {
+            "ralph": ModelRole.RALPH,
+            "worker": ModelRole.WORKER,
+            "builder": ModelRole.BUILDER,
+            "design": ModelRole.DESIGN
+        }
+
+        if role_str not in role_map:
+            await update.message.reply_text(
+                f"❌ Invalid role: `{role_str}`\n\n"
+                f"Valid roles: ralph, worker, builder, design",
+                parse_mode="Markdown"
+            )
+            return
+
+        role = role_map[role_str]
+
+        # Create adapter based on provider
+        try:
+            adapter = None
+
+            if provider_str == "groq":
+                api_key = os.environ.get("GROQ_API_KEY")
+                if not api_key:
+                    await update.message.reply_text(
+                        "❌ GROQ_API_KEY not set!\n\n"
+                        "Add it to your .env file first.",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+                from adapters.groq_adapter import GroqAdapter
+                config = ModelConfig(
+                    provider=ModelProvider.GROQ,
+                    model_id=os.environ.get("GROQ_MODEL", "llama-3.1-70b-versatile"),
+                    api_key=api_key
+                )
+                adapter = GroqAdapter(config)
+
+            elif provider_str == "anthropic":
+                api_key = os.environ.get("ANTHROPIC_API_KEY")
+                if not api_key:
+                    await update.message.reply_text(
+                        "❌ ANTHROPIC_API_KEY not set!\n\n"
+                        "Add it to your .env file first.",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+                from adapters.anthropic_adapter import AnthropicAdapter
+                config = ModelConfig(
+                    provider=ModelProvider.ANTHROPIC,
+                    model_id=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4"),
+                    api_key=api_key
+                )
+                adapter = AnthropicAdapter(config)
+
+            elif provider_str == "glm":
+                api_key = os.environ.get("GLM_API_KEY")
+                if not api_key:
+                    await update.message.reply_text(
+                        "❌ GLM_API_KEY not set!\n\n"
+                        "Add it to your .env file first.",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+                from adapters.glm_adapter import GLMAdapter
+                config = ModelConfig(
+                    provider=ModelProvider.GLM,
+                    model_id="GLM-4.7",
+                    api_key=api_key,
+                    base_url="https://api.z.ai/api/anthropic"
+                )
+                adapter = GLMAdapter(config)
+
+            elif provider_str == "ollama":
+                from adapters.ollama_adapter import OllamaAdapter
+                config = ModelConfig(
+                    provider=ModelProvider.OLLAMA,
+                    model_id=os.environ.get("OLLAMA_MODEL", "llama3.1"),
+                    base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+                )
+                adapter = OllamaAdapter(config)
+
+                # Check if Ollama is actually running
+                if not await adapter.is_available():
+                    await update.message.reply_text(
+                        f"❌ Ollama is not running at {config.base_url}!\n\n"
+                        "Start Ollama first, then try again.",
+                        parse_mode="Markdown"
+                    )
+                    return
+
+            else:
+                await update.message.reply_text(
+                    f"❌ Unknown provider: `{provider_str}`\n\n"
+                    f"Valid providers: groq, anthropic, glm, ollama",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Switch the model
+            if adapter:
+                success = manager.switch_model(role, adapter)
+
+                if success:
+                    await update.message.reply_text(
+                        f"✅ Switched {role_str} to {provider_str}!\n\n"
+                        f"Model: `{adapter.config.model_id}`\n\n"
+                        f"The change takes effect immediately, no restart needed! 🚀",
+                        parse_mode="Markdown"
+                    )
+                    logger.info(f"MM-004: Successfully switched {role_str} to {provider_str} for user {telegram_id}")
+                else:
+                    await update.message.reply_text(
+                        f"❌ Failed to switch {role_str} to {provider_str}.\n\n"
+                        f"Check the logs for details.",
+                        parse_mode="Markdown"
+                    )
+                    logger.error(f"MM-004: Failed to switch {role_str} to {provider_str} for user {telegram_id}")
+
+        except Exception as e:
+            logger.error(f"MM-004: Error in setmodel_command: {e}")
+            await update.message.reply_text(
+                f"❌ Error switching model: {str(e)}",
+                parse_mode="Markdown"
+            )
+
     async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle /reorganize command - TC-007: PRD Reorganization Command.
@@ -20094,6 +20298,7 @@ To update your Git config:
         app.add_handler(CommandHandler("hacktest", self.hacktest_command))  # SEC-031
         app.add_handler(CommandHandler("setlocation", self.setlocation_command))  # SG-018
         app.add_handler(CommandHandler("goodnews", self.goodnews_command))  # SG-018
+        app.add_handler(CommandHandler("setmodel", self.setmodel_command))  # MM-004
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))

@@ -17335,3 +17335,32 @@ All 10 test cases passed:
 - This completes the model injection pattern for both personality (Ralph) and coding (Workers)
 
 ---
+
+## Iteration Next - 2026-01-11
+**Task**: [MM-004] Model Switching
+**Status**: ✅ Complete
+
+### What was implemented
+- Added switch_model() method to ModelManager for dynamic model switching without restart
+- Added get_available_providers() to check which AI providers have API keys configured
+- Implemented /setmodel command in ralph_bot.py for switching models via Telegram
+- Command supports all roles: ralph, worker, builder, design
+- Command supports all providers: groq, anthropic, glm, ollama
+- Shows current configuration with /setmodel (no args)
+- Validates API keys and provider availability before switching
+- Checks Ollama connectivity before allowing switch to local models
+
+### Files changed
+- model_manager.py (added switch_model() and get_available_providers() methods)
+- ralph_bot.py (added setmodel_command() and registered CommandHandler)
+- scripts/ralph/prd.json (marked MM-004 as passes=true)
+
+### Learnings
+- Hot-swapping models is straightforward - just call register_model() again with new adapter
+- Key validation at command level prevents errors from missing API keys
+- Ollama requires is_available() check since it's a local service that might not be running
+- User-friendly command shows current config and available providers
+- No restart needed - changes take effect immediately for next AI call
+- This unlocks user experimentation with different models per role (cost optimization, quality tuning)
+
+---

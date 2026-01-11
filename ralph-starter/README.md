@@ -67,6 +67,7 @@ python ralph_bot.py
 | `/start` | *"Hi, I'm Ralph!"* - Begin a new adventure |
 | `/setup` | Guided onboarding. Ralph holds your hand. |
 | `/status` | *"The project is... um... this way!"* |
+| `/setmodel` | Switch AI models on the fly. No restart needed! |
 | `/feedback` | Tell us what to build next *(paid users)* |
 
 ---

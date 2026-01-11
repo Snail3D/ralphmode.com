@@ -191,6 +191,54 @@ class ModelManager:
             for role, adapter in self._models.items()
         }
 
+    def switch_model(self, role: ModelRole, new_adapter: ModelAdapter) -> bool:
+        """
+        MM-004: Switch to a different model for a role without restarting.
+
+        Args:
+            role: The role to update (RALPH, WORKER, BUILDER, DESIGN)
+            new_adapter: The new model adapter to use
+
+        Returns:
+            bool: True if switch was successful, False otherwise
+
+        Example:
+            # Switch Ralph to use Ollama instead of Groq
+            ollama_config = ModelConfig(...)
+            ollama_adapter = OllamaAdapter(ollama_config)
+            manager.switch_model(ModelRole.RALPH, ollama_adapter)
+        """
+        try:
+            old_adapter = self._models.get(role)
+            old_model = old_adapter.config.model_id if old_adapter else "None"
+
+            # Register the new model
+            self.register_model(role, new_adapter)
+
+            logger.info(
+                f"MM-004: Switched {role.value} from {old_model} to {new_adapter.config.model_id}"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"MM-004: Failed to switch model for {role.value}: {e}")
+            return False
+
+    def get_available_providers(self) -> Dict[str, bool]:
+        """
+        Check which providers are available (have API keys configured).
+
+        Returns:
+            Dict mapping provider name to availability status
+        """
+        providers = {
+            "groq": bool(os.environ.get("GROQ_API_KEY")),
+            "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "glm": bool(os.environ.get("GLM_API_KEY")),
+            "ollama": os.environ.get("OLLAMA_ENABLED", "false").lower() == "true",
+        }
+        return providers
+
 
 # Global singleton instance
 _model_manager: Optional[ModelManager] = None
