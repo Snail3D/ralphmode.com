@@ -7990,3 +7990,115 @@ Doc specialist character was already fully implemented in ralph_bot.py:
 - Character trait: nothing phases him, worse bugs = more chuckles
 
 ---
+
+## Iteration 136 - 2026-01-10 17:45
+**Task**: RM-021 Specialist Summoning System
+**Status**: ✅ Complete
+
+### What was implemented
+- Added entry_animation and exit_animation to all 4 specialists (Frinky, Zee, Willie, Doc)
+- Frinky: bursts in with blueprints and color wheel, exits muttering about gradients
+- Zee (册子): waddles in with API documentation, exits with RFC 2616
+- Willie: kicks door open covered in server dust, grumbles about soft developers
+- Doc: strolls in chuckling at stack traces, exits laughing
+- Specialist summoning system now complete via existing call_specialist() function
+
+### Files changed
+- ralph_bot.py (lines 383-384, 406-407, 429-430, 452-453)
+
+### Learnings
+- call_specialist() function already existed, just needed animations
+- Entry/exit animations bring character personalities to life
+- Each animation matches character quirks (Frinky nervous, Willie gruff, Doc laughing)
+- The system was already built - just needed the specialist data filled in
+
+---
+
+## Iteration 137 - 2026-01-10 17:46
+**Task**: RM-022 API Registry for Specialists
+**Status**: ✅ Complete
+
+### What was implemented
+- Created API_REGISTRY dict structure in ralph_bot.py
+- Registry maps API names to configuration (base_url, auth_type, specialist_owner, mock_mode)
+- Example entries for GitHub, Stripe, OpenAI (commented out for future use)
+- Mock mode allows specialists to demonstrate API calls without real connections
+- Future-proofs system for actual API integrations when keys are configured
+- Zee (册子) designated as primary API specialist owner
+
+### Files changed
+- ralph_bot.py (lines 464-489)
+
+### Learnings
+- API registry provides structure for future real integrations
+- Mock mode is essential for demonstrations before APIs are connected
+- specialist_owner field associates APIs with the right expert
+- This scaffolding allows incremental addition of real API functionality
+
+---
+
+## Iteration - 2026-01-10 17:44 UTC
+**Task**: [SEC-022] Penetration Testing
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive penetration testing policy documentation in `docs/security/PENETRATION_TESTING.md`
+- Established testing schedule: annual + post-major-change testing requirements
+- Defined complete test scope covering API, web, infrastructure, and social engineering
+- Set up vendor selection criteria requiring CREST/OSCP/CEH certifications
+- Implemented findings management with CVSS v3.1 severity classification
+- Established remediation timelines: Critical (7 days), High (30 days), Medium (90 days), Low (180 days)
+- Documented secure report storage protocol with AES-256 encryption and 7-year retention
+- Created retest requirements for all Critical and High findings
+- Integrated with compliance requirements (PCI DSS 11.3, SOC 2, GDPR Article 32, ISO 27001)
+- Included social engineering testing scope with phishing, pretexting, and physical security
+- Added continuous improvement process with lessons learned and metrics tracking
+
+### Files changed
+- `docs/security/PENETRATION_TESTING.md` (new - 438 lines of comprehensive policy documentation)
+- `scripts/ralph/prd.json` (marked SEC-022 as passes: true)
+
+### Learnings
+- Security documentation tasks require comprehensive policy creation, not just code
+- Penetration testing is a critical enterprise security control with strict compliance requirements
+- The documentation serves multiple audiences: technical teams, executives, auditors, and vendors
+- Proper pentest policy must cover the entire lifecycle: scoping, testing, reporting, remediation, and retesting
+- Storage and retention requirements are critical for compliance audits
+- Social engineering testing requires careful rules of engagement to avoid actual harm
+- Integration with SDLC ensures findings drive long-term security improvements
+- Budget planning should include both annual comprehensive tests and focused post-change tests
+- Remediation SLAs must be aggressive for Critical/High findings (7/30 days) to maintain security posture
+
+---
+
+## Iteration - 2026-01-10 (OB-001)
+**Task**: [OB-001] Onboarding Entry Point - /setup Command
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `onboarding_wizard.py` module with OnboardingWizard class
+- Implemented welcome screen with Ralph's personality ("Me Ralph! Me help you set up AI team!")
+- Added /setup command handler in ralph_bot.py with proper logging and state management
+- Created setup type selection (Guided Setup vs Quick Setup) with inline keyboard buttons
+- Implemented callback handler for setup wizard button interactions
+- Tracks onboarding progress in user state dictionary
+- Displays overview of what will be configured based on chosen setup type
+- Added setup callback routing in main callback handler
+- Registered /setup command with Telegram application handlers
+
+### Files changed
+- onboarding_wizard.py (new - 241 lines)
+- ralph_bot.py (added import, initialization, /setup command, callback handler, command registration)
+- scripts/ralph/prd.json (marked OB-001 as passes: true)
+
+### Learnings
+- Ralph's personality needs to be warm and accessible for onboarding - used simple language ("code house" for repository)
+- Onboarding state tracking is already built into RalphBot via self.onboarding_state dict
+- Callback data prefixes (setup_*) allow routing to appropriate handlers in handle_callback()
+- Each wizard screen needs both content and keyboard markup for navigation
+- Setup wizard is designed to be resumable - users can leave and come back
+- OB-001 is the entry point; actual configuration steps (SSH, GitHub, etc.) are future tasks (OB-002+)
+- Guided vs Quick setup provides flexibility for different user experience levels
+- Import pattern uses try/except with AVAILABLE flags for graceful degradation
+
+---

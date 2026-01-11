@@ -358,7 +358,7 @@
         "Frinky added to SPECIALISTS dict",
         "Personality: nerdy, over-explains, 'Glavin!', 'with the clicking and the dragging'",
         "Specialty: UI/UX, CSS, design systems, accessibility",
-        "Color: \ud83d\udfe3 Purple",
+        "Color: 🟣 Purple",
         "Gets excited about pixel-perfect alignment",
         "Makes simple things sound complicated",
         "Workers groan when he shows up ('Oh no, here comes Frinky...')"
@@ -371,13 +371,13 @@
     {
       "id": "RM-018",
       "category": "Specialist Agents",
-      "title": "\u518c\u5b50 (\u518c-Zee) - API Integration Specialist",
-      "description": "Add '\u518c\u5b50' (nicknamed 'Zee') - an API wizard who speaks in endpoints. Inspired by Comic Book Guy's encyclopedic knowledge. Knows every API, every rate limit, every auth flow.",
+      "title": "册子 (册-Zee) - API Integration Specialist",
+      "description": "Add '册子' (nicknamed 'Zee') - an API wizard who speaks in endpoints. Inspired by Comic Book Guy's encyclopedic knowledge. Knows every API, every rate limit, every auth flow.",
       "acceptance_criteria": [
         "Zee added to SPECIALISTS dict",
         "Personality: condescending but helpful, 'Worst. Implementation. Ever.'",
         "Specialty: REST APIs, GraphQL, webhooks, OAuth, rate limits",
-        "Color: \ud83d\udfe0 Orange",
+        "Color: 🟠 Orange",
         "Quotes API documentation like scripture",
         "Sighs dramatically at bad API design",
         "Actually incredibly helpful despite attitude"
@@ -396,7 +396,7 @@
         "Willie added to SPECIALISTS dict",
         "Personality: gruff, Scottish expressions, 'Ach!', 'Ye call that a deploy?'",
         "Specialty: DevOps, Docker, Kubernetes, CI/CD, servers, bash",
-        "Color: \ud83d\udfeb Brown/Orange",
+        "Color: 🟫 Brown/Orange",
         "Complains about 'soft developers' who don't understand servers",
         "Secretly proud of his work",
         "Gets called for 'the dirty jobs'"
@@ -415,7 +415,7 @@
         "Doc added to SPECIALISTS dict",
         "Personality: jovial, chuckles 'Ah heh heh heh', finds humor in bugs",
         "Specialty: debugging, testing, code review, performance profiling",
-        "Color: \u26aa White",
+        "Color: ⚪ White",
         "Laughs while delivering bad news about bugs",
         "Makes debugging seem less scary",
         "'Well well well, what do we have here? Ah heh heh heh'"
@@ -461,7 +461,7 @@
         "ralph_bot.py",
         "api_registry.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-023",
@@ -471,8 +471,8 @@
       "acceptance_criteria": [
         "Progress bar appears after EVERY task completes",
         "5 second delay after task conversation ends (tasteful timing)",
-        "Progress bar using emoji blocks: \u2593\u2593\u2593\u2593\u2593\u2591\u2591\u2591\u2591\u2591 50%",
-        "Format: '\u2593\u2593\u2593\u2593\u2591\u2591\u2591\u2591\u2591\u2591 4/10 tasks (40%)'",
+        "Progress bar using emoji blocks: ▓▓▓▓▓░░░░░ 50%",
+        "Format: '▓▓▓▓░░░░░░ 4/10 tasks (40%)'",
         "Time elapsed: 'Elapsed: 12m 34s'",
         "ETA sharpens over time based on avg task duration",
         "Shows completion time: 'Est. done: 2:45 PM'",
@@ -528,7 +528,7 @@
       "title": "Task Completion Celebrations",
       "description": "Brief celebration when tasks complete. Ralph or workers react. Keeps momentum and shows progress is happening.",
       "acceptance_criteria": [
-        "Quick celebration after each task: '\u2705 Task 3/10 done!'",
+        "Quick celebration after each task: '✅ Task 3/10 done!'",
         "Ralph occasionally comments: 'We did a thing!'",
         "Workers high-five: '*Stool and Gomer fist bump*'",
         "Milestone celebrations at 25%, 50%, 75%",
@@ -1219,7 +1219,7 @@
       "id": "RM-063",
       "category": "Overhear Mode",
       "title": "Feature Flow Walkthroughs",
-      "description": "Workers trace through actual user flows in the code. 'User clicks login \u2192 this handler fires \u2192 validates here \u2192 creates session \u2192 redirects.' Makes the codebase tangible.",
+      "description": "Workers trace through actual user flows in the code. 'User clicks login → this handler fires → validates here → creates session → redirects.' Makes the codebase tangible.",
       "acceptance_criteria": [
         "Identify key user flows in the codebase",
         "Walk through step by step in conversation",
@@ -1535,7 +1535,7 @@
       "id": "SG-016",
       "category": "Soul & Guardrails",
       "title": "GIFs Like Real People - Setup Then Punchline",
-      "description": "GIFs used sparingly like real texting. Setup BEFORE the GIF: 'this is you right now' \u2192 GIF. Not a freak show of GIFs. Natural, occasional, with context.",
+      "description": "GIFs used sparingly like real texting. Setup BEFORE the GIF: 'this is you right now' → GIF. Not a freak show of GIFs. Natural, occasional, with context.",
       "acceptance_criteria": [
         "GIFs are SPARSE - not constant",
         "Setup before GIF: 'Yo this is literally you right now'",
@@ -2327,9 +2327,9 @@
         "Mr. Worms (Tier 1) can type OR use voice",
         "Power Users (Tier 2) can type OR use voice",
         "Text input translated same as voice would be",
-        "Angry text \u2192 *slams message on desk*",
-        "Questions \u2192 *leans in, curious look*",
-        "Commands \u2192 *points at the board*",
+        "Angry text → *slams message on desk*",
+        "Questions → *leans in, curious look*",
+        "Commands → *points at the board*",
         "Original text message can be deleted after translation",
         "Tier 3/4 may be voice-only (configurable)",
         "Comprehensive input: voice, text, files all work for admin"
@@ -2348,10 +2348,10 @@
         "Detect file/document attachments",
         "Translate to scene: '*Mr. Worms drops a thick folder on Ralph's desk*'",
         "Different file types = different objects:",
-        "  - PDFs/docs \u2192 folders, papers, binders",
-        "  - Images \u2192 photos, printouts, screenshots",
-        "  - Zip files \u2192 boxes, packages",
-        "  - Code files \u2192 technical specs, blueprints",
+        "  - PDFs/docs → folders, papers, binders",
+        "  - Images → photos, printouts, screenshots",
+        "  - Zip files → boxes, packages",
+        "  - Code files → technical specs, blueprints",
         "Vary the actions: drops, slaps, slides, throws gently",
         "File content still processed normally behind scenes",
         "Scene description always fresh, never canned"
@@ -2372,7 +2372,7 @@
         "Handle text followed by file attachment",
         "All inputs combined into flowing narrative",
         "Scene stays coherent across input types",
-        "Example: Voice 'here's the code' + zip file \u2192 '*Mr. Worms sets down his coffee and slides a heavy box across the table*'",
+        "Example: Voice 'here's the code' + zip file → '*Mr. Worms sets down his coffee and slides a heavy box across the table*'",
         "Timestamps/ordering preserved",
         "Natural flow like real conversation"
       ],
@@ -2443,9 +2443,9 @@
       "title": "Voice-to-Intent Pipeline",
       "description": "Full pipeline from voice message to understood intent: transcribe, analyze tone, extract directive.",
       "acceptance_criteria": [
-        "Voice \u2192 Whisper transcription",
-        "Transcription \u2192 Tone analysis (angry, happy, questioning)",
-        "Transcription \u2192 Intent extraction (what does user want)",
+        "Voice → Whisper transcription",
+        "Transcription → Tone analysis (angry, happy, questioning)",
+        "Transcription → Intent extraction (what does user want)",
         "Both tone and intent passed to translation layer",
         "Handle unclear audio gracefully",
         "Ask for clarification if intent unclear"
@@ -2542,7 +2542,7 @@
       "description": "Swear words never appear in chat. They're translated into character actions that convey the same emotion.",
       "acceptance_criteria": [
         "Detect swear words in transcription",
-        "Replace with action: 'What the fuck' \u2192 *jaw tightens*",
+        "Replace with action: 'What the fuck' → *jaw tightens*",
         "Convey intensity through description, not words",
         "Keep it broadcast-safe (no swears ever)",
         "Maintain the emotional weight",
@@ -2558,7 +2558,7 @@
       "id": "TL-006",
       "category": "Translation Layer",
       "title": "Preserve Actual Directive While Translating Display",
-      "description": "The translation is for DISPLAY only. The actual directive still gets processed. 'Fix this now' \u2192 Ralph knows to prioritize, even though chat shows theatrical version.",
+      "description": "The translation is for DISPLAY only. The actual directive still gets processed. 'Fix this now' → Ralph knows to prioritize, even though chat shows theatrical version.",
       "acceptance_criteria": [
         "Extract intent/directive before translation",
         "Pass directive to action handler",
@@ -4281,7 +4281,7 @@
         "ralph_bot.py",
         "onboarding_wizard.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-002",
@@ -5306,7 +5306,7 @@
     "RM-021 - Specialist Summoning System",
     "RM-017 - Frinky - Design & UI Specialist",
     "RM-020 - Doc - Code Health & Debugging Specialist",
-    "RM-018 - \u518c\u5b50 (\u518c-Zee) - API Integration Specialist",
+    "RM-018 - 册子 (册-Zee) - API Integration Specialist",
     "RM-022 - API Registry for Specialists",
     "--- VOICE-ONLY (Conversational Excellence) ---",
     "VO-003 - Keep Button/Inline Actions Working",
