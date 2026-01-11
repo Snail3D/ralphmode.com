@@ -12854,3 +12854,47 @@ if should_ship:
 
 ---
 
+
+## Iteration 3 - 2026-01-11
+**Task**: [SG-010] Ralph's Simple Wisdom (Bible in Ralph-Speak)
+**Status**: ✅ Complete
+
+### What was implemented
+- Added wisdom tracking system with 30-minute cooldown between wisdom moments
+- Implemented situation detection for high-confidence wisdom opportunities:
+  * conflict - when team disagrees/argues
+  * tired - when sessions run 2+ hours at 50%+ milestone
+  * unity - after big celebrations/team achievements
+  * humility - when overconfidence/frustration detected
+- Created AI-powered fresh wisdom generation in Ralph's voice
+- Integrated wisdom at key moments:
+  * After conflicts resolved (unity/cooperation truths)
+  * During long sessions at progress milestones (rest/break truths)
+  * After final task celebrations (teamwork/unity truths)
+- Applied Ralph's misspellings to wisdom for authenticity
+- Added comedic timing (beat pause before wisdom delivery)
+
+### Files changed
+- ralph_bot.py (added wisdom system methods, integrated into conflict resolution, celebrations, progress reports)
+
+### Learnings
+- Wisdom must be RARE (30 min cooldown + 40% chance) or it loses impact
+- AI-generated wisdom > canned responses - keeps it fresh and prevents predictability
+- Ralph's voice is perfect for simple truths: innocent, childlike, accidentally profound
+- Never cite verses, never preach - just drop simple truths like "Two heads are better than one, unless they're fighting!"
+- The court jester pattern: simple people can tell truths wise people won't
+- Comedic timing matters - pause before wisdom makes it land better
+- Situation detection must be HIGH CONFIDENCE ONLY: conflicts, exhaustion, unity, humility
+- Integration points are key: wisdom feels natural after conflicts resolve, during long milestones, after celebrations
+
+### Technical Patterns
+- Added tracking dict: self.last_wisdom_moment (datetime per user)
+- Cooldown check: time_since_last >= self.wisdom_cooldown (1800s = 30 min)
+- Random gate: 40% chance even when situation warrants (prevents predictability)
+- Situation detection: detect_wisdom_opportunity() checks session context
+- AI generation: generate_ralph_wisdom() uses WORKER_MODEL with wisdom-specific prompts
+- Integration: maybe_share_wisdom() async method called at key moments
+- Applied ralph_misspell() to maintain character voice
+- Used self.timing.beat() for comedic pause before delivery
+
+---
