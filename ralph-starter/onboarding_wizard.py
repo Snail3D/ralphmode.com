@@ -229,6 +229,16 @@ class OnboardingWizard:
             self.mcp_manager_available = False
             self.logger.warning("MCP manager not available")
 
+        # Import MCP generator (OB-020: Custom MCP Server Wizard)
+        try:
+            from mcp_generator import get_mcp_generator
+            self.mcp_generator = get_mcp_generator()
+            self.mcp_generator_available = True
+        except ImportError:
+            self.mcp_generator = None
+            self.mcp_generator_available = False
+            self.logger.warning("MCP generator not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -7762,6 +7772,7 @@ Each server comes with:
             [InlineKeyboardButton("📂 File System Tools", callback_data="mcp_category:File System")],
             [InlineKeyboardButton("🌟 Popular Picks", callback_data="mcp_popular")],
             [InlineKeyboardButton("🟢 Beginner Friendly", callback_data="mcp_difficulty:Easy")],
+            [InlineKeyboardButton("🧙‍♂️ Build Custom Server (OB-020)", callback_data="mcp_custom_wizard")],
         ]
         return InlineKeyboardMarkup(keyboard)
 
@@ -7978,6 +7989,170 @@ These are the most commonly used servers by the community!
             message += f"**{use_case}:**\n{recommendation}\n\n"
 
         return message
+
+    def get_custom_mcp_wizard_welcome(self) -> str:
+        """Get welcome message for custom MCP wizard.
+
+        Returns:
+            Welcome message (OB-020)
+        """
+        if not self.mcp_generator_available:
+            return "MCP generator not available."
+
+        return self.mcp_generator.get_custom_mcp_wizard_welcome()
+
+    def get_custom_mcp_api_info_prompt(self) -> str:
+        """Get prompt for API information.
+
+        Returns:
+            API info prompt (OB-020)
+        """
+        if not self.mcp_generator_available:
+            return "MCP generator not available."
+
+        return self.mcp_generator.get_api_info_prompt()
+
+    def get_custom_mcp_auth_type_prompt(self) -> str:
+        """Get prompt for authentication type.
+
+        Returns:
+            Auth type prompt (OB-020)
+        """
+        if not self.mcp_generator_available:
+            return "MCP generator not available."
+
+        return self.mcp_generator.get_auth_type_prompt()
+
+    def get_custom_mcp_auth_type_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for authentication type selection.
+
+        Returns:
+            InlineKeyboardMarkup with auth type options (OB-020)
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔑 API Key", callback_data="mcp_auth:api_key")],
+            [InlineKeyboardButton("🔄 OAuth 2.0", callback_data="mcp_auth:oauth")],
+            [InlineKeyboardButton("👤 Basic Auth", callback_data="mcp_auth:basic")],
+            [InlineKeyboardButton("✅ No Auth", callback_data="mcp_auth:none")],
+            [InlineKeyboardButton("⚙️ Other/Custom", callback_data="mcp_auth:custom")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="mcp_custom_wizard")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_custom_mcp_capabilities_prompt(self) -> str:
+        """Get prompt for MCP capabilities.
+
+        Returns:
+            Capabilities prompt (OB-020)
+        """
+        if not self.mcp_generator_available:
+            return "MCP generator not available."
+
+        return self.mcp_generator.get_capabilities_prompt()
+
+    def generate_custom_mcp_server(
+        self,
+        api_name: str,
+        api_description: str,
+        auth_type: str,
+        capabilities: List[str],
+        api_docs_url: Optional[str] = None,
+        output_dir: str = "./mcp-server"
+    ) -> Tuple[bool, str]:
+        """Generate custom MCP server files.
+
+        Args:
+            api_name: Name of the API
+            api_description: Description of the API
+            auth_type: Authentication type
+            capabilities: List of capabilities
+            api_docs_url: Optional API documentation URL
+            output_dir: Where to save files
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.mcp_generator_available:
+            return False, "MCP generator not available."
+
+        try:
+            # Generate boilerplate
+            files = self.mcp_generator.generate_mcp_server_boilerplate(
+                api_name=api_name,
+                api_description=api_description,
+                auth_type=auth_type,
+                capabilities=capabilities,
+                api_docs_url=api_docs_url
+            )
+
+            # Save to disk
+            created_files = self.mcp_generator.save_generated_files(files, output_dir)
+
+            # Get next steps message
+            next_steps = self.mcp_generator.get_next_steps_message(output_dir, api_name)
+
+            return True, next_steps
+
+        except Exception as e:
+            self.logger.error(f"Error generating MCP server: {e}")
+            return False, f"Error generating server: {str(e)}"
+
+    def get_custom_mcp_wizard_keyboard(self) -> InlineKeyboardMarkup:
+        """Get main keyboard for custom MCP wizard.
+
+        Returns:
+            InlineKeyboardMarkup with wizard options (OB-020)
+        """
+        keyboard = [
+            [InlineKeyboardButton("🚀 Start Building", callback_data="mcp_custom_start")],
+            [InlineKeyboardButton("❓ What is this?", callback_data="mcp_custom_info")],
+            [InlineKeyboardButton("⬅️ Back to MCP Browser", callback_data="mcp_browser")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_custom_mcp_info_message(self) -> str:
+        """Get information about custom MCP servers.
+
+        Returns:
+            Info message (OB-020)
+        """
+        return """*Custom MCP Servers Explained* 🎓
+
+**What is a custom MCP server?**
+→ A bridge between Claude Code and ANY API you want!
+→ Like making a custom app so Claude can use your favorite service
+
+**When do you need one?**
+→ When the API you want doesn't have a pre-built MCP server
+→ When you want to connect to internal company tools
+→ When you need custom behavior
+
+**What does Ralph's wizard do?**
+1. Asks you about your API
+2. Generates starter code (TypeScript)
+3. Sets up authentication
+4. Creates example tools
+5. Gives you ready-to-customize code!
+
+**What you'll get:**
+→ Complete Node.js project
+→ TypeScript MCP server code
+→ Configuration files
+→ Setup instructions
+→ TODOs showing what to customize
+
+**Requirements:**
+→ Node.js installed (18+)
+→ Basic understanding of your API
+→ API documentation handy
+→ API key/credentials (if needed)
+
+**Time to build:**
+→ Ralph generates in seconds
+→ You customize in 15-30 min
+→ Deploy and use with Claude!
+
+Ready to build your custom server? 🛠️"""
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
