@@ -125,6 +125,7 @@ After finishing your task:
 - ✅ Groq (fast inference company - different from Grok!)
 - ✅ Local AI (Ollama, LM Studio, llama.cpp)
 - ✅ Anthropic/Claude
+- ✅ GLM (Z.AI) - **Design Agent** - Powers Frinky for all aesthetic decisions
 
 This is a foundational rule. No exceptions.
 
