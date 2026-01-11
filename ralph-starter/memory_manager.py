@@ -233,6 +233,222 @@ def get_memory_stats(user_id: int) -> Dict[str, Any]:
     }
 
 
+# ============================================================================
+# HR-006: Memory Fade System
+# ============================================================================
+# Let non-critical things fade over time gracefully.
+# Critical memories (requirements, key decisions) stay fresh.
+# Non-critical memories (old observations, minor details) fade.
+
+
+def calculate_memory_relevance(memory_item: Dict[str, Any], current_time: datetime = None) -> float:
+    """Calculate relevance score for a memory item (0.0 = faded, 1.0 = fresh).
+
+    HR-006: Memory Fade System scores memories based on:
+    - Age (older = lower score)
+    - Importance type (requirements > observations)
+    - Task completion status
+
+    Args:
+        memory_item: Session summary dict or worker memory dict
+        current_time: Reference time (defaults to now)
+
+    Returns:
+        Relevance score between 0.0 and 1.0
+    """
+    if current_time is None:
+        current_time = datetime.now()
+
+    # Base score starts at 1.0 (fully relevant)
+    score = 1.0
+
+    # Age decay: newer memories are more relevant
+    timestamp_str = memory_item.get('timestamp', '')
+    if timestamp_str:
+        try:
+            memory_time = datetime.fromisoformat(timestamp_str)
+            age_days = (current_time - memory_time).days
+
+            # Decay curve:
+            # 0-7 days: 100% relevance
+            # 7-30 days: linear decay to 70%
+            # 30-90 days: linear decay to 40%
+            # 90+ days: linear decay to 20% floor
+            if age_days <= 7:
+                age_factor = 1.0
+            elif age_days <= 30:
+                age_factor = 1.0 - ((age_days - 7) / 23) * 0.3  # 100% → 70%
+            elif age_days <= 90:
+                age_factor = 0.7 - ((age_days - 30) / 60) * 0.3  # 70% → 40%
+            else:
+                age_factor = max(0.2, 0.4 - ((age_days - 90) / 180) * 0.2)  # 40% → 20% floor
+
+            score *= age_factor
+        except (ValueError, TypeError):
+            # If timestamp parsing fails, treat as moderately old
+            score *= 0.5
+
+    # Importance boost: critical memory types get higher scores
+    memory_type = memory_item.get('type', '').lower()
+
+    if memory_type in ['requirement', 'key_decision', 'ceo_feedback']:
+        # Critical memories: boost by 20%
+        score *= 1.2
+    elif memory_type in ['learning', 'suggestion']:
+        # Important memories: no change
+        score *= 1.0
+    elif memory_type in ['observation', 'issue']:
+        # Normal memories: slight penalty
+        score *= 0.9
+
+    # Task completion boost: completed tasks are more memorable
+    if memory_item.get('tasks_completed', 0) > 0:
+        completion_rate = memory_item.get('tasks_completed', 0) / max(1, memory_item.get('tasks_total', 1))
+        if completion_rate >= 0.8:
+            score *= 1.1  # High completion = more memorable
+
+    # Cap at 1.0
+    return min(1.0, score)
+
+
+def apply_memory_fade(memories: List[Dict[str, Any]], relevance_threshold: float = 0.3) -> List[Dict[str, Any]]:
+    """Filter memories by relevance, letting low-relevance items fade away.
+
+    HR-006: Memory Fade System removes memories that have faded below threshold.
+
+    Args:
+        memories: List of memory items (sessions or worker memories)
+        relevance_threshold: Minimum relevance score to keep (default 0.3)
+
+    Returns:
+        Filtered list of memories above threshold, sorted by relevance
+    """
+    current_time = datetime.now()
+
+    # Calculate relevance for each memory
+    scored_memories = []
+    for mem in memories:
+        relevance = calculate_memory_relevance(mem, current_time)
+        if relevance >= relevance_threshold:
+            # Add relevance score to memory for sorting
+            mem_with_score = mem.copy()
+            mem_with_score['_relevance'] = relevance
+            scored_memories.append(mem_with_score)
+
+    # Sort by relevance (highest first)
+    scored_memories.sort(key=lambda x: x.get('_relevance', 0), reverse=True)
+
+    # Remove the _relevance score before returning
+    return [
+        {k: v for k, v in mem.items() if k != '_relevance'}
+        for mem in scored_memories
+    ]
+
+
+def get_faded_session_context(user_id: int, max_sessions: int = 3, relevance_threshold: float = 0.3) -> str:
+    """Build context string about previous sessions with memory fade applied.
+
+    HR-006: Like get_previous_session_context, but only includes relevant memories.
+    Old, non-critical sessions gracefully fade away.
+
+    Args:
+        user_id: Telegram user ID
+        max_sessions: Maximum sessions to include (after fade)
+        relevance_threshold: Minimum relevance to include
+
+    Returns:
+        Formatted string describing relevant previous sessions
+    """
+    history = load_session_history(user_id)
+
+    if not history:
+        return ""
+
+    # Apply memory fade
+    relevant_history = apply_memory_fade(history, relevance_threshold)
+
+    if not relevant_history:
+        return ""
+
+    # Take most relevant sessions (already sorted by relevance)
+    recent = relevant_history[:max_sessions]
+
+    context_parts = ["\n--- Ralph's Memory of Previous Sessions (Relevant Only) ---"]
+
+    for i, session in enumerate(recent, 1):
+        timestamp = session.get('timestamp', '')[:10]  # Just the date
+        project = session.get('project_name', 'Unknown Project')
+        tasks_done = session.get('tasks_completed', 0)
+        tasks_total = session.get('tasks_total', 0)
+        outcome = session.get('outcome', 'Session ended')
+
+        context_parts.append(
+            f"\nSession {i} ({timestamp}) - {project}:"
+        )
+        context_parts.append(
+            f"  Completed {tasks_done}/{tasks_total} tasks. {outcome}"
+        )
+
+        # Include key decisions if any
+        decisions = session.get('key_decisions', [])
+        if decisions:
+            context_parts.append(f"  Key decisions: {', '.join(decisions[:3])}")
+
+        # Include requirements if any
+        requirements = session.get('requirements', [])
+        if requirements:
+            req_summary = [r.get('directive', r) if isinstance(r, dict) else r for r in requirements[:3]]
+            context_parts.append(f"  Requirements: {', '.join(req_summary)}")
+
+    context_parts.append("--- End Relevant Sessions (older non-critical sessions have faded) ---\n")
+
+    return "\n".join(context_parts)
+
+
+def cleanup_faded_memories(user_id: int, relevance_threshold: float = 0.2):
+    """Permanently remove memories that have faded below threshold.
+
+    HR-006: Memory Fade System cleanup - remove very old, irrelevant memories.
+    This is a maintenance function to keep memory files from growing forever.
+
+    Args:
+        user_id: Telegram user ID
+        relevance_threshold: Minimum relevance to keep (default 0.2 = very faded)
+    """
+    memory_file = get_memory_file(user_id)
+
+    if not memory_file.exists():
+        return
+
+    history = load_session_history(user_id)
+
+    # Apply fade filter with low threshold
+    relevant_history = apply_memory_fade(history, relevance_threshold)
+
+    # Always keep at least the 5 most recent sessions, regardless of relevance
+    # (so we don't accidentally delete everything)
+    if len(history) > 5:
+        recent_sessions = history[:5]
+        # Merge recent + relevant (remove duplicates)
+        session_ids = {s.get('session_id') for s in recent_sessions}
+        for s in relevant_history:
+            if s.get('session_id') not in session_ids:
+                recent_sessions.append(s)
+                session_ids.add(s.get('session_id'))
+
+        relevant_history = recent_sessions
+    else:
+        relevant_history = history  # Keep all if fewer than 5
+
+    # Save cleaned history
+    with open(memory_file, 'w') as f:
+        json.dump({'sessions': relevant_history}, f, indent=2)
+
+    removed_count = len(history) - len(relevant_history)
+    if removed_count > 0:
+        print(f"Memory fade cleanup: removed {removed_count} old sessions for user {user_id}")
+
+
 def extract_context_from_user_reminder(user_text: str) -> Dict[str, Any]:
     """BM-003: Extract context from what user tells Ralph about previous work.
 
