@@ -106,6 +106,30 @@ class APIKeyManager:
 
         return True, None
 
+    def validate_openweather_key(self, key: str) -> Tuple[bool, Optional[str]]:
+        """Validate OpenWeather API key format.
+
+        Args:
+            key: The API key to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not key:
+            return False, "API key is empty"
+
+        key = key.strip()
+
+        # OpenWeather keys are typically 32-character hex strings
+        if len(key) != 32:
+            return False, f"OpenWeather API keys are 32 characters (got {len(key)})"
+
+        # Should only contain hex characters (0-9, a-f)
+        if not all(c in '0123456789abcdef' for c in key.lower()):
+            return False, "OpenWeather API keys contain only hex characters (0-9, a-f)"
+
+        return True, None
+
     def save_key_to_env(self, key_name: str, key_value: str) -> bool:
         """Save or update an API key in the .env file.
 
@@ -362,6 +386,49 @@ class APIKeyManager:
                 return False, "⚠️ Rate limit exceeded. Your key works but you're being throttled."
             else:
                 return False, f"❌ Test failed: {str(e)}"
+
+    def test_openweather_key(self, api_key: str, location: str = "London") -> Tuple[bool, str]:
+        """Test if an OpenWeather API key works.
+
+        Args:
+            api_key: The API key to test
+            location: City name to test with (default: London)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        try:
+            import requests
+
+            # OpenWeather current weather API endpoint
+            base_url = "https://api.openweathermap.org/data/2.5/weather"
+
+            params = {
+                'q': location,
+                'appid': api_key,
+                'units': 'metric'
+            }
+
+            response = requests.get(base_url, params=params, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                temp = data.get('main', {}).get('temp')
+                condition = data.get('weather', [{}])[0].get('main', 'Unknown')
+                return True, f"✅ OpenWeather API key is valid! Current weather in {location}: {condition}, {temp}°C"
+            elif response.status_code == 401:
+                return False, "❌ Authentication failed. API key is invalid."
+            elif response.status_code == 429:
+                return False, "⚠️ Rate limit exceeded. Your key works but you're being throttled."
+            else:
+                return False, f"❌ API request failed with status {response.status_code}"
+
+        except requests.exceptions.Timeout:
+            return False, "⚠️ Request timed out. API might be slow, but key format looks valid."
+        except requests.exceptions.RequestException as e:
+            return False, f"❌ Network error: {str(e)}"
+        except Exception as e:
+            return False, f"❌ Test failed: {str(e)}"
 
     def get_anthropic_key_info(self) -> str:
         """Get information about the saved Anthropic API key.

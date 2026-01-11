@@ -1859,6 +1859,328 @@ Ralph says: "That's okay! Ralph works great with just Claude too! Me still smart
 *Ready to continue with setup?*
 """
 
+    # OpenWeather API Setup (OB-011)
+
+    def get_openweather_intro_message(self) -> str:
+        """Get introduction message for OpenWeather API setup.
+
+        Returns:
+            OpenWeather introduction message
+        """
+        return """*OpenWeather API - Make Ralph's Office Real! 🌤️*
+
+Hey! Want Ralph's office to feel REAL?
+
+*What is OpenWeather?*
+OpenWeather gives Ralph REAL weather data for your city!
+When it's raining outside, Ralph's office is rainy too! ☔
+
+*Why is this cool?*
+🌧️ Real weather in scene descriptions
+🌤️ Ralph might say "Look at that sunshine!"
+❄️ Seasonal atmosphere (snow, heat, storms)
+🌍 Grounded in YOUR reality
+
+*Example:*
+Instead of: _"The office is quiet"_
+You get: _"Rain taps against the window. Gus sips his coffee, watching the storm roll in."_
+
+*Is this required?*
+**NOPE!** Totally optional!
+Ralph works great without it too!
+
+*How much does it cost?*
+🎉 **FREE!** (Up to 1,000 calls/day)
+That's WAY more than Ralph needs!
+
+*Want to set it up?*
+Ralph will help you get an API key! It's easy!
+"""
+
+    def get_openweather_intro_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for OpenWeather introduction.
+
+        Returns:
+            Keyboard with setup options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🌤️ Yes! Set Up Weather!", callback_data="openweather_start")],
+            [InlineKeyboardButton("📚 Learn More", url="https://openweathermap.org/")],
+            [InlineKeyboardButton("⏭️ Skip Weather Setup", callback_data="openweather_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_openweather_signup_message(self) -> str:
+        """Get message for OpenWeather account signup.
+
+        Returns:
+            Signup instructions
+        """
+        return """*Step 1: Create Your Free OpenWeather Account!* 🌍
+
+Let's get you signed up! It's super quick!
+
+*Follow these steps:*
+
+**Step 1:** Go to OpenWeather
+**Step 2:** Click "Sign Up" in the top right
+**Step 3:** Fill in the form (email, username, password)
+**Step 4:** Verify your email (check spam folder!)
+**Step 5:** Come back here when you're signed in!
+
+*What to use:*
+📧 **Email:** Use a real email (you'll need to verify it!)
+👤 **Username:** Anything you want
+🔒 **Password:** Make it secure!
+
+*After signing up:*
+You'll get an email to verify your account!
+Click the link in the email, then come back here!
+
+🔗 [Sign Up for OpenWeather](https://home.openweathermap.org/users/sign_up)
+
+*Already have an account?*
+Great! Click "I Have an Account!" below!
+"""
+
+    def get_openweather_signup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for OpenWeather signup step.
+
+        Returns:
+            Keyboard with signup options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🌍 Go to Sign Up Page", url="https://home.openweathermap.org/users/sign_up")],
+            [InlineKeyboardButton("✅ I Have an Account!", callback_data="openweather_has_account")],
+            [InlineKeyboardButton("⏭️ Skip Weather Setup", callback_data="openweather_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_openweather_api_key_message(self) -> str:
+        """Get instructions for getting the OpenWeather API key.
+
+        Returns:
+            API key retrieval instructions
+        """
+        return """*Step 2: Get Your OpenWeather API Key!* 🔑
+
+Almost there! Let's grab that API key!
+
+*Follow these steps EXACTLY:*
+
+**Step 1:** Log into OpenWeather
+**Step 2:** Click on your username (top right)
+**Step 3:** Click "My API Keys"
+**Step 4:** You'll see a default key already created!
+**Step 5:** Copy that key! (Or create a new one!)
+
+*IMPORTANT:*
+⚠️ The key is 32 characters long
+⚠️ Contains only letters (a-f) and numbers (0-9)
+⚠️ Copy the WHOLE thing!
+⚠️ It might take 10 minutes to activate (be patient!)
+
+*What your key looks like:*
+```
+a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+```
+
+*Security Reminders:*
+🔒 NEVER share this key with anyone
+🔒 NEVER post it publicly
+🔒 NEVER put it directly in your code
+🔒 Ralph will save it SAFELY in the `.env` file
+
+*Got your key copied?*
+
+🔗 [Get API Key](https://home.openweathermap.org/api_keys)
+
+*Need help?*
+Ralph is here if you get stuck!
+
+*Note:* New API keys can take up to 10 minutes to activate. Don't worry if the test fails at first!
+"""
+
+    def get_openweather_api_key_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for OpenWeather API key retrieval step.
+
+        Returns:
+            Keyboard with API key action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open API Keys Page", url="https://home.openweathermap.org/api_keys")],
+            [InlineKeyboardButton("✅ I Copied My Key!", callback_data="openweather_key_copied")],
+            [InlineKeyboardButton("📋 Show Instructions Again", callback_data="openweather_show_key_instructions")],
+            [InlineKeyboardButton("⏭️ Skip for Now", callback_data="openweather_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_openweather_key_entry_message(self) -> str:
+        """Get message for entering the OpenWeather API key.
+
+        Returns:
+            Key entry request message
+        """
+        return """*Step 3: Send Ralph Your OpenWeather Key!* 📨
+
+Okay! Now Ralph needs you to send the API key!
+
+*Just send it as a message right here!*
+
+Ralph will:
+✅ Check if the format is correct
+✅ Test it with a real API call
+✅ Save it securely in your `.env` file
+✅ Make sure it works!
+
+*Security note:*
+Don't worry! Ralph will delete your message after saving the key! 🗑️
+(But Telegram servers might keep it, so be careful!)
+
+*Paste your OpenWeather API key below:*
+👇 (It should be 32 characters: letters a-f and numbers 0-9)
+
+*Note:* If your key is brand new (created in the last 10 minutes), it might not work yet. OpenWeather takes a few minutes to activate new keys!
+"""
+
+    def get_openweather_location_message(self) -> str:
+        """Get message for asking user's location.
+
+        Returns:
+            Location request message
+        """
+        return """*Step 4: What's Your City?* 🌍
+
+Ralph needs to know where you are for the weather!
+
+*Just send your city name!*
+
+Examples:
+• `London`
+• `New York`
+• `Tokyo`
+• `San Francisco`
+• `Paris`
+
+*Privacy note:*
+🔒 Ralph only stores your CITY, not exact address
+🔒 This is ONLY used for weather (nothing else!)
+🔒 You can change this anytime in settings
+
+*Send your city name as a message:*
+👇
+"""
+
+    def get_openweather_key_invalid_message(self, key: str) -> str:
+        """Get error message for invalid OpenWeather API key format.
+
+        Args:
+            key: The invalid key that was provided
+
+        Returns:
+            Error message with troubleshooting tips
+        """
+        key_preview = f"{key[:10]}..." if len(key) > 10 else key
+
+        return f"""*Oops! That doesn't look like an OpenWeather API key!* ❌
+
+Ralph got: `{key_preview}`
+
+*Common problems:*
+• Copied only part of the key (copy ALL 32 characters!)
+• Added extra spaces or line breaks (Ralph can try to fix this!)
+• Copied the wrong thing (make sure it's from "My API Keys" page!)
+• Key has special characters (OpenWeather keys are hex: 0-9, a-f only!)
+
+*OpenWeather API keys should:*
+• Be exactly 32 characters long
+• Contain only: 0-9 and a-f
+• Look like: `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`
+
+*Try again!*
+Go back to: https://home.openweathermap.org/api_keys
+
+Make sure to copy the ENTIRE key!
+
+*Send Ralph the key when you're ready!*
+"""
+
+    def get_openweather_key_success_message(self, location: str = None) -> str:
+        """Get success message after OpenWeather API key is saved.
+
+        Args:
+            location: The configured location (if any)
+
+        Returns:
+            Success message with next steps
+        """
+        location_text = f"for {location}" if location else ""
+
+        return f"""*Ralph Saved Your OpenWeather Key! 🌤️*
+
+Woohoo! Ralph tested it and it works GREAT!
+
+*What Ralph did:*
+✅ Validated the key format
+✅ Tested it with OpenWeather's API {location_text}
+✅ Saved it to your `.env` file
+✅ Made sure it's working perfectly
+
+*What this means for you:*
+🌧️ REAL weather in Ralph's office scenes!
+🌤️ Grounded, immersive atmosphere
+🌍 Your city's weather affects the mood
+⛈️ Ralph might comment on storms or sunshine!
+
+*Next steps:*
+Ralph can help you:
+• Continue with the setup wizard
+• Configure other optional features
+• Start using Ralph Mode!
+
+*Ready to continue?*
+"""
+
+    def get_openweather_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for OpenWeather API key testing options.
+
+        Returns:
+            Keyboard with testing action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🧪 Test the Key!", callback_data="openweather_test_key")],
+            [InlineKeyboardButton("▶️ Continue Setup", callback_data="setup_continue_next")],
+            [InlineKeyboardButton("⏭️ Skip Weather", callback_data="openweather_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_openweather_skip_confirmation_message(self) -> str:
+        """Get confirmation message when user skips OpenWeather setup.
+
+        Returns:
+            Skip confirmation message
+        """
+        return """*No Problem! Skipping Weather Setup!* ⏭️
+
+Ralph totally understands! Weather is optional!
+
+*What this means:*
+• Ralph's office will have generated atmospheric weather
+• Everything still works perfectly
+• You can add weather later anytime
+• Just run `/setup` again when ready!
+
+*To add weather later:*
+1. Run `/setup` command
+2. Select "Configure API Keys"
+3. Choose "OpenWeather API"
+4. Follow the setup steps
+
+Ralph says: "That's okay! Ralph can make up weather too! Me good at pretending! 🎭"
+
+*Ready to continue with setup?*
+"""
+
     # Telegram Bot Creation Wizard (OB-007)
 
     def get_telegram_bot_intro_message(self) -> str:
