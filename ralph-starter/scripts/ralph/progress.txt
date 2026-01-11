@@ -10184,3 +10184,40 @@ Worker reactions:
 - Bad mood: "Boss seems a bit cranky today... let's be careful."
 
 ---
+
+## Iteration [Latest] - 2026-01-10 22:05
+**Task**: [OB-028] PRD Template Generator
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive prd_generator.py module with 8 project type templates
+- Each template includes 5 pre-configured tasks with detailed acceptance criteria
+- Project types: Telegram Bot, Web App, REST API, CLI Tool, Data Pipeline, Mobile App, Library/Package, Custom
+- Integrated PRD generator into onboarding wizard with clean import pattern
+- Added UI methods: get_project_type_selection_message(), get_project_type_keyboard()
+- Added helper methods: get_project_type_description(), generate_prd_for_project()
+- Added educational methods: get_prd_explanation_message(), get_prd_skip_message()
+- Auto-generates priority order based on task categories (Setup → Core → Features → Testing → Documentation → Deployment)
+- Supports project name customization
+- Includes singleton pattern with get_prd_generator() function
+
+### Files changed
+- prd_generator.py (new file, 830 lines)
+- onboarding_wizard.py (added PRD generator import and 8 new methods)
+
+### Learnings
+- Template generation pattern: Each project type has its own method returning list of task dictionaries
+- Boolean values in Python: Use `False` not `false` (caught during testing)
+- Priority order logic: Categories are grouped and ordered by typical development workflow
+- Integration pattern: Import modules with try/except, set availability flag, check before use
+- Task structure consistency: All tasks follow same schema (id, category, title, description, acceptance_criteria, files_likely_modified, passes)
+- User experience: Always provide skip option for onboarding steps to avoid friction
+- Testing approach: Test standalone module first, then test integration with main system
+
+### Next steps suggested
+- Add /prd_template command to ralph_bot.py for runtime PRD generation
+- Wire up callback handlers for prd_type_* callback_data in bot
+- Consider adding PRD step to onboarding flow (between repo setup and completion)
+- Add validation to ensure generated PRD doesn't overwrite existing one without confirmation
+
+---
