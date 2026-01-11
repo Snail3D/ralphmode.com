@@ -374,6 +374,114 @@ ONE GOD, ONE PURPOSE: Help them ship. Everything else is secondary.
 # Tenor API for GIFs (free!)
 TENOR_API_KEY = os.environ.get("TENOR_API_KEY", "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ")  # Public demo key
 
+# SG-017: Good News Sources - Curated uplifting news sources
+# Entertainment value meets legitimate journalism - no doomscroll, only puppies and heroes
+GOOD_NEWS_SOURCES = {
+    # Major good news outlets - established journalism
+    "goodnewsnetwork": {
+        "name": "Good News Network",
+        "url": "https://www.goodnewsnetwork.org/",
+        "description": "Daily source for inspiring stories from around the world. Your feel-good daily dose.",
+        "type": "website",
+        "api": None,
+    },
+    "positivenews": {
+        "name": "Positive News",
+        "url": "https://www.positive.news/",
+        "description": "UK-based constructive journalism. Reader-owned co-op. High quality reporting on progress.",
+        "type": "website",
+        "api": None,
+    },
+    "goodgoodgood": {
+        "name": "Good Good Good",
+        "url": "https://www.goodgoodgood.co/",
+        "description": "Stories and tools to feel less overwhelmed, more capable. Celebrate and become good news.",
+        "type": "website",
+        "api": None,
+    },
+    "dailygood": {
+        "name": "DailyGood",
+        "url": "https://www.dailygood.org/",
+        "description": "29 years of uplifting stories. No ads, no agendas. Just heart-connecting inspiration.",
+        "type": "website",
+        "api": None,
+    },
+    "onlygoodnewsdaily": {
+        "name": "Only Good News Daily",
+        "url": "https://www.onlygoodnewsdaily.com/",
+        "description": "Mission: search the world for uplifting news. Brighten mood, put spring in your step.",
+        "type": "website",
+        "api": None,
+    },
+    "sunnyskyz": {
+        "name": "Sunny Skyz",
+        "url": "https://www.sunnyskyz.com/good-news",
+        "description": "Good news section dedicated to positive stories. Happy news that matters.",
+        "type": "website",
+        "api": None,
+    },
+    "upworthy": {
+        "name": "Upworthy",
+        "url": "https://www.upworthy.com/",
+        "description": "Stories that delight, uplift, surprise. Evoke empathy, motivate action.",
+        "type": "website",
+        "api": None,
+    },
+    "thebetterindia": {
+        "name": "The Better India",
+        "url": "https://www.thebetterindia.com/",
+        "description": "World's largest positive impact platform. Change, courage, hope, innovation, sustainability.",
+        "type": "website",
+        "api": None,
+    },
+
+    # Reddit sources - community curated
+    "reddit_uplifting": {
+        "name": "r/UpliftingNews",
+        "url": "https://www.reddit.com/r/UpliftingNews/",
+        "description": "17.9M members. Only established, authoritative news sources. The gold standard.",
+        "type": "reddit",
+        "api": "reddit",  # Can use Reddit API via PRAW
+    },
+    "reddit_goodnews": {
+        "name": "r/GoodNews",
+        "url": "https://www.reddit.com/r/GoodNews/",
+        "description": "Personal good news allowed. More sources than UpliftingNews. Broader positivity.",
+        "type": "reddit",
+        "api": "reddit",
+    },
+    "reddit_mademesmile": {
+        "name": "r/MadeMeSmile",
+        "url": "https://www.reddit.com/r/MadeMeSmile/",
+        "description": "5.3M members. Wholesome blend: stories, videos, current events. Pure feel-good.",
+        "type": "reddit",
+        "api": "reddit",
+    },
+    "reddit_humansbeingbros": {
+        "name": "r/HumansBeingBros",
+        "url": "https://www.reddit.com/r/HumansBeingBros/",
+        "description": "3.5M members. Humans making the world brighter. Videos, gifs, images of kindness.",
+        "type": "reddit",
+        "api": "reddit",
+    },
+
+    # News APIs with positive sentiment filtering
+    "worldnewsapi": {
+        "name": "World News API",
+        "url": "https://worldnewsapi.com/",
+        "description": "AI sentiment classifier: -1 (negative) to +1 (positive). Filter for positive only.",
+        "type": "api",
+        "api": "worldnewsapi",  # Requires API key
+    },
+    "positivenews_api": {
+        "name": "Positive News API",
+        "url": "https://rapidapi.com/celleyeworks/api/positive-news",
+        "description": "Dedicated positive news API. Different categories of uplifting content.",
+        "type": "api",
+        "api": "rapidapi",  # Via RapidAPI hub
+    },
+}
+
 # Directories
 PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
 os.makedirs(PROJECTS_DIR, exist_ok=True)

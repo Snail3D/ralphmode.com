@@ -1609,7 +1609,7 @@
         "ralph_bot.py",
         "config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SG-018",
