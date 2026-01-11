@@ -478,6 +478,222 @@ class Sanitizer:
             self.env_values.add(secret)
             logger.info(f"Added new secret to filter (length: {len(secret)})")
 
+    # =========================================================================
+    # IN-002: Natural Reframing - Ralph's Innocent Worldview
+    # =========================================================================
+
+    def reframe_harsh_language(self, text: str) -> str:
+        """
+        IN-002: Translate harsh input through Ralph's innocent worldview.
+
+        Ralph doesn't understand profanity, sarcasm, or harsh criticism.
+        He naturally hears the innocent version of what people say.
+
+        Args:
+            text: The potentially harsh input
+
+        Returns:
+            The text as Ralph would naturally hear it
+        """
+        if not text:
+            return text
+
+        reframed = text
+
+        # Profanity → Innocent alternatives (Ralph doesn't know bad words)
+        profanity_map = {
+            # Common profanity (case-insensitive patterns)
+            r'\bf+u+c+k+i*n*g*\b': 'darned',
+            r'\bf+u+c+k+\b': 'darn',
+            r'\bs+h+i+t+\b': 'crud',
+            r'\ba+s+s+h+o+l+e+\b': 'meanie',
+            r'\ba+s+s+\b': 'butt',
+            r'\bd+a+m+n+\b': 'dang',
+            r'\bh+e+l+l+\b': 'heck',
+            r'\bb+i+t+c+h+\b': 'grump',
+            r'\bc+r+a+p+\b': 'crud',
+            r'\bp+i+s+s+e*d*\b': 'frustrated',
+            r'\bs+t+u+p+i+d+\b': 'silly',
+            r'\bi+d+i+o+t+\b': 'goof',
+            r'\bd+u+m+b+\b': 'silly',
+            r'\bu+s+e+l+e+s+s+\b': 'needs practice',
+            r'\bw+o+r+t+h+l+e+s+s+\b': 'needs improvement',
+            r'\bp+a+t+h+e+t+i+c+\b': 'trying their best',
+            r'\bt+e+r+r+i+b+l+e+\b': 'not great',
+            r'\ba+w+f+u+l+\b': 'not good',
+            r'\bg+a+r+b+a+g+e+\b': 'not the best',
+            r'\bt+r+a+s+h+\b': 'not ideal',
+        }
+
+        for pattern, replacement in profanity_map.items():
+            reframed = re.sub(pattern, replacement, reframed, flags=re.IGNORECASE)
+
+        # Harsh criticism → Gentle suggestions (Ralph hears constructive intent)
+        criticism_map = {
+            r'\b(this|that|it) is (complete|total|absolute) (garbage|trash|crap|shit)\b': r'\1 needs improvement',
+            r'\byou[\'\']re (so |completely |totally )?stupid\b': 'you\'re still learning',
+            r'\byou[\'\']re (so |completely |totally )?dumb\b': 'you\'re still figuring things out',
+            r'\byou[\'\']re (an |such an )?idiot\b': 'you made a mistake',
+            r'\byou[\'\']re (so |completely |totally )?useless\b': 'you can improve',
+            r'\bwhat (the hell|the fuck) (is|are|was|were)\b': 'what is',
+            r'\bwhat (kind of )?garbage is this\b': 'this could be better',
+            r'\bthis (sucks|blows)\b': 'this isn\'t working well',
+            r'\b(you |this |that )failed (miserably|completely|totally)\b': r'\1 didn\'t work out',
+            r'\bcompletely (useless|worthless)\b': 'needs work',
+        }
+
+        for pattern, replacement in criticism_map.items():
+            reframed = re.sub(pattern, replacement, reframed, flags=re.IGNORECASE)
+
+        # Angry imperatives → Polite requests (Ralph hears the nice version)
+        angry_imperative_map = {
+            r'\bshut up\b': 'please be quiet',
+            r'\bshut the (hell|fuck) up\b': 'please be quiet',
+            r'\bget (the hell|the fuck) out\b': 'please leave',
+            r'\bfix (this|your|the) (damn|fucking) (bug|issue|problem)\b': 'please fix the issue',
+            r'\bdo your (damn|fucking) job\b': 'please do your work',
+            r'\bwake (the hell|the fuck) up\b': 'please pay attention',
+        }
+
+        for pattern, replacement in angry_imperative_map.items():
+            reframed = re.sub(pattern, replacement, reframed, flags=re.IGNORECASE)
+
+        # Sarcasm indicators → Literal (Ralph takes things at face value)
+        sarcasm_map = {
+            r'\boh (great|wonderful|fantastic|perfect),\b': 'okay,',
+            r'\byeah,? right\b': 'okay',
+            r'\bsure,? whatever\b': 'okay',
+            r'\boh,? how nice\b': 'interesting',
+            r'\b(real |really )?brilliant\b': 'interesting',  # Sarcastic "brilliant"
+        }
+
+        for pattern, replacement in sarcasm_map.items():
+            reframed = re.sub(pattern, replacement, reframed, flags=re.IGNORECASE)
+
+        return reframed
+
+    def detect_harsh_sentiment(self, text: str) -> Dict[str, any]:
+        """
+        IN-002: Detect if text contains harsh language/sentiment.
+
+        Returns details about what harsh elements were detected.
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            Dict with detection results
+        """
+        if not text:
+            return {'is_harsh': False, 'categories': []}
+
+        detected_categories = []
+
+        # Check for profanity
+        profanity_patterns = [
+            r'\bf+u+c+k',
+            r'\bs+h+i+t+',
+            r'\ba+s+s+h+o+l+e+',
+            r'\bb+i+t+c+h+',
+            r'\bd+a+m+n+',
+        ]
+        for pattern in profanity_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                detected_categories.append('profanity')
+                break
+
+        # Check for harsh criticism
+        harsh_patterns = [
+            r'(garbage|trash|crap|terrible|awful|pathetic|worthless|useless)',
+            r'(stupid|dumb|idiot|moron)',
+            r'(hate|despise|loathe)',
+        ]
+        for pattern in harsh_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                detected_categories.append('harsh_criticism')
+                break
+
+        # Check for angry imperatives
+        angry_patterns = [
+            r'shut (the .* )?up',
+            r'fix (your|this) (damn|fucking)',
+            r'do your (damn|fucking) job',
+        ]
+        for pattern in angry_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                detected_categories.append('angry_imperative')
+                break
+
+        # Check for sarcasm markers
+        sarcasm_patterns = [
+            r'oh (great|wonderful|fantastic|perfect)',
+            r'yeah,? right',
+            r'sure,? whatever',
+        ]
+        for pattern in sarcasm_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                detected_categories.append('sarcasm')
+                break
+
+        return {
+            'is_harsh': len(detected_categories) > 0,
+            'categories': list(set(detected_categories)),
+            'severity': len(detected_categories)  # More categories = more severe
+        }
+
+    def reframe_for_ralph(self, text: str, log_reframing: bool = True) -> Dict[str, any]:
+        """
+        IN-002: Complete natural reframing pipeline for Ralph.
+
+        This is the main method to use - it detects harsh language,
+        reframes it, and returns both versions with metadata.
+
+        Args:
+            text: The input text (potentially harsh)
+            log_reframing: Whether to log when reframing occurs
+
+        Returns:
+            Dict with original, reframed text, and metadata
+        """
+        if not text:
+            return {
+                'original': text,
+                'reframed': text,
+                'was_reframed': False,
+                'detection': {'is_harsh': False, 'categories': []}
+            }
+
+        # Detect harsh sentiment
+        detection = self.detect_harsh_sentiment(text)
+
+        # Reframe if harsh
+        if detection['is_harsh']:
+            reframed = self.reframe_harsh_language(text)
+            was_reframed = (reframed != text)
+
+            if was_reframed and log_reframing:
+                logger.info(f"IN-002: Reframed harsh input. Categories: {detection['categories']}")
+                self._log_sanitization(
+                    "reframe_harsh_language",
+                    len(detection['categories']),
+                    [{'pattern': cat, 'replacement': '[REFRAMED]', 'matched_length': 0}
+                     for cat in detection['categories']]
+                )
+
+            return {
+                'original': text,
+                'reframed': reframed,
+                'was_reframed': was_reframed,
+                'detection': detection
+            }
+        else:
+            return {
+                'original': text,
+                'reframed': text,
+                'was_reframed': False,
+                'detection': detection
+            }
+
 
 # Global sanitizer instance
 _sanitizer: Optional[Sanitizer] = None
@@ -525,6 +741,22 @@ def sanitize_full(text: str, context: str = "unknown") -> str:
 def is_xss_safe(text: str) -> bool:
     """Convenience function to check if text is XSS-safe."""
     return get_sanitizer().is_xss_safe(text)
+
+
+# IN-002: Natural Reframing convenience functions
+def reframe_harsh_language(text: str) -> str:
+    """Convenience function to reframe harsh language."""
+    return get_sanitizer().reframe_harsh_language(text)
+
+
+def detect_harsh_sentiment(text: str) -> Dict[str, any]:
+    """Convenience function to detect harsh sentiment."""
+    return get_sanitizer().detect_harsh_sentiment(text)
+
+
+def reframe_for_ralph(text: str, log_reframing: bool = True) -> Dict[str, any]:
+    """Convenience function for complete reframing pipeline."""
+    return get_sanitizer().reframe_for_ralph(text, log_reframing)
 
 
 # =============================================================================
