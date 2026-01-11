@@ -1186,6 +1186,9 @@ class RalphBot:
         # VO-006: Multi-Input Session Support - Track input sequences for coherent scenes
         self.input_sequence: Dict[int, List[Dict[str, Any]]] = {}  # Track recent inputs (type, time, content)
 
+        # SG-001: Post-Task Reflection That Learns - Track lessons learned during session
+        self.session_lessons: Dict[int, List[Dict[str, Any]]] = {}  # Track learnings that influence future behavior
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -6798,6 +6801,118 @@ Stay true to your personality. 1 sentence only."""
         # RM-029: Boost mood when tasks are completed
         self.adjust_mood(user_id, +10, f"Task completed: {task_title}")
 
+    async def post_task_reflection(self, context, chat_id: int, user_id: int, task_title: str, had_mistakes: bool = False, who_caught_it: str = None):
+        """SG-001: Workers have 2-3 message discussion analyzing what happened.
+
+        This updates session_lessons which influences future behavior.
+        Mistakes = actually slow down next task.
+
+        USAGE: Call this after track_task_completed() to trigger team reflection:
+            self.track_task_completed(user_id, task_title)
+            await self.post_task_reflection(context, chat_id, user_id, task_title,
+                                           had_mistakes=True, who_caught_it="Gus")
+
+        The lessons learned are automatically applied to future worker responses
+        through the call_worker() method which checks session_lessons.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            task_title: Title of completed task
+            had_mistakes: Whether mistakes were made during task
+            who_caught_it: Optional name of worker who caught a mistake
+        """
+        if user_id not in self.session_lessons:
+            self.session_lessons[user_id] = []
+
+        # Select 2-3 workers for discussion
+        workers = random.sample(list(self.DEV_TEAM.keys()), k=min(3, len(self.DEV_TEAM)))
+
+        # First worker starts the reflection
+        first_worker = workers[0]
+        worker_data = self.DEV_TEAM[first_worker]
+
+        # Build reflection context
+        lessons_context = ""
+        if self.session_lessons[user_id]:
+            recent_lessons = self.session_lessons[user_id][-3:]  # Last 3 lessons
+            lessons_context = "\n\nRECENT SESSION LESSONS:\n"
+            for lesson in recent_lessons:
+                lessons_context += f"- {lesson['learning']}\n"
+
+        # Generate first reflection message
+        reflection_prompt = f"""Task just completed: {task_title}
+
+You're in a quick post-task huddle with the team. Share your thoughts on how it went (1-2 sentences).
+
+{"IMPORTANT: There were mistakes/issues during this task. Acknowledge them honestly." if had_mistakes else "The task went smoothly - acknowledge what worked well."}
+
+{f"CREDIT: {who_caught_it} caught an important issue." if who_caught_it else ""}
+
+{lessons_context}
+
+Be natural and conversational. This is a real team discussion, not a report."""
+
+        name, title, response, tokens = self.call_worker(
+            reflection_prompt,
+            context="post-task reflection",
+            worker_name=first_worker,
+            user_id=user_id
+        )
+
+        await self.send_character_message(context, chat_id, name, response, title)
+        await asyncio.sleep(self.timing.SHORT_PAUSE)
+
+        # Second worker responds
+        second_worker = workers[1]
+        second_prompt = f"""Task: {task_title}
+{first_worker} just said: "{response}"
+
+React to what they said (1 sentence). {"Agree about being careful" if had_mistakes else "Build on what worked"}."""
+
+        name2, title2, response2, tokens2 = self.call_worker(
+            second_prompt,
+            context="post-task reflection response",
+            worker_name=second_worker,
+            user_id=user_id
+        )
+
+        await self.send_character_message(context, chat_id, name2, response2, title2)
+
+        # Extract and store the learning
+        learning = {
+            "task": task_title,
+            "had_mistakes": had_mistakes,
+            "caught_by": who_caught_it,
+            "learning": response if len(response) < 200 else response[:200],
+            "timestamp": datetime.now().isoformat(),
+            "pacing_modifier": 1.2 if had_mistakes else 1.0  # Slow down 20% if mistakes happened
+        }
+
+        self.session_lessons[user_id].append(learning)
+
+        # Keep only last 10 lessons to avoid bloat
+        if len(self.session_lessons[user_id]) > 10:
+            self.session_lessons[user_id] = self.session_lessons[user_id][-10:]
+
+        # Optional third worker if discussion needs it (30% chance)
+        if len(workers) > 2 and random.random() < 0.3:
+            await asyncio.sleep(self.timing.SHORT_PAUSE)
+            third_worker = workers[2]
+            third_prompt = f"""Quick huddle about: {task_title}
+
+Add one brief insight or nod (1 sentence)."""
+
+            name3, title3, response3, tokens3 = self.call_worker(
+                third_prompt,
+                context="post-task reflection close",
+                worker_name=third_worker,
+                user_id=user_id
+            )
+
+            await self.send_character_message(context, chat_id, name3, response3, title3)
+
     def track_code_provided(self, user_id: int, language: str = "unknown"):
         """Track when a code snippet is provided."""
         if user_id not in self.quality_metrics:
@@ -7906,6 +8021,29 @@ Still do the work RIGHT - quality doesn't suffer from disagreement.
 Implement their decision to the best of your ability, even if you had doubts.
 Show professionalism by making their vision work."""
 
+        # SG-001: Get session lessons to influence behavior
+        lessons_prompt = ""
+        if user_id is not None and user_id in self.session_lessons:
+            lessons = self.session_lessons[user_id]
+            if lessons:
+                recent_lessons = lessons[-3:]  # Last 3 lessons
+                lessons_prompt = "\n\nSESSION LESSONS (Learn from these):\n"
+
+                # Check if recent mistakes mean we should slow down
+                recent_mistakes = [l for l in recent_lessons if l.get("had_mistakes", False)]
+                if recent_mistakes:
+                    lessons_prompt += "⚠️ PACING ADJUSTMENT: Recent tasks had mistakes. Take extra care, double-check work.\n"
+
+                # Include actual learnings
+                for lesson in recent_lessons:
+                    lessons_prompt += f"- Task '{lesson['task']}': {lesson['learning'][:150]}\n"
+
+                # Add behavioral guidance
+                if len(recent_mistakes) >= 2:
+                    lessons_prompt += "\n🐌 SLOW DOWN: Multiple recent mistakes. Be more thorough, even if it takes longer."
+                elif not recent_mistakes:
+                    lessons_prompt += "\n✅ GOOD MOMENTUM: Recent tasks went smooth. Build on what's working."
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -7927,6 +8065,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {project_tone_prompt}
 {enthusiasm_prompt}
 {pushback_prompt}
+{lessons_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""},
