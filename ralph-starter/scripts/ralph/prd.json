@@ -4667,7 +4667,7 @@
       "files_likely_modified": [
         "dependency_checker.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-024",

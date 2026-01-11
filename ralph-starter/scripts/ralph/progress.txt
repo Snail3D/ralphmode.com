@@ -11070,3 +11070,37 @@ All functionality tested and verified:
 - Team reactions reflect the hustle: "MVP mode. Fast and focused, I like it."
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-023] Node.js Version Checker
+**Status**: ✅ Complete
+
+### What was implemented
+- Created dependency_checker.py module for system dependency verification
+- Detects installed Node.js version using subprocess
+- Compares version to minimum required (18.0.0+) with semantic versioning
+- Provides upgrade guidance with two options:
+  - Direct download from nodejs.org
+  - nvm installation (recommended for developers)
+- Verifies npm installation and version
+- Includes singleton pattern (get_dependency_checker())
+- CLI testing mode for manual verification
+
+### Files changed
+- dependency_checker.py (new file, 342 lines)
+
+### Learnings
+- Followed existing pattern from health_check.py for consistency
+- Used subprocess.run() with timeout for safe command execution
+- Semantic version parsing handles 'v' prefix (e.g., "v18.20.0")
+- Returns status enum + message + version for flexible error handling
+- Upgrade guides use markdown formatting for Telegram rendering
+- nvm guide is more detailed since it's the recommended approach for devs
+
+### Testing
+- Tested on macOS with Node.js 22.20.0 and npm 10.9.3
+- Version detection works correctly
+- Version comparison correctly identifies versions >= 18.0.0
+- All status codes (INSTALLED, OUTDATED, NOT_FOUND, ERROR) handled
+
+---
