@@ -16796,7 +16796,11 @@ Use `/version <type>` to switch!
         )
 
     async def setlocation_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /setlocation command - SG-018: Local Good News Integration.
+        """Handle /setlocation command - SG-018: Local Good News Integration, SG-022: Locality Awareness.
+
+        SG-022: Allows users to set location BEFORE session starts (never ask during session).
+        Option 1 implementation: Manual /setlocation command for explicit user control.
+        Stores general city only (privacy-respecting), gracefully falls back if not set.
 
         Allows users to set their location for personalized local good news.
         Usage: /setlocation City, State or /setlocation City, Country
@@ -16804,7 +16808,7 @@ Use `/version <type>` to switch!
         telegram_id = update.effective_user.id
         chat_id = update.message.chat_id
 
-        logger.info(f"SG-018: User {telegram_id} requested location setup via /setlocation command")
+        logger.info(f"SG-018/SG-022: User {telegram_id} requested location setup via /setlocation command")
 
         # Check if location was provided
         if not context.args or len(context.args) == 0:
