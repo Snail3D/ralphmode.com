@@ -5003,6 +5003,302 @@ Ralph says: "Me proud of you! You did unpossible thing!" 👃
 
 *Ready to start building?*"""
 
+    # ==================== OB-049: RE-ONBOARDING FLOW ====================
+
+    def get_reconfigure_welcome_message(self) -> str:
+        """Get welcome message for reconfiguration.
+
+        Returns:
+            Welcome message for /reconfigure
+        """
+        return """*Welcome to Setup Reconfiguration!* 🔧
+
+Ralph here! Need to change something in your setup?
+
+No problem! I'll help you update:
+• 🔑 API keys (Telegram, Groq, etc.)
+• 👤 Admin settings
+• 🌐 Environment variables
+• 🔐 SSH keys
+• 📝 Git configuration
+
+**What would you like to do?**"""
+
+    def get_current_configuration(self) -> Dict[str, Any]:
+        """Get current configuration status for all settings.
+
+        Returns:
+            Dictionary with configuration details (values masked for security)
+        """
+        config = {}
+
+        # Check environment variables if env_manager available
+        if self.env_manager_available:
+            all_vars = self.env_manager.get_all_variables()
+
+            # Import EnvManager for access to constants
+            from env_manager import EnvManager as EnvMgr
+
+            # Mask sensitive values
+            for key in EnvMgr.REQUIRED_VARS + EnvMgr.OPTIONAL_VARS:
+                value = all_vars.get(key, "")
+                if value:
+                    # Mask all but last 4 characters
+                    if len(value) > 4:
+                        config[key] = f"{'*' * (len(value) - 4)}{value[-4:]}"
+                    else:
+                        config[key] = "****"
+                else:
+                    config[key] = "(not set)"
+
+        # Check verification status
+        if self.verifier_available:
+            detected_config = self.detect_existing_config()
+            config["verification_status"] = detected_config
+
+        return config
+
+    def format_configuration_display(self, config: Dict[str, Any]) -> str:
+        """Format configuration for display.
+
+        Args:
+            config: Configuration dictionary from get_current_configuration()
+
+        Returns:
+            Formatted string for Telegram message
+        """
+        from env_manager import EnvManager as EnvMgr
+
+        lines = ["*Your Current Configuration:* ⚙️\n"]
+
+        # Required settings
+        lines.append("**Required Settings:**")
+        for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_OWNER_ID", "GROQ_API_KEY"]:
+            value = config.get(var, "(not set)")
+            status = "✅" if value != "(not set)" else "❌"
+            desc = EnvMgr.VAR_DESCRIPTIONS.get(var, var)
+            lines.append(f"{status} {desc}")
+            lines.append(f"   `{var} = {value}`\n")
+
+        # Optional settings
+        lines.append("\n**Optional Settings:**")
+        for var in EnvMgr.OPTIONAL_VARS:
+            value = config.get(var, "(not set)")
+            if value != "(not set)":
+                status = "✅"
+                desc = EnvMgr.VAR_DESCRIPTIONS.get(var, var)
+                lines.append(f"{status} {desc}")
+                lines.append(f"   `{var} = {value}`\n")
+
+        # Verification status
+        if "verification_status" in config:
+            lines.append("\n**System Checks:**")
+            verification = config["verification_status"]
+            for key, status in verification.items():
+                icon = "✅" if status else "❌"
+                label = key.replace("_", " ").title()
+                lines.append(f"{icon} {label}")
+
+        return "\n".join(lines)
+
+    def get_reconfigure_menu_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for reconfigure menu.
+
+        Returns:
+            InlineKeyboardMarkup with reconfigure options
+        """
+        buttons = [
+            [InlineKeyboardButton("🔑 Update API Keys", callback_data="reconfig_api_keys")],
+            [InlineKeyboardButton("👤 Update Admin Settings", callback_data="reconfig_admin")],
+            [InlineKeyboardButton("🔐 Update SSH Key", callback_data="reconfig_ssh")],
+            [InlineKeyboardButton("📝 Update Git Config", callback_data="reconfig_git")],
+            [InlineKeyboardButton("📜 View Change History", callback_data="reconfig_history")],
+            [InlineKeyboardButton("❌ Cancel", callback_data="reconfig_cancel")]
+        ]
+        return InlineKeyboardMarkup(buttons)
+
+    def get_api_keys_reconfigure_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for API key reconfiguration.
+
+        Returns:
+            InlineKeyboardMarkup with API key options
+        """
+        buttons = [
+            [InlineKeyboardButton("🤖 Telegram Bot Token", callback_data="reconfig_telegram_token")],
+            [InlineKeyboardButton("⚡ Groq API Key", callback_data="reconfig_groq_key")],
+            [InlineKeyboardButton("🧠 Claude API Key (Optional)", callback_data="reconfig_claude_key")],
+            [InlineKeyboardButton("🌤️ OpenWeather API Key (Optional)", callback_data="reconfig_weather_key")],
+            [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+        ]
+        return InlineKeyboardMarkup(buttons)
+
+    def get_destructive_change_warning(self, setting_name: str, current_value: str) -> str:
+        """Get warning message for destructive changes.
+
+        Args:
+            setting_name: Name of setting being changed
+            current_value: Current value (masked)
+
+        Returns:
+            Warning message
+        """
+        return f"""*⚠️ WARNING: Destructive Change*
+
+You're about to change a critical setting!
+
+**Setting:** `{setting_name}`
+**Current value:** `{current_value}`
+
+**This will:**
+• Immediately update your configuration
+• May disconnect active sessions
+• Could break the bot if incorrect
+
+**Ralph says:** "Be careful! Make sure you got the right value! My dad once changed something and the whole town's power went out!" 😰
+
+**Are you SURE you want to continue?**"""
+
+    def get_destructive_change_keyboard(self, setting_name: str) -> InlineKeyboardMarkup:
+        """Get confirmation keyboard for destructive changes.
+
+        Args:
+            setting_name: Name of setting being changed
+
+        Returns:
+            InlineKeyboardMarkup with confirmation buttons
+        """
+        buttons = [
+            [InlineKeyboardButton("✅ Yes, I'm Sure", callback_data=f"reconfig_confirm_{setting_name}")],
+            [InlineKeyboardButton("❌ Cancel", callback_data="reconfig_menu")]
+        ]
+        return InlineKeyboardMarkup(buttons)
+
+    def save_configuration_change(
+        self,
+        user_id: int,
+        setting_name: str,
+        old_value: str,
+        new_value: str
+    ) -> bool:
+        """Save a configuration change to history.
+
+        Args:
+            user_id: Telegram user ID who made the change
+            setting_name: Name of setting changed
+            old_value: Previous value (masked)
+            new_value: New value (masked)
+
+        Returns:
+            True if saved successfully
+        """
+        if not self.state_persistence_available:
+            return False
+
+        import datetime
+
+        change_record = {
+            "user_id": user_id,
+            "setting": setting_name,
+            "old_value": old_value,
+            "new_value": new_value,
+            "timestamp": datetime.datetime.now().isoformat(),
+        }
+
+        # Store in setup state under "config_history"
+        # Get existing history
+        history = self.state_manager.get_config_history(user_id) if hasattr(self.state_manager, 'get_config_history') else []
+        history.append(change_record)
+
+        # Keep only last 50 changes
+        if len(history) > 50:
+            history = history[-50:]
+
+        # Save back
+        if hasattr(self.state_manager, 'save_config_history'):
+            return self.state_manager.save_config_history(user_id, history)
+
+        return True
+
+    def get_configuration_history(self, user_id: int) -> List[Dict[str, Any]]:
+        """Get configuration change history for a user.
+
+        Args:
+            user_id: Telegram user ID
+
+        Returns:
+            List of change records
+        """
+        if not self.state_persistence_available:
+            return []
+
+        if hasattr(self.state_manager, 'get_config_history'):
+            return self.state_manager.get_config_history(user_id)
+
+        return []
+
+    def format_configuration_history(self, history: List[Dict[str, Any]]) -> str:
+        """Format configuration history for display.
+
+        Args:
+            history: List of change records
+
+        Returns:
+            Formatted string
+        """
+        if not history:
+            return """*Configuration Change History* 📜
+
+No changes recorded yet!
+
+Ralph says: "Nothing's been changed! You set it up perfect the first time!" 👃"""
+
+        lines = ["*Configuration Change History* 📜\n"]
+        lines.append(f"Last {len(history)} changes:\n")
+
+        # Show most recent first
+        for change in reversed(history[-10:]):  # Last 10 changes
+            timestamp = change.get("timestamp", "Unknown")
+            setting = change.get("setting", "Unknown")
+            old_val = change.get("old_value", "Unknown")
+            new_val = change.get("new_value", "Unknown")
+
+            # Parse timestamp for better display
+            try:
+                import datetime
+                dt = datetime.datetime.fromisoformat(timestamp)
+                time_str = dt.strftime("%Y-%m-%d %H:%M")
+            except:
+                time_str = timestamp
+
+            lines.append(f"**{time_str}**")
+            lines.append(f"Changed: `{setting}`")
+            lines.append(f"From: `{old_val}`")
+            lines.append(f"To: `{new_val}`\n")
+
+        return "\n".join(lines)
+
+    def get_reconfigure_success_message(self, setting_name: str) -> str:
+        """Get success message after reconfiguring a setting.
+
+        Args:
+            setting_name: Name of setting that was changed
+
+        Returns:
+            Success message
+        """
+        return f"""*✅ Configuration Updated!*
+
+`{setting_name}` has been successfully updated!
+
+Ralph says: "I did it! I changed the thingy without breaking everything!" 🎉
+
+**What's next?**
+• Your bot will use the new setting immediately
+• You can verify it works with /status
+• Change more settings or go back to the menu
+
+*Everything's working great!*"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.

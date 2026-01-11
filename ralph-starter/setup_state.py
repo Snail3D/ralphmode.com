@@ -372,6 +372,104 @@ You started setting up {age}!
 *Wanna pick up where you left off?*
 """
 
+    def save_config_history(self, user_id: int, history: list) -> bool:
+        """Save configuration change history for a user - OB-049.
+
+        Args:
+            user_id: Telegram user ID
+            history: List of configuration change records
+
+        Returns:
+            True if saved successfully
+        """
+        if not DATABASE_AVAILABLE:
+            self.logger.warning("Database not available, cannot save config history")
+            return False
+
+        try:
+            with get_db() as db:
+                # Find or create user
+                user = db.query(User).filter(User.telegram_id == user_id).first()
+
+                if not user:
+                    self.logger.error(f"User {user_id} not found in database")
+                    return False
+
+                # Store in a BotSession with special status
+                session = (
+                    db.query(BotSession)
+                    .filter(
+                        BotSession.user_id == user.id,
+                        BotSession.status == "config_history"
+                    )
+                    .first()
+                )
+
+                if not session:
+                    # Create new config history session
+                    session = BotSession(
+                        user_id=user.id,
+                        chat_id=user_id,
+                        status="config_history",
+                        project_name="Configuration History",
+                        session_data=json.dumps({"history": history})
+                    )
+                    db.add(session)
+                else:
+                    # Update existing
+                    session.session_data = json.dumps({"history": history})
+                    session.updated_at = datetime.utcnow()
+
+                db.commit()
+                self.logger.info(f"OB-049: Saved config history for user {user_id}")
+                return True
+
+        except Exception as e:
+            self.logger.error(f"OB-049: Error saving config history: {e}")
+            return False
+
+    def get_config_history(self, user_id: int) -> list:
+        """Get configuration change history for a user - OB-049.
+
+        Args:
+            user_id: Telegram user ID
+
+        Returns:
+            List of configuration change records
+        """
+        if not DATABASE_AVAILABLE:
+            return []
+
+        try:
+            with get_db() as db:
+                # Find user
+                user = db.query(User).filter(User.telegram_id == user_id).first()
+
+                if not user:
+                    return []
+
+                # Find config history session
+                session = (
+                    db.query(BotSession)
+                    .filter(
+                        BotSession.user_id == user.id,
+                        BotSession.status == "config_history"
+                    )
+                    .first()
+                )
+
+                if session and session.session_data:
+                    data = json.loads(session.session_data)
+                    history = data.get("history", [])
+                    self.logger.info(f"OB-049: Loaded config history for user {user_id}")
+                    return history
+
+                return []
+
+        except Exception as e:
+            self.logger.error(f"OB-049: Error loading config history: {e}")
+            return []
+
 
 def get_setup_state_manager() -> SetupStateManager:
     """Get the setup state manager instance.

@@ -9107,3 +9107,191 @@ According to priority_order, next incomplete task is OB-008: Environment File Cr
 - Test scripts are valuable for future maintenance and regression testing
 
 ---
+
+---
+
+## Iteration N - 2026-01-10 (OB-010)
+**Task**: [OB-010] Groq API Key Setup (Optional)
+**Status**: ✅ Complete
+
+### What was implemented
+- Added complete Groq API key setup wizard flow to onboarding_wizard.py
+- Created 9 new methods following the existing Anthropic API setup pattern:
+  - get_groq_api_intro_message() - Explains Groq benefits, optional nature
+  - get_groq_intro_keyboard() - Setup or skip options
+  - get_groq_signup_message() - Guides through Groq signup
+  - get_groq_signup_keyboard() - Links to console and pricing
+  - get_groq_api_key_message() - Instructions for getting API key
+  - get_groq_api_key_keyboard() - Console link and navigation
+  - get_groq_key_entry_message() - Prompts for key entry
+  - get_groq_key_invalid_message() - Friendly error handling
+  - get_groq_key_success_message() - Celebrates successful setup
+  - get_groq_test_keyboard() - Test and continue options
+  - get_groq_skip_confirmation_message() - Skip confirmation
+
+### Files changed
+- onboarding_wizard.py (added 280+ lines)
+- scripts/ralph/prd.json (marked OB-010 as passes: true)
+
+### Learnings
+- The onboarding wizard follows a consistent pattern: intro → signup → get key → entry → validation → success
+- All optional features should have skip options at every step
+- Ralph's personality shines through with simple explanations, emojis, and friendly language
+- Infrastructure already existed: env_manager supports GROQ_API_KEY, api_key_manager has validate_groq_key() and test_groq_key()
+- Key format for Groq: starts with `gsk_`, 40-50 characters
+- Following existing patterns (like Anthropic setup) makes implementation straightforward and consistent
+
+### Pattern discovered
+When adding a new API key to onboarding:
+1. Check env_manager has the variable defined
+2. Check api_key_manager has validate_*() and test_*() methods
+3. Create intro message explaining the service
+4. Create signup message with links
+5. Create API key retrieval instructions
+6. Create entry prompt
+7. Create invalid/error message
+8. Create success message
+9. Add keyboard layouts for each step
+10. Include skip options for optional keys
+
+---
+
+## Iteration N+1 - 2026-01-10 (OB-011)
+**Task**: [OB-011] OpenWeather API Setup (Optional)
+**Status**: ✅ Complete
+
+### What was implemented
+- Added OpenWeather API key validation to api_key_manager.py:
+  - validate_openweather_key() - Validates 32-character hex format (0-9, a-f only)
+  - test_openweather_key() - Makes real API call to OpenWeather to test key
+  - Handles auth failures, rate limits, timeouts, and network errors
+- Created complete OpenWeather wizard flow in onboarding_wizard.py (10 new methods):
+  - get_openweather_intro_message() - Explains real weather benefits for scenes
+  - get_openweather_intro_keyboard() - Setup or skip options
+  - get_openweather_signup_message() - Free account signup guide
+  - get_openweather_signup_keyboard() - Links to sign up page
+  - get_openweather_api_key_message() - Step-by-step key retrieval with activation warning
+  - get_openweather_api_key_keyboard() - API keys page link
+  - get_openweather_key_entry_message() - Prompt for key paste
+  - get_openweather_location_message() - Asks for city name (privacy-conscious)
+  - get_openweather_key_invalid_message() - Helpful troubleshooting
+  - get_openweather_key_success_message() - Success with location feedback
+  - get_openweather_test_keyboard() - Test and continue options
+  - get_openweather_skip_confirmation_message() - Skip confirmation
+- Updated scripts/ralph/prd.json to mark OB-011 as passes: true
+
+### Files changed
+- api_key_manager.py (added validation and test methods)
+- onboarding_wizard.py (added 300+ lines)
+- scripts/ralph/prd.json (marked complete)
+
+### Learnings
+- OpenWeather API keys are exactly 32-character hex strings (not prefixed like Groq's gsk_)
+- OpenWeather has a 10-minute activation delay for new keys - important to warn users!
+- Free tier allows 1,000 calls/day (more than sufficient for Ralph's scene generation)
+- Location is required for weather API but privacy-conscious: only city name stored
+- Weather integration uses OPENWEATHER_API_KEY and WEATHER_LOCATION env vars
+- weather_service.py already handles the API integration, gracefully falling back to generated weather
+- Real weather enhances immersion: "Rain taps against the window" vs generic descriptions
+
+### Pattern reinforced
+Optional API key onboarding flow:
+1. Intro message - explain benefits, stress it's optional
+2. Signup guide - free tier emphasis, account creation steps  
+3. API key retrieval - precise instructions with visual examples
+4. Key entry - paste and validate
+5. Additional config (location for weather, etc.)
+6. Test the key - real API call to verify
+7. Success message - celebrate and explain what's enabled
+8. Skip option at EVERY step - never force optional features
+
+### Integration notes
+- Works seamlessly with existing weather_service.py (SS-002)
+- scene_manager.py already uses weather service for opening scenes
+- No handler code needed yet - messages/keyboards are infrastructure for future handlers
+- Environment variables: OPENWEATHER_API_KEY (32 hex chars), WEATHER_LOCATION (city name)
+
+---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-033] Quick Setup Mode
+**Status**: ✅ Complete
+
+### What was implemented
+- **detect_existing_config()** - Scans system using SetupVerifier to check what's already configured
+- **get_quick_setup_checklist()** - Generates visual progress indicator showing configured vs missing items
+- **get_next_quick_setup_step()** - Returns only unconfigured items in priority order
+- **get_quick_setup_prompt()** - Minimal prompts with direct commands and links (no tutorials)
+- **get_quick_setup_complete_message()** - Success celebration for completed setup
+- **Quick setup handlers in ralph_bot.py** - Handle quick_continue, quick_skip_*, quick_help_* callbacks
+- **Detection logic** - Checks Python, Git, SSH keys, .env file, API keys, admin ID
+
+### Files changed
+- onboarding_wizard.py (5 new methods, ~250 lines)
+- ralph_bot.py (quick setup flow + callback handlers, ~100 lines)
+- scripts/ralph/prd.json (OB-033 passes=true)
+
+### Learnings
+- **SetupVerifier integration** - Reused existing verification infrastructure for config detection
+- **Minimal prompts** - Quick setup messages are ~200 chars vs ~1000+ chars in guided mode
+- **Smart skip logic** - Skip buttons advance to next step automatically
+- **Time estimate** - 4 steps max × 30 seconds each = ~2 minutes (meets acceptance criteria)
+- **Progressive disclosure** - Only show what's missing, not everything
+- **Direct links** - Buttons link directly to BotFather, Groq Console, userinfobot for faster setup
+
+### Next steps
+This completes OB-033. Quick setup is now functional for experienced users who want minimal guidance.
+
+---
+
+## Iteration 162 - 2026-01-10
+**Task**: [OB-034] Setup Completion Celebration
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `get_setup_completion_celebration()` method in onboarding_wizard.py:
+  - Takes list of configured items as parameter
+  - Displays celebratory message with Ralph's personality ("unpossible!")
+  - Shows summary of what was configured
+  - Lists what's now possible (AI dev team, ship features while sleeping, etc.)
+  - Provides next steps (start bot, help command, give tasks)
+  - Includes links to docs, tutorials, examples, and support
+  - Offers share achievement prompt for social sharing
+- Added `setup_finish` callback handler in ralph_bot.py:
+  - Detects what was configured using detect_existing_config()
+  - Builds configured_items list dynamically
+  - Shows celebration message with action buttons
+  - Marks setup as complete in state manager
+  - Provides buttons: Start Bot, View Tutorials, Get Help
+
+### Files changed
+- onboarding_wizard.py (new celebration method, ~45 lines)
+- ralph_bot.py (setup_finish callback handler, ~50 lines)
+- scripts/ralph/prd.json (marked OB-034 as complete)
+
+### Learnings
+- **Celebration matters** - Users need positive reinforcement after completing setup
+- **Dynamic configuration detection** - Using detect_existing_config() ensures accurate summary
+- **Ralph's personality in success** - "unpossible" and nose-picking emoji keep it fun
+- **Next steps clarity** - Clear 1-2-3 steps help users know what to do after setup
+- **Share achievement** - Social proof helps product growth, give users easy tweet template
+- **Links structure** - Organized links to docs/tutorials/examples/support for continued learning
+
+### Pattern established
+Setup completion flow:
+1. Detect what was configured during setup
+2. Build personalized summary of achievements
+3. Show celebration with Ralph's personality
+4. List what's now possible (benefits)
+5. Provide clear next steps
+6. Offer learning resources
+7. Encourage social sharing
+8. Mark setup complete in state
+
+### Integration notes
+- Works with verification complete keyboard (setup_finish button)
+- Integrates with state_manager for persistence
+- Action buttons (Start Bot, Tutorials, Help) ready for future handlers
+- ralphmode.com URLs are placeholders (website not deployed yet per blockers)
+
+---

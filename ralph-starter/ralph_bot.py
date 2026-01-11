@@ -5885,6 +5885,11 @@ _Drop a zip file to get started!_
             await self.handle_troubleshooting_callback(query, context, user_id, data)
             return
 
+        # OB-049: Handle reconfigure callbacks
+        if data.startswith("reconfig_"):
+            await self.handle_reconfigure_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -6316,6 +6321,53 @@ _Grab some popcorn..._
                 await troubleshooting.process_search_query(update, context, text)
                 logger.info(f"OB-046: User {user_id} searched troubleshooting: {text}")
                 return
+
+        # OB-049: Handle reconfiguration value input
+        if context.user_data.get('awaiting_reconfig'):
+            setting_name = context.user_data['awaiting_reconfig']
+            context.user_data['awaiting_reconfig'] = None
+
+            # Get old value (masked)
+            old_value = "(not set)"
+            if self.onboarding_wizard.env_manager_available:
+                old_val = self.onboarding_wizard.env_manager.get_variable(setting_name)
+                if old_val:
+                    old_value = f"{'*' * (len(old_val) - 4)}{old_val[-4:]}" if len(old_val) > 4 else "****"
+
+            # Save new value to .env
+            if self.onboarding_wizard.env_manager_available:
+                self.onboarding_wizard.env_manager.set_variable(setting_name, text)
+
+                # Mask new value for display
+                new_value = f"{'*' * (len(text) - 4)}{text[-4:]}" if len(text) > 4 else "****"
+
+                # Save to history
+                self.onboarding_wizard.save_configuration_change(
+                    user_id, setting_name, old_value, new_value
+                )
+
+                # Send success message
+                success_msg = self.onboarding_wizard.get_reconfigure_success_message(setting_name)
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔑 Update Another Key", callback_data="reconfig_api_keys")],
+                    [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+                ])
+
+                await update.message.reply_text(
+                    success_msg,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                logger.info(f"OB-049: Updated {setting_name} for user {user_id}")
+            else:
+                await update.message.reply_text(
+                    "❌ Sorry! Environment manager isn't available.\n\n"
+                    "You'll need to manually update your .env file.",
+                    parse_mode="Markdown"
+                )
+                logger.error(f"OB-049: Env manager not available for user {user_id}")
+
+            return
 
         # RM-053: Track user message timestamp and pause idle chatter
         self.last_user_message_time[user_id] = datetime.now()
@@ -8017,6 +8069,47 @@ Use `/version <type>` to switch!
 
         logger.info(f"OB-001: Sent welcome message to user {telegram_id}")
 
+    async def reconfigure_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /reconfigure command - OB-049: Re-onboarding Flow."""
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"OB-049: Processing /reconfigure command from user {telegram_id}")
+
+        # Check if onboarding wizard is available
+        if not ONBOARDING_WIZARD_AVAILABLE:
+            await update.message.reply_text(
+                "😔 Sorry! The reconfiguration wizard isn't available right now.\n\n"
+                "Try again later, or contact support!",
+                parse_mode="Markdown"
+            )
+            logger.error("OB-049: Onboarding wizard not available for reconfiguration")
+            return
+
+        # Get current configuration
+        config = self.onboarding_wizard.get_current_configuration()
+
+        # Format configuration display
+        config_display = self.onboarding_wizard.format_configuration_display(config)
+
+        # Get welcome message
+        welcome_text = self.onboarding_wizard.get_reconfigure_welcome_message()
+
+        # Combine welcome and current config
+        full_message = f"{welcome_text}\n\n{config_display}"
+
+        # Get menu keyboard
+        keyboard = self.onboarding_wizard.get_reconfigure_menu_keyboard()
+
+        # Send reconfigure message
+        await update.message.reply_text(
+            full_message,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        logger.info(f"OB-049: Sent reconfigure menu to user {telegram_id}")
+
     async def hacktest_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """SEC-031: Test the security breach storyline.
 
@@ -8313,6 +8406,193 @@ Then:
             )
             logger.info(f"OB-001: User {user_id} went back to welcome screen")
 
+    async def handle_reconfigure_callback(self, query, context, user_id: int, data: str):
+        """Handle reconfigure wizard button callbacks - OB-049.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'reconfig_api_keys', 'reconfig_history')
+        """
+        await query.answer()
+
+        logger.info(f"OB-049: Processing reconfigure callback: {data} for user {user_id}")
+
+        # Handle back to menu
+        if data == "reconfig_menu" or data == "reconfig_cancel":
+            # Show main reconfigure menu
+            config = self.onboarding_wizard.get_current_configuration()
+            config_display = self.onboarding_wizard.format_configuration_display(config)
+            welcome_text = self.onboarding_wizard.get_reconfigure_welcome_message()
+            full_message = f"{welcome_text}\n\n{config_display}"
+            keyboard = self.onboarding_wizard.get_reconfigure_menu_keyboard()
+
+            await query.edit_message_text(
+                full_message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed main menu to user {user_id}")
+
+        # Handle API keys submenu
+        elif data == "reconfig_api_keys":
+            message = "*Update API Keys* 🔑\n\nWhich API key would you like to update?"
+            keyboard = self.onboarding_wizard.get_api_keys_reconfigure_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed API keys menu to user {user_id}")
+
+        # Handle change history view
+        elif data == "reconfig_history":
+            history = self.onboarding_wizard.get_configuration_history(user_id)
+            message = self.onboarding_wizard.format_configuration_history(history)
+
+            # Add back button
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed config history to user {user_id}")
+
+        # Handle individual API key updates
+        elif data in ["reconfig_telegram_token", "reconfig_groq_key", "reconfig_claude_key", "reconfig_weather_key"]:
+            # Map callback data to env variable names
+            setting_map = {
+                "reconfig_telegram_token": "TELEGRAM_BOT_TOKEN",
+                "reconfig_groq_key": "GROQ_API_KEY",
+                "reconfig_claude_key": "ANTHROPIC_API_KEY",
+                "reconfig_weather_key": "OPENWEATHER_API_KEY"
+            }
+            setting_name = setting_map[data]
+
+            # Get current value (masked)
+            current_value = "(not set)"
+            if self.onboarding_wizard.env_manager_available:
+                val = self.onboarding_wizard.env_manager.get_variable(setting_name)
+                if val:
+                    current_value = f"{'*' * (len(val) - 4)}{val[-4:]}" if len(val) > 4 else "****"
+
+            # Show warning for destructive changes
+            warning = self.onboarding_wizard.get_destructive_change_warning(setting_name, current_value)
+            keyboard = self.onboarding_wizard.get_destructive_change_keyboard(setting_name)
+
+            await query.edit_message_text(
+                warning,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed destructive change warning for {setting_name} to user {user_id}")
+
+        # Handle confirmation to proceed with change
+        elif data.startswith("reconfig_confirm_"):
+            setting_name = data.replace("reconfig_confirm_", "")
+
+            # Store in context that we're waiting for the new value
+            context.user_data["awaiting_reconfig"] = setting_name
+
+            message = f"""*Enter New Value* ✏️
+
+Please send me the new value for `{setting_name}`.
+
+**Ralph says:** "Type it carefully! Double-check before you send it!" 🤓
+
+*Send the new value as your next message:*"""
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown"
+            )
+            logger.info(f"OB-049: Waiting for new value for {setting_name} from user {user_id}")
+
+        # Handle admin settings
+        elif data == "reconfig_admin":
+            message = """*Update Admin Settings* 👤
+
+Coming soon! Ralph is still learning how to change admin stuff.
+
+For now, you can manually edit your `.env` file to update:
+• `TELEGRAM_OWNER_ID`
+• `TELEGRAM_ADMIN_ID`
+
+*Ralph says:* "I'm not smart enough for this yet!" 🤪"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed admin settings placeholder to user {user_id}")
+
+        # Handle SSH key update
+        elif data == "reconfig_ssh":
+            message = """*Update SSH Key* 🔐
+
+To update your SSH key:
+
+1. Generate a new key:
+   `ssh-keygen -t ed25519 -C "your_email@example.com"`
+
+2. Add it to GitHub:
+   https://github.com/settings/keys
+
+3. Run setup verification:
+   /setup
+
+*Ralph says:* "SSH keys are tricky! Be careful!" 🔑"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed SSH key update instructions to user {user_id}")
+
+        # Handle Git config update
+        elif data == "reconfig_git":
+            message = """*Update Git Configuration* 📝
+
+To update your Git config:
+
+1. Set your name:
+   `git config --global user.name "Your Name"`
+
+2. Set your email:
+   `git config --global user.email "you@example.com"`
+
+3. Verify:
+   `git config --list`
+
+*Ralph says:* "Git remembers who you are with this!" 📝"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back to Menu", callback_data="reconfig_menu")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-049: Showed Git config update instructions to user {user_id}")
+
     async def handle_troubleshooting_callback(self, query, context, user_id: int, data: str):
         """Handle troubleshooting guide button callbacks.
 
@@ -8452,6 +8732,7 @@ Then:
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
+        app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
         app.add_handler(CommandHandler("hacktest", self.hacktest_command))  # SEC-031
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
