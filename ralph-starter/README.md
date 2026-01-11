@@ -54,6 +54,7 @@ python ralph_bot.py
 | 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
+| 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |
