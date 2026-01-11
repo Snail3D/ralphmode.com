@@ -15731,3 +15731,50 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 16:00 UTC
+**Task**: [BM-006] Confusion-Driven Questions
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_confusion_question() method to RalphNarrator class in ralph_personality.py
+- Created 60 genuine questions across 4 context types:
+  - **Technical** (15 questions): For understanding technical jargon and computor words
+  - **Instruction** (15 questions): For clarifying process steps and procedures
+  - **Concept** (15 questions): For grasping why/how things work conceptually
+  - **General** (20 questions): Versatile confusion expressions for any situation
+- Questions feel authentic and non-rhetorical - Ralph genuinely wants to understand
+- Lower misspelling rate (25% vs 30%) to keep questions clear and readable
+- Context parameter allows caller to specify type of confusion for better matching
+- Designed for real confusion moments, not comedy beats (though still in character)
+
+### Files changed
+- ralph_personality.py (lines 484-575)
+
+### Learnings
+- Confusion questions need to feel genuine, not performative
+- Different contexts need different types of questions (technical vs conceptual)
+- Lower misspelling rate for questions helps maintain clarity
+- Ralph can be confused without being frustrating to interact with
+- Questions should invite explanation, not just express confusion
+- Balance between "Ralph is simple" and "Ralph genuinely wants to learn"
+
+### Integration notes
+- Can be triggered when user uses complex technical terms
+- Useful when Ralph receives vague or ambiguous instructions
+- Could integrate with PRD discovery to ask clarifying questions
+- Works well with explanation systems (workers could answer Ralph's questions)
+- Future: Detect when user's message is too complex and auto-trigger
+- Could be combined with get_apology() when Ralph asks too many questions
+- Method signature follows pattern of other context-aware methods
+
+### Design choices
+- Technical context focuses on vocabulary and definitions
+- Instruction context emphasizes process and steps
+- Concept context explores understanding and mental models
+- General context provides fallback for any confusion
+- Questions range from simple ("Huh?") to specific ("What's step 2?")
+- Each category has enough variety to avoid repetition
+
+---
+
