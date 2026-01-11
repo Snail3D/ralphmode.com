@@ -1061,6 +1061,199 @@ class RalphNarrator:
         return RalphNarrator.misspell(random.choice(jokes), chance=0.3)
 
     @staticmethod
+    def get_oh_i_remember_moment(context: str = None) -> str:
+        """Get Ralph's eureka moment when context clicks.
+
+        BM-004: After the user reminds Ralph what they were working on, Ralph has
+        an "OH!" moment where it all comes flooding back. These are joyful, excited
+        realizations - genuine eureka moments that show Ralph remembering.
+
+        Args:
+            context: Optional context about what was being worked on (e.g., "the login page")
+
+        Returns:
+            Ralph's excited memory-clicking moment
+        """
+        moments = [
+            # Pure excitement
+            "OH! Now Ralph remembers! It all coming back!",
+            "YES! Me brain unlocked! Ralph remembers everything now!",
+            "OHHH! That's right! How could Ralph forget!",
+            "AH! Now me sees it! Clear as day!",
+            "OH YEAH! Ralph's memory just exploded with remembering!",
+
+            # Details flooding back
+            "OH! We were working on the thing! Ralph remembers now!",
+            "YES YES! Me remember! The code! The files! All of it!",
+            "OHHH! Ralph's brain downloaded all the memories!",
+            "OH! Now Ralph can see it! Like movie in me head!",
+            "AH! Me remember where we left off! Right there!",
+
+            # Excited realization
+            "OH WOW! Ralph totally remembers now! How exciting!",
+            "YES! Me brain clicked! Everything makes sense!",
+            "OHHH! Ralph feels so much better! Memory is back!",
+            "OH! Me head just lit up like Christmas tree!",
+            "AH AH AH! Ralph remembers! Happy memories!",
+
+            # Apologetic but excited
+            "OH! Sorry Ralph forgot! But now me remembers perfectly!",
+            "YES! Me feel silly for forgetting! But it's all here now!",
+            "OHHH! Ralph should have remembered! It's so obvious!",
+            "OH! Me embarrassed Ralph forgot THAT! But me got it now!",
+            "AH! Ralph remembers! And feels bad for forgetting!",
+
+            # Grateful for reminder
+            "OH! Thank you for reminding Ralph! Me sees it now!",
+            "YES! You jogged Ralph's memory! It all came back!",
+            "OHHH! That reminder unlocked everything! Ralph grateful!",
+            "OH! You said magic words! Ralph remembers now!",
+            "AH! Your words opened Ralph's brain! Me remembers!",
+
+            # Physical reactions
+            "OH! Ralph's brain went DING! Like microwave!",
+            "YES! Me felt click in head! Memory activated!",
+            "OHHH! Light bulb turned on above Ralph's head!",
+            "OH! Ralph's neurons fired! Spark! Memory back!",
+            "AH! Me brain went BZZZZT! In good way!",
+
+            # Progressive realization
+            "OH! Ralph starting to remember... YES! All of it!",
+            "Me brain warming up... OHHH! There it is!",
+            "OH! Little bit... more... YES! Full memory!",
+            "Ralph getting it... getting it... GOT IT! Me remembers!",
+            "OH! Fuzzy... less fuzzy... CLEAR! Ralph sees it now!",
+
+            # Specific details coming back
+            "OH! The files! The code! The bug! Ralph remembers!",
+            "YES! We were fixing that thing! Me sees it!",
+            "OHHH! Ralph remembers our conversation! Every word!",
+            "OH! Me recall what you told Ralph! Makes sense now!",
+            "AH! Ralph remembers the plan! The whole plan!",
+
+            # Immediate readiness
+            "OH! Now Ralph ready to continue! Me knows what to do!",
+            "YES! Memory back means Ralph can work now!",
+            "OHHH! Me remembers so Ralph can help properly!",
+            "OH! Now Ralph understands the mission! Ready to go!",
+            "AH! Me got context! Can proceed now!",
+
+            # Happy relief
+            "OH! Ralph so relieved memory came back!",
+            "YES! Me was worried but now remembers! Phew!",
+            "OHHH! Ralph feel so much better now!",
+            "OH! Me head feels lighter! Memory restored!",
+            "AH! Ralph's stress gone! Remembering fixed it!",
+
+            # Vivid imagery
+            "OH! Ralph can see it like yesterday! So clear!",
+            "YES! Me remember like it happening right now!",
+            "OHHH! Ralph's memory playing like video! HD quality!",
+            "OH! Me can picture exactly where we were!",
+            "AH! Ralph sees it all! Perfect clarity!",
+
+            # Enthusiastic detail recall
+            "OH! We did the thing, then the other thing! Ralph remembers!",
+            "YES! Me recall step by step! All steps!",
+            "OHHH! Ralph remembers beginning, middle, AND end!",
+            "OH! Me brain reconstructed whole timeline!",
+            "AH! Ralph knows exactly what happened! Full story!",
+
+            # Self-aware joy
+            "OH! Ralph's brain decided to work! Finally!",
+            "YES! Me memory came online! System restored!",
+            "OHHH! Ralph's remember function activated!",
+            "OH! Me brain's save file loaded!",
+            "AH! Ralph's memory cache refreshed!",
+
+            # Confident recall
+            "OH! Ralph DEFINITELY remembers now! 100%!",
+            "YES! Me absolutely certain! Full memory!",
+            "OHHH! Ralph knows this for sure! No doubt!",
+            "OH! Me completely remembers! Crystal clear!",
+            "AH! Ralph confident in memory! Got it all!",
+
+            # Team context
+            "OH! Ralph remembers what workers were doing too!",
+            "YES! Me recall whole team's progress!",
+            "OHHH! Ralph remembers everyone's parts!",
+            "OH! Me sees full picture! Everyone's work!",
+            "AH! Ralph knows what team accomplished!",
+
+            # Technical confidence
+            "OH! Ralph remembers the code structure!",
+            "YES! Me recall the architecture! Makes sense!",
+            "OHHH! Ralph sees how it all connects!",
+            "OH! Me understands the system now!",
+            "AH! Ralph's got the technical context!",
+
+            # Timeline awareness
+            "OH! We were just working on this! Ralph remembers timing!",
+            "YES! Me recall when we started! And where we got!",
+            "OHHH! Ralph knows how long ago! And what's left!",
+            "OH! Me remember the deadline! Everything!",
+            "AH! Ralph got temporal context! Time makes sense!",
+
+            # Emotional connection
+            "OH! Ralph remembers being excited about this!",
+            "YES! Me recall feeling good about progress!",
+            "OHHH! Ralph remembers we were happy!",
+            "OH! Me felt proud! Ralph remembers emotion!",
+            "AH! Ralph recalls positive vibes!",
+
+            # Problem-solution recall
+            "OH! We were solving THAT problem! Ralph remembers!",
+            "YES! Me recall the challenge! And our approach!",
+            "OHHH! Ralph remembers what was broken!",
+            "OH! Me knows what we were fixing!",
+            "AH! Ralph got the problem space!",
+
+            # User-specific recall
+            "OH! Ralph remembers what YOU said! Your exact words!",
+            "YES! Me recall your instructions! Perfectly!",
+            "OHHH! Ralph remembers your requirements!",
+            "OH! Me knows what you wanted! All of it!",
+            "AH! Ralph remembers your vision!",
+
+            # Priority recall
+            "OH! This was important! Ralph remembers priority!",
+            "YES! Me recall this was urgent! Makes sense!",
+            "OHHH! Ralph remembers why this mattered!",
+            "OH! Me knows the stakes! Full context!",
+            "AH! Ralph remembers significance!",
+
+            # Next steps clarity
+            "OH! Ralph remembers what comes next!",
+            "YES! Me know what to do now! Next steps clear!",
+            "OHHH! Ralph sees the path forward!",
+            "OH! Me understands next actions!",
+            "AH! Ralph knows how to continue!",
+
+            # Full context restoration
+            "OH! Everything makes sense now! Ralph has full context!",
+            "YES! Me brain fully loaded! All context!",
+            "OHHH! Ralph operating at full capacity! Remembering!",
+            "OH! Me got complete picture! Nothing missing!",
+            "AH! Ralph's context window: maximum!",
+
+            # Excited continuation
+            "OH! Now Ralph can actually help! Properly!",
+            "YES! Me ready to pick up where left off!",
+            "OHHH! Ralph eager to continue now!",
+            "OH! Me can be useful now! With memory!",
+            "AH! Ralph prepared to resume!",
+
+            # With specific context formatting
+            f"OH! {context if context else 'That thing'}! Ralph totally remembers!",
+            f"YES! {context if context else 'The project'}! Me got it!",
+            f"OHHH! {context if context else 'What we were doing'}! Clear now!",
+            f"OH! {context if context else 'Our work'}! Ralph sees it!",
+            f"AH! {context if context else 'Everything'}! Me remembers!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(moments), chance=0.25)
+
+    @staticmethod
     def get_memory_trigger(trigger_word: str = None) -> str:
         """Get Ralph's memory being jogged mid-task by something.
 
