@@ -8102,19 +8102,51 @@ Use `/version <type>` to switch!
             logger.info(f"OB-001: User {user_id} selected guided setup")
 
         elif data == "setup_quick":
+            # OB-033: Quick Setup Mode
             state = self.onboarding_wizard.set_setup_type(state, self.onboarding_wizard.SETUP_QUICK)
             state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_SETUP_TYPE)
             self.onboarding_state[user_id] = state
 
-            overview_text = self.onboarding_wizard.get_setup_overview(self.onboarding_wizard.SETUP_QUICK)
-            overview_keyboard = self.onboarding_wizard.get_overview_keyboard()
+            # Detect existing configuration
+            config_status = self.onboarding_wizard.detect_existing_config()
 
-            await query.edit_message_text(
-                overview_text,
-                parse_mode="Markdown",
-                reply_markup=overview_keyboard
-            )
-            logger.info(f"OB-001: User {user_id} selected quick setup")
+            # Get checklist showing what's needed
+            checklist = self.onboarding_wizard.get_quick_setup_checklist(config_status)
+
+            # Get next step or complete message
+            next_step = self.onboarding_wizard.get_next_quick_setup_step(config_status)
+
+            if next_step:
+                # Show checklist and start first missing step
+                message = f"{checklist}\n\n*Starting quick setup...*"
+                await query.edit_message_text(message, parse_mode="Markdown")
+
+                # Small delay for better UX
+                import asyncio
+                await asyncio.sleep(1)
+
+                # Get prompt for next step
+                step_message, step_keyboard = self.onboarding_wizard.get_quick_setup_prompt(next_step)
+
+                # Store current step in state
+                state["current_quick_step"] = next_step
+                self.onboarding_state[user_id] = state
+
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=step_message,
+                    parse_mode="Markdown",
+                    reply_markup=step_keyboard
+                )
+                logger.info(f"OB-033: User {user_id} started quick setup - step: {next_step}")
+            else:
+                # Everything is already configured!
+                complete_message = self.onboarding_wizard.get_quick_setup_complete_message()
+                await query.edit_message_text(
+                    f"{checklist}\n\n{complete_message}",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"OB-033: User {user_id} quick setup already complete!")
 
         elif data == "setup_continue":
             # User clicked "Let's Go!" button - move to next step (SSH key generation)
@@ -8126,6 +8158,94 @@ Use `/version <type>` to switch!
                 parse_mode="Markdown"
             )
             logger.info(f"OB-001: User {user_id} ready to continue (waiting for OB-002)")
+
+        # OB-033: Quick Setup handlers
+        elif data == "quick_continue":
+            # Move to next step in quick setup
+            config_status = self.onboarding_wizard.detect_existing_config()
+            next_step = self.onboarding_wizard.get_next_quick_setup_step(config_status)
+
+            if next_step:
+                step_message, step_keyboard = self.onboarding_wizard.get_quick_setup_prompt(next_step)
+                state["current_quick_step"] = next_step
+                self.onboarding_state[user_id] = state
+
+                await query.edit_message_text(
+                    step_message,
+                    parse_mode="Markdown",
+                    reply_markup=step_keyboard
+                )
+                logger.info(f"OB-033: User {user_id} continuing quick setup - step: {next_step}")
+            else:
+                # Setup complete!
+                complete_message = self.onboarding_wizard.get_quick_setup_complete_message()
+                await query.edit_message_text(complete_message, parse_mode="Markdown")
+                logger.info(f"OB-033: User {user_id} completed quick setup!")
+
+        elif data.startswith("quick_skip_"):
+            # Skip current step and move to next
+            await query.answer("Skipping this step...")
+            config_status = self.onboarding_wizard.detect_existing_config()
+            next_step = self.onboarding_wizard.get_next_quick_setup_step(config_status)
+
+            if next_step:
+                step_message, step_keyboard = self.onboarding_wizard.get_quick_setup_prompt(next_step)
+                state["current_quick_step"] = next_step
+                self.onboarding_state[user_id] = state
+
+                await query.edit_message_text(
+                    step_message,
+                    parse_mode="Markdown",
+                    reply_markup=step_keyboard
+                )
+                logger.info(f"OB-033: User {user_id} skipped step, moving to: {next_step}")
+            else:
+                # Setup complete!
+                complete_message = self.onboarding_wizard.get_quick_setup_complete_message()
+                await query.edit_message_text(complete_message, parse_mode="Markdown")
+                logger.info(f"OB-033: User {user_id} finished quick setup (with skips)")
+
+        elif data.startswith("quick_help_"):
+            # Show help for specific step
+            help_topic = data.replace("quick_help_", "")
+
+            if help_topic == "ssh":
+                help_text = """*How to Find Your SSH Key* 🔑
+
+**Check if you have one:**
+`ls ~/.ssh/id_ed25519.pub`
+
+If file exists:
+`cat ~/.ssh/id_ed25519.pub`
+Copy the output!
+
+**If no key exists, generate:**
+`ssh-keygen -t ed25519 -C "your@email.com"`
+Press Enter 3 times (accept defaults)
+
+Then:
+`cat ~/.ssh/id_ed25519.pub`
+
+**Add to GitHub:**
+1. Go to github.com/settings/keys
+2. Click "New SSH key"
+3. Paste the key
+4. Click "Add SSH key"
+
+*Reply with your public key when ready!*"""
+
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("◀️ Back", callback_data="quick_continue")]
+                ])
+
+                await query.edit_message_text(
+                    help_text,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+                logger.info(f"OB-033: User {user_id} viewed SSH help")
+            else:
+                await query.answer("Help not available for this topic")
 
         elif data == "setup_back_welcome":
             # User clicked back button - go back to welcome screen

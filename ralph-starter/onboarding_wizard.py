@@ -4715,6 +4715,247 @@ The value is in: `.env` (this file NEVER goes to GitHub!)
             self.logger.error(f"Failed to ensure .env safety: {e}")
             return False, f"Error: {str(e)}"
 
+    def detect_existing_config(self) -> Dict[str, bool]:
+        """Detect what's already configured for quick setup.
+
+        Returns:
+            Dictionary of configuration items and their status
+        """
+        config_status = {
+            "python": False,
+            "git": False,
+            "git_config": False,
+            "ssh_key": False,
+            "env_file": False,
+            "telegram_token": False,
+            "groq_api_key": False,
+            "admin_id": False,
+        }
+
+        if not self.verifier_available:
+            return config_status
+
+        # Run verification to check existing config
+        results = self.verifier.verify_all(include_optional=False)
+
+        # Map verifier results to config status
+        for check in results.get("checks", []):
+            name = check.get("name", "")
+            status = check.get("status", "")
+
+            if name == "Python Version" and status == "✅":
+                config_status["python"] = True
+            elif name == "Git Installation" and status == "✅":
+                config_status["git"] = True
+            elif name == "Git Configuration" and status == "✅":
+                config_status["git_config"] = True
+            elif name == "SSH Key" and status == "✅":
+                config_status["ssh_key"] = True
+            elif name == "Environment File" and status == "✅":
+                config_status["env_file"] = True
+            elif name == "Telegram Bot Token" and status == "✅":
+                config_status["telegram_token"] = True
+            elif name == "Groq API Key" and status == "✅":
+                config_status["groq_api_key"] = True
+            elif name == "Telegram Admin ID" and status == "✅":
+                config_status["admin_id"] = True
+
+        return config_status
+
+    def get_quick_setup_checklist(self, config_status: Dict[str, bool]) -> str:
+        """Generate quick setup checklist based on what's missing.
+
+        Args:
+            config_status: Dictionary of config items and their status
+
+        Returns:
+            Formatted checklist message
+        """
+        checklist = "*Quick Setup Checklist* ⚡\n\n"
+
+        # Count what's done
+        total = len(config_status)
+        done = sum(1 for v in config_status.values() if v)
+
+        checklist += f"*Progress: {done}/{total} configured*\n\n"
+
+        # Show what's needed
+        if not config_status["ssh_key"]:
+            checklist += "❌ SSH key for GitHub\n"
+        else:
+            checklist += "✅ SSH key for GitHub\n"
+
+        if not config_status["telegram_token"]:
+            checklist += "❌ Telegram bot token\n"
+        else:
+            checklist += "✅ Telegram bot token\n"
+
+        if not config_status["groq_api_key"]:
+            checklist += "❌ Groq API key\n"
+        else:
+            checklist += "✅ Groq API key\n"
+
+        if not config_status["admin_id"]:
+            checklist += "❌ Telegram admin ID\n"
+        else:
+            checklist += "✅ Telegram admin ID\n"
+
+        # Optional items
+        if not config_status["git_config"]:
+            checklist += "⚠️ Git user config (optional but recommended)\n"
+
+        return checklist
+
+    def get_next_quick_setup_step(self, config_status: Dict[str, bool]) -> Optional[str]:
+        """Determine the next step needed in quick setup.
+
+        Args:
+            config_status: Dictionary of config items and their status
+
+        Returns:
+            Next step identifier, or None if setup is complete
+        """
+        # Check in order of importance
+        if not config_status["ssh_key"]:
+            return "ssh_key"
+        elif not config_status["telegram_token"]:
+            return "telegram_token"
+        elif not config_status["groq_api_key"]:
+            return "groq_api_key"
+        elif not config_status["admin_id"]:
+            return "admin_id"
+        elif not config_status["git_config"]:
+            return "git_config"
+
+        return None  # All done!
+
+    def get_quick_setup_prompt(self, step: str) -> Tuple[str, InlineKeyboardMarkup]:
+        """Get minimal prompt for a quick setup step.
+
+        Args:
+            step: The setup step identifier
+
+        Returns:
+            Tuple of (message, keyboard)
+        """
+        if step == "ssh_key":
+            message = """*SSH Key Setup* 🔑
+
+Ralph needs your SSH key for GitHub!
+
+**Already have one?**
+`cat ~/.ssh/id_ed25519.pub`
+
+**Need to generate?**
+`ssh-keygen -t ed25519 -C "your@email.com"`
+
+*Reply with your public key when ready!*"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📋 How to find my key?", callback_data="quick_help_ssh")],
+                [InlineKeyboardButton("⏭️ Skip for now", callback_data="quick_skip_ssh")]
+            ])
+
+        elif step == "telegram_token":
+            message = """*Telegram Bot Token* 🤖
+
+Ralph needs your bot token!
+
+**Get it from:**
+1. Message @BotFather on Telegram
+2. Use /newbot or /token
+3. Copy the token
+
+*Reply with token:*
+`1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("💬 Open @BotFather", url="https://t.me/BotFather")],
+                [InlineKeyboardButton("⏭️ Skip for now", callback_data="quick_skip_telegram")]
+            ])
+
+        elif step == "groq_api_key":
+            message = """*Groq API Key* ⚡
+
+Ralph needs Groq for AI magic!
+
+**Get it from:**
+https://console.groq.com/keys
+
+*Reply with your API key:*
+`gsk_...`"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔑 Get Groq Key", url="https://console.groq.com/keys")],
+                [InlineKeyboardButton("⏭️ Skip for now", callback_data="quick_skip_groq")]
+            ])
+
+        elif step == "admin_id":
+            message = """*Telegram Admin ID* 👤
+
+Ralph needs to know who the boss is!
+
+**Get your ID:**
+Message @userinfobot on Telegram
+
+*Reply with your numeric ID:*
+`123456789`"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🤖 Open @userinfobot", url="https://t.me/userinfobot")],
+                [InlineKeyboardButton("⏭️ Skip for now", callback_data="quick_skip_admin")]
+            ])
+
+        elif step == "git_config":
+            message = """*Git Configuration* 🔧
+
+Ralph recommends setting your Git identity!
+
+**Commands:**
+`git config --global user.name "Your Name"`
+`git config --global user.email "you@example.com"`
+
+*Press Continue when done!*"""
+
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Done", callback_data="quick_continue")],
+                [InlineKeyboardButton("⏭️ Skip", callback_data="quick_skip_git")]
+            ])
+
+        else:
+            message = "Unknown step!"
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back", callback_data="setup_quick")]
+            ])
+
+        return message, keyboard
+
+    def get_quick_setup_complete_message(self) -> str:
+        """Get completion message for quick setup.
+
+        Returns:
+            Completion message
+        """
+        return """*Quick Setup Complete!* 🎉⚡
+
+Ralph got everything configured!
+
+**What's ready:**
+✅ SSH key for GitHub
+✅ Telegram bot token
+✅ Groq API key
+✅ Admin permissions
+
+**Ready to roll!**
+Your bot is ready to start working!
+
+*Start using Ralph:*
+/start - Wake up the team
+/help - See what Ralph can do
+/status - Check the bot status
+
+Ralph mode: ACTIVATED! 🚀"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.
