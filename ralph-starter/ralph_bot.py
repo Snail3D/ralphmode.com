@@ -1249,6 +1249,10 @@ class RalphBot:
         self.last_wisdom_moment: Dict[int, datetime] = {}  # Track when last wisdom was dropped
         self.wisdom_cooldown = 1800  # 30 minutes between wisdom moments (not constant)
 
+        # SG-013: Workload Awareness - Track when last workload comment was made
+        self.last_workload_comment: Dict[int, datetime] = {}  # Track when last workload comment happened
+        self.workload_comment_cooldown = 900  # 15 minutes between workload comments (natural, not constant)
+
         # SG-006: Graceful Immersion Breaks - Track health concerns for gentle intervention
         self.last_immersion_break: Dict[int, datetime] = {}  # Track when last immersion break happened
         self.immersion_break_cooldown = 3600  # 60 minutes between immersion breaks
@@ -1367,6 +1371,99 @@ class RalphBot:
         """
         session = self.active_sessions.get(user_id, {})
         return session.get('team_mood', 70)  # Default to 70 (slightly upbeat)
+
+    def get_prd_workload_stats(self) -> Dict[str, Any]:
+        """SG-013: Get workload statistics from PRD.
+
+        Returns:
+            Dict with total, completed, remaining, progress_percent
+        """
+        try:
+            prd_path = "scripts/ralph/prd.json"
+            with open(prd_path, 'r') as f:
+                data = json.load(f)
+
+            tasks = data.get('tasks', [])
+            total = len(tasks)
+            completed = sum(1 for t in tasks if t.get('passes', False))
+            remaining = total - completed
+            progress = (completed / total * 100) if total > 0 else 0
+
+            return {
+                'total': total,
+                'completed': completed,
+                'remaining': remaining,
+                'progress_percent': progress
+            }
+        except Exception as e:
+            logging.warning(f"SG-013: Could not load PRD workload stats: {e}")
+            return {
+                'total': 0,
+                'completed': 0,
+                'remaining': 0,
+                'progress_percent': 0
+            }
+
+    def get_workload_awareness_prompt(self, user_id: int = None) -> str:
+        """SG-013: Get workload awareness context for workers.
+
+        Workers know how many tasks are left and can reference it naturally.
+        Not robotic - real team energy about the workload.
+
+        Args:
+            user_id: Optional user ID for tracking when to mention workload
+
+        Returns:
+            Formatted workload context string
+        """
+        stats = self.get_prd_workload_stats()
+
+        if stats['total'] == 0:
+            return ""
+
+        remaining = stats['remaining']
+        progress = stats['progress_percent']
+
+        # Determine workload phase
+        if progress >= 90:
+            phase = "final_stretch"
+            energy = "HIGH - Almost done!"
+        elif progress >= 75:
+            phase = "home_stretch"
+            energy = "ELEVATED - Can see the finish line!"
+        elif progress >= 50:
+            phase = "past_halfway"
+            energy = "GOOD - Downhill from here!"
+        elif progress >= 25:
+            phase = "mid_grind"
+            energy = "STEADY - Chipping away at it"
+        else:
+            phase = "early_session"
+            energy = "FOCUSED - Long day ahead"
+
+        # Build the prompt
+        prompt = f"""
+📊 WORKLOAD AWARENESS (SG-013):
+Tasks remaining: {remaining} out of {stats['total']} ({progress:.0f}% complete)
+Current phase: {phase.replace('_', ' ').upper()}
+Team energy about workload: {energy}
+
+NATURAL REFERENCES (Examples only - generate fresh):
+- Early session: "Man, {remaining} more? Gonna be a long day."
+- Mid-session: "We're past halfway! Downhill from here."
+- Near end: "{remaining} LEFT. I can TASTE it!"
+- Character-specific:
+  * Gus: "I've pulled longer shifts. We got this."
+  * Stool: "Bruh, we're crushing it."
+  * Mona: "Statistically, we should finish by..."
+
+IMPORTANT:
+- DON'T mention workload in EVERY message - that's robotic
+- DO reference it naturally during idle chatter/between tasks
+- Creates excitement as finish line approaches
+- Real team energy, not status updates"""
+
+        return prompt
 
     def adjust_mood(self, user_id: int, delta: int, reason: str = None):
         """Adjust team mood by a delta amount.
@@ -4941,6 +5038,93 @@ _{ralph_response}_
 
         return hero
 
+    def _generate_workload_awareness_messages(self, user_id: int) -> List[Tuple[str, str]]:
+        """SG-013: Generate workload awareness messages for idle chatter.
+
+        Workers naturally reference how many tasks are left and team energy about it.
+        Not robotic - real team chatter about the grind.
+
+        Returns:
+            List of (speaker, message) tuples with workload references
+        """
+        # Check cooldown - don't generate too frequently
+        now = datetime.now()
+        last_comment = self.last_workload_comment.get(user_id)
+        if last_comment:
+            time_since = (now - last_comment).total_seconds()
+            if time_since < self.workload_comment_cooldown:
+                return []
+
+        # Random chance (15% per idle chatter session)
+        if random.random() > 0.15:
+            return []
+
+        stats = self.get_prd_workload_stats()
+        if stats['total'] == 0:
+            return []
+
+        remaining = stats['remaining']
+        progress = stats['progress_percent']
+
+        messages = []
+
+        # Generate fresh, natural messages based on workload phase
+        if progress >= 90:
+            # Final stretch - high energy
+            templates = [
+                ("Stool", f"{remaining} LEFT. I can literally TASTE it!"),
+                ("Gomer", f"Mmm... just {remaining} more and we're done. So close!"),
+                ("Mona", f"We're at {progress:.0f}%. Statistically speaking, we're crushing this."),
+                ("Gus", f"{remaining} tasks to go. I've seen tighter finishes. We got this."),
+                ("Stool", f"Bruh, {remaining} more? That's NOTHING. We're basically done."),
+                ("Gomer", f"D'oh! Just {remaining} tasks left? This is the home stretch!"),
+            ]
+        elif progress >= 75:
+            # Home stretch
+            templates = [
+                ("Stool", f"We're past 75%! Downhill from here, folks."),
+                ("Mona", f"Three quarters through. {remaining} remaining."),
+                ("Gus", f"Home stretch. Don't get sloppy now - {remaining} to go."),
+                ("Gomer", f"Mmm, {remaining} left. I can see the finish line!"),
+                ("Stool", f"{remaining} more tasks. We're CRUSHING it today."),
+            ]
+        elif progress >= 50:
+            # Past halfway
+            templates = [
+                ("Stool", f"Halfway there! {remaining} to go, bruh."),
+                ("Gomer", f"We're past halfway! That's... that's good, right?"),
+                ("Mona", f"Statistically, we should finish by... well, eventually. {remaining} left."),
+                ("Gus", f"Halfway mark. {remaining} more. I've pulled longer shifts."),
+                ("Stool", f"Yo, {remaining} more? Downhill from here."),
+            ]
+        elif progress >= 25:
+            # Mid grind
+            templates = [
+                ("Gus", f"{remaining} tasks to go. Steady progress. Keep at it."),
+                ("Mona", f"We're making progress. {remaining} remaining out of {stats['total']}."),
+                ("Stool", f"Still got {remaining} left, but we're chipping away at it."),
+                ("Gomer", f"D'oh... {remaining} more? Gonna be a while."),
+            ]
+        else:
+            # Early session - long day ahead
+            templates = [
+                ("Stool", f"Man, {remaining} more? Gonna be a long day."),
+                ("Gomer", f"Mmm... {remaining} tasks? That's... that's a lot."),
+                ("Gus", f"{remaining} tasks left. I've pulled longer shifts. We got this."),
+                ("Mona", f"{remaining} remaining. At current pace, we'll be here a while."),
+                ("Stool", f"{remaining} tasks to go. Better buckle up, bruh."),
+            ]
+
+        # Pick 1-2 messages randomly
+        num_messages = random.randint(1, 2)
+        selected = random.sample(templates, min(num_messages, len(templates)))
+        messages.extend(selected)
+
+        # Update cooldown
+        self.last_workload_comment[user_id] = now
+
+        return messages
+
     def _generate_codebase_exploration_quotes(self, session: Dict[str, Any]) -> List[Tuple[str, str]]:
         """RM-054: Generate codebase-specific exploration discussions based on actual analysis.
 
@@ -5445,6 +5629,13 @@ _{ralph_response}_
 
             # RM-054: Combine generic quotes with codebase-specific exploration quotes
             available_quotes = self.CODEBASE_LEARNING_QUOTES.copy()
+
+            # SG-013: Add workload awareness messages (15% chance, cooldown respected)
+            workload_quotes = self._generate_workload_awareness_messages(user_id)
+            if workload_quotes:
+                # Mix in workload messages naturally (not too frequent)
+                for quote in workload_quotes:
+                    available_quotes.insert(random.randint(0, len(available_quotes)), quote)
 
             # Generate codebase-specific quotes if analysis exists
             specific_quotes = self._generate_codebase_exploration_quotes(session)
@@ -9912,6 +10103,9 @@ Show professionalism by making their vision work."""
         if user_id is not None:
             requirements_prompt = self.format_session_requirements_for_prompt(user_id)
 
+        # SG-013: Add workload awareness context
+        workload_prompt = self.get_workload_awareness_prompt(user_id)
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -9938,6 +10132,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {weather_prompt}
 {scene_prompt}
 {requirements_prompt}
+{workload_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""},
