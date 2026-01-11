@@ -13563,3 +13563,124 @@ This enables "caring AI" that understands user patterns and can respond appropri
 - This foundation supports all other features - it's the ethical bedrock
 
 ---
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [SG-012] Model Steering Research
+**Status**: ✅ Complete
+
+### Research Summary
+
+Conducted comprehensive research on model steering techniques for Groq and OpenAI APIs in 2026.
+
+### Key Findings
+
+#### Groq API Best Practices (2026)
+1. **System Prompt Structure**
+   - Use dedicated system/user/assistant roles for clear hierarchy
+   - Put CRITICAL instructions FIRST - models weight early tokens more heavily
+   - "Lead with the must-do" ensures important directives aren't overlooked
+
+2. **Writing Effective Instructions**
+   - Use specific constraints: "Return only JSON" or "less than 75 words"
+   - Show don't tell: One-line schema example beats paragraph of prose
+   - Use plain, specific verbs: "Summarize in one bullet per metric" vs vague "analyze"
+
+3. **Context Optimization**
+   - Only include what's needed for the desired response
+   - Large context increases latency and reduces accuracy
+   - Quality over quantity in prompts
+
+4. **Multi-Turn Conversations**
+   - Models can "forget" earlier tokens over many turns
+   - Re-send primer or summarize periodically for long sessions
+
+5. **Balancing Constraints**
+   - Heavy persona priming can hurt factual accuracy on analytical tasks
+   - Disable or slim down persona when precision matters
+
+6. **Security**
+   - Sanitize user input before embedding in prompts
+   - Avoid exposing internal system instructions
+
+7. **Prompt Caching (NEW in 2026)**
+   - Automatic caching of prefixes (system prompts, tools, few-shot examples)
+   - No code changes required, no additional fees
+   - Reduces costs and improves performance
+
+#### OpenAI System Prompt Security (2026)
+
+1. **Prompt Injection Reality**
+   - OpenAI admits: "Prompt injection, much like scams and social engineering on the web, is unlikely to ever be fully 'solved'"
+   - Agent mode expands security threat surface
+   - Complete "locking" of system prompts remains unsolved as of 2026
+
+2. **Recent Vulnerabilities**
+   - **ZombieAgent** (Jan 2026): Exploit using memory feature for attack persistence
+   - OpenAI blocked connectors + memory in same session as mitigation
+   - Researchers still finding bypass methods
+
+3. **Defense Approach**
+   - AI-powered attacker trained via reinforcement learning
+   - Simulates sophisticated, long-horizon attacks (tens to hundreds of steps)
+   - Adversarial training for defense models
+
+4. **The Hard Truth**
+   - No such thing as "immutable instructions" at system prompt level
+   - Defense is iterative, not absolute
+   - Security = layers + monitoring, not magic lock
+
+### Learnings Applied to Ralph
+
+1. **Critical Instructions First**
+   - We already do this! WORK_QUALITY_PRIORITY is first in all prompts
+   - ANTI_SYCOPHANCY and CORE_VALUES come early too
+
+2. **Specific Constraints**
+   - "RM-060: STRICT - Maximum 2 sentences. No exceptions." - good!
+   - Could add more specific format constraints where needed
+
+3. **Context Optimization**
+   - We use conditional prompts (mood, weather, etc.) - only add when available
+   - Good pattern: don't bloat every prompt with everything
+
+4. **Multi-Turn Memory**
+   - We use RM-010 freshness tracking to avoid repetition
+   - Could add periodic "primer re-injection" for very long sessions
+
+5. **Security**
+   - We already sanitize via BC-001 and SEC-029
+   - validate_llm_input() checks for prompt injection
+   - Good defense in depth
+
+6. **Prompt Caching Opportunity**
+   - Our system prompts (WORK_QUALITY_PRIORITY, CORE_VALUES, etc.) are perfect for caching
+   - Groq auto-caches prefixes - we get this for free!
+   - Could save significant costs on repeated sessions
+
+### Research Sources
+
+- [Prompt Basics - GroqDocs](https://console.groq.com/docs/prompting)
+- [Prompt Engineering Patterns Guide - GroqDocs](https://console.groq.com/docs/prompting/patterns)
+- [Introducing Prompt Caching on GroqCloud](https://groq.com/blog/introducing-prompt-caching-on-groqcloud)
+- [Continuously hardening ChatGPT Atlas against prompt injection attacks](https://openai.com/index/hardening-atlas-against-prompt-injection/)
+- [OpenAI patches déjà vu prompt injection vuln in ChatGPT](https://www.theregister.com/2026/01/08/openai_chatgpt_prompt_injection)
+- [OpenAI says prompt injections may never be fully solved](https://fortune.com/2025/12/23/openai-ai-browser-prompt-injections-cybersecurity-hackers/)
+
+### Key Patterns
+
+- **Lead with the must-do**: Critical instructions go first
+- **Show don't tell**: Examples > explanations
+- **Defense in depth**: Multiple security layers, not one magic bullet
+- **Prompt caching**: Free performance boost from Groq for consistent prefixes
+- **Accept reality**: Perfect prompt injection defense doesn't exist - iterate and monitor
+
+### Recommendations
+
+1. ✅ Keep WORK_QUALITY_PRIORITY first (already doing this)
+2. ✅ Use specific constraints like "STRICT - Maximum 2 sentences" (already doing this)
+3. ✅ Sanitize inputs (SEC-029 already does this)
+4. 🆕 Consider: Periodic primer re-injection for sessions >50 messages
+5. 🆕 Consider: Add explicit format examples where precision matters
+6. 🆕 Monitor: Groq prompt caching effectiveness (automatic, just measure)
+
+---
