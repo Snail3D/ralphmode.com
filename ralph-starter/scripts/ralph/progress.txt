@@ -15893,3 +15893,43 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 16:22 UTC
+**Task**: [BM-007] Clarification Loops
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_clarification_loop() method to RalphNarrator class
+- 80 clarification attempts to verify understanding across 15 categories
+- Different from BM-006 (confusion questions) - these show Ralph trying to confirm
+- Ralph rephrases what he heard to check if he got it right
+- Often slightly wrong but demonstrates genuine effort to understand
+- Categories cover all aspects of task clarification:
+  - What, when, where, who, why, how of the task
+  - Timing, priority, scope, method, dependencies
+  - Often includes binary choices ("this or that?")
+- 25% misspelling rate maintains readability during important confirmations
+- Designed for interactive dialogue, not one-way communication
+
+### Files changed
+- ralph_personality.py (lines 811-935)
+
+### Learnings
+- Clarification loops are essential for requirements gathering
+- Ralph can be unsure without being frustrating if he asks good questions
+- Binary choices ("now or later?") are easier than open-ended questions
+- Slightly wrong interpretations ("delete everything?") add humor while showing effort
+- Lower misspelling rate (25%) vs confusion (25%) vs summary (35%) shows importance
+- Specific technical checks (frontend/backend, TypeScript/JavaScript) feel authentic
+
+### Integration notes
+- Perfect for PRD discovery phase (PD-007: Dynamic Question Generation)
+- Can be triggered after user provides requirements
+- Works well in conversation flow after initial instructions
+- Could integrate with worker AI to have them help Ralph understand
+- Future: Track which clarifications lead to better task completion
+- Pairs well with get_confusion_question() for multi-turn understanding
+- Natural part of onboarding and requirement gathering
+
+---
+
