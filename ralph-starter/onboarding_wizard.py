@@ -81,6 +81,16 @@ class OnboardingWizard:
             self.env_manager_available = False
             self.logger.warning("Environment file manager not available")
 
+        # Import API key manager (OB-009)
+        try:
+            from api_key_manager import get_api_key_manager
+            self.api_key_manager = get_api_key_manager()
+            self.api_key_validation_available = True
+        except ImportError:
+            self.api_key_manager = None
+            self.api_key_validation_available = False
+            self.logger.warning("API key validation not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -1361,6 +1371,210 @@ Ralph helps you keep it safe! 🛡️
             [InlineKeyboardButton("📚 Security Reminder", callback_data="anthropic_security_reminder")],
             [InlineKeyboardButton("▶️ Continue Setup", callback_data="setup_continue_next")],
         ]
+        return InlineKeyboardMarkup(keyboard)
+
+    # OB-009: API Key Validation Service
+
+    async def test_anthropic_key(self, api_key: str) -> Tuple[bool, str]:
+        """Test if an Anthropic API key works by making a real API call.
+
+        Args:
+            api_key: The API key to test
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.api_key_validation_available or not self.api_key_manager:
+            return False, "⚠️ API key testing not available (missing api_key_manager module)"
+
+        # First validate format
+        is_valid, error_msg = self.api_key_manager.validate_anthropic_key(api_key)
+        if not is_valid:
+            return False, f"❌ Invalid format: {error_msg}"
+
+        # Then test with real API call
+        self.logger.info("Testing Anthropic API key...")
+        success, message = self.api_key_manager.test_anthropic_key(api_key)
+
+        return success, message
+
+    async def test_telegram_token(self, token: str) -> Tuple[bool, str]:
+        """Test if a Telegram bot token works by making a real API call.
+
+        Args:
+            token: The bot token to test
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.api_key_validation_available or not self.api_key_manager:
+            return False, "⚠️ Token testing not available (missing api_key_manager module)"
+
+        # First validate format
+        is_valid, error_msg = self.api_key_manager.validate_telegram_token(token)
+        if not is_valid:
+            return False, f"❌ Invalid format: {error_msg}"
+
+        # Then test with real API call
+        self.logger.info("Testing Telegram bot token...")
+        success, message = self.api_key_manager.test_telegram_token(token)
+
+        return success, message
+
+    async def test_groq_key(self, api_key: str) -> Tuple[bool, str]:
+        """Test if a Groq API key works by making a real API call.
+
+        Args:
+            api_key: The API key to test
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.api_key_validation_available or not self.api_key_manager:
+            return False, "⚠️ API key testing not available (missing api_key_manager module)"
+
+        # First validate format
+        is_valid, error_msg = self.api_key_manager.validate_groq_key(api_key)
+        if not is_valid:
+            return False, f"❌ Invalid format: {error_msg}"
+
+        # Then test with real API call
+        self.logger.info("Testing Groq API key...")
+        success, message = self.api_key_manager.test_groq_key(api_key)
+
+        return success, message
+
+    def get_api_test_progress_message(self, key_type: str) -> str:
+        """Get message shown while testing an API key.
+
+        Args:
+            key_type: Type of key being tested (anthropic, telegram, groq)
+
+        Returns:
+            Progress message
+        """
+        messages = {
+            "anthropic": """*Testing Anthropic API Key...* 🧪
+
+Ralph is making a tiny test request to Claude!
+
+This usually takes just a few seconds...
+
+⏳ *Please wait...*""",
+
+            "telegram": """*Testing Telegram Bot Token...* 🧪
+
+Ralph is trying to connect to your bot!
+
+This should be super quick...
+
+⏳ *Please wait...*""",
+
+            "groq": """*Testing Groq API Key...* 🧪
+
+Ralph is making a quick test call to Groq!
+
+Should only take a moment...
+
+⏳ *Please wait...*"""
+        }
+
+        return messages.get(key_type, "*Testing your key...* 🧪\n\n⏳ *Please wait...*")
+
+    def get_api_test_result_message(self, success: bool, key_type: str, result_msg: str) -> str:
+        """Get message showing API key test results.
+
+        Args:
+            success: Whether the test was successful
+            key_type: Type of key tested (anthropic, telegram, groq)
+            result_msg: The result message from the test
+
+        Returns:
+            Formatted result message
+        """
+        if success:
+            celebrations = {
+                "anthropic": """*🎉 ANTHROPIC KEY WORKS! 🎉*
+
+Ralph just talked to Claude and it worked PERFECTLY!
+
+{result_msg}
+
+*What this means:*
+✅ Your API key is valid
+✅ You have access to Claude
+✅ API calls will work
+✅ You're all set for AI coding!
+
+*Ready to continue?*""",
+
+                "telegram": """*🎊 TELEGRAM BOT IS ALIVE! 🎊*
+
+Ralph successfully connected to your bot!
+
+{result_msg}
+
+*What this means:*
+✅ Your bot token is valid
+✅ The bot is active
+✅ Ralph can use this bot
+✅ You can start chatting!
+
+*Ready to continue?*""",
+
+                "groq": """*⚡ GROQ KEY WORKS! ⚡*
+
+Ralph just tested Groq and it's BLAZING FAST!
+
+{result_msg}
+
+*What this means:*
+✅ Your API key is valid
+✅ You have access to Groq
+✅ Fast AI responses enabled
+✅ You're good to go!
+
+*Ready to continue?*"""
+            }
+
+            template = celebrations.get(key_type, "*✅ Success!*\n\n{result_msg}\n\n*Ready to continue?*")
+            return template.format(result_msg=result_msg)
+
+        else:
+            # Failed test
+            return f"""*❌ Test Failed*
+
+{result_msg}
+
+*What to do:*
+1. Double-check you copied the ENTIRE key
+2. Make sure you didn't include extra spaces
+3. Verify the key wasn't deleted or expired
+4. Try getting a fresh key if nothing works
+
+*Want to try again?*"""
+
+    def get_api_test_result_keyboard(self, success: bool) -> InlineKeyboardMarkup:
+        """Get keyboard for API key test results.
+
+        Args:
+            success: Whether the test was successful
+
+        Returns:
+            Keyboard with appropriate next steps
+        """
+        if success:
+            keyboard = [
+                [InlineKeyboardButton("▶️ Continue Setup", callback_data="setup_continue_next")],
+                [InlineKeyboardButton("🔄 Test Again", callback_data="retry_api_test")],
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("🔄 Enter Different Key", callback_data="retry_api_key")],
+                [InlineKeyboardButton("❓ Get Help", callback_data="api_key_help")],
+                [InlineKeyboardButton("⏭️ Skip for Now", callback_data="skip_api_key")],
+            ]
+
         return InlineKeyboardMarkup(keyboard)
 
     # Telegram Bot Creation Wizard (OB-007)

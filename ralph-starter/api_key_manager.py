@@ -286,6 +286,83 @@ class APIKeyManager:
         except Exception as e:
             return False, f"Test failed: {str(e)}"
 
+    def test_telegram_token(self, token: str) -> Tuple[bool, str]:
+        """Test if a Telegram bot token works.
+
+        Args:
+            token: The bot token to test
+
+        Returns:
+            Tuple of (success, message)
+        """
+        try:
+            import requests
+
+            # Test the token with getMe endpoint
+            url = f"https://api.telegram.org/bot{token}/getMe"
+            response = requests.get(url, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("ok"):
+                    bot_info = data.get("result", {})
+                    bot_name = bot_info.get("username", "Unknown")
+                    return True, f"✅ Bot token is valid! Connected to @{bot_name}"
+                else:
+                    return False, "❌ Telegram API returned an error"
+            elif response.status_code == 401:
+                return False, "❌ Authentication failed. Bot token is invalid."
+            elif response.status_code == 404:
+                return False, "❌ Bot not found. Check your token."
+            else:
+                return False, f"❌ Telegram API error: {response.status_code}"
+
+        except requests.exceptions.Timeout:
+            return False, "❌ Request timed out. Check your internet connection."
+        except requests.exceptions.ConnectionError:
+            return False, "❌ Connection error. Check your internet connection."
+        except Exception as e:
+            return False, f"❌ Test failed: {str(e)}"
+
+    def test_groq_key(self, api_key: str) -> Tuple[bool, str]:
+        """Test if a Groq API key works.
+
+        Args:
+            api_key: The API key to test
+
+        Returns:
+            Tuple of (success, message)
+        """
+        try:
+            from groq import Groq
+
+            # Create client
+            client = Groq(api_key=api_key)
+
+            # Make a minimal test request
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "user", "content": "Say 'test'"}
+                ],
+                max_tokens=10,
+                temperature=0
+            )
+
+            if completion.choices:
+                return True, "✅ Groq API key is valid and working!"
+            else:
+                return False, "❌ API key accepted but no response received"
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "authentication" in error_msg or "unauthorized" in error_msg or "401" in error_msg:
+                return False, "❌ Authentication failed. API key is invalid or expired."
+            elif "rate" in error_msg or "limit" in error_msg:
+                return False, "⚠️ Rate limit exceeded. Your key works but you're being throttled."
+            else:
+                return False, f"❌ Test failed: {str(e)}"
+
     def get_anthropic_key_info(self) -> str:
         """Get information about the saved Anthropic API key.
 
