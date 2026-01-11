@@ -11342,3 +11342,58 @@ All operations tested successfully:
 - Import: ✅
 
 ---
+
+## Iteration [OB-026] - 2026-01-10 23:30
+**Task**: OB-026 - Claude Code CLI Installation Guide
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `claude_code_setup.py` module for Claude Code CLI installation management
+- Implemented `check_claude_installed()` to verify CLI installation status
+- Implemented `check_npm_installed()` to verify npm prerequisite
+- Implemented `verify_installation()` with comprehensive system checks
+- Added troubleshooting for 4 common installation issues:
+  - command_not_found: PATH configuration guidance
+  - permission_denied: npm global permissions setup
+  - npm_not_installed: Node.js/nvm installation instructions
+  - old_version: Update instructions
+- Integrated into `onboarding_wizard.py` as new STEP_CLAUDE_CLI
+- Added `setup_claude_cli()` method with step-by-step installation flow
+- Added `verify_claude_cli_installation()` for post-install verification
+- Created 7 helper methods for user messages (install, success, error, npm, etc.)
+- Created 3 inline keyboards for user interaction (install, npm, troubleshooting)
+- All methods use Telegram markdown formatting for clear presentation
+
+### Files changed
+- claude_code_setup.py (NEW - 249 lines)
+- onboarding_wizard.py (added 227 lines of Claude CLI setup code)
+
+### Acceptance Criteria Met
+✅ Checks if claude command exists - `check_claude_installed()` uses `which claude`
+✅ Provides npm install command with copy button - Install message includes code block
+✅ Verifies installation with claude --version - `verify_installation()` runs version check
+✅ Troubleshooting for common issues - 4 common issues with detailed solutions
+✅ Links to Claude Code documentation - All error messages link to docs.anthropic.com/claude-code
+
+### Learnings
+- Async subprocess pattern works well for CLI checks without blocking Telegram bot
+- Singleton pattern ensures one ClaudeCodeSetup instance across the app
+- Comprehensive troubleshooting reduces user frustration and support burden
+- npm prerequisite checking prevents confusing error messages
+- Telegram code blocks (```bash) make commands easy to copy
+- InlineKeyboardButton with URL makes documentation easily accessible
+- Verification step after installation confirms success before moving on
+
+### Testing
+All tests passed successfully:
+- Module imports: ✅
+- Singleton pattern: ✅
+- All required methods exist: ✅
+- Install command generation: ✅
+- Troubleshooting data structure: ✅
+- Docs URL: ✅
+- OnboardingWizard integration: ✅
+- Message generation (5 message types): ✅
+- Keyboard generation (3 keyboard types): ✅
+
+---

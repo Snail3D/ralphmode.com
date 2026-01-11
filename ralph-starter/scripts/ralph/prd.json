@@ -4721,7 +4721,7 @@
         "onboarding_wizard.py",
         "claude_code_setup.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-027",
