@@ -26,6 +26,14 @@ except ImportError:
     SLACK_MCP_AVAILABLE = False
     logging.warning("Slack MCP setup helper not available")
 
+# Import Discord MCP setup helper (OB-044)
+try:
+    from discord_mcp_setup import get_discord_mcp_setup
+    DISCORD_MCP_AVAILABLE = True
+except ImportError:
+    DISCORD_MCP_AVAILABLE = False
+    logging.warning("Discord MCP setup helper not available")
+
 
 class MCPManager:
     """Manages MCP server browsing and installation."""
@@ -49,6 +57,12 @@ class MCPManager:
             self.slack_setup = get_slack_mcp_setup()
         else:
             self.slack_setup = None
+
+        # Initialize Discord MCP setup helper (OB-044)
+        if DISCORD_MCP_AVAILABLE:
+            self.discord_setup = get_discord_mcp_setup()
+        else:
+            self.discord_setup = None
 
     def _build_server_catalog(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build comprehensive server catalog with installation info.
