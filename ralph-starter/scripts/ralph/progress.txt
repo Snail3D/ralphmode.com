@@ -10576,3 +10576,43 @@ Worker reactions:
 - Simulated CEO responses create realistic workplace dynamics
 
 ---
+
+## Iteration 191 - 2026-01-10
+**Task**: [OB-012] Copy Button Component
+**Status**: ✅ Complete
+
+### What was implemented
+- Created telegram_utils.py with reusable copy button utilities
+- Implemented create_copy_button() for generating copy buttons with unique IDs
+- Added create_copy_message() for formatted messages with copy buttons
+- Built create_multi_copy_buttons() for grid layouts of multiple copy actions
+- Created handle_copy_callback() to process copy button presses
+- Added Ralph-themed copy confirmation messages for personality consistency
+- Integrated copy/help button handlers into ralph_bot.py callback system
+- Implemented cleanup_old_copy_data() to prevent memory bloat
+- Added OB-015 foundation: create_help_button() for inline tooltips
+
+### Files changed
+- telegram_utils.py (new file)
+- ralph_bot.py
+
+### Learnings
+- Telegram doesn't support true clipboard API - must show text in alert popup
+- Users tap-and-hold the popup text to manually copy (mobile-friendly)
+- Using MD5 hash IDs for security (prevents guessing copy data)
+- Global _COPY_DATA_STORE needs periodic cleanup (implemented cleanup function)
+- Ralph's personality in copy confirmations ("I putted it here for you!")
+- Copy buttons work great for: SSH commands, API keys, git configs, code snippets
+- Help buttons share same infrastructure (just different callback prefix)
+- Copy button component is highly reusable across onboarding wizard
+
+### Integration Points
+- Ready for use in OB-002 (SSH key generation commands)
+- Ready for use in OB-003 (GitHub SSH key addition)
+- Ready for use in OB-005 (git config commands)
+- Ready for use in OB-006, OB-007 (API key display)
+- OB-015 help tooltips share same infrastructure
+- Follows callback handler patterns from existing OB tasks
+- Compatible with mobile Telegram (tap-and-hold UX)
+
+---
