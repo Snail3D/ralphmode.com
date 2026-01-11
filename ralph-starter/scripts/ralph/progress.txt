@@ -13854,3 +13854,34 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 - This pattern can be reused for other quality checks (tone, length, etc.)
 
 ---
+
+## Iteration 263 - 2026-01-11
+**Task**: [SG-028] CRITICAL: Never Use Examples Verbatim
+**Status**: ✅ Complete
+
+### What was implemented
+- Added explicit anti-verbatim instruction to call_boss() system prompt
+- Added explicit anti-verbatim instruction to call_worker() system prompt
+- Added explicit anti-verbatim instruction to call_specialist() system prompt
+- Clear statement: "All examples are INSPIRATION for tone/vibe only"
+- Emphasizes fresh, unique response generation based on context and personality
+- Warns that repeating scripted lines breaks immersion
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- SG-028 (proactive) + SG-029 (reactive) create comprehensive freshness protection
+- System prompt instructions are the first line of defense against repetition
+- Explicit warnings about consequences help AI understand importance
+- Applies universally to all character types (boss, workers, specialists)
+- Examples should inspire TONE and VIBE, never provide exact text
+- The combination of "don't use verbatim" + similarity checking ensures variety
+
+### Pattern discovered
+- Two-layer freshness approach:
+  1. SG-028: Proactive instruction in system prompt ("don't use verbatim")
+  2. SG-029: Reactive enforcement via similarity check and regeneration
+- This defense-in-depth approach maximizes freshness while minimizing API costs
+
+---
