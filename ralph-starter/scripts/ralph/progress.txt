@@ -13174,3 +13174,49 @@ if should_ship:
 - Ralph's paste suggestion adds authentic Ralph humor while staying in scene
 
 ---
+
+## Iteration 43 - 2026-01-11
+**Task**: [SG-036] Workers Have Lives - Natural Session End
+**Status**: ✅ Complete
+
+### What was implemented
+- Added WORKER_FAMILY_PROFILES as class constant with detailed life contexts
+  - Stool: single, lives with roommate, has cat named Pixel
+  - Gomer: married to Sara, kids Tommy (8) and Lisa (5), aging parents
+  - Mona: married to James (architect), daughter Maya (12), environmental activism
+  - Gus: divorced, alone, adult son across country, elderly mother nearby
+- Created generate_session_end_excuse(worker_name) method:
+  - Pulls from worker profiles to generate authentic, varied excuses
+  - Family-based: spouse calling, kids needing pickup, elderly parent care
+  - Pet responsibilities: feeding cat, checking on pet
+  - Hobbies and responsibilities: gaming, bowling, saxophone, woodworking
+  - Time-of-day generic fallbacks
+  - NEVER returns verbatim examples - always fresh combinations
+- Implemented natural_session_end(context, chat_id, user_id):
+  - Random worker initiates end with profile-based excuse
+  - Other workers may acknowledge (40% chance) with goodbyes
+  - Ralph accepts gracefully with misspelled responses
+  - Workers say goodbye to Mr. Worms
+  - Creates natural, warm session endings
+- Added should_trigger_natural_session_end(user_id):
+  - 90-minute cooldown between triggers
+  - 2% probability on each check (occasional, not predictable)
+  - Only during 'working' status, not onboarding
+- Integrated trigger into periodic_status_updates() for natural timing
+- Added last_session_end_check tracking dict in __init__
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Family profiles create rich context for natural excuses
+- Profile-based generation feels more authentic than random templates
+- Workers mentioning spouse names (Sara, James) adds realism
+- Kids' specific activities (soccer, piano, karate) feel concrete
+- Elderly parent care adds relatability for mid-career workers
+- Low probability (2%) + long cooldown (90 min) = occasional surprise, not spam
+- Ralph's graceful acceptance ("Family comes first!") reinforces his good-hearted nature
+- Natural session ends make the fiction feel alive - workers have real lives outside work
+- This pattern could extend to other life moments (birthdays, anniversaries, etc.)
+
+---
