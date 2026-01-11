@@ -8138,6 +8138,153 @@ Stay in character as {pushback_worker}."""
 
         return "\n".join(lines)
 
+    def add_session_requirement(self, user_id: int, requirement_text: str) -> bool:
+        """SG-030: Add a dynamic requirement during the session with status tracking.
+
+        These are on-the-fly preferences/requirements that Mr. Worms adds during work.
+        Example: "Ralph, make sure all buttons are blue."
+
+        Args:
+            user_id: User session ID
+            requirement_text: The requirement/preference text
+
+        Returns:
+            True if added, False if session doesn't exist
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return False
+
+        if "session_requirements" not in session:
+            session["session_requirements"] = []
+
+        req = {
+            "requirement": requirement_text,
+            "status": "pending",
+            "added_at": datetime.now().isoformat()
+        }
+
+        session["session_requirements"].append(req)
+        logger.info(f"SG-030: Added dynamic requirement for user {user_id}: {requirement_text[:80]}")
+        return True
+
+    def get_session_requirements(self, user_id: int, status: Optional[str] = None) -> List[Dict]:
+        """SG-030: Get session requirements, optionally filtered by status.
+
+        Args:
+            user_id: User session ID
+            status: Optional status filter ('pending', 'completed', 'in_progress')
+
+        Returns:
+            List of requirement dicts
+        """
+        session = self.active_sessions.get(user_id, {})
+        requirements = session.get("session_requirements", [])
+
+        if status:
+            return [req for req in requirements if req.get("status") == status]
+        return requirements
+
+    def update_requirement_status(self, user_id: int, requirement_text: str, new_status: str):
+        """SG-030: Update the status of a requirement.
+
+        Args:
+            user_id: User session ID
+            requirement_text: The requirement text to find
+            new_status: New status ('pending', 'completed', 'in_progress')
+        """
+        session = self.active_sessions.get(user_id)
+        if not session or "session_requirements" not in session:
+            return
+
+        for req in session["session_requirements"]:
+            if req["requirement"] == requirement_text:
+                req["status"] = new_status
+                logger.info(f"SG-030: Updated requirement status to '{new_status}': {requirement_text[:50]}")
+                break
+
+    def format_session_requirements_for_prompt(self, user_id: int) -> str:
+        """SG-030: Format session requirements for worker prompts.
+
+        Workers need to see these requirements so they can follow them.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Formatted string of session requirements
+        """
+        requirements = self.get_session_requirements(user_id)
+
+        if not requirements:
+            return ""
+
+        lines = ["\n🎯 ACTIVE REQUIREMENTS (Mr. Worms said these - follow them!)"]
+        for req in requirements:
+            status = req.get("status", "pending")
+            req_text = req.get("requirement", "")
+            emoji = "✅" if status == "completed" else "⚡" if status == "in_progress" else "📋"
+            lines.append(f"{emoji} {req_text}")
+
+        return "\n".join(lines)
+
+    async def detect_and_store_requirement(self, context, chat_id: int, user_id: int, text: str):
+        """SG-030: Detect if message contains a requirement/directive and store it.
+
+        Looks for patterns like:
+        - "make sure X"
+        - "all buttons should be Y"
+        - "don't forget to Z"
+        - "remember to X"
+        - "X needs to be Y"
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+            text: Message text to analyze
+        """
+        if user_id not in self.active_sessions:
+            return
+
+        text_lower = text.lower().strip()
+
+        # Requirement detection patterns
+        requirement_patterns = [
+            "make sure", "all", "always", "never", "should be",
+            "needs to be", "has to be", "must be", "don't forget",
+            "remember to", "ensure", "every", "each"
+        ]
+
+        # Check if message contains requirement indicators
+        is_requirement = any(pattern in text_lower for pattern in requirement_patterns)
+
+        # Also skip questions and very short messages
+        if not is_requirement or text.strip().endswith('?') or len(text.strip()) < 10:
+            return
+
+        # This looks like a requirement! Store it
+        if self.add_session_requirement(user_id, text):
+            # Ralph acknowledges the requirement
+            acknowledgments = [
+                f"Got it boss! {text[:30]}...",
+                f"Okay Mr. Worms! I'll make sure we do that!",
+                f"You got it! {text[:30]}... I wrote it down!",
+                f"Roger that boss! The team will remember!",
+                f"Yes sir! {text[:30]}... I'll tell everyone!",
+                f"Understood Mr. Worms! We won't forget!"
+            ]
+
+            ralph_ack = self.ralph_misspell(random.choice(acknowledgments))
+
+            await asyncio.sleep(self.timing.rapid_banter())
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_ack,
+                topic="requirement_ack",
+                with_typing=True
+            )
+
     def ask_ralph(self, user_id: int, question: str) -> str:
         """Ask Ralph a question about the session. He remembers everything."""
         session = self.active_sessions.get(user_id, {})
@@ -9197,6 +9344,11 @@ Show professionalism by making their vision work."""
         if user_id is not None:
             scene_prompt = self._get_scene_consistency_context(user_id)
 
+        # SG-030: Add session requirements context
+        requirements_prompt = ""
+        if user_id is not None:
+            requirements_prompt = self.format_session_requirements_for_prompt(user_id)
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -9222,6 +9374,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {time_prompt}
 {weather_prompt}
 {scene_prompt}
+{requirements_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""},
@@ -10131,7 +10284,8 @@ _Drop a zip file to get started!_
                 "started": datetime.now(),
                 "status": "onboarding",
                 "codebase_insights": {},  # RM-058: Track worker discoveries during exploration
-                "requirements": []  # SG-031: Track all Mr. Worms directives - Ralph never forgets
+                "requirements": [],  # SG-031: Track all Mr. Worms directives - Ralph never forgets
+                "session_requirements": []  # SG-030: Dynamic requirements with status tracking
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -11611,6 +11765,10 @@ Be specific about the TYPE but don't include actual details. 1-2 sentences max."
                 # This looks like a directive/requirement - remember it
                 self.remember_requirement(user_id, text, context="normal message")
                 logging.info(f"SG-031: Remembered requirement from user {user_id}: {text[:50]}...")
+
+        # SG-030: Detect and store dynamic requirements with Ralph acknowledgment
+        if user_id in self.active_sessions:
+            await self.detect_and_store_requirement(context, chat_id, user_id, text)
 
         # RM-056: Detect if user is "tapping" a worker to ask a question
         # Patterns: "Stool, how does X work?" or "Hey Gomer, can you explain Y?"
