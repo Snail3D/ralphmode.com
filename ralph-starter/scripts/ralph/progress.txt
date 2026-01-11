@@ -13992,3 +13992,55 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 - Fallback ensures bot never fails to deliver GIFs
 
 ---
+
+## Iteration 9 - 2026-01-11
+**Task**: [SG-025] GIF Memory - No Repeats (Except Callbacks)
+**Status**: ✅ Complete
+
+### What was implemented
+- Created UserGifHistory database model to track GIFs shown to each user
+- Added database helper methods: track_gif(), get_recent_gifs(), cleanup_old_gif_history()
+- Modified get_gif() to filter out recently-used GIFs (within 14 days)
+- Updated send_ralph_gif() and send_worker_gif() to track GIFs after sending
+- Added support for intentional callbacks (is_callback param) that can repeat GIFs for running jokes
+- Callbacks are excluded from deduplication list (can be repeated even if recently shown)
+- Implemented daily cleanup job (scheduled for 3 AM) to remove GIF history older than 30 days
+- Added database initialization to bot startup
+
+### Files changed
+- database.py (new UserGifHistory model + helper methods)
+- ralph_bot.py (get_gif deduplication, send_*_gif tracking, cleanup job)
+
+### Learnings
+- **Deduplication window**: 14 days avoids repeats while maintaining variety
+- **Cleanup window**: 30 days keeps database lean (2x the dedupe window for safety)
+- **Callback system**: Allows intentional repeats for running jokes without breaking memory
+- **Graceful degradation**: If all GIFs were recently used (rare), falls back to allowing repeats
+- **Weighted selection**: Even with deduplication, we still prefer top/trending GIFs
+- **Denormalized telegram_id**: Stored on UserGifHistory for faster lookups without joins
+
+### Database schema
+```sql
+CREATE TABLE user_gif_history (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER,  -- FK to users table
+    telegram_id INTEGER,  -- Denormalized for fast lookups
+    gif_url TEXT,
+    gif_id TEXT,  -- Tenor GIF ID
+    mood TEXT,  -- Context (happy, working, etc.)
+    speaker TEXT,  -- ralph or worker name
+    is_callback BOOLEAN,  -- True if intentional repeat
+    callback_context TEXT,  -- Why this was repeated
+    created_at TIMESTAMP
+);
+-- Indexes: (telegram_id, created_at), (gif_url, telegram_id)
+```
+
+### Why this matters
+- **Fresh experience**: Users don't see the same GIFs repeatedly
+- **Better engagement**: Variety keeps the bot feeling fresh and unpredictable
+- **Running jokes**: Callbacks allow intentional repeats when it's funny ("remember this one?")
+- **Database efficiency**: Automatic cleanup prevents unbounded growth
+- **Privacy-conscious**: Only tracks GIF URLs, not why they were shown (in detail)
+
+---

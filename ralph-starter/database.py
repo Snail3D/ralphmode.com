@@ -399,6 +399,39 @@ class UserSatisfaction(Base):
         return f"<UserSatisfaction(feedback_id={self.feedback_id}, satisfied={emoji})>"
 
 
+class UserGifHistory(Base):
+    """
+    SG-025: GIF Memory - No Repeats
+
+    Tracks GIFs shown to each user to prevent repetition.
+    Keeps GIF experience fresh by avoiding recently-used GIFs (within 14 days).
+    Allows intentional callbacks for running jokes.
+    """
+
+    __tablename__ = "user_gif_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    telegram_id = Column(Integer, nullable=False, index=True)  # Denormalized for faster lookups
+    gif_url = Column(String(500), nullable=False)
+    gif_id = Column(String(100), nullable=True)  # Tenor GIF ID if available
+    mood = Column(String(50), nullable=True)  # What mood/context the GIF was for
+    speaker = Column(String(50), nullable=True)  # 'ralph' or worker name
+    is_callback = Column(Boolean, default=False)  # True if intentional repeat for running joke
+    callback_context = Column(Text, nullable=True)  # Why this was a callback (e.g., "remember this one?")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Indexes for efficient lookups
+    __table_args__ = (
+        Index("idx_gif_user_recent", "telegram_id", "created_at"),  # For recent GIF checks
+        Index("idx_gif_url_user", "gif_url", "telegram_id"),  # For duplicate detection
+    )
+
+    def __repr__(self):
+        callback_marker = "🔄" if self.is_callback else ""
+        return f"<UserGifHistory(telegram_id={self.telegram_id}, mood={self.mood}, speaker={self.speaker}{callback_marker})>"
+
+
 # =============================================================================
 # Database Session Management
 # =============================================================================
@@ -583,6 +616,117 @@ class SafeQueries:
         db.flush()  # Get the ID without committing
 
         return user
+
+    @staticmethod
+    def track_gif(db: SQLSession, telegram_id: int, gif_url: str, mood: Optional[str] = None,
+                  speaker: Optional[str] = None, gif_id: Optional[str] = None,
+                  is_callback: bool = False, callback_context: Optional[str] = None) -> Optional[UserGifHistory]:
+        """
+        SG-025: Track a GIF shown to a user.
+
+        Args:
+            db: Database session
+            telegram_id: User's Telegram ID
+            gif_url: URL of the GIF shown
+            mood: Mood/context (e.g., 'happy', 'working')
+            speaker: Who sent it ('ralph' or worker name)
+            gif_id: Tenor GIF ID if available
+            is_callback: True if this is an intentional repeat
+            callback_context: Why this was repeated (if callback)
+
+        Returns:
+            UserGifHistory record if successful, None otherwise
+        """
+        # Validate inputs
+        validated_id = InputValidator.validate_telegram_id(telegram_id)
+        if validated_id is None or not gif_url:
+            return None
+
+        if not InputValidator.is_safe_string(gif_url, 500):
+            return None
+
+        # Get or create user
+        user = db.query(User).filter(User.telegram_id == validated_id).first()
+        if not user:
+            # Create minimal user record if doesn't exist
+            user = SafeQueries.create_user(db, validated_id)
+            if not user:
+                return None
+
+        # Create GIF history record
+        gif_record = UserGifHistory(
+            user_id=user.id,
+            telegram_id=validated_id,
+            gif_url=gif_url,
+            gif_id=gif_id,
+            mood=mood,
+            speaker=speaker,
+            is_callback=is_callback,
+            callback_context=callback_context
+        )
+        db.add(gif_record)
+        db.flush()
+
+        return gif_record
+
+    @staticmethod
+    def get_recent_gifs(db: SQLSession, telegram_id: int, days: int = 14) -> List[str]:
+        """
+        SG-025: Get list of GIF URLs shown to user in last N days.
+
+        Args:
+            db: Database session
+            telegram_id: User's Telegram ID
+            days: How many days to look back (default 14)
+
+        Returns:
+            List of GIF URLs shown recently (excluding callbacks)
+        """
+        # Validate inputs
+        validated_id = InputValidator.validate_telegram_id(telegram_id)
+        if validated_id is None:
+            return []
+
+        # Calculate cutoff date
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=days)
+
+        # Query recent GIFs (exclude callbacks - they can be repeated intentionally)
+        recent = (
+            db.query(UserGifHistory.gif_url)
+            .filter(
+                UserGifHistory.telegram_id == validated_id,
+                UserGifHistory.created_at >= cutoff,
+                UserGifHistory.is_callback == False
+            )
+            .all()
+        )
+
+        return [r[0] for r in recent]
+
+    @staticmethod
+    def cleanup_old_gif_history(db: SQLSession, days: int = 30) -> int:
+        """
+        SG-025: Clean up GIF history older than N days.
+
+        Args:
+            db: Database session
+            days: Delete records older than this many days (default 30)
+
+        Returns:
+            Number of records deleted
+        """
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=days)
+
+        # Delete old records
+        deleted = (
+            db.query(UserGifHistory)
+            .filter(UserGifHistory.created_at < cutoff)
+            .delete()
+        )
+
+        return deleted
 
 
 # =============================================================================

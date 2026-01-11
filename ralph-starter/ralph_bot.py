@@ -9727,11 +9727,20 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
 
     # ==================== GIF SUPPORT ====================
 
-    def get_gif(self, mood: str = "happy", speaker: str = "ralph") -> Optional[str]:
+    def get_gif(self, mood: str = "happy", speaker: str = "ralph", telegram_id: Optional[int] = None, allow_callback: bool = False) -> Optional[dict]:
         """Get a random GIF URL from Tenor. Ralph gets Simpsons, workers get office memes.
 
         SG-024: Prioritizes trending/popular GIFs to stay current and relevant.
-        Falls back to quality classics if trending unavailable.
+        SG-025: Avoids recently-used GIFs (within 14 days) unless intentional callback.
+
+        Args:
+            mood: GIF mood/emotion
+            speaker: "ralph" or worker name
+            telegram_id: User's Telegram ID for deduplication (optional)
+            allow_callback: If True, allows intentional repeat GIFs for running jokes
+
+        Returns:
+            Dict with 'url' and 'id' keys, or None if no GIF found
         """
         try:
             if speaker == "ralph":
@@ -9744,9 +9753,21 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             search_terms = gif_dict.get(mood, gif_dict.get(default_mood, ["funny gif"]))
             query = random.choice(search_terms)
 
+            # SG-025: Get list of recently-used GIFs to avoid
+            recent_gif_urls = set()
+            if telegram_id and not allow_callback:
+                try:
+                    from database import get_db, SafeQueries
+                    with get_db() as db:
+                        recent_gif_urls = set(SafeQueries.get_recent_gifs(db, telegram_id, days=14))
+                except Exception as e:
+                    logger.debug(f"Could not fetch recent GIFs: {e}")
+
             # SG-024: Try trending/featured endpoint first (80% of the time)
             # This keeps GIFs fresh and relevant - not stale 2015 content
             use_trending = random.random() < 0.8
+
+            all_results = []
 
             if use_trending:
                 try:
@@ -9765,42 +9786,59 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
                     )
 
                     if response.status_code == 200:
-                        results = response.json().get("results", [])
-                        if results:
-                            # Prefer top trending GIFs (weighted random - top 5 are 2x more likely)
-                            if len(results) > 5:
-                                # Top 5 get added twice for higher probability
-                                weighted_pool = results[:5] + results[:5] + results[5:]
-                                gif = random.choice(weighted_pool)
-                            else:
-                                gif = random.choice(results)
-                            return gif.get("media_formats", {}).get("gif", {}).get("url")
+                        all_results = response.json().get("results", [])
                 except Exception as e:
                     logger.debug(f"Trending GIF fetch failed, falling back to search: {e}")
-                    # Fall through to regular search
 
-            # Fallback: Regular search endpoint (quality classics)
-            response = requests.get(
-                "https://tenor.googleapis.com/v2/search",
-                params={
-                    "q": query,
-                    "key": TENOR_API_KEY,
-                    "limit": 15,  # Increased from 10 for more variety
-                    "media_filter": "gif",
-                    "contentfilter": "medium"
-                },
-                timeout=5
-            )
-            results = response.json().get("results", [])
-            if results:
-                # Even in fallback, prefer top results (they're sorted by relevance/popularity)
-                if len(results) > 3:
-                    # Weight top 3 results higher
-                    weighted_pool = results[:3] + results[:3] + results[3:]
-                    gif = random.choice(weighted_pool)
-                else:
-                    gif = random.choice(results)
-                return gif.get("media_formats", {}).get("gif", {}).get("url")
+            # If trending failed or we're in 20% fallback, use regular search
+            if not all_results:
+                response = requests.get(
+                    "https://tenor.googleapis.com/v2/search",
+                    params={
+                        "q": query,
+                        "key": TENOR_API_KEY,
+                        "limit": 15,  # Increased from 10 for more variety
+                        "media_filter": "gif",
+                        "contentfilter": "medium"
+                    },
+                    timeout=5
+                )
+                all_results = response.json().get("results", [])
+
+            if not all_results:
+                return None
+
+            # SG-025: Filter out recently-used GIFs
+            available_results = []
+            for gif in all_results:
+                gif_url = gif.get("media_formats", {}).get("gif", {}).get("url")
+                if gif_url and gif_url not in recent_gif_urls:
+                    available_results.append(gif)
+
+            # If all GIFs were recently used, fall back to full list (rare case)
+            if not available_results:
+                logger.debug(f"All GIFs for '{query}' were recently used, allowing repeats")
+                available_results = all_results
+
+            # Weighted selection - prefer top results (more relevant/popular)
+            if len(available_results) > 5:
+                # Top 5 get added twice for higher probability
+                weighted_pool = available_results[:5] + available_results[:5] + available_results[5:]
+                selected_gif = random.choice(weighted_pool)
+            elif len(available_results) > 3:
+                # Top 3 get added twice
+                weighted_pool = available_results[:3] + available_results[:3] + available_results[3:]
+                selected_gif = random.choice(weighted_pool)
+            else:
+                selected_gif = random.choice(available_results)
+
+            # Return URL and ID
+            gif_url = selected_gif.get("media_formats", {}).get("gif", {}).get("url")
+            gif_id = selected_gif.get("id")
+
+            if gif_url:
+                return {"url": gif_url, "id": gif_id}
+
         except Exception as e:
             logger.error(f"GIF fetch error: {e}")
         return None
@@ -9808,6 +9846,21 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
     def should_send_gif(self) -> bool:
         """Random chance to send a GIF."""
         return random.random() < self.gif_chance
+
+    def cleanup_gif_history(self):
+        """SG-025: Periodic cleanup of old GIF history (30+ days).
+
+        Called daily by scheduler to keep database lean.
+        Removes GIF history older than 30 days since we only dedupe for 14 days.
+        """
+        try:
+            from database import get_db, SafeQueries
+            with get_db() as db:
+                deleted = SafeQueries.cleanup_old_gif_history(db, days=30)
+                if deleted > 0:
+                    logger.info(f"SG-025: Cleaned up {deleted} old GIF history records")
+        except Exception as e:
+            logger.error(f"SG-025: GIF history cleanup failed: {e}")
 
     def get_short_acknowledgment(self, worker_name: str) -> str:
         """SG-015: Get a random short acknowledgment for a worker.
@@ -9885,7 +9938,7 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             return random.choice(self.GIF_SETUPS[key])
         return None
 
-    async def send_ralph_gif(self, context, chat_id: int, mood: str = "happy", setup_message: str = None, use_setup: bool = True):
+    async def send_ralph_gif(self, context, chat_id: int, mood: str = "happy", setup_message: str = None, use_setup: bool = True, is_callback: bool = False, callback_context: str = None):
         """Send a Ralph/Simpsons GIF with optional setup message.
 
         Args:
@@ -9894,6 +9947,8 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             mood: GIF mood/search term
             setup_message: Optional setup text before GIF (SG-016: "this is you right now")
             use_setup: If True and no setup_message provided, auto-generate one (default True)
+            is_callback: SG-025 - True if this is an intentional repeat for running joke
+            callback_context: SG-025 - Why this is being repeated (e.g., "remember this one?")
         """
         # SG-016: Setup before GIF - like real texting
         final_setup = setup_message
@@ -9910,14 +9965,31 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             except Exception as e:
                 logger.error(f"Failed to send GIF setup: {e}")
 
-        gif_url = self.get_gif(mood, speaker="ralph")
-        if gif_url:
+        # SG-025: Get GIF with deduplication
+        telegram_id = chat_id  # For private chats, chat_id == telegram_id
+        gif_data = self.get_gif(mood, speaker="ralph", telegram_id=telegram_id, allow_callback=is_callback)
+        if gif_data:
+            gif_url = gif_data.get("url")
+            gif_id = gif_data.get("id")
             try:
                 await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
+
+                # SG-025: Track this GIF to avoid repeats
+                try:
+                    from database import get_db, SafeQueries
+                    with get_db() as db:
+                        SafeQueries.track_gif(
+                            db, telegram_id, gif_url,
+                            mood=mood, speaker="ralph", gif_id=gif_id,
+                            is_callback=is_callback, callback_context=callback_context
+                        )
+                except Exception as e:
+                    logger.debug(f"Could not track GIF: {e}")
+
             except Exception as e:
                 logger.error(f"Failed to send Ralph GIF: {e}")
 
-    async def send_worker_gif(self, context, chat_id: int, mood: str = "working", setup_message: str = None, use_setup: bool = True):
+    async def send_worker_gif(self, context, chat_id: int, mood: str = "working", setup_message: str = None, use_setup: bool = True, speaker: str = "worker", is_callback: bool = False, callback_context: str = None):
         """Send a worker/office meme GIF with optional setup message.
 
         Args:
@@ -9926,6 +9998,9 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             mood: GIF mood/search term
             setup_message: Optional setup text before GIF (SG-016: "yo this is literally you")
             use_setup: If True and no setup_message provided, auto-generate one (default True)
+            speaker: Worker name for tracking (default "worker")
+            is_callback: SG-025 - True if this is an intentional repeat for running joke
+            callback_context: SG-025 - Why this is being repeated
         """
         # SG-016: Setup before GIF - like real texting
         final_setup = setup_message
@@ -9942,10 +10017,27 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             except Exception as e:
                 logger.error(f"Failed to send GIF setup: {e}")
 
-        gif_url = self.get_gif(mood, speaker="worker")
-        if gif_url:
+        # SG-025: Get GIF with deduplication
+        telegram_id = chat_id  # For private chats, chat_id == telegram_id
+        gif_data = self.get_gif(mood, speaker=speaker, telegram_id=telegram_id, allow_callback=is_callback)
+        if gif_data:
+            gif_url = gif_data.get("url")
+            gif_id = gif_data.get("id")
             try:
                 await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
+
+                # SG-025: Track this GIF to avoid repeats
+                try:
+                    from database import get_db, SafeQueries
+                    with get_db() as db:
+                        SafeQueries.track_gif(
+                            db, telegram_id, gif_url,
+                            mood=mood, speaker=speaker, gif_id=gif_id,
+                            is_callback=is_callback, callback_context=callback_context
+                        )
+                except Exception as e:
+                    logger.debug(f"Could not track GIF: {e}")
+
             except Exception as e:
                 logger.error(f"Failed to send worker GIF: {e}")
 
@@ -17841,6 +17933,15 @@ To update your Git config:
         print("🚀 Ralph Mode starting...")
         print(f"   Groq API: {'✅' if GROQ_API_KEY else '❌'}")
 
+        # SG-025: Initialize database (creates tables if needed, including user_gif_history)
+        try:
+            from database import setup_database
+            setup_database()
+            print("✅ Database initialized")
+        except Exception as e:
+            print(f"⚠️  Database initialization failed: {e}")
+            logger.warning(f"Database init failed: {e}")
+
         app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
         # BC-002: Wrap bot.send_message to sanitize ALL outgoing messages
@@ -17921,6 +18022,20 @@ To update your Git config:
         if ADMIN_HANDLER_AVAILABLE:
             setup_admin_handlers(app)
             print("✅ Admin override controls registered")
+
+        # SG-025: Schedule periodic GIF history cleanup (daily at 3 AM)
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            self.cleanup_gif_history,
+            trigger=CronTrigger(hour=3, minute=0),  # Daily at 3 AM
+            id="gif_history_cleanup",
+            name="SG-025: Clean up old GIF history"
+        )
+        scheduler.start()
+        print("✅ GIF history cleanup scheduled (daily at 3 AM)")
 
         print("🤖 Bot is running! Send /start in Telegram.")
         app.run_polling()

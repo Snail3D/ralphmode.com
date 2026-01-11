@@ -1588,7 +1588,7 @@
         "ralph_bot.py",
         "database.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SG-017",
