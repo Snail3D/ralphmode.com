@@ -12070,3 +12070,62 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Must update help text to show new commands
 
 ---
+
+## Iteration 221 - 2026-01-11 23:30
+**Task**: [RM-059] Question Prompts from Workers
+**Status**: ✅ Complete
+
+### What was implemented
+- Added worker_asks_user_question() method with 5-10% trigger during idle chatter
+- Questions about codebase: "Did you write this part?", "Is this your code or legacy?"
+- Questions about intent: "What were you going for here?", "What was your vision?"
+- User answer handling in handle_text() with acknowledgment system
+- 30-second timeout with graceful fallback: "No worries, we'll figure it out"
+- Optional team sharing (30% chance) where worker shares answer with teammates
+- Not intrusive - just occasional inclusion that makes user feel like part of team
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- User inclusion questions create belonging without interrupting flow
+- Two question types (codebase/intent) feel more natural than single category
+- 5-10% chance prevents overwhelming while maintaining presence
+- 30-second timeout is perfect balance (not too pushy, not too long)
+- Graceful fallbacks ("No worries") maintain team camaraderie
+- Optional team sharing (30%) creates natural follow-up conversation
+- Clearing pending_worker_question on user answer prevents timeout from firing
+- Return statement after answer handling prevents double-processing message
+- Questions during idle chatter feel organic (when workers are exploring anyway)
+- Varied question templates prevent repetitive feel
+
+### Acceptance criteria met
+✅ 5-10% chance workers ask user a question
+✅ Questions about the codebase: 'Did you write this part?'
+✅ Questions about intent: 'What were you going for here?'
+✅ User answer gets incorporated into discussion (30% sharing)
+✅ If no answer in 30 sec, worker: 'No worries, we'll figure it out'
+✅ Makes user feel like part of the team
+✅ Not intrusive - just occasional inclusion
+
+### Technical patterns discovered
+- Pending question tracking via self.conversation_context[user_id]['pending_worker_question']
+- Timeout task pattern: asyncio.create_task() for 30-second wait
+- Question data structure: {'worker': name, 'question': text, 'asked_at': datetime}
+- Clear pending on answer to prevent timeout race condition
+- Early return after handling answer to avoid normal text processing
+- Random question selection from mixed pools (codebase + intent questions)
+- Team sharing as optional follow-up creates natural conversation flow
+- Text truncation for sharing ([text[:50]]) prevents message bloat
+
+### Gotchas to avoid
+- Must clear pending_worker_question when user answers (prevent timeout)
+- Must return after handling answer (don't process as normal message)
+- Must check if pending_worker_question exists before timeout fires
+- Don't make question chance too high (5-10% is right, not 15-20%)
+- 30 seconds is good timeout (not 15, not 60)
+- Team sharing should be optional (30% chance, not 100%)
+- Must initialize conversation_context dict if not exists before setting pending
+- asyncio.create_task needs try/except for CancelledError
+
+---
