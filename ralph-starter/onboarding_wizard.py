@@ -31,6 +31,16 @@ class OnboardingWizard:
         """Initialize the onboarding wizard."""
         self.logger = logging.getLogger(__name__)
 
+        # Import setup state manager
+        try:
+            from setup_state import get_setup_state_manager
+            self.state_manager = get_setup_state_manager()
+            self.state_persistence_available = True
+        except ImportError:
+            self.state_manager = None
+            self.state_persistence_available = False
+            self.logger.warning("Setup state persistence not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -144,6 +154,8 @@ Ralph help you check each one super fast!
         Returns:
             Initial onboarding state dictionary
         """
+        from datetime import datetime
+
         return {
             "step": self.STEP_WELCOME,
             "setup_type": None,
@@ -154,7 +166,7 @@ Ralph help you check each one super fast!
             "git_configured": False,
             "git_name": None,
             "git_email": None,
-            "started_at": None,
+            "started_at": datetime.utcnow().isoformat(),
             "completed_at": None,
         }
 
@@ -1580,6 +1592,213 @@ This is SO EXCITING! You basically a GitHub expert now!
 *Still stuck?*
 Tell Ralph what error you seeing!
 """
+
+    # Setup Resume Functionality (OB-035)
+
+    def check_for_incomplete_setup(
+        self,
+        user_id: int,
+        telegram_id: int
+    ) -> tuple[bool, Optional[Dict[str, Any]]]:
+        """Check if user has an incomplete setup to resume.
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+
+        Returns:
+            Tuple of (has_incomplete, state_dict)
+        """
+        if not self.state_persistence_available or not self.state_manager:
+            return False, None
+
+        try:
+            return self.state_manager.has_incomplete_setup(user_id, telegram_id)
+        except Exception as e:
+            self.logger.error(f"Error checking for incomplete setup: {e}")
+            return False, None
+
+    def get_resume_setup_message(self, state: Dict[str, Any]) -> str:
+        """Get message offering to resume incomplete setup.
+
+        Args:
+            state: The saved setup state
+
+        Returns:
+            Resume offer message with progress
+        """
+        if not self.state_manager:
+            return ""
+
+        return self.state_manager.get_resume_message(state)
+
+    def get_resume_setup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for resume/restart choice.
+
+        Returns:
+            Keyboard with Resume and Restart buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("▶️ Resume Setup (Recommended)", callback_data="setup_resume")],
+            [InlineKeyboardButton("🔄 Start Fresh", callback_data="setup_restart")],
+            [InlineKeyboardButton("📊 Show My Progress", callback_data="setup_show_progress")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def save_state(
+        self,
+        user_id: int,
+        telegram_id: int,
+        state: Dict[str, Any]
+    ) -> bool:
+        """Save the current setup state.
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+            state: Current state dictionary
+
+        Returns:
+            True if saved successfully
+        """
+        if not self.state_persistence_available or not self.state_manager:
+            return False
+
+        try:
+            return self.state_manager.save_setup_state(user_id, telegram_id, state)
+        except Exception as e:
+            self.logger.error(f"Error saving state: {e}")
+            return False
+
+    def load_state(
+        self,
+        user_id: int,
+        telegram_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Load saved setup state.
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+
+        Returns:
+            Saved state dictionary or None
+        """
+        if not self.state_persistence_available or not self.state_manager:
+            return None
+
+        try:
+            return self.state_manager.load_setup_state(user_id, telegram_id)
+        except Exception as e:
+            self.logger.error(f"Error loading state: {e}")
+            return None
+
+    def clear_state(self, user_id: int, telegram_id: int) -> bool:
+        """Clear saved setup state (for restart).
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+
+        Returns:
+            True if cleared successfully
+        """
+        if not self.state_persistence_available or not self.state_manager:
+            return False
+
+        try:
+            return self.state_manager.clear_setup_state(user_id, telegram_id)
+        except Exception as e:
+            self.logger.error(f"Error clearing state: {e}")
+            return False
+
+    def mark_complete(self, user_id: int, telegram_id: int) -> bool:
+        """Mark setup as completed.
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+
+        Returns:
+            True if marked successfully
+        """
+        if not self.state_persistence_available or not self.state_manager:
+            return False
+
+        try:
+            return self.state_manager.mark_setup_complete(user_id, telegram_id)
+        except Exception as e:
+            self.logger.error(f"Error marking complete: {e}")
+            return False
+
+    def get_restart_confirmation_message(self) -> str:
+        """Get message confirming user wants to restart.
+
+        Returns:
+            Confirmation message
+        """
+        return """*Start Fresh?* 🔄
+
+Ralph can start over from the beginning!
+
+**Warning:** This will erase your current progress!
+
+If you already did some steps (like making SSH keys), you can still use them! Ralph will just ask you about them again!
+
+*Are you sure you wanna restart?*
+"""
+
+    def get_restart_confirmation_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for restart confirmation.
+
+        Returns:
+            Keyboard with confirm/cancel options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Yes, Start Fresh", callback_data="setup_restart_confirm")],
+            [InlineKeyboardButton("❌ No, Keep My Progress", callback_data="setup_resume")],
+            [InlineKeyboardButton("◀️ Back to Options", callback_data="setup_back_resume_choice")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_stale_setup_message(self, state: Dict[str, Any]) -> str:
+        """Get message for stale/expired setups.
+
+        Args:
+            state: The expired state
+
+        Returns:
+            Stale setup message
+        """
+        if not self.state_manager:
+            age = "a while"
+        else:
+            age = self.state_manager.get_setup_age_message(state)
+
+        return f"""*Ralph found an old setup!* ⏰
+
+You started setting up {age}!
+
+That's pretty old! The setup might not work anymore!
+
+**Ralph recommends:** Start fresh!
+
+But if you wanna try resuming anyway, Ralph won't stop you! Maybe you almost done!
+
+*What you wanna do?*
+"""
+
+    def get_stale_setup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for stale setup choice.
+
+        Returns:
+            Keyboard with resume/restart options emphasizing restart
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔄 Start Fresh (Recommended)", callback_data="setup_restart")],
+            [InlineKeyboardButton("▶️ Try to Resume Anyway", callback_data="setup_resume")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
 
 
 def get_onboarding_wizard() -> OnboardingWizard:

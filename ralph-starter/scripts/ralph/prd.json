@@ -4880,7 +4880,7 @@
         "onboarding_wizard.py",
         "setup_state.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-036",
