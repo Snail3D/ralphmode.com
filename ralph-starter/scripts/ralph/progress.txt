@@ -13034,3 +13034,30 @@ if should_ship:
 - Separate from SG-031's requirements list (which stores all directives), this focuses on actionable preferences with status
 
 ---
+
+## Iteration - 2026-01-11
+**Task**: [SG-032] Background Accountability Checklist
+**Status**: ✅ Complete
+
+### What was implemented
+- Added accountability checklist system that tracks if user requirements are addressed
+- Created evaluation_requirement_accountability() to assess each requirement (yes/no/maybe)
+- Added get_accountability_checklist_status() to summarize checklist state
+- Implemented run_accountability_check() for periodic evaluation during sessions
+- Created trigger_team_accountability_moment() for Ralph/worker self-check dialogue when 3+ "maybes" accumulate
+- Added review_accountability_checklist_before_end() to show checklist in Ralph's end-of-session report
+- Integrated accountability check into show_task_completion() workflow (runs every 30 min after tasks)
+- Integrated checklist review into deliver_ralph_report() before quality summary
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Leveraged existing session_requirements from SG-030 as the checklist items
+- Evaluation is simple but effective: completed = yes, in_progress = maybe, pending + mentioned in context = maybe, otherwise = no
+- Team self-check dialogue creates natural accountability without being preachy
+- End-of-session review gives CEO visibility into what was/wasn't addressed
+- The 30-minute cooldown prevents spam while still catching accountability issues
+- Ralph presenting the checklist fits his character (organized with crayon notes) and adds entertainment value
+
+---
