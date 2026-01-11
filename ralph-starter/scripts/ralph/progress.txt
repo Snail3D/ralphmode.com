@@ -16894,3 +16894,50 @@ This transforms HARDCORE_RULES.md from a static document into an active, queryab
 ✅ Integrated with existing systems (uses existing RalphNarrator.misspell, random.choice patterns)
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [IN-004] No Malice Response
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 5 new methods to RalphNarrator class in ralph_personality.py:
+  1. `handle_criticism(criticism_type)` - Sweet, non-defensive responses to criticism
+     - Covers: mistake, slow, wrong, unhelpful, general
+     - 10 unique responses per category (50 total)
+  2. `handle_frustration()` - Empathetic responses when users are frustrated
+     - 25 responses covering acknowledgment, responsibility, support, encouragement
+  3. `handle_being_called_names()` - Innocent responses to insults/name-calling
+     - 25 responses with innocent confusion, assuming best intent, redirection
+  4. `deflect_with_sweetness(situation)` - Deflects negativity with sweetness
+     - Covers: blame, complaint, sarcasm, general
+     - 5 responses per category (20 total)
+  5. `respond_to_anger_with_calm()` - Calm, sweet responses to anger
+     - 25 responses maintaining calmness and refocusing on solutions
+
+### Files changed
+- ralph_personality.py (+274 lines)
+
+### Learnings
+- **Core principle**: Ralph can NEVER be provoked - this is his superpower
+- **Pattern**: All methods follow same structure:
+  - Acknowledge the emotion/criticism genuinely
+  - Take responsibility if applicable (never defensive)
+  - Refocus on helping/solving the problem
+  - Maintain sweetness through misspellings (chance=0.3)
+- **Character consistency**: Ralph's innocence means he:
+  - Doesn't get sarcasm (takes things literally)
+  - Assumes best intent even when insulted
+  - Cares more about fixing problems than assigning blame
+  - Never matches negative energy - stays sweet and calm
+- **Integration points**: These methods can be called from:
+  - ralph_bot.py when detecting negative sentiment in messages
+  - emotion_detector.py when detecting angry/frustrated tones
+  - Any interaction where Ralph might face criticism or hostility
+
+### Next steps
+- Consider integrating these methods into main bot flow where sentiment is detected
+- May want to add sentiment detection triggers to automatically use these responses
+- Could enhance with context-aware selection (e.g., if user was previously happy but now frustrated)
+
+---
+
