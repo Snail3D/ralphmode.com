@@ -9940,3 +9940,74 @@ All tests passed! The progress tracker displays correctly:
 - Custom theme builder could be added as advanced feature
 
 ---
+
+## Iteration 10 - 2026-01-11
+**Task**: [OB-050] Onboarding Documentation Generator
+**Status**: ✅ Complete
+
+### What was implemented
+- Created doc_generator.py with DocGenerator class for customized README generation
+- Generates README.md based on user's setup configuration state
+- Includes configured services summary (SSH, Git, Repo, APIs)
+- Custom commands section tailored to what user configured
+- Getting started instructions specific to their setup
+- Troubleshooting section with solutions for their specific configuration
+- Integrated into onboarding_wizard.py with 3 new methods
+- Added generate_project_documentation() to wizard
+- Added generate_getting_started_guide() for quick start docs
+- Added get_documentation_generated_message() for user notification
+
+### Files changed
+- doc_generator.py (new file - 467 lines)
+- onboarding_wizard.py (added doc_generator import and 3 integration methods)
+- scripts/ralph/prd.json (marked OB-050 as passes: true)
+
+### Learnings
+- Documentation should be generated AFTER setup completes, with user's actual config
+- State-based documentation is more valuable than generic README
+- Users need different troubleshooting based on what they configured
+- SSH troubleshooting only relevant if they generated SSH keys
+- Git troubleshooting only relevant if they configured Git
+- Configuration-specific commands reduce confusion (no git commands if no repo)
+- README structure: Header -> Quick Start -> Config Summary -> Commands -> Troubleshooting -> Resources
+- Save to file optional - allows preview before save
+- Getting started guide separate from full README - different audiences
+- Documentation generation should be silent/automatic, not require user action
+
+### Acceptance Criteria Met
+✅ Generates README.md for project - generate_readme() creates full content
+✅ Includes configured services - SSH, Git, Repo, APIs all included if configured
+✅ Custom commands for their setup - Git commands only if repo created, etc.
+✅ Getting started instructions - Quick Start section tailored to their config
+✅ Troubleshooting specific to config - Only relevant troubleshooting for what they set up
+
+### Integration Points
+- Called after setup completion (in get_setup_completion_celebration flow)
+- Uses state dictionary from SetupStateManager
+- Can be triggered manually via wizard.generate_project_documentation()
+- Saves to README.md by default, but can return as string
+- Message template available for notifying user docs were created
+
+### Code Quality Notes
+- Modular design - DocGenerator is standalone, wizard integration is thin wrapper
+- Error handling - try/except with logging at both generator and wizard level
+- Flexible - save_to_file parameter allows different use cases
+- Type hints throughout for clarity
+- Docstrings for all public methods
+- Helper methods (_generate_header, _generate_quick_start, etc.) for clean code
+
+### Testing
+- Tested doc_generator.py standalone with mock state - works
+- Tested integration via onboarding_wizard.py - works
+- Generated 4600+ character README from test state
+- Verified all sections present and config-specific
+
+### Future Enhancements
+- Could add project type detection (web app vs CLI vs bot)
+- Could customize README style based on user's theme preference (OB-040)
+- Could generate additional docs (CONTRIBUTING.md, DEVELOPMENT.md)
+- Could add MCP server docs if user configured MCP servers
+- Could add deployment instructions based on hosting choice
+- Could integrate with GitHub to auto-commit generated README
+
+---
