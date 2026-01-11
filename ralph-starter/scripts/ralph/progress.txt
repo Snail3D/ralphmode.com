@@ -17623,3 +17623,47 @@ GLM-4.7 (Cost-optimized)
 - Marked owner-only commands to set proper expectations
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-005] Test Prompt Library
+**Status**: ✅ Complete
+
+### What was implemented
+- Created model_tester.py with comprehensive test prompt library
+- 12 role-specific validation prompts (3 per role: Ralph, Worker, Builder, Design)
+- TestPrompt dataclass for structured test definitions
+- Test organization by role with TEST_LIBRARY dict
+- Utility functions: get_tests_for_role(), get_test_by_name(), list_all_tests()
+- ModelTester class with run_test(), run_role_tests(), run_all_tests() (foundation for MM-006)
+- TestResult dataclass for tracking test outcomes
+- Created test_model_tester.py to verify library structure
+
+### Files changed
+- model_tester.py (new, 667 lines)
+- test_model_tester.py (new)
+- README.md (added Test Prompt Library feature)
+- prd.json (marked MM-005 as passing)
+
+### Learnings
+- Each role needs different validation criteria:
+  * Ralph: Personality, brevity, task understanding
+  * Worker: Code generation, bug analysis, code review
+  * Builder: Task planning, file navigation, error handling
+  * Design: Color choice, layout advice, user flow
+- Test prompts should be 2-3 sentences max for quick validation
+- Temperature varies by role: Worker/Builder use lower (0.3-0.4), Ralph/Design use higher (0.7-0.8)
+- Expected behaviors are descriptive, not strict pass/fail rules
+- Test library is extensible - easy to add custom validation_fn to TestPrompt
+- ModelTester integrates with ModelRegistry to record results
+- Fixed syntax errors: dataclass instantiation uses ) not } to close
+
+### Implementation Details
+- TestPrompt includes: name, role, messages, expected_behavior, max_tokens, temperature
+- Messages follow OpenAI chat format: [{"role": "system/user", "content": "..."}]
+- Tests are organized in role-specific lists (RALPH_TESTS, WORKER_TESTS, etc.)
+- TEST_LIBRARY provides centralized access to all tests by role
+- ModelTester.run_test() measures latency and handles errors gracefully
+- Results include response preview for debugging
+- Test runner can record results to validation cache for persistent model tracking
+
+---
