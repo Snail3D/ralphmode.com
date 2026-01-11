@@ -9,6 +9,7 @@ to build a comprehensive understanding of the codebase for better discovery.
 import os
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -168,31 +169,139 @@ class CodebaseSweeper:
 
         return structure
 
-    def _infer_tech_stack(self) -> Dict[str, bool]:
-        """Infer technology stack from files and configs."""
+    def _infer_tech_stack(self) -> Dict[str, Any]:
+        """
+        Infer comprehensive technology stack from files and configs.
+
+        Detects:
+        - Programming languages
+        - Web frameworks
+        - Databases
+        - ORMs
+        - Testing frameworks
+        - Deployment tools
+        - Frontend libraries
+        - Build tools
+
+        Returns:
+            Dict with technology categories and detected tools
+        """
         stack = {
-            "python": False,
-            "javascript": False,
-            "typescript": False,
-            "react": False,
-            "django": False,
-            "flask": False,
-            "fastapi": False,
-            "telegram_bot": False,
-            "docker": False,
+            # Core languages
+            "languages": {
+                "python": False,
+                "javascript": False,
+                "typescript": False,
+                "go": False,
+                "rust": False,
+                "ruby": False,
+                "php": False,
+            },
+
+            # Python frameworks
+            "python_frameworks": {
+                "django": False,
+                "flask": False,
+                "fastapi": False,
+                "tornado": False,
+                "sanic": False,
+                "bottle": False,
+            },
+
+            # JavaScript frameworks
+            "js_frameworks": {
+                "react": False,
+                "vue": False,
+                "angular": False,
+                "next": False,
+                "astro": False,
+                "svelte": False,
+                "express": False,
+                "nest": False,
+            },
+
+            # Databases
+            "databases": {
+                "postgresql": False,
+                "mysql": False,
+                "mariadb": False,
+                "sqlite": False,
+                "mongodb": False,
+                "redis": False,
+                "elasticsearch": False,
+                "dynamodb": False,
+            },
+
+            # ORMs/Database Tools
+            "orm_tools": {
+                "sqlalchemy": False,
+                "django_orm": False,
+                "prisma": False,
+                "typeorm": False,
+                "mongoose": False,
+                "sequelize": False,
+            },
+
+            # Testing frameworks
+            "testing": {
+                "pytest": False,
+                "unittest": False,
+                "jest": False,
+                "mocha": False,
+                "vitest": False,
+                "playwright": False,
+                "cypress": False,
+            },
+
+            # Deployment/Infrastructure
+            "infrastructure": {
+                "docker": False,
+                "kubernetes": False,
+                "terraform": False,
+                "ansible": False,
+            },
+
+            # Messaging/Queue systems
+            "messaging": {
+                "telegram_bot": False,
+                "rabbitmq": False,
+                "kafka": False,
+                "celery": False,
+            },
+
+            # AI/ML libraries
+            "ai_ml": {
+                "anthropic": False,
+                "openai": False,
+                "groq": False,
+                "ollama": False,
+                "pytorch": False,
+                "tensorflow": False,
+                "transformers": False,
+            },
         }
 
         # Check for Python
         if (self.root_path / "requirements.txt").exists() or \
            (self.root_path / "setup.py").exists() or \
            (self.root_path / "pyproject.toml").exists():
-            stack["python"] = True
+            stack["languages"]["python"] = True
+
+        # Check for other languages
+        if (self.root_path / "go.mod").exists():
+            stack["languages"]["go"] = True
+        if (self.root_path / "Cargo.toml").exists():
+            stack["languages"]["rust"] = True
+        if (self.root_path / "Gemfile").exists():
+            stack["languages"]["ruby"] = True
+        if (self.root_path / "composer.json").exists():
+            stack["languages"]["php"] = True
 
         # Check for JS/TS
         if (self.root_path / "package.json").exists():
-            stack["javascript"] = True
+            stack["languages"]["javascript"] = True
 
-            # Check package.json for frameworks
+            # Check package.json for frameworks and libraries
             package_json_path = self.root_path / "package.json"
             try:
                 with open(package_json_path, 'r') as f:
@@ -200,32 +309,155 @@ class CodebaseSweeper:
                     deps = {**package_data.get("dependencies", {}),
                            **package_data.get("devDependencies", {})}
 
-                    if "react" in deps:
-                        stack["react"] = True
+                    # TypeScript
                     if "typescript" in deps or (self.root_path / "tsconfig.json").exists():
-                        stack["typescript"] = True
+                        stack["languages"]["typescript"] = True
+
+                    # JS Frameworks
+                    if "react" in deps:
+                        stack["js_frameworks"]["react"] = True
+                    if "vue" in deps:
+                        stack["js_frameworks"]["vue"] = True
+                    if "@angular/core" in deps:
+                        stack["js_frameworks"]["angular"] = True
+                    if "next" in deps:
+                        stack["js_frameworks"]["next"] = True
+                    if "astro" in deps:
+                        stack["js_frameworks"]["astro"] = True
+                    if "svelte" in deps:
+                        stack["js_frameworks"]["svelte"] = True
+                    if "express" in deps:
+                        stack["js_frameworks"]["express"] = True
+                    if "@nestjs/core" in deps:
+                        stack["js_frameworks"]["nest"] = True
+
+                    # Databases (client libraries)
+                    if "pg" in deps or "postgres" in deps:
+                        stack["databases"]["postgresql"] = True
+                    if "mysql" in deps or "mysql2" in deps:
+                        stack["databases"]["mysql"] = True
+                    if "mongodb" in deps:
+                        stack["databases"]["mongodb"] = True
+                    if "redis" in deps or "ioredis" in deps:
+                        stack["databases"]["redis"] = True
+                    if "@elastic/elasticsearch" in deps:
+                        stack["databases"]["elasticsearch"] = True
+
+                    # ORMs
+                    if "prisma" in deps:
+                        stack["orm_tools"]["prisma"] = True
+                    if "typeorm" in deps:
+                        stack["orm_tools"]["typeorm"] = True
+                    if "mongoose" in deps:
+                        stack["orm_tools"]["mongoose"] = True
+                    if "sequelize" in deps:
+                        stack["orm_tools"]["sequelize"] = True
+
+                    # Testing
+                    if "jest" in deps:
+                        stack["testing"]["jest"] = True
+                    if "mocha" in deps:
+                        stack["testing"]["mocha"] = True
+                    if "vitest" in deps:
+                        stack["testing"]["vitest"] = True
+                    if "playwright" in deps or "@playwright/test" in deps:
+                        stack["testing"]["playwright"] = True
+                    if "cypress" in deps:
+                        stack["testing"]["cypress"] = True
+
             except Exception as e:
                 logger.warning(f"Error parsing package.json: {e}")
 
-        # Check for Python frameworks in requirements
+        # Check for Python dependencies in requirements.txt
         if (self.root_path / "requirements.txt").exists():
             try:
                 with open(self.root_path / "requirements.txt", 'r') as f:
                     requirements = f.read().lower()
+
+                    # Python frameworks
                     if "django" in requirements:
-                        stack["django"] = True
+                        stack["python_frameworks"]["django"] = True
+                        stack["orm_tools"]["django_orm"] = True
                     if "flask" in requirements:
-                        stack["flask"] = True
+                        stack["python_frameworks"]["flask"] = True
                     if "fastapi" in requirements:
-                        stack["fastapi"] = True
+                        stack["python_frameworks"]["fastapi"] = True
+                    if "tornado" in requirements:
+                        stack["python_frameworks"]["tornado"] = True
+                    if "sanic" in requirements:
+                        stack["python_frameworks"]["sanic"] = True
+                    if "bottle" in requirements:
+                        stack["python_frameworks"]["bottle"] = True
+
+                    # Databases
+                    if "psycopg" in requirements or "postgresql" in requirements:
+                        stack["databases"]["postgresql"] = True
+                    if "mysqlclient" in requirements or "pymysql" in requirements:
+                        stack["databases"]["mysql"] = True
+                    if "sqlite" in requirements:
+                        stack["databases"]["sqlite"] = True
+                    if "pymongo" in requirements or "motor" in requirements:
+                        stack["databases"]["mongodb"] = True
+                    if "redis" in requirements:
+                        stack["databases"]["redis"] = True
+                    if "elasticsearch" in requirements:
+                        stack["databases"]["elasticsearch"] = True
+
+                    # ORMs
+                    if "sqlalchemy" in requirements:
+                        stack["orm_tools"]["sqlalchemy"] = True
+
+                    # Testing
+                    if "pytest" in requirements:
+                        stack["testing"]["pytest"] = True
+                    if "unittest" in requirements:
+                        stack["testing"]["unittest"] = True
+                    if "playwright" in requirements:
+                        stack["testing"]["playwright"] = True
+
+                    # Messaging
                     if "python-telegram-bot" in requirements or "telegram" in requirements:
-                        stack["telegram_bot"] = True
+                        stack["messaging"]["telegram_bot"] = True
+                    if "pika" in requirements or "rabbitmq" in requirements:
+                        stack["messaging"]["rabbitmq"] = True
+                    if "kafka" in requirements:
+                        stack["messaging"]["kafka"] = True
+                    if "celery" in requirements:
+                        stack["messaging"]["celery"] = True
+
+                    # AI/ML
+                    if "anthropic" in requirements:
+                        stack["ai_ml"]["anthropic"] = True
+                    if "openai" in requirements:
+                        stack["ai_ml"]["openai"] = True
+                    if "groq" in requirements:
+                        stack["ai_ml"]["groq"] = True
+                    if "ollama" in requirements:
+                        stack["ai_ml"]["ollama"] = True
+                    if "torch" in requirements or "pytorch" in requirements:
+                        stack["ai_ml"]["pytorch"] = True
+                    if "tensorflow" in requirements:
+                        stack["ai_ml"]["tensorflow"] = True
+                    if "transformers" in requirements:
+                        stack["ai_ml"]["transformers"] = True
+
             except Exception as e:
                 logger.warning(f"Error parsing requirements.txt: {e}")
 
-        # Check for Docker
+        # Check for Docker/K8s
         if (self.root_path / "Dockerfile").exists():
-            stack["docker"] = True
+            stack["infrastructure"]["docker"] = True
+        if (self.root_path / "docker-compose.yml").exists() or \
+           (self.root_path / "docker-compose.yaml").exists():
+            stack["infrastructure"]["docker"] = True
+        if list(self.root_path.glob("*.tf")):  # Terraform files
+            stack["infrastructure"]["terraform"] = True
+        if list(self.root_path.glob("*.yml")) and \
+           any("kind:" in f.read_text() for f in self.root_path.glob("*.yml") if f.is_file() and f.stat().st_size < 1000000):
+            # Detect Kubernetes yamls by presence of "kind:" field
+            stack["infrastructure"]["kubernetes"] = True
+        if (self.root_path / "ansible.cfg").exists() or list(self.root_path.glob("playbook*.yml")):
+            stack["infrastructure"]["ansible"] = True
 
         return stack
 
@@ -283,11 +515,59 @@ class CodebaseSweeper:
         if found_docs:
             summary_lines.append(f"Documentation: {', '.join(found_docs)}")
 
-        # Tech stack
+        # Tech stack - handle new nested structure
         tech_stack = self.context.get("tech_stack", {})
-        active_tech = [tech for tech, active in tech_stack.items() if active]
-        if active_tech:
-            summary_lines.append(f"Tech Stack: {', '.join(active_tech)}")
+
+        # Languages
+        if "languages" in tech_stack:
+            active_langs = [lang for lang, active in tech_stack["languages"].items() if active]
+            if active_langs:
+                summary_lines.append(f"Languages: {', '.join(active_langs)}")
+
+        # Frameworks
+        frameworks = []
+        if "python_frameworks" in tech_stack:
+            frameworks.extend([f for f, active in tech_stack["python_frameworks"].items() if active])
+        if "js_frameworks" in tech_stack:
+            frameworks.extend([f for f, active in tech_stack["js_frameworks"].items() if active])
+        if frameworks:
+            summary_lines.append(f"Frameworks: {', '.join(frameworks)}")
+
+        # Databases
+        if "databases" in tech_stack:
+            active_dbs = [db for db, active in tech_stack["databases"].items() if active]
+            if active_dbs:
+                summary_lines.append(f"Databases: {', '.join(active_dbs)}")
+
+        # ORMs
+        if "orm_tools" in tech_stack:
+            active_orms = [orm for orm, active in tech_stack["orm_tools"].items() if active]
+            if active_orms:
+                summary_lines.append(f"ORMs: {', '.join(active_orms)}")
+
+        # Testing
+        if "testing" in tech_stack:
+            active_test = [test for test, active in tech_stack["testing"].items() if active]
+            if active_test:
+                summary_lines.append(f"Testing: {', '.join(active_test)}")
+
+        # Infrastructure
+        if "infrastructure" in tech_stack:
+            active_infra = [infra for infra, active in tech_stack["infrastructure"].items() if active]
+            if active_infra:
+                summary_lines.append(f"Infrastructure: {', '.join(active_infra)}")
+
+        # Messaging
+        if "messaging" in tech_stack:
+            active_msg = [msg for msg, active in tech_stack["messaging"].items() if active]
+            if active_msg:
+                summary_lines.append(f"Messaging: {', '.join(active_msg)}")
+
+        # AI/ML
+        if "ai_ml" in tech_stack:
+            active_ai = [ai for ai, active in tech_stack["ai_ml"].items() if active]
+            if active_ai:
+                summary_lines.append(f"AI/ML: {', '.join(active_ai)}")
 
         # Environment
         env = self.context.get("environment", {})

@@ -17439,3 +17439,39 @@ GLM-4.7 (Cost-optimized)
 
 ---
 
+- Metadata can guide future model selection (e.g., "use the model that worked best last time")
+
+---
+
+## Iteration Auto - 2026-01-11
+**Task**: [PD-005] Technology Stack Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced _infer_tech_stack() method in discovery_analyzer.py for comprehensive tech stack detection
+- Restructured tech stack detection into 8 categories: languages, python_frameworks, js_frameworks, databases, orm_tools, testing, infrastructure, messaging, ai_ml
+- Added detection for 50+ technologies across all categories
+- Languages: Python, JavaScript, TypeScript, Go, Rust, Ruby, PHP
+- Python frameworks: Django, Flask, FastAPI, Tornado, Sanic, Bottle
+- JS frameworks: React, Vue, Angular, Next.js, Astro, Svelte, Express, NestJS
+- Databases: PostgreSQL, MySQL, MariaDB, SQLite, MongoDB, Redis, Elasticsearch, DynamoDB
+- ORMs: SQLAlchemy, Django ORM, Prisma, TypeORM, Mongoose, Sequelize
+- Testing: Pytest, unittest, Jest, Mocha, Vitest, Playwright, Cypress
+- Infrastructure: Docker, Kubernetes, Terraform, Ansible
+- Messaging: Telegram Bot, RabbitMQ, Kafka, Celery
+- AI/ML: Anthropic, OpenAI, Groq, Ollama, PyTorch, TensorFlow, Transformers
+- Updated get_summary() to properly format nested tech stack structure
+- Added datetime import for get_project_context() timestamp support
+
+### Files changed
+- discovery_analyzer.py (_infer_tech_stack(), get_summary(), imports)
+
+### Learnings
+- Nested dictionary structure provides better organization of tech stack categories
+- File-based detection (go.mod, Cargo.toml, etc.) is reliable for language detection
+- Package.json dependencies are excellent indicators of JS ecosystem technologies
+- Requirements.txt parsing can catch most Python framework and library usage
+- Infrastructure tools often have distinctive config files (Dockerfile, *.tf, ansible.cfg)
+- Testing locally showed accurate detection: Python, Flask, Redis, Docker, Telegram Bot, Groq, Pytest
+
+---
