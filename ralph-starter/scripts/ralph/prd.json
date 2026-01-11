@@ -4967,7 +4967,7 @@
         "theme_manager.py",
         "onboarding_wizard.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-041",

@@ -36,6 +36,7 @@ class OnboardingWizard:
     STEP_SSH_KEY = "ssh_key"
     STEP_GITHUB = "github"
     STEP_REPO = "repo"
+    STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_COMPLETE = "complete"
 
     # Setup types
@@ -139,6 +140,16 @@ class OnboardingWizard:
             self.progress_tracker = None
             self.progress_tracker_available = False
             self.logger.warning("Progress tracker not available")
+
+        # Import theme manager (OB-040: Visual Theme Selector)
+        try:
+            from theme_manager import get_theme_manager
+            self.theme_manager = get_theme_manager()
+            self.theme_manager_available = True
+        except ImportError:
+            self.theme_manager = None
+            self.theme_manager_available = False
+            self.logger.warning("Theme manager not available")
 
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
@@ -6690,6 +6701,149 @@ Based on your changes, Ralph thinks this would be good:
             [InlineKeyboardButton("✏️ Write My Own", callback_data="first_commit_custom_message")]
         ]
         return InlineKeyboardMarkup(keyboard)
+
+    # ==================== OB-040: VISUAL THEME SELECTOR ====================
+
+    def get_theme_selection_message(self) -> str:
+        """Get message for theme selection step.
+
+        Returns:
+            Theme selection message with Ralph's personality
+        """
+        return """*Time to make Ralph Mode look good!* 🎨
+
+I got different themes for how messages look. Pick one that feels right to ya!
+
+*Here's what we got:*
+
+**🌞 Light Mode** - Clean and bright, easy on the eyes
+**🌙 Dark Mode** - Sleek for late-night coding
+**🎨 Colorful** - Full emoji action, vibrant vibes (default)
+**⚪ Minimal** - No frills, just the content
+
+*Wanna see 'em in action?* Hit a button below to preview!"""
+
+    def get_theme_selection_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for theme selection.
+
+        Returns:
+            InlineKeyboardMarkup with theme options
+        """
+        if not self.theme_manager_available:
+            # Fallback if theme manager not available
+            keyboard = [
+                [InlineKeyboardButton("Continue with Default", callback_data="theme_select:colorful")]
+            ]
+            return InlineKeyboardMarkup(keyboard)
+
+        keyboard = [
+            [InlineKeyboardButton("🌞 Light Mode", callback_data="theme_preview:light")],
+            [InlineKeyboardButton("🌙 Dark Mode", callback_data="theme_preview:dark")],
+            [InlineKeyboardButton("🎨 Colorful", callback_data="theme_preview:colorful")],
+            [InlineKeyboardButton("⚪ Minimal", callback_data="theme_preview:minimal")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_theme_preview_message(self, theme_id: str) -> str:
+        """Get preview of a theme.
+
+        Args:
+            theme_id: Theme identifier (light, dark, colorful, minimal)
+
+        Returns:
+            Preview message showing theme in action
+        """
+        if not self.theme_manager_available:
+            return "Theme preview not available. Using default theme."
+
+        theme = self.theme_manager.get_theme(theme_id)
+        if not theme:
+            return "Invalid theme selected."
+
+        preview_text = f"""*{theme['name']}*
+_{theme['description']}_
+
+*Here's a preview:*
+
+{theme['preview']}
+
+*Like what you see?*"""
+
+        return preview_text
+
+    def get_theme_preview_keyboard(self, theme_id: str) -> InlineKeyboardMarkup:
+        """Get keyboard for theme preview with select option.
+
+        Args:
+            theme_id: Theme identifier
+
+        Returns:
+            InlineKeyboardMarkup with select/back buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Choose This Theme", callback_data=f"theme_select:{theme_id}")],
+            [InlineKeyboardButton("⬅️ Back to Themes", callback_data="theme_back")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    async def save_theme_preference(
+        self,
+        user_id: int,
+        telegram_id: int,
+        theme_id: str
+    ) -> bool:
+        """Save user's theme preference to database.
+
+        Args:
+            user_id: Database user ID
+            telegram_id: Telegram user ID
+            theme_id: Selected theme ID
+
+        Returns:
+            True if saved successfully
+        """
+        try:
+            from database import get_db, User
+
+            with get_db() as db:
+                user = db.query(User).filter(User.id == user_id).first()
+
+                if user:
+                    user.theme_preference = theme_id
+                    db.commit()
+                    self.logger.info(f"OB-040: Saved theme '{theme_id}' for user {telegram_id}")
+                    return True
+                else:
+                    self.logger.error(f"OB-040: User {user_id} not found")
+                    return False
+
+        except Exception as e:
+            self.logger.error(f"OB-040: Error saving theme preference: {e}")
+            return False
+
+    def get_theme_confirmation_message(self, theme_id: str) -> str:
+        """Get confirmation message after theme is selected.
+
+        Args:
+            theme_id: Selected theme ID
+
+        Returns:
+            Confirmation message
+        """
+        theme_name = {
+            "light": "Light Mode",
+            "dark": "Dark Mode",
+            "colorful": "Colorful",
+            "minimal": "Minimal"
+        }.get(theme_id, "Unknown")
+
+        return f"""*Sweet choice!* ✨
+
+Your theme is set to **{theme_name}**!
+
+All my messages will use this style from now on. You can change it later if you want!
+
+*Ready to keep going?*"""
 
 
 def get_onboarding_wizard() -> OnboardingWizard:

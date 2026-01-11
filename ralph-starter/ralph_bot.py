@@ -1181,6 +1181,34 @@ class RalphBot:
                 "tone": "drained"
             }
 
+    # ==================== OB-040: THEME PREFERENCE ====================
+
+    def get_user_theme(self, user_id: int) -> str:
+        """Get the user's theme preference from the database.
+
+        Args:
+            user_id: Telegram user ID
+
+        Returns:
+            Theme ID string (light, dark, colorful, minimal, custom) or 'colorful' as default
+        """
+        try:
+            from database import get_db, User
+
+            with get_db() as db:
+                user = db.query(User).filter(User.telegram_id == user_id).first()
+
+                if user and user.theme_preference:
+                    return user.theme_preference
+                else:
+                    # Default to colorful theme
+                    return "colorful"
+
+        except Exception as e:
+            logger.error(f"OB-040: Error getting user theme: {e}")
+            # Fallback to default
+            return "colorful"
+
     # ==================== RM-037: WORKER PUSHBACK SYSTEM ====================
 
     def get_pushback_count(self, user_id: int, worker_name: str, issue_context: str = "general") -> int:
@@ -6818,6 +6846,11 @@ _Drop a zip file to get started!_
             await self.handle_reconfigure_callback(query, context, user_id, data)
             return
 
+        # OB-040: Handle theme selection callbacks
+        if data.startswith("theme_"):
+            await self.handle_theme_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -8879,6 +8912,28 @@ Use `/version <type>` to switch!
                 with_typing=True
             )
 
+    async def theme_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /theme command - OB-040: Visual Theme Selector.
+
+        Allows users to change their visual theme preference.
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"OB-040: User {telegram_id} requested theme selector via /theme command")
+
+        # Get theme selection message and keyboard
+        message = self.onboarding_wizard.get_theme_selection_message()
+        keyboard = self.onboarding_wizard.get_theme_selection_keyboard()
+
+        # Send theme selection interface
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=message,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
     async def reorganize_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle /reorganize command - TC-007: PRD Reorganization Command.
@@ -9656,6 +9711,120 @@ To update your Git config:
             )
             logger.info(f"OB-049: Showed Git config update instructions to user {user_id}")
 
+    async def handle_theme_callback(self, query, context, user_id: int, data: str):
+        """Handle theme selection button callbacks - OB-040.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'theme_preview:light', 'theme_select:dark')
+        """
+        await query.answer()
+
+        logger.info(f"OB-040: Processing theme callback: {data} for user {user_id}")
+
+        # Handle theme preview
+        if data.startswith("theme_preview:"):
+            theme_id = data.split(":", 1)[1]
+            preview_text = self.onboarding_wizard.get_theme_preview_message(theme_id)
+            keyboard = self.onboarding_wizard.get_theme_preview_keyboard(theme_id)
+
+            await query.edit_message_text(
+                preview_text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-040: Showed {theme_id} theme preview to user {user_id}")
+
+        # Handle theme selection
+        elif data.startswith("theme_select:"):
+            theme_id = data.split(":", 1)[1]
+
+            # Get or create user in database
+            try:
+                from database import get_db, User
+
+                with get_db() as db:
+                    user = db.query(User).filter(User.telegram_id == user_id).first()
+
+                    if not user:
+                        # Create user if doesn't exist
+                        user = User(telegram_id=user_id)
+                        db.add(user)
+                        db.flush()  # Get user.id
+
+                    # Save theme preference
+                    saved = await self.onboarding_wizard.save_theme_preference(
+                        user.id,
+                        user_id,
+                        theme_id
+                    )
+
+                    if saved:
+                        confirmation_text = self.onboarding_wizard.get_theme_confirmation_message(theme_id)
+
+                        # If in onboarding, show continue button
+                        if user_id in self.onboarding_state:
+                            keyboard = InlineKeyboardMarkup([
+                                [InlineKeyboardButton("✅ Continue Setup", callback_data="theme_continue")]
+                            ])
+                        else:
+                            # Standalone theme change
+                            keyboard = None
+
+                        await query.edit_message_text(
+                            confirmation_text,
+                            parse_mode="Markdown",
+                            reply_markup=keyboard
+                        )
+                        logger.info(f"OB-040: User {user_id} selected {theme_id} theme")
+                    else:
+                        await query.edit_message_text(
+                            "*Oops!* Something went wrong saving your theme preference. Try again?",
+                            parse_mode="Markdown"
+                        )
+                        logger.error(f"OB-040: Failed to save theme for user {user_id}")
+
+            except Exception as e:
+                logger.error(f"OB-040: Error in theme selection: {e}")
+                await query.edit_message_text(
+                    "*Uh oh!* Had a problem saving that. Ralph will look into it!",
+                    parse_mode="Markdown"
+                )
+
+        # Handle back to theme list
+        elif data == "theme_back":
+            message = self.onboarding_wizard.get_theme_selection_message()
+            keyboard = self.onboarding_wizard.get_theme_selection_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-040: Showed theme list to user {user_id}")
+
+        # Handle continue after theme selection (during onboarding)
+        elif data == "theme_continue":
+            if user_id in self.onboarding_state:
+                state = self.onboarding_state[user_id]
+                # Mark theme step complete and move to next step
+                state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_COMPLETE)
+                self.onboarding_state[user_id] = state
+
+                # Show completion message
+                await query.edit_message_text(
+                    "*All set!* 🎉\n\nYour Ralph Mode setup is complete!\n\nSend me a message to get started with your dev team!",
+                    parse_mode="Markdown"
+                )
+                logger.info(f"OB-040: User {user_id} completed onboarding with theme selection")
+            else:
+                await query.edit_message_text(
+                    "Theme saved! You're all set.",
+                    parse_mode="Markdown"
+                )
+
     async def handle_troubleshooting_callback(self, query, context, user_id: int, data: str):
         """Handle troubleshooting guide button callbacks.
 
@@ -9793,6 +9962,7 @@ To update your Git config:
         app.add_handler(CommandHandler("feedback", self.feedback_command))  # FB-001
         app.add_handler(CommandHandler("password", self.password_command))  # MU-002
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
+        app.add_handler(CommandHandler("theme", self.theme_command))  # OB-040
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
