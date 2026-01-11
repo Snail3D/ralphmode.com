@@ -4301,6 +4301,137 @@ _{ralph_response}_
         # Default to calm
         return 'calm'
 
+    # ==================== RM-030: CEO SENTIMENT ANALYSIS ====================
+
+    def analyze_ceo_sentiment(self, text: str) -> str:
+        """
+        RM-030: Analyze CEO message sentiment to determine Ralph's response tone.
+
+        Args:
+            text: CEO's message text
+
+        Returns:
+            Sentiment: 'upset', 'neutral', 'happy', 'urgent'
+        """
+        text_lower = text.lower()
+
+        # Check for urgent indicators (highest priority)
+        urgent_indicators = [
+            'asap', 'urgent', 'immediately', 'now', 'right now', 'drop everything',
+            'critical', 'emergency', 'need this', '!!!', 'hurry'
+        ]
+        if any(indicator in text_lower for indicator in urgent_indicators):
+            return 'urgent'
+
+        # Check for upset/angry sentiment
+        upset_indicators = [
+            'not happy', 'disappointed', 'unacceptable', 'terrible', 'awful',
+            'what the hell', 'wtf', 'seriously', 'this is bad', 'not good enough',
+            'frustrated', 'annoyed', 'upset', 'angry', 'fix this', 'broken'
+        ]
+        if any(indicator in text_lower for indicator in upset_indicators):
+            return 'upset'
+
+        # Check for happy/pleased sentiment
+        happy_indicators = [
+            'great job', 'good work', 'excellent', 'perfect', 'love it', 'awesome',
+            'fantastic', 'well done', 'nice', 'impressed', 'happy', 'pleased',
+            'thank you', 'thanks', 'appreciate', 'good', 'looking good'
+        ]
+        if any(indicator in text_lower for indicator in happy_indicators):
+            return 'happy'
+
+        # Default to neutral
+        return 'neutral'
+
+    def get_ralph_response_for_ceo_sentiment(self, sentiment: str, order: str) -> str:
+        """
+        RM-030: Get Ralph's response based on CEO sentiment.
+
+        Args:
+            sentiment: CEO sentiment ('upset', 'neutral', 'happy', 'urgent')
+            order: The CEO's actual order/message
+
+        Returns:
+            Ralph's response string (before misspelling)
+        """
+        # Truncate order for display
+        order_preview = order[:50] + ('...' if len(order) > 50 else '')
+
+        if sentiment == 'urgent':
+            responses = [
+                f"DROP EVERYTHING! Mr. Worms needs this NOW! Team, you heard him!",
+                f"This is REALLY importent! Mr. Worms says urgent! Let's go go go!",
+                f"Okay team, Mr. Worms needs this right away! No time for snacks!"
+            ]
+        elif sentiment == 'upset':
+            responses = [
+                f"Okay team, Mr. Worms is NOT happy. Let's pick it up!",
+                f"Uh oh... boss sounds mad. Everyone, we gotta do better!",
+                f"Team! Mr. Worms is disappointed! We need to fix this good!"
+            ]
+        elif sentiment == 'happy':
+            responses = [
+                f"Mr. Worms is pleased! Good job everyone!",
+                f"Yay! The boss is happy! We're doing great!",
+                f"Mr. Worms says we're awesome! I'm so proud of us!"
+            ]
+        else:  # neutral
+            responses = [
+                f"Got it boss! Team, we got new orders!",
+                f"Okay! Mr. Worms wants us to do: '{order_preview}'",
+                f"New task from Mr. Worms! Let's do it!"
+            ]
+
+        return random.choice(responses)
+
+    async def send_worker_reaction_to_ralph_mood(self, context, chat_id: int, sentiment: str, user_id: int):
+        """
+        RM-030: Workers react to Ralph's mood shift based on CEO sentiment.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            sentiment: CEO sentiment that caused Ralph's mood shift
+            user_id: User ID for tracking
+        """
+        # Only send worker reactions occasionally (30% chance) to avoid spam
+        if random.random() > 0.3:
+            return
+
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+
+        if sentiment == 'urgent':
+            reactions = [
+                f"*{worker_name} drops coffee mug* Wait, what? NOW?!",
+                f"*{worker_name} stops mid-keystroke* Okay okay, pivoting!",
+                f"*{worker_name} looks up nervously* Boss seems... intense right now."
+            ]
+        elif sentiment == 'upset':
+            reactions = [
+                f"*{worker_name} exchanges glances with team* Uh oh, boss seems stressed...",
+                f"*{worker_name} straightens in chair* Right, let's focus up everyone.",
+                f"*{worker_name} whispers* Ralph's in serious mode. Let's be careful."
+            ]
+        elif sentiment == 'happy':
+            reactions = [
+                f"*{worker_name} relaxes* Nice! Mr. Worms is in a good mood!",
+                f"*{worker_name} smiles* Finally, some appreciation around here!",
+                f"*{worker_name}* See? I told you guys we were doing good work!"
+            ]
+        else:  # neutral - no reaction needed
+            return
+
+        reaction = random.choice(reactions)
+
+        await asyncio.sleep(self.timing.beat())
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=reaction,
+            parse_mode="Markdown"
+        )
+        logging.info(f"RM-030: Sent worker reaction to Ralph's mood shift (sentiment: {sentiment})")
+
     # ==================== QUALITY METRICS TRACKING ====================
 
     def init_quality_metrics(self, user_id: int):
@@ -6835,6 +6966,10 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 )
                 return
 
+            # RM-030: Analyze CEO sentiment to adjust Ralph's tone
+            ceo_sentiment = self.analyze_ceo_sentiment(order)
+            logging.info(f"RM-030: CEO sentiment detected: {ceo_sentiment}")
+
             # TL-006: Extract directive BEFORE translation (preserve actual intent)
             directive = None
             if COMMAND_HANDLER_AVAILABLE:
@@ -6914,28 +7049,30 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                         with_typing=True
                     )
                 else:  # "first" - critical urgency
+                    # RM-030: Use sentiment-aware response
+                    ralph_response = self.get_ralph_response_for_ceo_sentiment(ceo_sentiment, order)
                     await self.send_styled_message(
                         context, chat_id, "Ralph", None,
-                        self.ralph_misspell(
-                            f"ON IT BOSS! This sounds REALLY importent! "
-                            f"'{order[:50]}{'...' if len(order) > 50 else ''}'"
-                        ),
+                        self.ralph_misspell(ralph_response),
                         topic=order[:30] if order else "URGENT",
                         with_typing=True
                     )
+                    # RM-030: Workers react to Ralph's mood shift
+                    await self.send_worker_reaction_to_ralph_mood(context, chat_id, ceo_sentiment, user_id)
                 return
 
             # Ralph asks about priority with inline buttons
+            # RM-030: Use sentiment-aware response for priority questions
             # TL-006: If high priority suggested, pre-select it in the message
             if order_data.get("priority_suggestion") == "first":
+                ralph_base_response = self.get_ralph_response_for_ceo_sentiment(ceo_sentiment, order)
                 ralph_question = self.ralph_misspell(
-                    f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
-                    "This sounds REALLY importent! Should I do it first?"
+                    f"{ralph_base_response} Should I do it first?"
                 )
             else:
+                ralph_base_response = self.get_ralph_response_for_ceo_sentiment(ceo_sentiment, order)
                 ralph_question = self.ralph_misspell(
-                    f"Ooh! Mr. Worms wants: '{order[:50]}{'...' if len(order) > 50 else ''}' "
-                    "This sounds importent! How importent is this?"
+                    f"{ralph_base_response} How importent is this?"
                 )
 
             await self.send_styled_message(
@@ -6943,6 +7080,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 topic=order[:30] if order else "CEO order",
                 with_typing=True
             )
+
+            # RM-030: Workers react to Ralph's mood shift
+            await self.send_worker_reaction_to_ralph_mood(context, chat_id, ceo_sentiment, user_id)
 
             # Show priority buttons
             keyboard = InlineKeyboardMarkup([
