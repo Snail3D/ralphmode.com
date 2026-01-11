@@ -496,6 +496,81 @@ COMPETENCE (this is your core - never compromise it):
         # }
     }
 
+    # SEC-031: Hacker Villains - Security breach storylines
+    # Simpsons-style villains who appear during security issues
+    HACKER_VILLAINS = {
+        "sql_injection": {
+            "name": "Slithery Sam",
+            "title": "The SQL Serpent",
+            "personality": "Snake Jailbird-inspired. Talks like a thief, makes snake puns",
+            "entrance": "_A shadowy figure appears on the screen, wearing a ski mask_\n\n🐍 **Slithery Sam**: Ssssup, losers? I'm gonna sssslither right into your database! Your SQL is wide open, baby!",
+            "taunts": [
+                "Nice try with that query, but I can ssssee your tables from here!",
+                "You call this input validation? I've ssseen better ssssecurity at a lemonade stand!",
+                "I'm gonna DROP your tables like they're hot! Ssssss!",
+                "Your WHERE claussse is more open than a 7-Eleven, dudes!",
+            ],
+            "retreat": "_Slithery Sam hisses in frustration_\n\n🐍 **Sam**: Prepared sssstatements?! Parameterized queriesss?! You think you're ssssmart?! I'll be back when you forget to validate again! Ssssss! _vanishes in a puff of smoke_",
+            "vulnerability_type": "SQL Injection"
+        },
+        "xss": {
+            "name": "Scripter Sid",
+            "title": "The XSS Bandit",
+            "personality": "Sideshow Bob-inspired. Theatrical, dramatic, over-the-top villain",
+            "entrance": "_Thunder rumbles as an elegant villain steps into view_\n\n🎭 **Scripter Sid**: Ah, what a MAGNIFICENT opportunity! Your unsanitized inputs are like an OPEN INVITATION to my theatrical scripts! <script>alert('Muahahaha!')</script>",
+            "taunts": [
+                "You render user input DIRECTLY? How... pedestrian. And VULNERABLE! *evil laugh*",
+                "I shall inject my scripts into your DOM like a VIRTUOSO injects drama into Shakespeare!",
+                "Your innerHTML is my playground! The XSS! It SINGS to me!",
+                "Sanitization? Escaping? These are concepts as FOREIGN to you as humility is to me!",
+            ],
+            "retreat": "_Scripter Sid dramatically sweeps his cape_\n\n🎭 **Sid**: FOILED! By proper encoding and Content Security Policy! You may have won THIS battle, but the war... the WAR is far from over! I shall return! _exits dramatically, stepping on a rake_",
+            "vulnerability_type": "Cross-Site Scripting (XSS)"
+        },
+        "auth": {
+            "name": "Token Tina",
+            "title": "The Session Stealer",
+            "personality": "Cat burglar type, smooth-talking, charming villain",
+            "entrance": "_A sleek figure rappels from the ceiling_\n\n💎 **Token Tina**: Well well well... look at all these juicy sessions just lying around. No CSRF tokens? No httpOnly cookies? You're making this too easy, darling.",
+            "taunts": [
+                "Your JWTs are stored in localStorage? How... adorably insecure.",
+                "I'll just help myself to these session tokens, thank you very much!",
+                "No rotation policy? No expiration? It's like you WANT me to steal credentials!",
+                "Weak password hashing? SHA-1? Oh honey, it's not 2005 anymore.",
+            ],
+            "retreat": "_Token Tina checks her watch_\n\n💎 **Tina**: Bcrypt? Secure session management? CSRF tokens? You've tightened up, I see. Fine. I'll find easier targets. But I'll be watching... _disappears through a ventilation shaft_",
+            "vulnerability_type": "Authentication & Session Management"
+        },
+        "secrets": {
+            "name": "Keymaster Kyle",
+            "title": "The Secret Snatcher",
+            "personality": "Sneaky, whisper-talks, obsessed with finding hidden things",
+            "entrance": "_A figure emerges from the shadows, clutching a notebook_\n\n🔑 **Keymaster Kyle**: *whispers* Psssst... I can see your secrets... API keys in your frontend code... passwords in git history... environment variables hardcoded... beautiful...",
+            "taunts": [
+                "*whispers* Is that... is that a password in your source code? Don't mind if I do...",
+                "Committed your .env file to GitHub? The whole internet thanks you!",
+                "Hardcoded credentials? In PRODUCTION? It's like Christmas morning!",
+                "Your API keys are just... sitting there... in the client-side JavaScript... precious...",
+            ],
+            "retreat": "_Keymaster Kyle clutches his notebook defensively_\n\n🔑 **Kyle**: *whispers* Secrets manager? Environment variables? .gitignore? You've... you've hidden them all... NO! My precious secrets! _scurries away into the darkness_",
+            "vulnerability_type": "Sensitive Data Exposure"
+        },
+        "generic": {
+            "name": "Bug Bart",
+            "title": "The Generic Troublemaker",
+            "personality": "Bart Simpson-inspired. Mischievous, prankster, rebellious",
+            "entrance": "_A skateboard rolls past, followed by a mischievous troublemaker_\n\n🛹 **Bug Bart**: Yo! Check it out - security holes! Don't have a cow, man, I'm just here to exploit your bugs!",
+            "taunts": [
+                "No input validation? Cowabunga, dude!",
+                "Your error messages leak sensitive info? Ay caramba!",
+                "Eat my shorts, security best practices!",
+                "I'm gonna break stuff and you can't catch me!",
+            ],
+            "retreat": "_Bug Bart jumps on his skateboard_\n\n🛹 **Bart**: Alright alright, you patched it. But I'll be back! _skates away_ Eat my shorts!",
+            "vulnerability_type": "Security Vulnerability"
+        }
+    }
+
     # The CEO (user talks to Mr. Worms through Ralphie)
     CEO_NAME = "Mr. Worms"
 
@@ -511,6 +586,12 @@ COMPETENCE (this is your core - never compromise it):
         "册子": "🟠",       # Orange for API specialist (RM-018)
         "Willie": "🟫",     # Dark brown for DevOps (RM-019)
         "Doc": "⚪",        # White for debugging specialist (RM-020)
+        # SEC-031: Hacker villain colors (evil themed):
+        "Slithery Sam": "🟢",      # Green snake
+        "Scripter Sid": "🟣",      # Purple for theatrical villain
+        "Token Tina": "💎",        # Diamond for jewel thief aesthetic
+        "Keymaster Kyle": "🔑",    # Key emoji for the secret stealer
+        "Bug Bart": "🛹",          # Skateboard for the troublemaker
     }
 
     # Ralph's dyslexia/word mix-ups - he misspells things authentically
@@ -3002,6 +3083,182 @@ _{ralph_message}_
         if self.should_send_gif():
             await asyncio.sleep(self.timing.beat())
             await self.send_ralph_gif(context, chat_id, "silly")
+
+    async def security_breach_storyline(self, context, chat_id: int, vulnerability_type: str = None, detected_issue: str = None):
+        """SEC-031: Security breach storyline with hacker villain.
+
+        When a security vulnerability is detected, a Simpsons-style hacker appears,
+        creating dramatic storyline where the office is 'under attack' and a worker
+        heroically volunteers to fix it.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            vulnerability_type: Type of vulnerability (sql_injection, xss, auth, secrets, or None for generic)
+            detected_issue: Brief description of the issue detected
+        """
+        # Map vulnerability type to hacker villain
+        villain_key = vulnerability_type if vulnerability_type in self.HACKER_VILLAINS else "generic"
+        villain = self.HACKER_VILLAINS[villain_key]
+        villain_name = villain['name']
+
+        # DRAMATIC ENTRANCE - Alert the office!
+        await asyncio.sleep(0.5)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🚨 *SECURITY ALERT* 🚨\n\n_The screens flicker ominously. Something's not right..._",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.beat())
+
+        # Hacker makes their grand entrance
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=villain['entrance'],
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.normal_response())
+
+        # Ralph's confused reaction (comedy relief)
+        ralph_reactions = [
+            "Why is the computer talking? Is it magic?",
+            "I don't understand what's happening but I'm scared!",
+            "Is this the internet? My daddy warned me about strangers on the internet!",
+            "The computer snake is talking to me! Should I talk back?",
+            "I thought computers were our friends!",
+            "This is unpossible! Computers don't have people inside them!",
+        ]
+        ralph_response = self.ralph_misspell(random.choice(ralph_reactions))
+        await self.rapid_banter_send(
+            context, chat_id, "Ralph", None,
+            ralph_response
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Hacker taunts the office
+        taunt = random.choice(villain['taunts'])
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=taunt,
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.normal_response())
+
+        # Pick a worker to be the hero based on vulnerability type
+        hero_name = self._pick_security_hero(vulnerability_type)
+        hero = self.DEV_TEAM[hero_name]
+
+        # Worker volunteers to fight the hacker
+        volunteer_messages = [
+            f"I've got this, boss! I'll fix the {villain['vulnerability_type']}!",
+            f"Don't worry, Ralph. I know how to handle {villain['vulnerability_type']} issues.",
+            f"On it! Time to patch this {villain['vulnerability_type']} vulnerability!",
+            f"Let me take care of this. {villain_name} picked the wrong office to mess with!",
+        ]
+        await self.send_styled_message(
+            context, chat_id, hero_name, hero['title'],
+            random.choice(volunteer_messages),
+            topic="🛡️ Security Response",
+            with_typing=True
+        )
+        await asyncio.sleep(self.timing.normal_response())
+
+        # Worker explains what they're going to fix (educational moment)
+        if detected_issue:
+            fix_explanation = f"The issue: {detected_issue}. I'm implementing the proper fix now..."
+            await self.send_styled_message(
+                context, chat_id, hero_name, hero['title'],
+                fix_explanation,
+                with_typing=True
+            )
+            await asyncio.sleep(self.timing.normal_response())
+
+        # Typing indicator to show work happening
+        await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+        await asyncio.sleep(random.uniform(2.0, 3.0))
+
+        # Victory! The vulnerability is patched
+        victory_messages = [
+            "Patched! The vulnerability is closed.",
+            "Done! Security issue fixed.",
+            "All set. The hole is plugged.",
+            "Fixed! We're secure now.",
+        ]
+        await self.send_styled_message(
+            context, chat_id, hero_name, hero['title'],
+            random.choice(victory_messages),
+            topic="✅ Security Fix",
+            with_typing=False
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Hacker retreats in defeat
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=villain['retreat'],
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.normal_response())
+
+        # Ralph's relieved/confused response
+        ralph_victory = [
+            "We did it! We defeated the computer snake! I helped!",
+            "Is it over? Did we win? I'm the best manager!",
+            "The bad guy is gone! Victory tastes like paste!",
+            "We're heroes! Can we have ice cream now?",
+            "I was brave! My daddy would be so proud!",
+        ]
+        await self.rapid_banter_send(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(random.choice(ralph_victory))
+        )
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Optional: Another worker congratulates the hero
+        if random.random() < 0.6:  # 60% chance
+            other_workers = [w for w in self.DEV_TEAM.keys() if w != hero_name]
+            congratulator = random.choice(other_workers)
+            congratulator_data = self.DEV_TEAM[congratulator]
+            congrats_messages = [
+                f"Nice work, {hero_name}!",
+                f"Good save, {hero_name}.",
+                f"Crisis averted. Well done.",
+                "Smooth handling of that security issue!",
+            ]
+            await self.rapid_banter_send(
+                context, chat_id, congratulator, congratulator_data['title'],
+                random.choice(congrats_messages)
+            )
+
+        # Optional: Send a celebratory GIF
+        if self.should_send_gif():
+            await asyncio.sleep(self.timing.beat())
+            await self.send_worker_gif(context, chat_id, "relieved")
+
+    def _pick_security_hero(self, vulnerability_type: str) -> str:
+        """SEC-031: Pick the best worker to handle a security vulnerability.
+
+        Args:
+            vulnerability_type: Type of vulnerability
+
+        Returns:
+            Name of the worker best suited to handle this security issue
+        """
+        # Map vulnerability types to most appropriate workers
+        security_specialists = {
+            "sql_injection": "Gomer",      # Backend dev handles SQL
+            "xss": "Stool",                # Frontend dev handles XSS
+            "auth": "Gomer",               # Backend dev handles auth
+            "secrets": "Gus",              # Senior dev handles sensitive data
+            "generic": None,               # Random worker for generic issues
+        }
+
+        hero = security_specialists.get(vulnerability_type)
+        if hero is None:
+            # Pick a random worker for generic issues
+            hero = random.choice(list(self.DEV_TEAM.keys()))
+
+        return hero
 
     def _generate_codebase_exploration_quotes(self, session: Dict[str, Any]) -> List[Tuple[str, str]]:
         """RM-054: Generate codebase-specific exploration discussions based on actual analysis.
@@ -7499,6 +7756,56 @@ Use `/version <type>` to switch!
 
         logger.info(f"OB-001: Sent welcome message to user {telegram_id}")
 
+    async def hacktest_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """SEC-031: Test the security breach storyline.
+
+        Usage: /hacktest [type]
+        Types: sql, xss, auth, secrets, or leave empty for random
+
+        This triggers the security breach storyline for demonstration/testing purposes.
+        """
+        chat_id = update.message.chat_id
+        telegram_id = update.effective_user.id
+
+        # Parse command arguments
+        args = context.args
+        vulnerability_type = None
+
+        if args:
+            type_arg = args[0].lower()
+            type_mapping = {
+                "sql": "sql_injection",
+                "xss": "xss",
+                "auth": "auth",
+                "secrets": "secrets",
+                "generic": "generic",
+            }
+            vulnerability_type = type_mapping.get(type_arg)
+
+        if vulnerability_type is None:
+            # Pick a random vulnerability type
+            vulnerability_type = random.choice(["sql_injection", "xss", "auth", "secrets", "generic"])
+
+        # Generate a sample detected issue based on type
+        sample_issues = {
+            "sql_injection": "Unparameterized SQL query in user login endpoint",
+            "xss": "User input rendered directly without sanitization in comments section",
+            "auth": "Session tokens stored in localStorage without httpOnly flag",
+            "secrets": "API key hardcoded in frontend JavaScript bundle",
+            "generic": "Potential security vulnerability detected in user input handling",
+        }
+        detected_issue = sample_issues.get(vulnerability_type, "Security issue detected")
+
+        logger.info(f"SEC-031: /hacktest triggered by user {telegram_id}, type={vulnerability_type}")
+
+        # Trigger the security breach storyline
+        await self.security_breach_storyline(
+            context=context,
+            chat_id=chat_id,
+            vulnerability_type=vulnerability_type,
+            detected_issue=detected_issue
+        )
+
     async def handle_setup_callback(self, query, context, user_id: int, data: str):
         """Handle setup wizard button callbacks.
 
@@ -7636,6 +7943,7 @@ Use `/version <type>` to switch!
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
+        app.add_handler(CommandHandler("hacktest", self.hacktest_command))  # SEC-031
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
