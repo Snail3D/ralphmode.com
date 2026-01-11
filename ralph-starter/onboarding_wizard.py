@@ -58,6 +58,14 @@ except ImportError:
     CLAUDE_CODE_SETUP_AVAILABLE = False
     logging.warning("Claude Code CLI setup not available")
 
+# Import project scaffolder for OB-029
+try:
+    from project_scaffolder import get_project_scaffolder
+    PROJECT_SCAFFOLDER_AVAILABLE = True
+except ImportError:
+    PROJECT_SCAFFOLDER_AVAILABLE = False
+    logging.warning("Project scaffolder not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -68,6 +76,7 @@ class OnboardingWizard:
     STEP_SSH_KEY = "ssh_key"
     STEP_GITHUB = "github"
     STEP_REPO = "repo"
+    STEP_FOLDERS = "folders"  # OB-029: Folder structure creation
     STEP_PYTHON_ENV = "python_env"  # OB-024: Python environment setup
     STEP_CLAUDE_CLI = "claude_cli"  # OB-026: Claude Code CLI installation
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
@@ -4017,6 +4026,91 @@ Or tell Ralph what error you're seeing!
         except Exception as e:
             self.logger.error(f"Claude CLI verification error: {e}")
             return False, f"Verification error: {str(e)}"
+
+    # Folder Structure Creation (OB-029)
+
+    async def setup_project_folders(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        project_path: str = "."
+    ) -> Tuple[bool, str]:
+        """Set up standard project folder structure.
+
+        Args:
+            update: Telegram update object
+            context: Callback context
+            project_path: Root path for the project (default: current directory)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not PROJECT_SCAFFOLDER_AVAILABLE:
+            return False, "Project scaffolder not available"
+
+        try:
+            scaffolder = get_project_scaffolder()
+
+            # Send Ralph's friendly introduction
+            intro_msg = scaffolder.get_ralph_explanation()
+            if update.callback_query:
+                await update.callback_query.message.reply_text(intro_msg, parse_mode='Markdown')
+
+            # Create the folder structure
+            success, summary, created_items = scaffolder.scaffold_project(project_path)
+
+            # Send results
+            if success:
+                result_msg = self.get_folders_success_message(created_items)
+            else:
+                result_msg = self.get_folders_error_message(summary)
+
+            if update.callback_query:
+                await update.callback_query.message.reply_text(result_msg, parse_mode='Markdown')
+
+            return success, summary
+
+        except Exception as e:
+            self.logger.error(f"Folder setup error: {e}")
+            return False, f"Setup error: {str(e)}"
+
+    def get_folders_success_message(self, created_items: List[str]) -> str:
+        """Get success message for folder creation."""
+        items_list = '\n'.join([f"✅ {item}" for item in created_items])
+
+        return f"""🎉 *Folder Structure Created!*
+
+Your project is all organized now! Here's what I made:
+
+{items_list}
+
+Now your code has a nice home! Everything is organized just right.
+
+📂 Remember:
+• Put your code in `src/`
+• Tests go in `tests/`
+• Configs go in `config/`
+• Ralph's brain stuff goes in `scripts/ralph/`
+
+*Ready to move on to the next step?*"""
+
+    def get_folders_error_message(self, error: str) -> str:
+        """Get error message for folder creation."""
+        return f"""⚠️ *Oops! Folder Setup Had Issues*
+
+I tried to make the folders but something went wrong:
+
+```
+{error}
+```
+
+**Common Fixes:**
+• Make sure you have write permissions in this directory
+• Check that the directory exists
+• Try creating the folders manually if needed
+
+*Want to try again?*
+Or tell Ralph what error you're seeing!"""
 
     def get_claude_cli_install_message(self) -> str:
         """Get Claude Code CLI installation message."""
