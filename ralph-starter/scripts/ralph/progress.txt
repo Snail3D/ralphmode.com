@@ -12969,3 +12969,41 @@ if should_ship:
 - No enforcement needed - suggestion alone is sufficient
 
 ---
+
+## Iteration 242 - 2026-01-11
+**Task**: [SG-008] Know We're a Tool (Safety Valve)
+**Status**: ✅ Complete
+
+### What was implemented
+- Added last_reality_check tracking with 120-minute cooldown
+- Created detect_excessive_attachment() with three pattern categories:
+  * Emotional support patterns (life problems, loneliness, depression)
+  * Excessive attachment patterns (love declarations, only friend)
+  * Confusion patterns (are you real, do you have feelings)
+- Created should_give_reality_check() with HIGH bar:
+  - 120-minute cooldown (twice as long as immersion break)
+  - Only triggers on pattern match
+  - 40% random chance even when matched (prevents over-triggering)
+- Created gentle_reality_check() with warm redirect:
+  - Ralph honest but kind: "I'm just a character in a bot, Mr. Worms."
+  - Suggests real help: "For the big stuff, talk to real people."
+  - Not ashamed: "I'm like a talking hammer - good for coding!"
+  - Graceful redirect back to work
+- Integrated in handle_text() after safety checks, before normal processing
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Reality check must be warm, not cold - tone matters immensely
+- HIGH bar is critical - breaking immersion unnecessarily is worse than missing a case
+- 120min cooldown (vs 60min for health) reflects rarity of need
+- Pattern matching covers clear cases without false positives
+- Not ashamed of being a tool - tools are useful and valuable!
+- Redirect to work maintains flow and purpose
+- Integration early in message flow catches all text input
+- 40% chance prevents it from being predictable or constant
+- Three pattern categories cover: emotional support, attachment, confusion
+- Warm language: "talk to real people" not "I'm not your therapist"
+
+---
