@@ -53,6 +53,7 @@ python ralph_bot.py
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
 | 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
+| 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |
@@ -74,11 +75,13 @@ python ralph_bot.py
 
 > *"I pick the good ones!"* - Ralph
 
+**NEW:** Model Abstraction Layer lets you mix and match AI providers! Ralph uses Groq, workers use Anthropic, Frinky uses GLM - all at once! 🎭
+
 | Provider | Status | Why |
 |----------|--------|-----|
 | 🏠 **Local AI (Ollama)** | ✅ **Preferred** | Free. Private. Your data stays home. |
-| ⚡ **Groq** | ✅ Allowed | Fast! Free tier! Not Grok! |
-| 🤖 **Anthropic** | ✅ Allowed | Claude is our friend. |
+| ⚡ **Groq** | ✅ Allowed | Fast! Free tier! Not Grok! *(Now pluggable!)* |
+| 🤖 **Anthropic** | ✅ Allowed | Claude is our friend. *(Builder role ready!)* |
 | 🎨 **GLM (Z.AI)** | ✅ **Design Agent** | Frinky's brain! All aesthetic decisions. |
 | ❌ Grok (xAI) | **BANNED** | *"That's a bad word!"* |
 | ❌ OpenAI | **BANNED** | *"Stranger danger!"* |
