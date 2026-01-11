@@ -846,6 +846,165 @@ class ModelManager:
 
         return ". ".join(reasons) + "."
 
+    async def discover_local_models(self) -> List[Dict[str, Any]]:
+        """
+        MM-019: Auto-detect running local models.
+
+        Scans common ports and endpoints to find local AI servers:
+        - Ollama (port 11434)
+        - LM Studio (port 1234)
+        - llama.cpp (port 8080)
+
+        Returns:
+            List of discovered model servers with metadata
+
+        Example:
+            discovered = await manager.discover_local_models()
+            for server in discovered:
+                print(f"Found {server['provider']} at {server['base_url']}")
+                print(f"Available models: {server['models']}")
+        """
+        import aiohttp
+        import asyncio
+
+        discovered = []
+
+        # Check Ollama
+        ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as session:
+                async with session.get(f"{ollama_url}/api/tags") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = [model["name"] for model in data.get("models", [])]
+                        discovered.append({
+                            "provider": ModelProvider.OLLAMA.value,
+                            "base_url": ollama_url,
+                            "models": models,
+                            "status": "running",
+                            "version": data.get("version", "unknown")
+                        })
+                        logger.info(f"MM-019: Discovered Ollama at {ollama_url} with {len(models)} models")
+        except Exception as e:
+            logger.debug(f"MM-019: Ollama not found at {ollama_url}: {e}")
+
+        # Check LM Studio
+        lmstudio_url = os.environ.get("LM_STUDIO_BASE_URL", "http://localhost:1234")
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as session:
+                async with session.get(f"{lmstudio_url}/v1/models") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = [model["id"] for model in data.get("data", [])]
+                        discovered.append({
+                            "provider": ModelProvider.LM_STUDIO.value,
+                            "base_url": lmstudio_url,
+                            "models": models,
+                            "status": "running",
+                            "version": "unknown"
+                        })
+                        logger.info(f"MM-019: Discovered LM Studio at {lmstudio_url} with {len(models)} models")
+        except Exception as e:
+            logger.debug(f"MM-019: LM Studio not found at {lmstudio_url}: {e}")
+
+        # Check llama.cpp server
+        llamacpp_url = os.environ.get("LLAMACPP_BASE_URL", "http://localhost:8080")
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as session:
+                async with session.get(f"{llamacpp_url}/v1/models") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        models = [model["id"] for model in data.get("data", [])]
+                        discovered.append({
+                            "provider": ModelProvider.LLAMACPP.value,
+                            "base_url": llamacpp_url,
+                            "models": models,
+                            "status": "running",
+                            "version": "unknown"
+                        })
+                        logger.info(f"MM-019: Discovered llama.cpp at {llamacpp_url} with {len(models)} models")
+        except Exception as e:
+            logger.debug(f"MM-019: llama.cpp not found at {llamacpp_url}: {e}")
+
+        if not discovered:
+            logger.info("MM-019: No local model servers discovered")
+        else:
+            logger.info(f"MM-019: Total discovered: {len(discovered)} local model servers")
+
+        return discovered
+
+    async def auto_register_local_models(
+        self,
+        role: Optional[ModelRole] = None,
+        prefer_provider: Optional[ModelProvider] = None
+    ) -> List[str]:
+        """
+        MM-019: Discover and auto-register local models.
+
+        Convenience method that discovers local models and registers them
+        in the ModelRegistry for easy use.
+
+        Args:
+            role: Optional role to assign to discovered models
+            prefer_provider: If multiple providers found, prefer this one
+
+        Returns:
+            List of registered model names
+
+        Example:
+            # Auto-register any local models found
+            registered = await manager.auto_register_local_models()
+
+            # Register for a specific role
+            registered = await manager.auto_register_local_models(role=ModelRole.RALPH)
+
+            # Prefer Ollama if multiple providers running
+            registered = await manager.auto_register_local_models(
+                prefer_provider=ModelProvider.OLLAMA
+            )
+        """
+        discovered = await self.discover_local_models()
+        registered_names = []
+
+        if not discovered:
+            logger.info("MM-019: No local models found to auto-register")
+            return registered_names
+
+        # Sort by preference if specified
+        if prefer_provider:
+            discovered.sort(
+                key=lambda x: 0 if x["provider"] == prefer_provider.value else 1
+            )
+
+        for server in discovered:
+            provider = ModelProvider(server["provider"])
+
+            # Register each model found
+            for model_id in server["models"]:
+                config = ModelConfig(
+                    provider=provider,
+                    model_id=model_id,
+                    base_url=server["base_url"]
+                )
+
+                # Generate a registry name
+                registry_name = f"local_{provider.value}_{model_id}".replace(":", "_").replace("/", "_")
+
+                # Register in the registry
+                self.registry.register(
+                    name=registry_name,
+                    config=config,
+                    role=role,
+                    tags=["local", "auto-discovered", provider.value],
+                    notes=f"Auto-discovered from {server['base_url']}"
+                )
+
+                registered_names.append(registry_name)
+                logger.info(f"MM-019: Auto-registered {registry_name}")
+
+        logger.info(f"MM-019: Auto-registered {len(registered_names)} local models")
+        return registered_names
+
 
 # Global singleton instance
 _model_manager: Optional[ModelManager] = None
