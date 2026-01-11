@@ -3244,6 +3244,97 @@ IMPORTANT:
         ("Gus", "This blame log... tells a story of pain. Seen it a thousand times."),
     ]
 
+    # SG-020: Good News Discussions (idle chatter)
+    # Format: Multi-message conversation flows about positive news
+    # Triggered occasionally during idle chatter (1-2 times per long session)
+    # Natural, hopeful conversations - light in the darkness
+    GOOD_NEWS_FLOWS = [
+        # Community center example from acceptance criteria
+        [
+            ("Stool", "Yo did you guys see what happened downtown?"),
+            ("Gomer", "What? Something good I hope..."),
+            ("Stool", "Yeah man, they opened that new community center finally!"),
+            ("Gus", "About time. That neighborhood needed it."),
+        ],
+        # Local business success
+        [
+            ("Mona", "Actually, did you hear about that coffee shop on Main?"),
+            ("Stool", "The one that was struggling?"),
+            ("Mona", "Yeah. They just hired 10 new people. Community rallied around them."),
+            ("Gomer", "Mmm... that's actually really nice."),
+        ],
+        # Environmental win
+        [
+            ("Gus", "Saw something good today. Park cleanup got 200 volunteers."),
+            ("Stool", "Yo that's lowkey amazing."),
+            ("Mona", "The data suggests people still care. Evidence-based hope."),
+            ("Gus", "Restored my faith a bit. Kids these days aren't all bad."),
+        ],
+        # Education success
+        [
+            ("Gomer", "D'oh! Did you see that scholarship thing?"),
+            ("Mona", "The one for underprivileged students?"),
+            ("Gomer", "Yeah. Funded 50 kids. Full ride."),
+            ("Stool", "Man, somebody's making moves. Respect."),
+        ],
+        # Healthcare breakthrough
+        [
+            ("Mona", "Actually, medical news - they're making progress on that treatment."),
+            ("Gus", "Which one?"),
+            ("Mona", "The one for kids with that rare disease. Clinical trials looking promising."),
+            ("Gus", "Good. Real good. Been waiting for that kind of news."),
+        ],
+        # Local hero story
+        [
+            ("Stool", "Yo, neighbor pulled a kid out of a burning building yesterday."),
+            ("Gomer", "Seriously?"),
+            ("Stool", "Yeah man. Didn't even hesitate. Just ran in."),
+            ("Gus", "That's the kind of stuff that matters. Real heroes."),
+        ],
+        # Animal rescue
+        [
+            ("Gomer", "Mmm... shelter found homes for all the dogs this month."),
+            ("Mona", "All of them?"),
+            ("Gomer", "Every single one. First time in years."),
+            ("Stool", "Yo that's actually beautiful."),
+        ],
+        # Infrastructure improvement
+        [
+            ("Gus", "They finally fixed that road. The one that's been messed up for 5 years."),
+            ("Stool", "For real? I'll believe it when I see it."),
+            ("Gus", "Drove by today. Smooth as butter. Someone actually did their job."),
+            ("Mona", "Progress happens. Sometimes takes a while, but it happens."),
+        ],
+        # Youth achievement
+        [
+            ("Mona", "Actually, local high school robotics team won nationals."),
+            ("Stool", "Yo that's sick! Which school?"),
+            ("Mona", "The one from the low-income district. Beat out all the fancy schools."),
+            ("Gus", "Smart kids. Good teachers. That's how it's supposed to work."),
+        ],
+        # Food security
+        [
+            ("Stool", "Community garden fed like 300 families this summer."),
+            ("Gomer", "Mmm... that's a lot of vegetables."),
+            ("Stool", "Yeah man. People coming together, growing food. It's simple but it works."),
+            ("Mona", "The data suggests grassroots efforts actually make a difference."),
+        ],
+        # Tech for good
+        [
+            ("Gomer", "D'oh! Someone made an app that connects food banks with restaurants."),
+            ("Mona", "For surplus food?"),
+            ("Gomer", "Yeah. Reducing waste and feeding people. Win-win."),
+            ("Stool", "Yo that's what tech should be for. Solving real problems."),
+        ],
+        # Mental health awareness
+        [
+            ("Mona", "Actually, that mental health hotline got major funding."),
+            ("Gus", "About damn time. People need that."),
+            ("Mona", "24/7 coverage now. Trained counselors. Free."),
+            ("Gus", "Could've saved some people I knew. Better late than never."),
+        ],
+    ]
+
     # Ralph's discovery questions during onboarding
     ONBOARDING_QUESTIONS = [
         {
@@ -6167,7 +6258,51 @@ Generate ONE brief sympathetic response. Just the response, no quotes or formatt
                             flow_messages.pop(random.randint(0, len(flow_messages) - 1))
                         )
 
+            # SG-020: Add good news discussion flows (1-2 per long session)
+            # 10% chance to trigger a good news conversation during idle chatter
+            # These are multi-message flows, not individual quotes
+            good_news_flow = None
+            if random.random() < 0.10 and len(self.GOOD_NEWS_FLOWS) > 0:
+                good_news_flow = random.choice(self.GOOD_NEWS_FLOWS)
+
             random.shuffle(available_quotes)
+
+            # SG-020: Play good news flow first if selected (before regular chatter)
+            if good_news_flow:
+                for speaker, message in good_news_flow:
+                    # Check if we should stop (user sent message or session ended)
+                    if user_id not in self.active_sessions:
+                        break
+                    if user_id not in self.idle_chatter_task:
+                        # Task was cancelled (user sent message)
+                        break
+
+                    # Check if enough time has passed since last user message (10+ seconds)
+                    if user_id in self.last_user_message_time:
+                        time_since_user_message = (datetime.now() - self.last_user_message_time[user_id]).total_seconds()
+                        if time_since_user_message < 10:
+                            # User recently active, pause and wait
+                            await asyncio.sleep(5)
+                            continue
+
+                    # Get character data for formatting
+                    worker_data = self.DEV_TEAM.get(speaker, {})
+                    title = worker_data.get('title', '')
+
+                    # Send message in styled format
+                    await self.send_styled_message(
+                        context, chat_id, speaker, title,
+                        message,
+                        topic="💭 Overheard",
+                        use_buttons=False,
+                        with_typing=True
+                    )
+
+                    # RM-057: Occasionally add spatial reactions between workers
+                    await self.add_spatial_reaction(context, chat_id, user_id, speaker)
+
+                    # Wait between messages in the flow (natural conversation pace)
+                    await asyncio.sleep(self.timing.rapid_banter())
 
             for speaker, message in available_quotes:
                 # Check if we should stop (user sent message or session ended)
