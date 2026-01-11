@@ -8247,6 +8247,57 @@ Then:
             else:
                 await query.answer("Help not available for this topic")
 
+        elif data == "setup_finish":
+            # OB-034: Setup Completion Celebration
+            # User clicked "Finish Setup" - show celebration message
+
+            # Gather what was configured during setup
+            configured_items = []
+            state = self.onboarding_state.get(user_id, {})
+
+            # Check what was configured based on state or environment
+            config_status = self.onboarding_wizard.detect_existing_config()
+
+            if config_status.get("has_ssh_key", False):
+                configured_items.append("SSH key for GitHub")
+            if config_status.get("has_github_ssh", False):
+                configured_items.append("GitHub SSH connection")
+            if config_status.get("has_git_config", False):
+                configured_items.append("Git configuration")
+            if config_status.get("has_anthropic_key", False):
+                configured_items.append("Anthropic API key")
+            if config_status.get("has_groq_key", False):
+                configured_items.append("Groq API key")
+            if config_status.get("has_telegram_token", False):
+                configured_items.append("Telegram bot token")
+            if config_status.get("has_openweather_key", False):
+                configured_items.append("OpenWeather API key")
+
+            # Get celebration message
+            celebration = self.onboarding_wizard.get_setup_completion_celebration(configured_items)
+
+            # Create keyboard with action buttons
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚀 Start Bot", callback_data="setup_start_bot")],
+                [InlineKeyboardButton("📚 View Tutorials", callback_data="setup_view_tutorials")],
+                [InlineKeyboardButton("💬 Get Help", callback_data="setup_get_help")]
+            ])
+
+            await query.edit_message_text(
+                celebration,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+
+            # Mark setup as complete in state
+            if self.onboarding_wizard.state_manager:
+                try:
+                    self.onboarding_wizard.mark_complete(user_id, user_id)
+                except Exception as e:
+                    logger.warning(f"Could not mark setup complete: {e}")
+
+            logger.info(f"OB-034: User {user_id} completed setup with celebration!")
+
         elif data == "setup_back_welcome":
             # User clicked back button - go back to welcome screen
             state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_WELCOME)
