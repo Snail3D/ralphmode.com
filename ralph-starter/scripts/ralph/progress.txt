@@ -14161,3 +14161,42 @@ GOOD_NEWS_SOURCES = {
 - Workers discuss good stuff happening in the world - gives hope during work sessions
 
 ---
+
+---
+
+## Iteration [Ralph Agent] - 2026-01-11
+**Task**: SG-019 - Citation System - Show Your Sources
+**Status**: ✅ Complete
+
+### What was implemented
+- Added session-level citation tracking with `self.good_news_citations` and `self.last_good_news_mention`
+- Created `generate_good_news_flow_with_citation()` method that:
+  - Fetches real good news using the existing `get_local_good_news()` infrastructure
+  - Generates natural conversation flows where workers discuss the actual news story
+  - Stores citation metadata (title, URL, source, timestamp, who mentioned it)
+  - Tracks the most recent mention for easy source retrieval
+- Created `handle_source_request()` method to respond to "where'd you hear that?" questions
+- Modified idle chatter to prioritize real news with citations (80% real, 20% fallback to canned)
+- Added source request detection in `handle_text()` with natural language keywords
+- Workers now respond with actual links when asked: "Oh here, check it out: [title] [url] I read it on [source]. Real deal, not making it up!"
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- **Real journalism over fiction**: 80% of good news flows now use actual r/UpliftingNews stories instead of canned examples
+- **Citation builds trust**: When workers can show their sources, it reinforces we're not BSing the user
+- **Natural language detection**: Simple keyword matching for source requests works well ("where'd you hear", "source", "link", "prove it")
+- **Session-level memory**: Tracking citations per user session allows workers to remember what they mentioned
+- **Conversation patterns**: 4 different natural flow patterns keep the good news sharing fresh
+- **Integration with SG-018**: Citation system seamlessly builds on top of the existing good news infrastructure
+- **Quality over quantity**: Workers cite credible sources (r/UpliftingNews = 17.9M members, established sources only)
+
+### Why this matters
+- **Transparency**: Users can verify good news is real, not hallucinated
+- **Trust building**: "Don't just tell me, show me" - users can click and verify
+- **Real stories**: Actual good news from Reddit instead of generic feel-good platitudes
+- **Character depth**: Workers who can back up what they say feel more competent and trustworthy
+- **Anti-misinformation**: Clear attribution prevents spreading unverified feel-good nonsense
+
+---
