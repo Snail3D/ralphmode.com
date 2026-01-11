@@ -51,6 +51,16 @@ class OnboardingWizard:
             self.rollback_available = False
             self.logger.warning("Rollback functionality not available")
 
+        # Import setup verifier
+        try:
+            from setup_verifier import get_setup_verifier
+            self.verifier = get_setup_verifier()
+            self.verifier_available = True
+        except ImportError:
+            self.verifier = None
+            self.verifier_available = False
+            self.logger.warning("Setup verification not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -2152,6 +2162,288 @@ This is helpful if the step went wrong and you wanna try again!
             [InlineKeyboardButton("📋 Show What Will Be Undone", callback_data=f"rollback_preview_{step_name}")],
         ]
         return InlineKeyboardMarkup(keyboard)
+
+
+    # Setup Verification Suite (OB-047)
+
+    def run_verification(self, include_optional: bool = True) -> Dict[str, Any]:
+        """Run the setup verification suite.
+
+        Args:
+            include_optional: Whether to check optional configurations
+
+        Returns:
+            Verification results dictionary
+        """
+        if not self.verifier_available or not self.verifier:
+            return {
+                "overall_status": "unavailable",
+                "overall_message": "Setup verification is not available",
+                "counts": {"total": 0, "pass": 0, "fail": 0, "warning": 0, "info": 0},
+                "results": [],
+                "by_category": {}
+            }
+
+        return self.verifier.verify_all(include_optional=include_optional)
+
+    def get_verification_message(self, include_optional: bool = True) -> str:
+        """Get the verification dashboard message.
+
+        Args:
+            include_optional: Whether to check optional configurations
+
+        Returns:
+            Formatted verification message with Ralph's personality
+        """
+        if not self.verifier_available or not self.verifier:
+            return """*Ralph Can't Check Setup* 😔
+
+Setup verifier is not available right now!
+
+But don't worry! Ralph can still help you set things up manually!
+
+*What you need:*
+• .env file with your API keys
+• Git configured with your name and email
+• SSH key added to GitHub
+• Telegram bot token from @BotFather
+
+*Want help with any of these?*
+"""
+
+        # Run verification
+        self.verifier.verify_all(include_optional=include_optional)
+
+        # Get dashboard message
+        return self.verifier.get_dashboard_message()
+
+    def get_verification_keyboard(self, has_issues: bool = False) -> InlineKeyboardMarkup:
+        """Get keyboard for verification results.
+
+        Args:
+            has_issues: Whether verification found issues
+
+        Returns:
+            Keyboard with relevant action buttons
+        """
+        keyboard = []
+
+        if has_issues:
+            keyboard.append([
+                InlineKeyboardButton("🔧 Fix Issues", callback_data="setup_fix_issues")
+            ])
+
+        keyboard.extend([
+            [InlineKeyboardButton("🔄 Re-run Verification", callback_data="setup_verify_again")],
+            [InlineKeyboardButton("📄 Export Report", callback_data="setup_export_report")],
+            [InlineKeyboardButton("✅ Continue Anyway", callback_data="setup_continue_after_verify")],
+            [InlineKeyboardButton("◀️ Back to Setup", callback_data="setup_continue")],
+        ])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_verification_intro_message(self) -> str:
+        """Get introduction message for verification.
+
+        Returns:
+            Verification introduction with Ralph's personality
+        """
+        return """*Ralph Gonna Check Your Setup!* 🔍
+
+Before we finish, Ralph wants to make sure EVERYTHING is working!
+
+Ralph will check:
+• Your system (Python, Git, etc.)
+• Your API keys (Telegram, Groq, etc.)
+• Your Git configuration
+• Your SSH keys
+• Your project files
+
+*Why check?*
+• Make sure you won't get errors later!
+• Find problems BEFORE they cause trouble!
+• Ralph gives you fix suggestions!
+
+This only takes a few seconds!
+
+*Ready?*
+"""
+
+    def get_verification_intro_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for verification introduction.
+
+        Returns:
+            Keyboard with verification options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Check Everything!", callback_data="verify_full")],
+            [InlineKeyboardButton("⚡ Check Required Only", callback_data="verify_required")],
+            [InlineKeyboardButton("⏭️ Skip Verification", callback_data="setup_skip_verify")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def export_verification_report(self, filename: str = "setup_verification_report.txt") -> Optional[str]:
+        """Export verification results to a file.
+
+        Args:
+            filename: Name of the report file
+
+        Returns:
+            Path to the report or None if unavailable
+        """
+        if not self.verifier_available or not self.verifier:
+            return None
+
+        if not self.verifier.results:
+            # Run verification first
+            self.verifier.verify_all(include_optional=True)
+
+        return self.verifier.export_report(filename)
+
+    def get_verification_complete_message(self, summary: Dict[str, Any]) -> str:
+        """Get completion message after verification.
+
+        Args:
+            summary: Verification summary dictionary
+
+        Returns:
+            Completion message with Ralph's personality
+        """
+        if summary["overall_status"] == "complete":
+            return """*🎉 EVERYTHING PERFECT! 🎉*
+
+Ralph checked EVERYTHING and it all works!
+
+You're ready to start using Ralph Mode!
+
+*What's working:*
+✅ Your system is set up correctly
+✅ All required API keys are configured
+✅ Git is ready to go
+✅ SSH keys are working
+✅ Project files are all there!
+
+*Next steps:*
+• Start the bot: `python ralph_bot.py`
+• Talk to Ralph on Telegram!
+• Drop some code and watch the magic happen!
+
+Ralph SO PROUD of you! You did it! 🎊
+"""
+        elif summary["overall_status"] == "warnings":
+            return f"""*⚠️ Almost There! ⚠️*
+
+Ralph found {summary['counts']['warning']} warnings!
+
+*What this means:*
+• Most things are working!
+• Some stuff might not be perfect
+• Ralph gave you suggestions to fix them!
+
+*You can either:*
+• Fix the warnings now (recommended!)
+• Continue and fix them later (risky!)
+
+The bot MIGHT work with warnings, but Ralph recommend fixing them!
+
+*What you wanna do?*
+"""
+        elif summary["overall_status"] == "incomplete":
+            return f"""*❌ Setup Incomplete! ❌*
+
+Ralph found {summary['counts']['fail']} problems!
+
+*What this means:*
+• Some required stuff is missing!
+• The bot WON'T work without these!
+• Ralph gave you steps to fix them!
+
+*Don't worry!* Ralph helps you fix everything!
+
+Look at the dashboard above to see what needs fixing!
+
+*Ready to fix these issues?*
+"""
+        else:
+            return """*Ralph Not Sure What Happened* 🤔
+
+Verification couldn't run properly!
+
+But don't worry! We can try again or set things up manually!
+
+*What you wanna do?*
+"""
+
+    def get_verification_complete_keyboard(self, overall_status: str) -> InlineKeyboardMarkup:
+        """Get keyboard for verification complete screen.
+
+        Args:
+            overall_status: Overall verification status
+
+        Returns:
+            Keyboard with appropriate next steps
+        """
+        keyboard = []
+
+        if overall_status == "complete":
+            keyboard.extend([
+                [InlineKeyboardButton("🚀 Start Using Ralph!", callback_data="setup_start_bot")],
+                [InlineKeyboardButton("📄 Export Report", callback_data="setup_export_report")],
+                [InlineKeyboardButton("✅ Finish Setup", callback_data="setup_finish")],
+            ])
+        elif overall_status == "warnings":
+            keyboard.extend([
+                [InlineKeyboardButton("🔧 Fix Warnings First", callback_data="setup_fix_warnings")],
+                [InlineKeyboardButton("✅ Continue Anyway", callback_data="setup_continue_warnings")],
+                [InlineKeyboardButton("🔄 Re-run Verification", callback_data="setup_verify_again")],
+            ])
+        elif overall_status == "incomplete":
+            keyboard.extend([
+                [InlineKeyboardButton("🔧 Fix Issues Now!", callback_data="setup_fix_issues")],
+                [InlineKeyboardButton("📋 Show Issue Details", callback_data="setup_show_issues")],
+                [InlineKeyboardButton("🔄 Re-run Verification", callback_data="setup_verify_again")],
+            ])
+        else:
+            keyboard.extend([
+                [InlineKeyboardButton("🔄 Try Again", callback_data="setup_verify_again")],
+                [InlineKeyboardButton("◀️ Back to Setup", callback_data="setup_continue")],
+            ])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_fix_suggestions_message(self, summary: Dict[str, Any]) -> str:
+        """Get detailed fix suggestions for failed/warning items.
+
+        Args:
+            summary: Verification summary dictionary
+
+        Returns:
+            Formatted fix suggestions message
+        """
+        lines = ["*🔧 How to Fix Issues*\n"]
+
+        # Get failed and warning results
+        issues = [r for r in summary["results"] if r.status.name in ["FAIL", "WARNING"]]
+
+        if not issues:
+            return "*No issues to fix!* ✅\n\nEverything looks good!"
+
+        for i, result in enumerate(issues, 1):
+            status_emoji = result.status.value
+            lines.append(f"{i}. {status_emoji} *{result.name}*")
+            lines.append(f"   Problem: {result.message}")
+
+            if result.fix_suggestion:
+                lines.append(f"   Fix: {result.fix_suggestion}")
+
+            if result.details:
+                lines.append(f"   Details: {result.details}")
+
+            lines.append("")
+
+        lines.append("*After fixing, re-run verification to check!*")
+
+        return "\n".join(lines)
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
