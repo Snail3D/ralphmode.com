@@ -2477,6 +2477,94 @@ Mr. Worms wants to work together with the team.
         return context_map.get(level, context_map["collaborative"])
 
 
+    # ==================== BM-009: MR. WORMS PATIENCE SYSTEM ====================
+
+    def get_patience_level(self, user_id: int) -> str:
+        """BM-009: Get current patience level for the session.
+
+        Returns:
+            Current patience level: "urgent", "normal", or "relaxed"
+        """
+        if user_id not in self.active_sessions:
+            return "normal"
+
+        session = self.active_sessions[user_id]
+        return session.get('patience_level', 'normal')
+
+    def set_patience_level(self, user_id: int, level: str, reason: str = None) -> bool:
+        """BM-009: Set patience level for the session.
+
+        Args:
+            user_id: User session ID
+            level: Patience level ("urgent", "normal", "relaxed")
+            reason: Optional reason for the change (for logging)
+
+        Returns:
+            True if successful, False if session not found or invalid level
+        """
+        if user_id not in self.active_sessions:
+            logger.warning(f"BM-009: Cannot set patience level - no active session for user {user_id}")
+            return False
+
+        valid_levels = ["urgent", "normal", "relaxed"]
+        if level not in valid_levels:
+            logger.warning(f"BM-009: Invalid patience level '{level}'. Must be one of: {valid_levels}")
+            return False
+
+        session = self.active_sessions[user_id]
+        old_level = session.get('patience_level', 'normal')
+        session['patience_level'] = level
+        session['patience_changed_at'] = datetime.now()
+
+        logger.info(f"BM-009: Patience level changed from '{old_level}' to '{level}' for user {user_id}. Reason: {reason or 'not specified'}")
+        return True
+
+    def get_patience_prompt_context(self, user_id: int) -> str:
+        """BM-009: Get prompt context explaining current patience level to AI.
+
+        Returns a prompt fragment that explains Mr. Worms' current patience level.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Formatted patience context string
+        """
+        level = self.get_patience_level(user_id)
+
+        context_map = {
+            "urgent": """
+🔥 PATIENCE LEVEL: URGENT (ASAP Mode)
+Mr. Worms needs this done FAST. Drop everything mode!
+- Work quickly but don't sacrifice quality
+- Skip lengthy explanations - be concise
+- Prioritize getting results over process
+- Ralph: Show urgency without panic ("Let's GO team!")
+- Workers: Move fast, stay focused, less chatter
+""",
+            "relaxed": """
+🐢 PATIENCE LEVEL: RELAXED (No Rush)
+Mr. Worms has plenty of time. Nice and easy!
+- Take time to do things right
+- More thorough explanations are welcome
+- Can discuss tradeoffs and alternatives
+- Ralph: Casual and unhurried ("We got time!")
+- Workers: Can be more conversational, explore ideas
+""",
+            "normal": """
+📅 PATIENCE LEVEL: NORMAL (Regular Speed)
+Mr. Worms expects normal professional pace.
+- Balance speed and thoroughness
+- Don't drag things out, but don't rush
+- Standard level of detail and explanation
+- Ralph: Regular energy level
+- Workers: Professional pace, focused but not frantic
+"""
+        }
+
+        return context_map.get(level, context_map["normal"])
+
+
     # ==================== AU-006 through AU-010: PAUSE/RESUME SYSTEM ====================
 
     def is_work_allowed(self, user_id: int) -> bool:
@@ -4294,6 +4382,12 @@ Mr. Worms wants to work together with the team.
 
         # Store the answer
         state["answers"][question_index] = answer_value
+
+        # BM-009: If this is the pacing question (question 2), set the patience level
+        if question_index == 2 and answer_value in ["urgent", "normal", "relaxed"]:
+            success = self.set_patience_level(user_id, answer_value, reason="Onboarding question response")
+            if success:
+                logger.info(f"BM-009: Set patience level to '{answer_value}' from onboarding for user {user_id}")
 
         # AU-002: If this is the autonomy question (question 3), set the autonomy level
         if question_index == 3 and answer_value in ["collaborative", "supervised", "autonomous"]:
@@ -12239,6 +12333,11 @@ Show professionalism by making their vision work."""
         if user_id is not None:
             autonomy_prompt = self.get_autonomy_prompt_context(user_id)
 
+        # BM-009: Add patience level context
+        patience_prompt = ""
+        if user_id is not None:
+            patience_prompt = self.get_patience_prompt_context(user_id)
+
         # Build initial system content
         system_content = f"""{WORK_QUALITY_PRIORITY}
 
@@ -12273,6 +12372,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {requirements_prompt}
 {workload_prompt}
 {autonomy_prompt}
+{patience_prompt}
 
 SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
 
@@ -13722,7 +13822,10 @@ _Drop a zip file to get started!_
                 # AU-006: Work Permission State
                 "work_allowed": True,  # Simple on/off gate for work
                 "work_paused_at": None,  # When work was paused
-                "pause_reason": None  # Optional reason for pause
+                "pause_reason": None,  # Optional reason for pause
+                # BM-009: Mr. Worms Patience System
+                "patience_level": "normal",  # urgent, normal, relaxed
+                "patience_changed_at": None  # Track when patience level was last changed
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
