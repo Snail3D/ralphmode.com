@@ -10,6 +10,14 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from mcp_explainer import get_mcp_explainer
 
+# Import MCP Health Checker (OB-021)
+try:
+    from health_check import get_health_checker
+    HEALTH_CHECK_AVAILABLE = True
+except ImportError:
+    HEALTH_CHECK_AVAILABLE = False
+    logging.warning("MCP health check system not available")
+
 # Import GitHub MCP setup helper (OB-018)
 try:
     from github_mcp_setup import get_github_mcp_setup
@@ -53,6 +61,12 @@ class MCPManager:
 
         # Extended server catalog with install commands
         self.server_catalog = self._build_server_catalog()
+
+        # Initialize MCP Health Checker (OB-021)
+        if HEALTH_CHECK_AVAILABLE:
+            self.health_checker = get_health_checker()
+        else:
+            self.health_checker = None
 
         # Initialize GitHub MCP setup helper (OB-018)
         if GITHUB_MCP_AVAILABLE:
@@ -759,6 +773,105 @@ class MCPManager:
             return "Notion MCP setup helper not available"
 
         return self.notion_setup.format_setup_guide()
+
+    # OB-021: MCP Health Check System Methods
+
+    async def check_all_mcp_servers(self) -> Dict[str, Dict[str, Any]]:
+        """Check health of all configured MCP servers.
+
+        Returns:
+            Dictionary with server health status
+        """
+        if not self.health_checker:
+            return {
+                "error": "Health check system not available"
+            }
+
+        return await self.health_checker.check_all_servers()
+
+    async def check_mcp_server(self, server_name: str) -> Dict[str, Any]:
+        """Check health of a specific MCP server.
+
+        Args:
+            server_name: Name of the server to check
+
+        Returns:
+            Dictionary with server health status
+        """
+        if not self.health_checker:
+            return {
+                "error": "Health check system not available"
+            }
+
+        return await self.health_checker.check_server(server_name)
+
+    async def reconnect_mcp_server(self, server_name: str) -> Tuple[bool, str]:
+        """Attempt to reconnect a failed MCP server.
+
+        Args:
+            server_name: Name of the server to reconnect
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.health_checker:
+            return False, "Health check system not available"
+
+        return await self.health_checker.reconnect_server(server_name)
+
+    def get_mcp_health_summary(self) -> Dict[str, Any]:
+        """Get summary of current MCP health status.
+
+        Returns:
+            Dictionary with health summary
+        """
+        if not self.health_checker:
+            return {
+                "error": "Health check system not available"
+            }
+
+        return self.health_checker.get_health_summary()
+
+    def get_mcp_health_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent MCP health check history.
+
+        Args:
+            limit: Maximum number of records to return
+
+        Returns:
+            List of health check records
+        """
+        if not self.health_checker:
+            return []
+
+        return self.health_checker.get_health_history(limit)
+
+    def format_mcp_health_report(self, results: Dict[str, Dict[str, Any]]) -> str:
+        """Format MCP health check results as readable report.
+
+        Args:
+            results: Health check results
+
+        Returns:
+            Formatted report string
+        """
+        if not self.health_checker:
+            return "Health check system not available"
+
+        return self.health_checker.format_health_report(results)
+
+    def register_mcp_health_alert(self, callback: callable):
+        """Register a callback for MCP connection loss alerts.
+
+        Args:
+            callback: Function to call when connection is lost
+                     Should accept (server_name, status, message)
+        """
+        if not self.health_checker:
+            self.logger.warning("Health check system not available, cannot register alert")
+            return
+
+        self.health_checker.register_alert_callback(callback)
 
 
 # Singleton instance
