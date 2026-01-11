@@ -612,6 +612,15 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
                     "Dad joke incoming - I'm literally a dad now",
                     "Tyler texted me asking for code help, I'm teaching the next generation",
                     "Weekend with the kid, we're hitting the skatepark like old times"
+                ],
+                # SG-043: Generational Echoes - Kid takes after parent
+                "generational_echoes": [
+                    "Tyler's getting into skateboarding. Falls down a lot, just like I did.",
+                    "My son scrapes his knees same way I used to. Some things never change.",
+                    "He's got my rebellious streak. I was the exact same at his age.",
+                    "Tyler pulls pranks on his roommates. Yeah, I wonder where he learned that.",
+                    "Watching him fail and get back up - that was me 25 years ago.",
+                    "I hope he doesn't make all my mistakes. Just the fun ones."
                 ]
             }
         },
@@ -669,6 +678,15 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
                     "Kids are coming over for dinner, gotta leave on time",
                     "Remember when my kids were little? Glad that's over. Miss it though.",
                     "Marge: 'Did you fix the bug?' Me: 'I fixed A bug'"
+                ],
+                # SG-043: Generational Echoes - Nostalgic about grown kids
+                "generational_echoes": [
+                    "My son used to ask 'why?' about everything. Drove me crazy. Miss that now.",
+                    "One of the kids called me for advice. Advice! From me! They're doomed.",
+                    "They're making the same mistakes I made. Can't tell them that though.",
+                    "Bart - I mean, my kid - was just like I was. Stubborn, messy, loved them anyway.",
+                    "The kids survived my parenting. That's the real miracle.",
+                    "I hope I didn't screw them up too badly. D'oh, who am I kidding."
                 ]
             }
         },
@@ -726,6 +744,15 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
                     "Colin's working on that climate case, barely see him",
                     "Trying to give Zia space while also... being a parent. It's suboptimal.",
                     "She's actually brilliant, just going through a phase. I went through a phase too."
+                ],
+                # SG-043: Generational Echoes - Daughter mirrors mother's activism
+                "generational_echoes": [
+                    "Zia's going through her environmental activist phase. I was the exact same at 16.",
+                    "She lectures me about veganism. I did that to my dad at her age. Circle of life.",
+                    "My daughter cares about the world more than anything. That was me.",
+                    "She thinks she invented caring about climate change. I gently remind her I've been doing this since before she was born.",
+                    "Watching her at protests... it's like looking in a mirror from 30 years ago.",
+                    "I hope she stays passionate. I did. But I also hope she learns to pick her battles."
                 ]
             }
         },
@@ -787,6 +814,14 @@ HYBRID SPACE ENERGY (SG-023): VR Office Meets Group Chat
                     "Been married 40 years. You know how? Low expectations.",
                     "Emma sent me photos of the baby learning to walk. Made my week.",
                     "Beth says I work too much. She's been saying that since 1986."
+                ],
+                # SG-043: Generational Echoes - Son followed father into development
+                "generational_echoes": [
+                    "Jake started coding at 12, same age I did. Chip off the old block.",
+                    "My son debugs code like I taught him - methodically, patiently. Proud of that.",
+                    "He's making the same mistakes I made at Google. I try not to say 'I told you so.'",
+                    "Watching my son become a senior dev... it's like seeing my younger self but smarter.",
+                    "Emma became a teacher like my mom. Guess the apple doesn't fall far."
                 ]
             }
         }
