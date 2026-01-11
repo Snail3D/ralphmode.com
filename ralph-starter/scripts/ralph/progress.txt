@@ -13061,3 +13061,29 @@ if should_ship:
 - Ralph presenting the checklist fits his character (organized with crayon notes) and adds entertainment value
 
 ---
+
+## Iteration - 2026-01-11
+**Task**: [SG-034] Maybe Threshold - Keep Going If Unclear
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced trigger_team_accountability_moment() to directly ask Mr. Worms for clarification when 3+ "maybe" items exist
+- Ralph now asks specific questions about each unclear requirement ("You wanted X - did we do that right?")
+- Added varied question templates for natural conversation flow
+- Limits questions to max 5 items to avoid overwhelming Mr. Worms
+- Creates natural pause for Mr. Worms to respond with confirmation, clarification, or "good enough"
+- Ensures loose ends are addressed or explicitly accepted before continuing work
+
+### Files changed
+- ralph_bot.py (lines 8394-8507)
+
+### Learnings
+- Previous implementation (SG-032) had team self-check dialogue but didn't actually ask Mr. Worms for input
+- The missing piece was Ralph directly addressing Mr. Worms with specific questions about each Maybe item
+- This completes the accountability loop: detect → discuss → clarify with boss → address or accept
+- Question variety prevents repetitive "did we do X right?" phrasing - uses 4 different templates per question
+- Important to truncate long requirements to 100 chars in questions for readability
+- The pause for Mr. Worms' response is natural - they can say "looks good", "fix X", or provide detailed feedback
+- This prevents shipping with uncertainty while respecting Mr. Worms' autonomy to accept "good enough"
+
+---
