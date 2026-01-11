@@ -14238,3 +14238,39 @@ GOOD_NEWS_SOURCES = {
 - **Scalability**: Minimizes Reddit API hammering as user base grows
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-11
+**Task**: SG-022 - Locality Awareness - Know Where They Are
+**Status**: ✅ Complete
+
+### What was implemented
+- Documented compliance with SG-022's core principle: NEVER ask for location during active session
+- Existing /setlocation command already satisfies "Option 1" requirement
+- Updated setlocation_command() docstring to explicitly reference SG-022
+- Verified all acceptance criteria are met:
+  - ✅ Never asks during session (user-initiated command only)
+  - ✅ Option 1: /setlocation before session starts
+  - ✅ Stores in user profile (User.location field)
+  - ✅ Used for local news prioritization
+  - ✅ Graceful fallback to global if unknown
+  - ✅ Works without location (just less personalized)
+  - ✅ Privacy-respecting (city level, not street address)
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- **Immersion protection**: The core insight of SG-022 is preserving immersion by never breaking character to ask "Where do you live?"
+- **Existing infrastructure**: SG-018's /setlocation already satisfied all requirements - just needed documentation
+- **User control**: Opt-in location sharing respects privacy while enabling personalization
+- **Graceful degradation**: System works perfectly without location - users don't feel blocked
+- **Design principle**: "Never ask during session" applies to all settings - handle before/outside active work
+
+### Why this matters
+- **Immersion first**: Workers never break character to collect user data
+- **User autonomy**: Location is opt-in, not required
+- **Privacy by design**: Only general city stored, never precise coordinates
+- **Seamless UX**: Users who don't set location get quality global news, not broken features
+- **Future-proof**: Pattern applies to other settings (timezone, preferences, etc.)
+
+---
