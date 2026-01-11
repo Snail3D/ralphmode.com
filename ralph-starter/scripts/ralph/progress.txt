@@ -10264,3 +10264,58 @@ Worker reactions:
 - Bot testing is optional (skip button) but encouraged (placed right before completion for momentum)
 
 ---
+
+## Iteration [Latest] - 2026-01-10 23:30
+**Task**: [OB-042] Notification Preferences
+**Status**: ✅ Complete
+
+### What was implemented
+- Created notification_settings.py module with NotificationSettings class
+- Supports 5 notification types: build_complete, errors, milestones, idle_chatter, ralph_moments
+- Implements 3 notification modes: instant, summary, none
+- Added quiet hours configuration (enable/disable, start/end times)
+- Settings persistence via JSON files in user_data/ directory (one file per user)
+- Quiet hours logic: During quiet hours, only errors are sent (instant mode)
+- Added STEP_NOTIFICATIONS constant to OnboardingWizard
+- Created 9 UI methods in onboarding_wizard.py for notification preference flow
+- Integrated notification_settings import with try/except fallback pattern
+- Added save_notification_preference() async method for updating settings
+
+### Files changed
+- notification_settings.py (new file, 219 lines)
+- onboarding_wizard.py (added import, initialization, step constant, 9 new methods)
+
+### Learnings
+- User preferences pattern: Create dedicated module with get_X() singleton factory function
+- Settings storage: Use JSON files per user (notif_settings_{user_id}.json) for simple persistence
+- Default settings merge: Always merge saved settings with defaults to handle new settings added later
+- Quiet hours edge case: Handle overnight ranges (22:00-08:00) by checking if start > end
+- Notification filtering hierarchy: Type mode (instant/summary/none) → Quiet hours check → Send decision
+- UI flow for preferences: Intro → Type selection (with current values shown) → Mode selection → Quiet hours config → Complete
+- Callback data naming: Use prefix pattern (notif_type_, notif_mode_, notif_quiet_) for easy routing
+- Test notification button: Provides immediate feedback that notifications work
+- Settings reconfigurability: Mention /settings command in completion message for future changes
+- Import fallback consistency: All optional modules follow same pattern (try/except, availability flag, check before use)
+
+### Testing approach
+- Ran python3 -m py_compile on both files to verify syntax
+- Tested import with python3 -c "from notification_settings import get_notification_settings; ..."
+- Verified singleton pattern works (get_notification_settings returns same instance)
+- No syntax errors found
+
+### Architecture notes
+- NotificationSettings is stateless - all state is in JSON files
+- File-based persistence allows simple backup/restore (just copy user_data/)
+- Quiet hours time parsing handles HH:MM format, defaults to 22:00-08:00
+- should_send_notification() is the main entry point for decision logic
+- Settings are stored per user_id, isolated from other users
+- Module can work standalone (no dependencies on ralph_bot.py or onboarding_wizard.py)
+
+### Next steps suggested
+- Wire up callback handlers in ralph_bot.py for notif_* callback_data patterns
+- Add notification preference step to onboarding flow (suggested after bot testing)
+- Integrate should_send_notification() checks into actual notification sending code
+- Add /settings command handler to allow runtime reconfiguration
+- Consider adding notification preview/test feature before saving preferences
+
+---

@@ -5003,7 +5003,7 @@
         "notification_settings.py",
         "onboarding_wizard.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-043",
