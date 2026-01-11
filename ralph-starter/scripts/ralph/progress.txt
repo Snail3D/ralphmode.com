@@ -15601,3 +15601,38 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 14:15 UTC
+**Task**: [BM-009] Mr. Worms Patience System
+**Status**: ✅ Complete
+
+### What was implemented
+- Added patience_level tracking to session state ("urgent", "normal", "relaxed")
+- Created get_patience_level() and set_patience_level() methods for state management
+- Created get_patience_prompt_context() to provide AI guidance for each level
+- Integrated patience level setting from onboarding question (question index 2)
+- Injected patience context into call_worker() for all worker AI responses
+- Three patience levels affect worker behavior:
+  - **URGENT**: ASAP mode - workers move fast, stay focused, skip lengthy explanations
+  - **NORMAL**: Regular professional pace - balanced speed and thoroughness (default)
+  - **RELAXED**: No rush - workers take time, explore ideas, more conversational
+
+### Files changed
+- ralph_bot.py (lines 2480-2565, 4386-4390, 12336-12339, 12375, 13826-13828)
+
+### Learnings
+- Patience system mirrors autonomy system architecture (get/set/context methods)
+- The pacing question was already in onboarding (question 2) but wasn't being stored
+- Patience context complements autonomy context - both shape worker behavior
+- Workers can now adjust verbosity, urgency, and conversational style based on user preference
+- The prompt context provides clear guidance to AI for each patience level
+- Default to "normal" when user_id is None to maintain backwards compatibility
+
+### Integration notes
+- Works alongside existing autonomy system (AU-001, AU-005)
+- Set during onboarding, stored in session state, injected into worker prompts
+- Can be extended later to allow mid-session adjustments (like autonomy AU-004)
+- Ralph's energy level and worker pacing now match user expectations
+- Ready for natural language detection of patience changes (future enhancement)
+
+---
