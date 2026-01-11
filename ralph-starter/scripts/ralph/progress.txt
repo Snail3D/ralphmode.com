@@ -15682,3 +15682,52 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 15:52 UTC
+**Task**: [BM-011] Apology Variations
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_apology() method to RalphNarrator class in ralph_personality.py
+- Created 75 unique apology variations that never repeat
+- Organized into 14 thematic categories:
+  - Direct apologies (5): Simple, straight "Me sorry!" style
+  - Sweet/innocent apologies (5): "Ralph didn't mean to!" energy
+  - Self-aware apologies (5): Ralph knows he forgets a lot
+  - Comparative apologies (5): References to Ralph's past mistakes
+  - Hopeful apologies (5): "But Ralph learn from mistakes!"
+  - Physical/action apologies (5): Visual comedy (bow head, hide face)
+  - Endearing apologies (5): "Sorry Mr. Worms!" variants
+  - Worker-involved apologies (5): Team solidarity in apologies
+  - Comedic apologies (5): "Brain on coffee break!" humor
+  - Humble apologies (5): "Ralph not perfect!" admissions
+  - Explanatory apologies (5): Why Ralph forgot (snacks, spinny brain)
+  - Promise apologies (5): Won't do it again commitments
+  - Cute apologies (5): "Sowwy!" and baby talk variations
+  - Additional variations (15): Extra coverage for freshness
+- Each apology maintains Ralph's sweet, innocent, lovable personality
+- Uses misspell() with 30% chance for authentic Ralph voice
+- Designed to feel genuine, not annoying - mix of sweet and endearing
+
+### Files changed
+- ralph_personality.py (lines 362-482)
+
+### Learnings
+- Apologies should feel relatable and human, not robotic
+- Ralph's apologies work best when they're sweet, not groveling
+- Worker involvement maintains the team fiction ("The whole crew apologizes!")
+- Comparative apologies to Ralph's past mistakes add personality depth
+- Mix of simple ("Me sorry!") and elaborate apologies provides variety
+- Physical/action apologies add visual comedy element
+- Promise apologies show growth without breaking character
+
+### Integration notes
+- Can be used after Ralph asks what you were doing (BM-002)
+- Useful when Ralph makes a mistake or forgets something
+- Could be combined with get_embarrassed_memory_prompt() for flow
+- Ready to integrate with error handling and recovery scenarios
+- Future: Could pair specific apology types with specific error types
+- Method follows same pattern as other personality methods
+
+---
+
