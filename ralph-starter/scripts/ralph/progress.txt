@@ -9705,3 +9705,43 @@ Updated the following methods to use tutorial library:
 ✅ Celebrates first commit! - Special detection and extra celebration for first commit
 
 ---
+
+## Iteration 172 - 2026-01-10
+**Task**: [RM-037] Workers Push Back But Know Their Place
+**Status**: ✅ Complete
+
+### What was implemented
+- Added worker_pushback_count tracking dictionary to __init__ (per-user, per-worker, per-issue)
+- Created get_pushback_count() method to check current pushback count for a worker on an issue
+- Created increment_pushback() method to track when workers push back
+- Created reset_pushback() method to clear pushback counts (all workers, specific worker, or specific issue)
+- Modified call_worker() to include dynamic pushback guidance in worker prompts:
+  * Pushback count 0: "FIRST VOICE" - encouraged to push back professionally with reasoning
+  * Pushback count 1: "SECOND VOICE" - can push back one more time, make it count
+  * Pushback count 2+: "TIME TO COMPLY" - must execute boss's decision professionally
+- Added issue_context parameter to call_worker() for tracking pushback on specific topics
+- Added is_pushback parameter to call_worker() to automatically increment counter
+- System now enforces professional disagreement while respecting chain of command
+
+### Files changed
+- ralph_bot.py (added RM-037 pushback tracking system and modified call_worker)
+- scripts/ralph/prd.json (marked RM-037 as passes: true)
+
+### Learnings
+- Pushback tracking needs to be per-issue, not just per-worker - allows fresh concerns on new topics
+- Three-tier system (can push back, last chance, must comply) matches real professional dynamics
+- Workers still execute with quality even after pushback limit - "quality doesn't suffer from disagreement"
+- Pushback prompts need to be dynamic based on count - system guides appropriate behavior
+- Manual increment via is_pushback flag allows callers to control when pushback is recorded
+- This creates realistic team dynamics: voice concerns twice, then execute professionally
+- Complements existing quality-first system - workers fight for good work but respect decisions
+
+### Acceptance Criteria Met
+✅ Workers voice concerns professionally: "Boss, I'm not sure that's the best approach..."
+✅ First pushback: explain why with reasoning - FIRST VOICE prompt encourages this
+✅ Second pushback (if needed): stronger but respectful - SECOND VOICE prompt for final advocacy
+✅ After that: "Alright boss, you're the boss. We'll do it your way." - TIME TO COMPLY enforcement
+✅ Workers execute even when they disagree - built into compliance prompt
+✅ Quality of work doesn't suffer from disagreement - still do it RIGHT - explicit in prompt
+
+---
