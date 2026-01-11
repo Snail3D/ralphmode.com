@@ -2953,6 +2953,707 @@ But don't worry! We can try again or set things up manually!
 
         return "\n".join(lines)
 
+    # Webhook vs Polling Explainer (OB-038)
+
+    def get_webhook_vs_polling_intro_message(self) -> str:
+        """Get introduction message explaining webhook vs polling.
+
+        Returns:
+            Webhook vs polling introduction with Ralph's personality
+        """
+        return """*How Should Your Bot Get Messages?* 📨
+
+Ralph needs to explain something important about bots!
+
+Your bot needs to CHECK for messages from Telegram! But there's TWO ways to do it!
+
+Think of it like checking for mail:
+
+**📪 Polling** (Like checking your mailbox)
+You walk to the mailbox every few seconds to see if there's new mail!
+
+**📫 Webhook** (Like a mail person knocking)
+The mail person brings mail RIGHT to your door when it arrives!
+
+Let Ralph explain both ways so you can pick the best one!
+
+*Ready to learn?*
+"""
+
+    def get_webhook_vs_polling_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for webhook vs polling introduction.
+
+        Returns:
+            Keyboard with learn/skip options
+        """
+        keyboard = [
+            [InlineKeyboardButton("📚 Explain Both Methods!", callback_data="webhook_explain_both")],
+            [InlineKeyboardButton("🤔 Help Me Choose", callback_data="webhook_help_choose")],
+            [InlineKeyboardButton("⏭️ I Already Know!", callback_data="webhook_skip_explanation")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_webhook_polling_explanation_message(self) -> str:
+        """Get detailed explanation of webhook and polling.
+
+        Returns:
+            Detailed comparison message
+        """
+        return """*Webhook vs Polling - The Full Story!* 📖
+
+**🔄 POLLING (Checking the Mailbox)**
+
+*How it works:*
+Your bot asks Telegram "Got any messages?" every second or two!
+
+*Pros:*
+✅ SUPER EASY to set up! (Just run the bot!)
+✅ Works ANYWHERE (even on your laptop!)
+✅ No domain name needed!
+✅ No SSL certificate needed!
+✅ Perfect for testing!
+
+*Cons:*
+❌ Slower (checks every 1-2 seconds)
+❌ Uses more internet (constantly asking)
+❌ Less efficient for busy bots
+
+*Best for:*
+• Running on your computer
+• Testing and development
+• Small personal bots
+• No server/domain available
+
+**🔗 WEBHOOK (Doorbell Ring)**
+
+*How it works:*
+Telegram sends messages DIRECTLY to your server the instant they arrive!
+
+*Pros:*
+✅ INSTANT delivery! (no delay!)
+✅ More efficient (only when messages arrive)
+✅ Better for busy bots
+✅ Professional setup
+
+*Cons:*
+❌ Needs a public server (not your laptop!)
+❌ Needs a domain name (like yourbot.com)
+❌ Needs SSL certificate (HTTPS)
+❌ More complex setup
+
+*Best for:*
+• Production bots (real users!)
+• High-traffic bots
+• Professional deployments
+• When you have a server
+
+*Ralph's Recommendation:*
+🎯 Start with POLLING (easier!)
+🎯 Switch to WEBHOOK later when you deploy!
+
+Most developers use POLLING during development and WEBHOOK in production!
+
+*What you wanna use?*
+"""
+
+    def get_webhook_polling_comparison_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard after comparison explanation.
+
+        Returns:
+            Keyboard with method selection options
+        """
+        keyboard = [
+            [InlineKeyboardButton("📪 Use Polling (Easier)", callback_data="method_choose_polling")],
+            [InlineKeyboardButton("📫 Use Webhook (Advanced)", callback_data="method_choose_webhook")],
+            [InlineKeyboardButton("🤔 Still Not Sure?", callback_data="webhook_help_decide")],
+            [InlineKeyboardButton("◀️ Back", callback_data="webhook_intro")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_webhook_help_choose_message(self) -> str:
+        """Get message to help user choose between methods.
+
+        Returns:
+            Decision guide message
+        """
+        return """*Let Ralph Help You Choose!* 🤔
+
+Answer these questions and Ralph will tell you what to use!
+
+**Question 1: Where will your bot run?**
+
+A. On my laptop or home computer
+B. On a server or cloud (like AWS, Linode, etc.)
+
+**Question 2: Do you have a domain name?**
+
+A. No, I don't have a domain
+B. Yes, I have a domain (like mybot.com)
+
+**Question 3: What's your bot for?**
+
+A. Learning, testing, personal use
+B. Real users, production, business
+
+**Ralph's Simple Guide:**
+
+*If you answered mostly A's:*
+👉 **USE POLLING!** It's perfect for you!
+
+*If you answered mostly B's:*
+👉 **USE WEBHOOK!** You're ready for the pro setup!
+
+*Still not sure?*
+👉 **START WITH POLLING!** You can always switch later!
+
+Ralph recommend EVERYONE starts with polling! It's easier and works great!
+
+*What you wanna do?*
+"""
+
+    def get_help_choose_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for choosing method after guidance.
+
+        Returns:
+            Keyboard with method options
+        """
+        keyboard = [
+            [InlineKeyboardButton("📪 I'll Use Polling!", callback_data="method_choose_polling")],
+            [InlineKeyboardButton("📫 I'll Try Webhook!", callback_data="method_choose_webhook")],
+            [InlineKeyboardButton("📚 Read Comparison Again", callback_data="webhook_explain_both")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_polling_setup_guide_message(self) -> str:
+        """Get setup guide for polling method.
+
+        Returns:
+            Polling setup instructions
+        """
+        return """*Setting Up Polling!* 📪
+
+Great choice! Polling is EASY!
+
+Ralph already set this up for you! Your bot uses polling by default!
+
+*How it works in the code:*
+```python
+# In ralph_bot.py, Ralph uses:
+application.run_polling()
+```
+
+That's it! When you run your bot, it automatically starts polling Telegram for messages!
+
+*To start your bot:*
+```bash
+python ralph_bot.py
+```
+
+The bot will:
+1. Connect to Telegram
+2. Start checking for messages
+3. Respond when messages arrive!
+
+*Testing it:*
+1. Start your bot with the command above
+2. Open Telegram
+3. Find your bot (@your_bot_username)
+4. Send a message!
+5. Bot should respond instantly!
+
+*What you'll see:*
+```
+Starting bot in polling mode...
+Bot is polling for updates...
+```
+
+If you see that, IT'S WORKING! 🎉
+
+*Pros of this setup:*
+✅ Works on your laptop
+✅ No configuration needed
+✅ Just works!
+✅ Perfect for development
+
+*Want to test your bot now?*
+"""
+
+    def get_polling_setup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for polling setup.
+
+        Returns:
+            Keyboard with next steps for polling
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Got It! I'll Try It!", callback_data="polling_understood")],
+            [InlineKeyboardButton("🧪 How Do I Test?", callback_data="polling_test_guide")],
+            [InlineKeyboardButton("🔧 Troubleshooting", callback_data="polling_troubleshoot")],
+            [InlineKeyboardButton("◀️ Back to Comparison", callback_data="webhook_explain_both")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_webhook_setup_guide_message(self) -> str:
+        """Get setup guide for webhook method.
+
+        Returns:
+            Webhook setup instructions
+        """
+        return """*Setting Up Webhook!* 📫
+
+Okay! Webhook is more advanced but VERY powerful!
+
+*What you need:*
+1. ✅ A public server (not your laptop!)
+2. ✅ A domain name (like mybot.example.com)
+3. ✅ SSL certificate (for HTTPS)
+4. ✅ Your bot needs to be accessible from the internet
+
+*Step 1: Get Your Server Ready*
+
+Make sure your bot is running on a server with a public IP!
+
+*Step 2: Set Up Domain + SSL*
+
+Point your domain to your server's IP
+Get an SSL certificate (use Let's Encrypt - it's FREE!)
+
+*Step 3: Configure Webhook in Code*
+
+```python
+# In ralph_bot.py, use:
+application.run_webhook(
+    listen="0.0.0.0",
+    port=8443,
+    url_path="webhook",
+    webhook_url="https://yourbot.com/webhook"
+)
+```
+
+*Step 4: Tell Telegram About Your Webhook*
+
+Run this once:
+```python
+await application.bot.set_webhook(
+    url="https://yourbot.com/webhook"
+)
+```
+
+*Step 5: Test It!*
+
+Send a message to your bot - should respond instantly!
+
+*Common Issues:*
+
+**"Webhook failed"**
+→ Check your SSL certificate is valid
+→ Make sure HTTPS is working
+→ Check firewall allows port 8443
+
+**"Connection refused"**
+→ Bot not running?
+→ Wrong port?
+→ Firewall blocking?
+
+*Advanced Options:*
+
+You can use services like:
+• **Nginx** as a reverse proxy
+• **Certbot** for SSL certificates
+• **Systemd** to keep bot running
+
+Ralph recommend reading Telegram's webhook guide:
+🔗 [Telegram Webhook Guide](https://core.telegram.org/bots/webhooks)
+
+*This is complex! Want to stick with polling?*
+"""
+
+    def get_webhook_setup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for webhook setup.
+
+        Returns:
+            Keyboard with webhook setup options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ I Set It Up!", callback_data="webhook_test")],
+            [InlineKeyboardButton("📚 More Details", url="https://core.telegram.org/bots/webhooks")],
+            [InlineKeyboardButton("😅 Too Hard! Use Polling", callback_data="method_choose_polling")],
+            [InlineKeyboardButton("🔧 Troubleshooting", callback_data="webhook_troubleshoot")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_polling_test_guide_message(self) -> str:
+        """Get guide for testing polling setup.
+
+        Returns:
+            Polling test guide message
+        """
+        return """*Testing Your Polling Bot!* 🧪
+
+Follow these steps to test if it works!
+
+**Step 1: Start the bot**
+```bash
+python ralph_bot.py
+```
+
+**Step 2: Watch the output**
+You should see:
+```
+Starting bot...
+Bot is polling for updates...
+Logged in as: YourBotName
+```
+
+**Step 3: Open Telegram**
+• Open Telegram on your phone or computer
+• Search for your bot: @your_bot_username
+• Click START (or tap the start button)
+
+**Step 4: Send a test message**
+Type: `/start`
+
+**Step 5: Check if bot responds**
+Your bot should send a welcome message back!
+
+*What you'll see in terminal:*
+```
+Received message from User: /start
+Sending response...
+```
+
+*If it works:* 🎉 YOU DID IT!
+
+*If it doesn't work:*
+1. Check bot token is correct in .env
+2. Make sure bot is running (no errors in terminal)
+3. Check internet connection
+4. Try clicking "Help" below!
+
+*Ready to test?*
+"""
+
+    def get_polling_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for polling test guide.
+
+        Returns:
+            Keyboard with test-related options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ It Works!", callback_data="polling_test_success")],
+            [InlineKeyboardButton("❌ It's Not Working", callback_data="polling_troubleshoot")],
+            [InlineKeyboardButton("📋 Show Steps Again", callback_data="polling_test_guide")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_webhook_test_guide_message(self) -> str:
+        """Get guide for testing webhook setup.
+
+        Returns:
+            Webhook test guide message
+        """
+        return """*Testing Your Webhook!* 🧪
+
+Let's make sure webhook is working!
+
+**Step 1: Check Webhook Status**
+```python
+python -c "
+import asyncio
+from telegram import Bot
+
+async def check():
+    bot = Bot('YOUR_BOT_TOKEN')
+    info = await bot.get_webhook_info()
+    print(f'Webhook URL: {info.url}')
+    print(f'Pending updates: {info.pending_update_count}')
+    if info.last_error_message:
+        print(f'Error: {info.last_error_message}')
+    else:
+        print('No errors!')
+
+asyncio.run(check())
+"
+```
+
+**Step 2: Send Test Message**
+• Open Telegram
+• Find your bot
+• Send: `/start`
+
+**Step 3: Check Server Logs**
+Your server should show:
+```
+Received webhook POST request
+Processing update...
+Sending response...
+```
+
+**Step 4: Verify Response**
+Bot should respond instantly (faster than polling!)
+
+*If webhook is NOT set:*
+Run this:
+```python
+python -c "
+import asyncio
+from telegram import Bot
+
+async def set_hook():
+    bot = Bot('YOUR_BOT_TOKEN')
+    await bot.set_webhook('https://yourbot.com/webhook')
+    print('Webhook set!')
+
+asyncio.run(set_hook())
+"
+```
+
+*Common Problems:*
+
+**"Failed to resolve host"**
+→ Domain DNS not set up correctly
+
+**"SSL certificate verify failed"**
+→ SSL certificate is invalid or expired
+
+**"Connection refused"**
+→ Bot not listening on correct port
+
+*Need help debugging?*
+"""
+
+    def get_webhook_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for webhook test guide.
+
+        Returns:
+            Keyboard with webhook test options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Webhook Works!", callback_data="webhook_test_success")],
+            [InlineKeyboardButton("❌ Having Issues", callback_data="webhook_troubleshoot")],
+            [InlineKeyboardButton("📋 Show Check Command", callback_data="webhook_show_check")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_polling_troubleshoot_message(self) -> str:
+        """Get troubleshooting guide for polling issues.
+
+        Returns:
+            Polling troubleshooting message
+        """
+        return """*Polling Troubleshooting!* 🔧
+
+Ralph help you fix polling problems!
+
+**Problem 1: "Bot doesn't respond to messages"**
+→ Check: Is bot running? Look at terminal
+→ Check: Bot token correct in .env file?
+→ Check: Internet connection working?
+→ Try: Restart the bot
+
+**Problem 2: "Connection error"**
+→ Check: Can you access telegram.org?
+→ Check: Firewall blocking Python?
+→ Try: Different network (mobile hotspot?)
+
+**Problem 3: "Bot is offline in Telegram"**
+→ Check: Is ralph_bot.py actually running?
+→ Check: No errors in terminal?
+→ Try: Send /start to wake it up
+
+**Problem 4: "Timeout errors"**
+→ This is normal occasionally!
+→ Bot will automatically retry!
+→ If happens often, check internet
+
+**Problem 5: "'NoneType' errors"**
+→ Check .env has TELEGRAM_BOT_TOKEN set
+→ Make sure token is not empty
+→ Verify token format (numbers:letters)
+
+**Problem 6: "Webhook already set"**
+→ Previous bot had webhook configured!
+→ Delete webhook:
+```python
+python -c "
+import asyncio
+from telegram import Bot
+
+async def del_hook():
+    bot = Bot('YOUR_TOKEN')
+    await bot.delete_webhook()
+    print('Deleted!')
+
+asyncio.run(del_hook())
+"
+```
+
+*Still stuck?*
+Tell Ralph EXACTLY what error you seeing!
+"""
+
+    def get_troubleshoot_keyboard(self, method: str = "polling") -> InlineKeyboardMarkup:
+        """Get keyboard for troubleshooting.
+
+        Args:
+            method: "polling" or "webhook"
+
+        Returns:
+            Keyboard with troubleshooting options
+        """
+        callback_prefix = method
+        keyboard = [
+            [InlineKeyboardButton("🔄 I Fixed It!", callback_data=f"{callback_prefix}_test_again")],
+            [InlineKeyboardButton("📋 Show Guide Again", callback_data=f"{callback_prefix}_setup_guide")],
+            [InlineKeyboardButton("❓ Ask for Help", callback_data=f"{callback_prefix}_ask_help")],
+        ]
+
+        if method == "webhook":
+            keyboard.append([
+                InlineKeyboardButton("😅 Switch to Polling", callback_data="method_choose_polling")
+            ])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_webhook_troubleshoot_message(self) -> str:
+        """Get troubleshooting guide for webhook issues.
+
+        Returns:
+            Webhook troubleshooting message
+        """
+        return """*Webhook Troubleshooting!* 🔧
+
+Ralph help you fix webhook problems!
+
+**Problem 1: "SSL certificate verify failed"**
+→ Your certificate expired or invalid
+→ Get new one: `sudo certbot renew`
+→ Or use: https://letsencrypt.org
+
+**Problem 2: "Webhook failed: Failed to resolve host"**
+→ Domain not pointing to your server
+→ Check DNS: `dig yourdomain.com`
+→ Wait for DNS to propagate (can take hours!)
+
+**Problem 3: "Connection refused"**
+→ Bot not running OR not listening
+→ Check bot is started
+→ Check port is correct (usually 8443 or 443)
+→ Check firewall allows that port
+
+**Problem 4: "Bad webhook: HTTPS required"**
+→ Webhook MUST use HTTPS (not HTTP!)
+→ Get SSL certificate from Let's Encrypt
+→ Make sure URL starts with `https://`
+
+**Problem 5: "Webhook replies timed out"**
+→ Your bot takes too long to respond
+→ Must respond within 60 seconds!
+→ Use async properly
+→ Send long tasks to background
+
+**Problem 6: "Wrong response from webhook"**
+→ Bot returning wrong status code
+→ Must return 200 OK
+→ Check your webhook handler code
+
+**Problem 7: "Can't delete webhook"**
+→ Run: `await bot.delete_webhook(drop_pending_updates=True)`
+→ Then wait a minute before setting new one
+
+*Check webhook status:*
+```bash
+curl https://api.telegram.org/bot<YOUR_TOKEN>/getWebhookInfo
+```
+
+*Need more help?*
+→ Telegram Webhook Guide: https://core.telegram.org/bots/webhooks
+→ Or switch to polling (it's easier!)
+
+*What you wanna do?*
+"""
+
+    def get_method_success_message(self, method: str = "polling") -> str:
+        """Get success message after method setup.
+
+        Args:
+            method: "polling" or "webhook"
+
+        Returns:
+            Success celebration message
+        """
+        if method == "polling":
+            return """*Polling Setup Complete!* 🎉📪
+
+Ralph SO PROUD! Your bot is using polling!
+
+*What this means:*
+✅ Bot checks for messages automatically
+✅ Works on your computer
+✅ Easy to test and develop
+✅ Just run `python ralph_bot.py` and go!
+
+*Next time you start the bot:*
+```bash
+python ralph_bot.py
+```
+
+And it just WORKS! No extra setup needed!
+
+*When to switch to webhook:*
+• When you deploy to a real server
+• When you get a domain name
+• When you want INSTANT message delivery
+
+But for now, polling is PERFECT!
+
+Ralph recommend keeping this for development! ✨
+
+*Ready to move on?*
+"""
+        else:  # webhook
+            return """*Webhook Setup Complete!* 🎉📫
+
+WOW! You set up webhook! That's ADVANCED!
+
+*What this means:*
+✅ INSTANT message delivery
+✅ More efficient for busy bots
+✅ Professional production setup
+✅ Your bot is using HTTPS!
+
+*When you start the bot:*
+```bash
+python ralph_bot.py
+```
+
+It will run in webhook mode! Telegram sends messages DIRECTLY to your server!
+
+*Things to remember:*
+• Keep your SSL certificate valid
+• Monitor your server logs
+• Bot must respond within 60 seconds
+• Use a process manager (systemd, pm2) to keep it running
+
+*You're basically a pro now!* 🌟
+
+Ralph SO IMPRESSED!
+
+*Ready to continue setup?*
+"""
+
+    def get_method_success_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard after successful method setup.
+
+        Returns:
+            Keyboard with next steps
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Continue Setup", callback_data="setup_continue_next")],
+            [InlineKeyboardButton("📚 Learn More", callback_data="method_learn_more")],
+            [InlineKeyboardButton("🔄 Change Method", callback_data="webhook_intro")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.
