@@ -5857,7 +5857,7 @@
       "files_likely_modified": [
         "HARDCORE_RULES.md"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "HR-002",

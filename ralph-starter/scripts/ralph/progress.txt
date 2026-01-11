@@ -16753,3 +16753,90 @@ This is the **enforcement layer** for the deliberation process (HR-002). It ensu
 
 ---
 
+## Iteration [HR-001] - 2026-01-11 18:00
+**Task**: [HR-001] Hardcore Rules Registry
+**Status**: ✅ Complete
+
+### What was implemented
+Created a programmatic registry for the Ten Hardcore Rules - making the foundational document queryable and referenceable from code.
+
+- **HardcoreRulesRegistry class** (hardcore_rules_registry.py):
+  * Defines all 10 rules as HardcoreRule dataclass objects
+  * Each rule has: number, title, description, category
+  * Categories: CONTENT, PERSONALITY, HIERARCHY, PRODUCT, COMMUNICATION, QUALITY, VALUES, ETHICS, POSITIONING
+  * Makes rules programmatically accessible (not just a markdown file)
+
+- **Registry API**:
+  * get_rule(number) - Get specific rule by number (1-10)
+  * get_all_rules() - Get all ten rules as list
+  * get_rules_by_category(category) - Filter rules by category
+  * validate_against_rule(rule_number, text) - Basic validation against rule
+  * get_registry_summary() - Formatted summary of all rules
+  * get_metadata() - Registry metadata (total rules, categories, etc.)
+
+- **CLI interface**:
+  * `python3 hardcore_rules_registry.py list` - List all rules
+  * `python3 hardcore_rules_registry.py get <number>` - Get specific rule
+  * `python3 hardcore_rules_registry.py metadata` - Show metadata
+
+- **Integration ready**:
+  * Can be imported: `from hardcore_rules_registry import get_rules_registry`
+  * Singleton pattern for consistent instance
+  * References FOUNDATION/HARDCORE_RULES.md for validation
+
+### Files changed
+- hardcore_rules_registry.py (new file - 275 lines)
+- FOUNDATION/HARDCORE_RULES.md (removed test line from earlier)
+- scripts/ralph/prd.json (HR-001 passes: true)
+
+### Learnings
+- **Registry vs Document**: HARDCORE_RULES.md is the HUMAN-READABLE document, hardcore_rules_registry.py is the PROGRAMMATIC interface
+- **Single source of truth**: Registry defines rules inline (canonical source), references .md file for validation
+- **Queryable foundation**: Now code can ask "What does Rule #4 say?" instead of parsing markdown
+- **Category organization**: Rules grouped by concern (CONTENT, ETHICS, PRODUCT, etc.)
+- **Validation hooks**: validate_against_rule() allows checking text/actions against specific rules
+- **Immutable by design**: Registry is read-only, changes still require rule_manager.py deliberation process
+
+### Testing
+```bash
+# List all rules
+python3 hardcore_rules_registry.py list
+
+# Get specific rule
+python3 hardcore_rules_registry.py get 3
+# Output: Rule #3: Mr. Worms is always the boss
+#         The user is Mr. Worms. They make the decisions. We serve.
+
+# Get metadata
+python3 hardcore_rules_registry.py metadata
+# Output: JSON with 10 rules, 9 categories, file_exists: true
+
+# Import in code
+python3 -c "from hardcore_rules_registry import get_rules_registry; \
+  registry = get_rules_registry(); \
+  rule = registry.get_rule(1); \
+  print(rule.title)"
+# Output: Family safe, all ages, no trash
+```
+
+### Acceptance Criteria Met
+✅ Feature implemented and working - HardcoreRulesRegistry provides programmatic access to all 10 rules
+✅ Integrated with existing systems - references FOUNDATION/HARDCORE_RULES.md, works with rule_manager.py
+
+### Why This Matters
+Before:
+- Rules were just text in a markdown file
+- Code couldn't easily reference or validate against rules
+- No programmatic way to query "What are the ETHICS rules?"
+
+After:
+- **Code can query rules**: "Get Rule #3" returns full rule object
+- **Validation possible**: Check if text violates Rule #1 (family safe)
+- **Category filtering**: Get all ETHICS rules, all CONTENT rules, etc.
+- **Integration ready**: Other modules can import and reference rules
+- **Metadata available**: Total count, categories, file existence checks
+
+This transforms HARDCORE_RULES.md from a static document into an active, queryable registry that code can reference and validate against. The rules are now PROGRAMMATICALLY ACCESSIBLE while remaining IMMUTABLE (changes still require deliberation).
+
+---
+
