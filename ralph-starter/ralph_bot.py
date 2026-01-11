@@ -5526,6 +5526,43 @@ _{ralph_response}_
         all_questions = codebase_questions + intent_questions
         question = random.choice(all_questions)
 
+        # SG-031: Check if we already know the answer from Mr. Worms' directives
+        # Extract key topics from the question to check memory
+        question_lower = question.lower()
+        topics_to_check = []
+
+        if 'auth' in question_lower:
+            topics_to_check.append('auth')
+        if 'database' in question_lower or 'db' in question_lower:
+            topics_to_check.append('database')
+        if 'api' in question_lower:
+            topics_to_check.append('api')
+        if 'feature' in question_lower or 'goal' in question_lower:
+            topics_to_check.extend(['feature', 'goal'])
+
+        # Check if we already have this info in requirements
+        for topic in topics_to_check:
+            remembered = self.check_memory(user_id, topic)
+            if remembered:
+                # Worker references what boss already told us instead of asking again
+                reference_phrases = [
+                    f"Oh wait, the boss already told us - {remembered[:80]}...",
+                    f"Actually, I remember Mr. Worms said {remembered[:80]}...",
+                    f"Never mind, the boss mentioned this earlier - {remembered[:80]}...",
+                    f"Hold on, Mr. Worms already covered this - {remembered[:80]}...",
+                ]
+
+                await self.send_styled_message(
+                    context, chat_id, worker_name, worker["title"],
+                    random.choice(reference_phrases),
+                    topic="💭 Overheard",
+                    use_buttons=False,
+                    with_typing=True
+                )
+
+                logging.info(f"SG-031: Worker {worker_name} referenced memory instead of asking duplicate question")
+                return  # Don't ask the question - we already know!
+
         # Send the question
         await self.send_styled_message(
             context, chat_id, worker_name, worker["title"],
@@ -7749,15 +7786,102 @@ FRESHNESS REQUIREMENT:
 
         return "\n".join(context_lines[-50:])  # Last 50 events for context
 
+    # ==================== SG-031: REQUIREMENT MEMORY ====================
+
+    def remember_requirement(self, user_id: int, directive: str, context: str = None):
+        """SG-031: Store a requirement from Mr. Worms. Ralph NEVER forgets.
+
+        Args:
+            user_id: User session ID
+            directive: The requirement/directive from Mr. Worms
+            context: Optional context about when/why this was said
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return
+
+        if "requirements" not in session:
+            session["requirements"] = []
+
+        requirement = {
+            "directive": directive,
+            "timestamp": datetime.now().isoformat(),
+            "context": context
+        }
+
+        session["requirements"].append(requirement)
+        logger.info(f"SG-031: Remembered requirement for user {user_id}: {directive[:100]}")
+
+    def check_memory(self, user_id: int, topic: str) -> Optional[str]:
+        """SG-031: Check if Ralph already knows something about a topic.
+
+        Args:
+            user_id: User session ID
+            topic: Topic to check (e.g., "project name", "tech stack", "feature X")
+
+        Returns:
+            The remembered directive if found, None otherwise
+        """
+        session = self.active_sessions.get(user_id, {})
+        requirements = session.get("requirements", [])
+
+        topic_lower = topic.lower()
+
+        # Search through requirements for mentions of this topic
+        for req in requirements:
+            directive_lower = req["directive"].lower()
+            if topic_lower in directive_lower:
+                return req["directive"]
+
+        return None
+
+    def get_all_requirements(self, user_id: int) -> List[str]:
+        """SG-031: Get all requirements Ralph has been told this session.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            List of all directives in chronological order
+        """
+        session = self.active_sessions.get(user_id, {})
+        requirements = session.get("requirements", [])
+        return [req["directive"] for req in requirements]
+
+    def format_requirements_for_prompt(self, user_id: int) -> str:
+        """SG-031: Format all requirements as context for AI prompts.
+
+        This ensures Ralph and workers can reference what Mr. Worms has said.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Formatted string of all requirements
+        """
+        requirements = self.get_all_requirements(user_id)
+
+        if not requirements:
+            return "No specific requirements from Mr. Worms yet."
+
+        lines = ["WHAT MR. WORMS HAS TOLD US (never forget):"]
+        for i, req in enumerate(requirements, 1):
+            lines.append(f"{i}. {req}")
+
+        return "\n".join(lines)
+
     def ask_ralph(self, user_id: int, question: str) -> str:
         """Ask Ralph a question about the session. He remembers everything."""
         session = self.active_sessions.get(user_id, {})
         session_context = self.get_session_context(user_id)
         project_name = session.get('project_name', 'the project')
+        requirements_context = self.format_requirements_for_prompt(user_id)  # SG-031
 
         prompt = f"""The CEO is asking you a question about the session.
 
 PROJECT: {project_name}
+
+{requirements_context}
 
 EVERYTHING THAT HAPPENED (you saw all of this):
 {session_context}
@@ -9257,7 +9381,8 @@ _Drop a zip file to get started!_
                 "project_name": project_name,
                 "started": datetime.now(),
                 "status": "onboarding",
-                "codebase_insights": {}  # RM-058: Track worker discoveries during exploration
+                "codebase_insights": {},  # RM-058: Track worker discoveries during exploration
+                "requirements": []  # SG-031: Track all Mr. Worms directives - Ralph never forgets
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -10720,6 +10845,18 @@ Be specific about the TYPE but don't include actual details. 1-2 sentences max."
             # Pause idle chatter when user sends message
             self.idle_chatter_task[user_id].cancel()
             del self.idle_chatter_task[user_id]
+
+        # SG-031: Remember all Mr. Worms directives - Ralph never forgets
+        if user_id in self.active_sessions:
+            # Capture requirement if it looks like a directive (not a question, not just chat)
+            # Skip simple acknowledgments and questions
+            simple_chat = text.lower().strip() in ['ok', 'okay', 'yes', 'no', 'thanks', 'thank you', 'cool', 'nice']
+            is_question = text.strip().endswith('?')
+
+            if not simple_chat and not is_question and len(text.strip()) > 5:
+                # This looks like a directive/requirement - remember it
+                self.remember_requirement(user_id, text, context="normal message")
+                logging.info(f"SG-031: Remembered requirement from user {user_id}: {text[:50]}...")
 
         # RM-056: Detect if user is "tapping" a worker to ask a question
         # Patterns: "Stool, how does X work?" or "Hey Gomer, can you explain Y?"
