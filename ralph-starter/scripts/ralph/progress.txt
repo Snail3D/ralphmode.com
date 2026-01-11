@@ -16605,3 +16605,63 @@ This is a SAFETY MECHANISM, not a feature blocker. The goal is to make changing 
 
 ---
 
+## Iteration [HR-004] - 2026-01-11 17:30
+**Task**: [HR-004] Rule Change Documentation
+**Status**: ✅ Complete
+
+### What was implemented
+This task was ALREADY COMPLETE from HR-002 implementation. The rule_manager.py module provides comprehensive rule change documentation through:
+
+- **generate_deliberation_report()** - Creates full documentation for any proposed rule change
+- **save_deliberation_report()** - Saves reports to FOUNDATION/deliberations/ with timestamps
+- **Comprehensive documentation includes**:
+  * Step 1: Git history review (when rule was created, why, by whom)
+  * Step 2: Foundational check (red flag detection, identity alignment questions)
+  * Step 3: Impact analysis (what breaks, what we lose, affected systems, risk level)
+  * Step 4: Deliberation guidelines (process, timeline, default to keeping rule)
+  * Decision section for Mr. Worms to fill out (APPROVED/REJECTED/REVISED)
+
+### Files changed
+- scripts/ralph/prd.json (HR-004 passes: true)
+
+### Learnings
+- **HR-004 and HR-002 are the same feature**: The deliberation process (HR-002) IS the documentation system (HR-004)
+- **Documentation is automatic**: Every rule change request generates a complete report
+- **Reports are persistent**: Saved to FOUNDATION/deliberations/ with timestamps for full audit trail
+- **Documentation format is comprehensive**:
+  * Git history shows WHY the rule exists
+  * Red flags warn against principle weakening
+  * Impact analysis shows WHAT breaks if changed
+  * Deliberation section forces thoughtful decision-making
+- **Example report exists**: rule_1_deliberation_20260111_150321.txt demonstrates the system working
+- **Integration complete**: Works with git, file system, HARDCORE_RULES.md, no additional code needed
+
+### Acceptance Criteria Met
+✅ Feature implemented and working - generate_deliberation_report() creates full documentation
+✅ Integrated with existing systems - works with git, HARDCORE_RULES.md, saves to FOUNDATION/deliberations/
+
+### Testing
+```bash
+# Verify existing deliberation report
+cat FOUNDATION/deliberations/rule_1_deliberation_20260111_150321.txt
+
+# Output includes:
+✅ Git history review (when rule was created)
+✅ Red flag detection (keywords like "edge case", "exception")
+✅ Impact analysis (affected systems, what breaks, risk level)
+✅ Deliberation guidelines (sleep on it, discuss, default to keeping)
+✅ Decision section for Mr. Worms signature
+```
+
+### Why This Matters
+Rule changes without documentation are dangerous. With this system:
+- Every proposed change has full context (git history, impact, risks)
+- Mr. Worms can make informed decisions
+- Audit trail exists for all rule change requests
+- Documentation is automatic and comprehensive (not manual)
+- Red flags catch attempts to weaken principles
+
+The documentation ensures that changing a HARDCORE_RULE is possible but requires full reasoning and approval. The rules define WHO WE ARE - changes must be deliberate, not casual.
+
+---
+
