@@ -8999,3 +8999,32 @@ According to priority_order, next incomplete task is OB-008: Environment File Cr
   ✅ Submit new issue option (links to GitHub issues page)
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-038] Webhook vs Polling Explainer
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive webhook vs polling education flow in onboarding wizard
+- Simple introduction using mailbox analogy (polling = checking mailbox, webhook = mail person knocking)
+- Detailed comparison with pros/cons for each method
+- Interactive decision guide to help users choose the right approach
+- Complete setup instructions for polling (simple, works locally)
+- Complete setup instructions for webhook (advanced, requires server/domain/SSL)
+- Testing guides for both methods with step-by-step verification
+- Comprehensive troubleshooting sections for common issues
+- Ralph's personality throughout with kid-friendly explanations
+
+### Files changed
+- onboarding_wizard.py - Added 15 new methods covering all aspects of webhook vs polling
+
+### Learnings
+- Onboarding wizard structure is very clean and well-organized
+- Each wizard feature gets its own set of message/keyboard methods
+- Ralph's personality shines through with analogies like "checking your mailbox" vs "doorbell ringing"
+- Important to provide both simple and detailed explanations to serve different user skill levels
+- Decision guide helps users make informed choices without feeling overwhelmed
+- Troubleshooting is critical - users WILL encounter issues and need quick help
+- Polling is recommended for development, webhook for production - this guidance is key
+
+---
