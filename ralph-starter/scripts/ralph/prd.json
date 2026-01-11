@@ -366,7 +366,7 @@
       "files_likely_modified": [
         "ralph_bot.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "RM-018",
@@ -4227,7 +4227,7 @@
       "files_likely_modified": [
         "prd_organizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TC-007",
@@ -4245,7 +4245,7 @@
         "ralph_bot.py",
         "prd_organizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "TC-008",
@@ -4277,7 +4277,10 @@
         "Asks if user wants guided or quick setup",
         "Tracks onboarding progress in user state"
       ],
-      "files_likely_modified": ["ralph_bot.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4292,7 +4295,9 @@
         "Shows progress after key generation",
         "Includes link to video tutorial"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4307,7 +4312,9 @@
         "Verifies connection with ssh -T git@github.com",
         "Celebrates success with Ralph personality"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4322,7 +4329,9 @@
         "Verifies repo exists after creation",
         "Explains public vs private repos"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4337,7 +4346,9 @@
         "Explains this appears in commit history",
         "Kid-friendly explanation of version control"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4352,7 +4363,10 @@
         "Validates key format before saving",
         "Explains API key security (never share)"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "api_key_manager.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "api_key_manager.py"
+      ],
       "passes": false
     },
     {
@@ -4367,7 +4381,9 @@
         "Validates token format",
         "Tests bot connection before proceeding"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4382,7 +4398,10 @@
         "Never commits .env to git (verify .gitignore)",
         "Shows .env.example for reference"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "env_manager.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "env_manager.py"
+      ],
       "passes": false
     },
     {
@@ -4397,7 +4416,9 @@
         "Clear error messages if invalid",
         "Retry option on failure"
       ],
-      "files_likely_modified": ["api_key_manager.py"],
+      "files_likely_modified": [
+        "api_key_manager.py"
+      ],
       "passes": false
     },
     {
@@ -4412,7 +4433,9 @@
         "Skip option if user doesn't want it",
         "Stores in .env file"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4427,7 +4450,9 @@
         "Skip option available",
         "Location configuration (city name)"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4442,7 +4467,10 @@
         "Handles long text gracefully",
         "Mobile-friendly tap target"
       ],
-      "files_likely_modified": ["telegram_utils.py", "ralph_bot.py"],
+      "files_likely_modified": [
+        "telegram_utils.py",
+        "ralph_bot.py"
+      ],
       "passes": false
     },
     {
@@ -4457,7 +4485,10 @@
         "Percentage complete displayed",
         "Persistent across sessions"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "progress_tracker.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "progress_tracker.py"
+      ],
       "passes": false
     },
     {
@@ -4472,7 +4503,10 @@
         "Mobile-friendly link format",
         "Updated regularly (version tracked)"
       ],
-      "files_likely_modified": ["tutorial_library.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "tutorial_library.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4487,7 +4521,10 @@
         "Examples where helpful",
         "Links to learn more"
       ],
-      "files_likely_modified": ["telegram_utils.py", "help_tooltips.py"],
+      "files_likely_modified": [
+        "telegram_utils.py",
+        "help_tooltips.py"
+      ],
       "passes": false
     },
     {
@@ -4502,7 +4539,10 @@
         "Links to official MCP docs",
         "Video explainer link if available"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "mcp_explainer.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "mcp_explainer.py"
+      ],
       "passes": false
     },
     {
@@ -4517,7 +4557,10 @@
         "One-click install option",
         "Search/filter functionality"
       ],
-      "files_likely_modified": ["mcp_manager.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4532,7 +4575,10 @@
         "Verifies connection works",
         "Shows what actions are now available"
       ],
-      "files_likely_modified": ["mcp_manager.py", "github_mcp_setup.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "github_mcp_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4547,7 +4593,10 @@
         "Tests connection before saving",
         "Shows example queries once connected"
       ],
-      "files_likely_modified": ["mcp_manager.py", "database_mcp_setup.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "database_mcp_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4562,7 +4611,10 @@
         "Creates example tools/resources",
         "Tests before finalizing"
       ],
-      "files_likely_modified": ["mcp_generator.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "mcp_generator.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4577,7 +4629,10 @@
         "Logs health check history",
         "Alerts on connection loss"
       ],
-      "files_likely_modified": ["mcp_manager.py", "health_check.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "health_check.py"
+      ],
       "passes": false
     },
     {
@@ -4592,7 +4647,9 @@
         "Delete credential option",
         "Export/import for backup"
       ],
-      "files_likely_modified": ["credential_manager.py"],
+      "files_likely_modified": [
+        "credential_manager.py"
+      ],
       "passes": false
     },
     {
@@ -4607,7 +4664,9 @@
         "nvm installation guide option",
         "Verifies npm is also installed"
       ],
-      "files_likely_modified": ["dependency_checker.py"],
+      "files_likely_modified": [
+        "dependency_checker.py"
+      ],
       "passes": false
     },
     {
@@ -4622,7 +4681,10 @@
         "Installs from requirements.txt",
         "Verifies all packages installed"
       ],
-      "files_likely_modified": ["dependency_checker.py", "setup_venv.py"],
+      "files_likely_modified": [
+        "dependency_checker.py",
+        "setup_venv.py"
+      ],
       "passes": false
     },
     {
@@ -4637,7 +4699,10 @@
         "Retry option on failure",
         "Skip option for advanced users"
       ],
-      "files_likely_modified": ["dependency_checker.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "dependency_checker.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4652,7 +4717,10 @@
         "Troubleshooting for common issues",
         "Links to Claude Code documentation"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "claude_code_setup.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "claude_code_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4667,7 +4735,10 @@
         "Customization options",
         "Creates PRD from template"
       ],
-      "files_likely_modified": ["template_manager.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "template_manager.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4682,7 +4753,10 @@
         "Sets up priority order",
         "Explains PRD structure"
       ],
-      "files_likely_modified": ["prd_generator.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "prd_generator.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4697,7 +4771,9 @@
         "Adds .gitignore",
         "Explains each folder's purpose"
       ],
-      "files_likely_modified": ["project_scaffolder.py"],
+      "files_likely_modified": [
+        "project_scaffolder.py"
+      ],
       "passes": false
     },
     {
@@ -4712,7 +4788,10 @@
         "Handles git push with upstream",
         "Celebrates first commit!"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "git_helper.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "git_helper.py"
+      ],
       "passes": false
     },
     {
@@ -4727,7 +4806,10 @@
         "Clears invalid configurations",
         "Explains what was undone"
       ],
-      "files_likely_modified": ["rollback_manager.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "rollback_manager.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4742,7 +4824,10 @@
         "Handles errors with humor",
         "Optional skip for returning users"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "ralph_personality.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "ralph_personality.py"
+      ],
       "passes": false
     },
     {
@@ -4757,7 +4842,9 @@
         "No tutorials or explanations",
         "Completes in under 2 minutes"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4772,7 +4859,9 @@
         "Links to tutorials/docs",
         "Share achievement option"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4787,7 +4876,10 @@
         "Shows what's already done",
         "Handles expired/stale setups"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "setup_state.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "setup_state.py"
+      ],
       "passes": false
     },
     {
@@ -4802,7 +4894,9 @@
         "Verifies settings applied",
         "Links to Telegram bot docs"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4817,7 +4911,9 @@
         "Handles privacy mode issues",
         "Troubleshooting common issues"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4832,7 +4928,9 @@
         "Setup guide for chosen method",
         "Test to verify working"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4847,7 +4945,10 @@
         "Reports any issues found",
         "Suggests fixes for problems"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "bot_tester.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "bot_tester.py"
+      ],
       "passes": false
     },
     {
@@ -4862,7 +4963,10 @@
         "Applies immediately",
         "Custom color option"
       ],
-      "files_likely_modified": ["theme_manager.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "theme_manager.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4877,7 +4981,10 @@
         "Saves selection to profile",
         "Can change later in settings"
       ],
-      "files_likely_modified": ["onboarding_wizard.py", "user_preferences.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "user_preferences.py"
+      ],
       "passes": false
     },
     {
@@ -4892,7 +4999,10 @@
         "Test notification button",
         "Saves to user profile"
       ],
-      "files_likely_modified": ["notification_settings.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "notification_settings.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4907,7 +5017,10 @@
         "Tests message sending",
         "Configures default channel"
       ],
-      "files_likely_modified": ["mcp_manager.py", "slack_mcp_setup.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "slack_mcp_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4922,7 +5035,10 @@
         "Tests bot connection",
         "Configures default channel"
       ],
-      "files_likely_modified": ["mcp_manager.py", "discord_mcp_setup.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "discord_mcp_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4937,7 +5053,10 @@
         "Tests database access",
         "Shows example queries"
       ],
-      "files_likely_modified": ["mcp_manager.py", "notion_mcp_setup.py"],
+      "files_likely_modified": [
+        "mcp_manager.py",
+        "notion_mcp_setup.py"
+      ],
       "passes": false
     },
     {
@@ -4952,7 +5071,10 @@
         "Links to support channels",
         "Submit new issue option"
       ],
-      "files_likely_modified": ["troubleshooting.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "troubleshooting.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4967,7 +5089,10 @@
         "Fix suggestions for issues",
         "Export configuration report"
       ],
-      "files_likely_modified": ["setup_verifier.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "setup_verifier.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -4982,7 +5107,9 @@
         "Privacy-respecting (anonymized)",
         "Dashboard for admin review"
       ],
-      "files_likely_modified": ["onboarding_analytics.py"],
+      "files_likely_modified": [
+        "onboarding_analytics.py"
+      ],
       "passes": false
     },
     {
@@ -4997,7 +5124,9 @@
         "Warns about destructive changes",
         "Keeps history of changes"
       ],
-      "files_likely_modified": ["onboarding_wizard.py"],
+      "files_likely_modified": [
+        "onboarding_wizard.py"
+      ],
       "passes": false
     },
     {
@@ -5012,7 +5141,10 @@
         "Getting started instructions",
         "Troubleshooting specific to config"
       ],
-      "files_likely_modified": ["doc_generator.py", "onboarding_wizard.py"],
+      "files_likely_modified": [
+        "doc_generator.py",
+        "onboarding_wizard.py"
+      ],
       "passes": false
     }
   ],
