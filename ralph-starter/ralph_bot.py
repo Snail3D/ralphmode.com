@@ -1208,6 +1208,10 @@ class RalphBot:
         # SG-001: Post-Task Reflection That Learns - Track lessons learned during session
         self.session_lessons: Dict[int, List[Dict[str, Any]]] = {}  # Track learnings that influence future behavior
 
+        # SG-010: Ralph's Simple Wisdom - Track when last wisdom was shared
+        self.last_wisdom_moment: Dict[int, datetime] = {}  # Track when last wisdom was dropped
+        self.wisdom_cooldown = 1800  # 30 minutes between wisdom moments (not constant)
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -3914,6 +3918,10 @@ What should we do?"""
                 f"{query.message.text}\n\n✅ *TEAM DECISION: Following Ralph's guidance*\n\n_{ralph_response}_",
                 parse_mode="Markdown"
             )
+
+            # SG-010: Ralph might share wisdom after resolving conflict
+            chat_id = query.message.chat_id
+            await self.maybe_share_wisdom(context, chat_id, user_id, "conflict")
 
         elif action == "discuss":
             conflict["status"] = "needs_more_discussion"
@@ -7599,6 +7607,9 @@ FRESHNESS REQUIREMENT:
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "happy")
 
+        # SG-010: Ralph might share wisdom after big celebration (unity moment)
+        await self.maybe_share_wisdom(context, chat_id, user_id, "unity")
+
         # Final progress bar
         await self.show_progress_bar(context, chat_id, user_id, delay=2.0)
 
@@ -7981,6 +7992,15 @@ Stay in character as {pushback_worker}."""
             with_typing=True
         )
 
+        # SG-010: Check if team might be tired (long session at 50%+ milestone)
+        if milestone >= 50:
+            session_start = session.get("start_time")
+            if session_start:
+                from datetime import datetime
+                session_duration = (datetime.now() - session_start).total_seconds() / 3600  # hours
+                if session_duration > 2:
+                    await self.maybe_share_wisdom(context, chat_id, user_id, "tired")
+
     # ==================== SESSION HISTORY (Ralph remembers everything) ====================
 
     def log_event(self, user_id: int, event_type: str, speaker: str, content: str, metadata: dict = None):
@@ -8294,6 +8314,190 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
                 await context.bot.send_animation(chat_id=chat_id, animation=gif_url)
             except Exception as e:
                 logger.error(f"Failed to send worker GIF: {e}")
+
+    # ==================== SG-010: RALPH'S SIMPLE WISDOM ====================
+
+    def should_share_wisdom(self, user_id: int, situation_type: str = None) -> bool:
+        """
+        SG-010: Determine if Ralph should share wisdom now.
+
+        Only triggers when it MATTERS, not constantly.
+        30-minute cooldown between wisdom moments.
+
+        Args:
+            user_id: The user session ID
+            situation_type: Type of situation (conflict, tired, unity, humility)
+
+        Returns:
+            True if wisdom should be shared, False otherwise
+        """
+        # Check cooldown - must be 30+ minutes since last wisdom
+        if user_id in self.last_wisdom_moment:
+            time_since_last = (datetime.now() - self.last_wisdom_moment[user_id]).total_seconds()
+            if time_since_last < self.wisdom_cooldown:
+                return False
+
+        # Only share wisdom for high-confidence situations
+        # Avoid trivial moments - wisdom is for when it MATTERS
+        if situation_type in ["conflict", "tired", "unity", "humility", "rest"]:
+            # Random 40% chance even when situation warrants it
+            # This prevents it from being predictable/constant
+            return random.random() < 0.4
+
+        return False
+
+    def detect_wisdom_opportunity(self, context_data: Dict[str, Any]) -> Optional[str]:
+        """
+        SG-010: Detect if current situation warrants Ralph's wisdom.
+
+        High confidence only: conflicts, exhaustion, unity moments, humility lessons.
+
+        Args:
+            context_data: Dictionary with session context
+                - has_conflict: bool
+                - session_duration_hours: float
+                - worker_disagreements: int
+                - ceo_frustrated: bool
+                - team_celebrating: bool
+
+        Returns:
+            Situation type or None
+        """
+        # Conflict - two heads are better than one, unless they're fighting
+        if context_data.get("has_conflict") or context_data.get("worker_disagreements", 0) >= 2:
+            return "conflict"
+
+        # Tired/exhausted user - rest is important
+        if context_data.get("session_duration_hours", 0) > 3:
+            return "tired"
+
+        # Unity/celebration - working together
+        if context_data.get("team_celebrating"):
+            return "unity"
+
+        # Humility - when things get too big for britches
+        if context_data.get("ceo_frustrated") or context_data.get("workers_overpromising"):
+            return "humility"
+
+        return None
+
+    def generate_ralph_wisdom(self, situation_type: str) -> str:
+        """
+        SG-010: Generate Ralph's simple wisdom for the situation.
+
+        Uses AI to generate FRESH wisdom in Ralph's voice.
+        Never cites verses, never preachy.
+        The fool who stumbles into truth.
+
+        Args:
+            situation_type: The type of situation (conflict, tired, unity, humility, rest)
+
+        Returns:
+            Ralph's wisdom message
+        """
+        # Context for the AI to generate Ralph-style wisdom
+        wisdom_prompts = {
+            "conflict": (
+                "Ralph notices his team is arguing/disagreeing. "
+                "Generate a simple, profound truth about working together or listening to each other. "
+                "Examples of the STYLE (do NOT use these exact words): "
+                "'Two heads are better than one, unless they're fighting!' "
+                "'My daddy says when people yell, nobody hears anything!' "
+                "Use Ralph's voice: simple, childlike, but accidentally profound."
+            ),
+            "tired": (
+                "The team/CEO has been working for many hours and seems exhausted. "
+                "Generate a simple truth about rest, taking breaks, or not burning out. "
+                "Examples of the STYLE (do NOT use these exact words): "
+                "'If you don't stop to smell the paste, you forget what paste smells like!' "
+                "'My cat sleeps a lot and he's really good at being a cat!' "
+                "Use Ralph's voice: innocent, caring, accidentally wise."
+            ),
+            "unity": (
+                "The team is celebrating or working well together. "
+                "Generate a simple truth about teamwork, unity, or cooperation. "
+                "Examples of the STYLE (do NOT use these exact words): "
+                "'When everyone shares their crayons, everybody gets to color!' "
+                "'My daddy says the best sandwiches have lots of things in them!' "
+                "Use Ralph's voice: enthusiastic, simple, heartwarming."
+            ),
+            "humility": (
+                "Someone is overconfident, frustrated, or acting superior. "
+                "Generate a simple truth about humility, staying grounded, or not getting ahead of yourself. "
+                "Examples of the STYLE (do NOT use these exact words): "
+                "'My daddy says when you get too big for your britches, that's when you trip!' "
+                "'I tried to fly once. The ground said no.' "
+                "Use Ralph's voice: naive but insightful, gently corrective."
+            ),
+            "rest": (
+                "General wisdom about taking breaks or pacing oneself. "
+                "Generate a simple truth about balance, rest, or sustainability. "
+                "Examples of the STYLE (do NOT use these exact words): "
+                "'Even superheroes have bedtime!' "
+                "'My teacher says brains need naps too!' "
+                "Use Ralph's voice: simple, caring, innocently profound."
+            ),
+        }
+
+        prompt_text = wisdom_prompts.get(situation_type, wisdom_prompts["unity"])
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are Ralph Wiggum from The Simpsons. You are simple, innocent, and childlike, "
+                    "but occasionally stumble into profound truths. "
+                    "Generate ONE SHORT sentence (10-20 words) of wisdom. "
+                    "NEVER cite Bible verses. NEVER be preachy. Just simple, heartfelt truth. "
+                    "The essence of Biblical wisdom (golden rule, humility, rest, unity) but in Ralph's innocent voice."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt_text
+            }
+        ]
+
+        wisdom = self.call_groq(WORKER_MODEL, messages, max_tokens=60)
+
+        # Clean up any quotes that might be added
+        wisdom = wisdom.strip().strip('"').strip("'")
+
+        return wisdom
+
+    async def maybe_share_wisdom(self, context, chat_id: int, user_id: int, situation_type: str):
+        """
+        SG-010: Share Ralph's wisdom if appropriate.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            situation_type: The type of situation warranting wisdom
+        """
+        if not self.should_share_wisdom(user_id, situation_type):
+            return
+
+        # Generate fresh wisdom
+        wisdom = self.generate_ralph_wisdom(situation_type)
+
+        # Apply Ralph's misspellings
+        wisdom = self.ralph_misspell(wisdom)
+
+        # Brief pause before wisdom (comedic timing)
+        await asyncio.sleep(self.timing.beat())
+
+        # Send wisdom with Ralph's styling
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, wisdom,
+            topic="wisdom",
+            with_typing=True
+        )
+
+        # Mark when wisdom was shared
+        self.last_wisdom_moment[user_id] = datetime.now()
+
+        logging.info(f"SG-010: Ralph shared wisdom ({situation_type}): {wisdom}")
 
     def get_bribe_joke(self) -> str:
         """Get a random joke for workers to butter up Ralph."""
