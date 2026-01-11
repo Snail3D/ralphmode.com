@@ -7,7 +7,7 @@ Makes the technical stuff fun and accessible.
 """
 
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
@@ -70,6 +70,16 @@ class OnboardingWizard:
             self.troubleshooting = None
             self.troubleshooting_available = False
             self.logger.warning("Troubleshooting guide not available")
+
+        # Import environment file manager (OB-008)
+        try:
+            from env_manager import EnvManager
+            self.env_manager = EnvManager()
+            self.env_manager_available = True
+        except ImportError:
+            self.env_manager = None
+            self.env_manager_available = False
+            self.logger.warning("Environment file manager not available")
 
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
@@ -3653,6 +3663,239 @@ Ralph SO IMPRESSED!
             [InlineKeyboardButton("🔄 Change Method", callback_data="webhook_intro")],
         ]
         return InlineKeyboardMarkup(keyboard)
+
+    # Environment File Creator (OB-008)
+
+    def create_env_file_if_needed(self) -> Tuple[bool, str]:
+        """Create .env file if it doesn't exist.
+
+        Returns:
+            Tuple of (created, message)
+        """
+        if not self.env_manager_available:
+            return False, "Environment manager not available"
+
+        if self.env_manager.env_exists():
+            return False, ".env file already exists"
+
+        try:
+            self.env_manager.create_env_file()
+            self.env_manager.add_to_gitignore()
+            return True, ".env file created successfully"
+        except Exception as e:
+            self.logger.error(f"Failed to create .env file: {e}")
+            return False, f"Error creating .env file: {str(e)}"
+
+    def save_api_key_to_env(self, var_name: str, value: str) -> Tuple[bool, str]:
+        """Save an API key to the .env file.
+
+        Args:
+            var_name: Environment variable name
+            value: API key value
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.env_manager_available:
+            return False, "Environment manager not available"
+
+        try:
+            # Ensure .env exists
+            if not self.env_manager.env_exists():
+                self.env_manager.create_env_file()
+
+            # Ensure .gitignore is safe
+            self.env_manager.add_to_gitignore()
+
+            # Save the variable
+            self.env_manager.set_variable(var_name, value)
+
+            return True, f"{var_name} saved successfully to .env"
+        except Exception as e:
+            self.logger.error(f"Failed to save {var_name}: {e}")
+            return False, f"Error saving {var_name}: {str(e)}"
+
+    def get_env_status_message(self) -> str:
+        """Get current .env file status message.
+
+        Returns:
+            Formatted status message with Ralph's personality
+        """
+        if not self.env_manager_available:
+            return """*Ralph Can't Check .env* 😔
+
+Environment manager not available right now!
+
+But don't worry! Ralph can still guide you through setup manually!
+
+*What you need to do:*
+1. Create a file called `.env` in your project folder
+2. Add your API keys there
+3. Make sure `.env` is in `.gitignore`
+
+*Need help with this?*
+"""
+
+        summary = self.env_manager.get_setup_summary()
+
+        return f"""*Environment File Status* 📄
+
+{summary}
+
+*Ralph's Tips:*
+• Never commit .env to GitHub!
+• Add all your secret keys here
+• This file stays LOCAL only!
+• Check it's in .gitignore!
+
+*Need to update something?*
+"""
+
+    def get_env_creation_message(self) -> str:
+        """Get message explaining .env file creation.
+
+        Returns:
+            Educational message about .env files
+        """
+        return """*Creating Your .env File!* 📄✨
+
+Ralph gonna make a special file for your secrets!
+
+*What is .env?*
+• A file that stores your API keys and passwords
+• Lives ONLY on YOUR computer
+• NEVER goes to GitHub (it's in .gitignore!)
+• Keeps your secrets SAFE!
+
+*Why you need this:*
+• API keys must stay secret
+• Putting them in code = BAD! Anyone on GitHub can see!
+• `.env` file = SAFE! Only you can see!
+
+*What Ralph will put in it:*
+• Your Telegram bot token
+• Your API keys (Anthropic, Groq, etc.)
+• Secret keys for security
+• Configuration settings
+
+*How it works:*
+1. Ralph creates `.env` file
+2. Ralph adds it to `.gitignore` (so Git ignores it!)
+3. You add your API keys when Ralph asks
+4. Ralph saves them safely!
+
+Think of it like a locked diary for your computer! 🔐📖
+
+*Ready for Ralph to create it?*
+"""
+
+    def get_env_creation_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for .env file creation.
+
+        Returns:
+            Keyboard with creation options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Create .env File", callback_data="env_create_file")],
+            [InlineKeyboardButton("📚 Learn More About .env", callback_data="env_learn_more")],
+            [InlineKeyboardButton("🔍 Check Current Status", callback_data="env_check_status")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_env_variable_prompt(self, var_name: str) -> str:
+        """Get prompt message for entering an environment variable.
+
+        Args:
+            var_name: Variable name to prompt for
+
+        Returns:
+            Formatted prompt message
+        """
+        description = self.env_manager.get_variable_description(var_name) if self.env_manager_available else var_name
+
+        return f"""*Setting: {var_name}* 🔑
+
+{description}
+
+*How to do this:*
+1. Copy your {var_name.replace('_', ' ').lower()}
+2. Paste it in the chat
+3. Ralph will save it to `.env` safely!
+
+*Security reminder:*
+🔒 This value is SECRET!
+🔒 Ralph will store it safely in `.env`
+🔒 It will NEVER go to GitHub!
+
+*Ready? Paste your {var_name.replace('_', ' ').lower()} now:*
+"""
+
+    def get_env_saved_message(self, var_name: str) -> str:
+        """Get success message after saving an environment variable.
+
+        Args:
+            var_name: Variable name that was saved
+
+        Returns:
+            Success celebration message
+        """
+        return f"""*{var_name} Saved!* 🎉🔐
+
+Ralph GOT IT! Your {var_name.replace('_', ' ').lower()} is safe!
+
+*What Ralph just did:*
+✅ Saved {var_name} to `.env` file
+✅ Made sure it's secure (only on YOUR computer!)
+✅ Verified `.env` is in `.gitignore`!
+
+*Where is it?*
+The value is in: `.env` (this file NEVER goes to GitHub!)
+
+*What this means:*
+🔐 Your secret is safe!
+✨ Your app can now use this configuration!
+🚀 One step closer to being ready!
+
+*Next step?*
+"""
+
+    def verify_gitignore_safety(self) -> Tuple[bool, str]:
+        """Verify that .env is safely in .gitignore.
+
+        Returns:
+            Tuple of (is_safe, message)
+        """
+        if not self.env_manager_available:
+            return False, "Environment manager not available"
+
+        is_safe, message = self.env_manager.verify_gitignore()
+        return is_safe, message
+
+    def ensure_env_safety(self) -> Tuple[bool, str]:
+        """Ensure .env file is created and safely in .gitignore.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.env_manager_available:
+            return False, "Environment manager not available"
+
+        try:
+            # Create .env if needed
+            if not self.env_manager.env_exists():
+                self.env_manager.create_env_file()
+
+            # Ensure .gitignore is safe
+            added = self.env_manager.add_to_gitignore()
+
+            if added:
+                return True, ".env file created and added to .gitignore!"
+            else:
+                return True, ".env file is already safely configured!"
+
+        except Exception as e:
+            self.logger.error(f"Failed to ensure .env safety: {e}")
+            return False, f"Error: {str(e)}"
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
