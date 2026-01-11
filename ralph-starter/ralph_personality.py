@@ -481,6 +481,99 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(apologies), chance=0.3)
 
+    @staticmethod
+    def get_confusion_question(context: str = "general") -> str:
+        """Get a confusion-driven question from Ralph.
+
+        Ralph asks because he genuinely doesn't understand. These aren't rhetorical
+        or for comedy - they're real questions from someone trying to grasp a concept.
+
+        Args:
+            context: The type of confusion ('technical', 'instruction', 'concept', 'general')
+
+        Returns:
+            A genuine question from Ralph expressing confusion
+        """
+        questions = {
+            "technical": [
+                "What's that mean?",
+                "Ralph don't understand the computor words!",
+                "Can you explain in Ralph words?",
+                "Me brain confused! What's that?",
+                "Ralph never heard of that! What is it?",
+                "Is that like something Ralph knows?",
+                "Me lost! Can you say it different way?",
+                "Ralph's brain hurts! Too confusing!",
+                "What does that do?",
+                "Me don't get it! Help Ralph understand?",
+                "Is that important? Ralph confused!",
+                "Can workers explain? Ralph not understand!",
+                "Me think Ralph too simple for this! What it mean?",
+                "Ralph need it explained like to a 5-year-old!",
+                "Me scratching head! What that word mean?",
+            ],
+            "instruction": [
+                "Wait, what Ralph supposed to do?",
+                "Me confused about the steps!",
+                "Ralph lost track! What was first step?",
+                "Can you say that again? Ralph didn't get it!",
+                "Me not sure what to do! Help?",
+                "Ralph understand step 1 but not step 2!",
+                "Wait wait! Too fast for Ralph! Slow down?",
+                "Me need you to repeat that!",
+                "Ralph's brain can't keep up! One more time?",
+                "What Ralph doing again?",
+                "Me forget what comes next!",
+                "Can you write it down? Ralph forget when listening!",
+                "Wait! Before Ralph do that, what about this?",
+                "Me confused about order! This first or second?",
+                "Ralph want to do it right! Explain again?",
+            ],
+            "concept": [
+                "Ralph don't understand why!",
+                "But how does that work?",
+                "Me confused! Why we doing this?",
+                "What's the difference between this and that?",
+                "Ralph thought it was other way!",
+                "Me don't see how these connect!",
+                "Why not just do it simple way?",
+                "Ralph missing something! What is it?",
+                "Me understand words but not meaning!",
+                "Can you show Ralph example?",
+                "What if Ralph did it this way instead?",
+                "Me brain can't picture it! Draw for Ralph?",
+                "Why that better than this?",
+                "Ralph thought you said opposite before!",
+                "Me trying to understand! Give Ralph hint?",
+            ],
+            "general": [
+                "Huh?",
+                "Ralph confused!",
+                "Me don't get it!",
+                "What?",
+                "Ralph lost!",
+                "Me need help understanding!",
+                "Can you explain?",
+                "Ralph's brain is fuzzy on this!",
+                "Me not following!",
+                "Wait, what?",
+                "Ralph need clarification!",
+                "Me confused now!",
+                "Can you help Ralph understand?",
+                "What you mean?",
+                "Ralph not sure about this!",
+                "Me think Ralph missing something!",
+                "Can you explain better?",
+                "Ralph want to understand but can't!",
+                "Me brain stuck!",
+                "What Ralph supposed to know here?",
+            ],
+        }
+
+        # Get questions for the specified context, or general if not found
+        question_list = questions.get(context, questions["general"])
+        return RalphNarrator.misspell(random.choice(question_list), chance=0.25)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
