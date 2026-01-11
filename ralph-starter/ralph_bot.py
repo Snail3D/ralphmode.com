@@ -2002,25 +2002,12 @@ class RalphBot:
             with_typing=True
         )
 
-        # If there's an active session, inform about the task
+        # RM-028: Task Announcement Drama
         session = self.active_sessions.get(user_id)
         if session and order_text:
-            # Optionally let a worker acknowledge
-            if random.random() < 0.5:  # 50% chance
-                worker = random.choice(list(self.DEV_TEAM.keys()))
-                worker_data = self.DEV_TEAM[worker]
-                acknowledgments = {
-                    "first": ["On it, boss!", "Dropping everything!", "Top priority, got it!"],
-                    "normal": ["Added to the backlog!", "We'll get there!", "Noted!"],
-                    "low": ["Keeping it in mind.", "Food for thought!", "Interesting idea..."],
-                }
-                ack = random.choice(acknowledgments.get(priority_level, ["Got it!"]))
-                await asyncio.sleep(self.timing.rapid_banter())
-                await self.send_styled_message(
-                    context, chat_id, worker, worker_data['title'], ack,
-                    topic="task acknowledgment",
-                    with_typing=True
-                )
+            await self.announce_task_to_team(
+                context, chat_id, user_id, order_text, priority_level
+            )
 
     async def handle_feedback_type_selection(self, query, context, user_id: int, data: str):
         """FB-003: Handle feedback type selection and collect type-specific fields.
@@ -2471,6 +2458,183 @@ _{ralph_message}_
             return (True, conflict_desc, involved_workers)
 
         return (False, "", [])
+
+    async def announce_task_to_team(self, context, chat_id: int, user_id: int,
+                                    task_description: str, priority_level: str):
+        """
+        RM-028: Task Announcement Drama
+
+        Ralph announces a new task to the team like they don't know what's coming.
+        Workers react based on their current mood and the task difficulty.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            task_description: The task from Mr. Worms
+            priority_level: 'first', 'normal', or 'low'
+        """
+        session = self.active_sessions.get(user_id, {})
+
+        # Initialize team_mood if not present (0-100: 0=exhausted, 100=energized)
+        if 'team_mood' not in session:
+            session['team_mood'] = 70  # Start reasonably energized
+
+        # Initialize task counter if not present
+        if 'tasks_given' not in session:
+            session['tasks_given'] = 0
+
+        session['tasks_given'] += 1
+        team_mood = session['team_mood']
+
+        # ===== RALPH ANNOUNCES THE TASK =====
+        await asyncio.sleep(self.timing.dramatic_pause())
+
+        # Ralph's opening varies
+        openings = [
+            "Alright boys!",
+            "Alright ladies and gents!",
+            "Okay team!",
+            "Listen up everyone!",
+            "Gather round!",
+        ]
+
+        announcement_templates = [
+            "I got some news from Mr. Worms. He's got another task for ya.",
+            "Mr. Worms just dropped something new on my desk!",
+            "Got a message from the boss upstairs. He wants us to do something!",
+            "Mr. Worms needs something. It's important!",
+        ]
+
+        ralph_announcement = self.ralph_misspell(
+            f"{random.choice(openings)} {random.choice(announcement_templates)}"
+        )
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_announcement,
+            topic="task announcement",
+            with_typing=True
+        )
+
+        await asyncio.sleep(self.timing.beat())
+
+        # Ralph reads the task like it's new
+        ralph_reads = self.ralph_misspell(
+            f"He says: '{task_description}'"
+        )
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None, ralph_reads,
+            topic="reading task",
+            with_typing=True
+        )
+
+        # ===== TEAM REACTS BASED ON MOOD =====
+        await asyncio.sleep(self.timing.beat())
+
+        # Analyze task difficulty (simple heuristic)
+        task_lower = task_description.lower()
+        is_hard_task = any(word in task_lower for word in
+                          ['refactor', 'rebuild', 'migrate', 'fix bug', 'urgent',
+                           'asap', 'critical', 'security', 'performance'])
+
+        # Determine reaction type based on mood and task difficulty
+        if team_mood < 30:  # Exhausted team
+            reaction_type = 'exhausted'
+        elif team_mood < 50 and is_hard_task:  # Tired + hard task
+            reaction_type = 'dreading'
+        elif team_mood > 70 and not is_hard_task:  # Energized + easy task
+            reaction_type = 'eager'
+        elif is_hard_task and priority_level == 'first':
+            reaction_type = 'stressed'
+        else:
+            reaction_type = 'neutral'
+
+        # Worker reactions by type
+        reactions = {
+            'exhausted': {
+                'group': "The team lets out collective sighs.",
+                'individual': [
+                    ("Stool", "Another one? We've been going all day..."),
+                    ("Gomer", "Ahhhhh... *rubs eyes* Okay, okay."),
+                    ("Gus", "*groans* I'm too old for this."),
+                ]
+            },
+            'dreading': {
+                'group': "The team exchanges nervous glances.",
+                'individual': [
+                    ("Gomer", "Not another one..."),
+                    ("Mona", "*sighs* This is going to be interesting."),
+                    ("Stool", "Bruh, I need coffee for this."),
+                ]
+            },
+            'eager': {
+                'group': "The team perks up.",
+                'individual': [
+                    ("Stool", "Let's do it! I'm ready!"),
+                    ("Gomer", "Ooh, sounds fun!"),
+                    ("Mona", "Finally, something interesting."),
+                ]
+            },
+            'stressed': {
+                'group': "The team exchanges tense looks.",
+                'individual': [
+                    ("Gomer", "First priority... okay, dropping everything!"),
+                    ("Stool", "Whoa, serious mode activated."),
+                    ("Gus", "Here we go. Everyone focus up."),
+                ]
+            },
+            'neutral': {
+                'group': "The team nods.",
+                'individual': [
+                    ("Mona", "Got it. We'll handle it."),
+                    ("Gomer", "On it, boss!"),
+                    ("Stool", "Cool, let's knock it out."),
+                ]
+            }
+        }
+
+        reaction_set = reactions.get(reaction_type, reactions['neutral'])
+
+        # Group reaction
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"_{reaction_set['group']}_",
+            parse_mode="Markdown"
+        )
+
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        # Pick 1-2 workers to react individually
+        num_reactions = random.randint(1, min(2, len(reaction_set['individual'])))
+        selected_reactions = random.sample(reaction_set['individual'], num_reactions)
+
+        for worker_name, reaction_text in selected_reactions:
+            worker_data = self.DEV_TEAM.get(worker_name, {})
+            await asyncio.sleep(self.timing.rapid_banter())
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker_data.get('title'),
+                reaction_text,
+                topic="task reaction",
+                with_typing=True
+            )
+
+        # ===== ADJUST TEAM MOOD =====
+        # Hard tasks decrease mood, easy tasks don't affect it much
+        # High priority adds stress
+        mood_change = 0
+        if is_hard_task:
+            mood_change -= 10
+        if priority_level == 'first':
+            mood_change -= 5
+        elif priority_level == 'low':
+            mood_change += 2  # Low priority is less stressful
+
+        # Consecutive tasks decrease mood
+        if session['tasks_given'] > 3:
+            mood_change -= 3
+
+        session['team_mood'] = max(0, min(100, team_mood + mood_change))
 
     async def escalate_conflict_to_ralph(self, context, chat_id: int, user_id: int,
                                          worker_responses: List[Dict[str, str]],
@@ -4395,6 +4559,16 @@ FRESHNESS REQUIREMENT:
             text=completion_msg,
             parse_mode="Markdown"
         )
+
+        # RM-028: Restore team mood when tasks are completed
+        session = self.active_sessions.get(user_id, {})
+        if 'team_mood' in session:
+            # Completing tasks boosts morale!
+            mood_boost = 8
+            # Extra boost for milestones
+            if tasks_done % 5 == 0:  # Every 5 tasks
+                mood_boost += 5
+            session['team_mood'] = min(100, session['team_mood'] + mood_boost)
 
         # Ralph occasionally comments (~30% chance)
         if random.random() < 0.3:
