@@ -172,6 +172,16 @@ class OnboardingWizard:
             self.doc_generator_available = False
             self.logger.warning("Documentation generator not available")
 
+        # Import PRD generator (OB-028: PRD Template Generator)
+        try:
+            from prd_generator import get_prd_generator
+            self.prd_generator = get_prd_generator()
+            self.prd_generator_available = True
+        except ImportError:
+            self.prd_generator = None
+            self.prd_generator_available = False
+            self.logger.warning("PRD generator not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -7091,6 +7101,175 @@ _{char_info['description']}_
         }
 
         return messages.get(character, f"*Great choice!*\n\n{character} will be your guide! Let's keep going.")
+
+    # OB-028: PRD Template Generator Methods
+
+    def get_project_type_selection_message(self) -> str:
+        """Get message asking user to select project type for PRD generation.
+
+        Returns:
+            Message explaining project type selection
+        """
+        return """*Time to make your task list!* 📋
+
+Ralph needs to know what kind of project you're building so we can give you a good starting point!
+
+*What are you making?*
+
+Pick the one that sounds most like your project. Don't worry, you can change the tasks later!"""
+
+    def get_project_type_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard with project type options.
+
+        Returns:
+            Inline keyboard with all project types
+        """
+        if not self.prd_generator_available:
+            self.logger.warning("OB-028: PRD generator not available")
+            keyboard = [[InlineKeyboardButton("Skip PRD Setup", callback_data="prd_skip")]]
+            return InlineKeyboardMarkup(keyboard)
+
+        project_types = self.prd_generator.get_project_types()
+        keyboard = []
+
+        # Add project types (2 per row)
+        for i in range(0, len(project_types), 2):
+            row = []
+            for j in range(2):
+                if i + j < len(project_types):
+                    pt = project_types[i + j]
+                    button_text = f"{pt['emoji']} {pt['name']}"
+                    callback_data = f"prd_type_{pt['id']}"
+                    row.append(InlineKeyboardButton(button_text, callback_data=callback_data))
+            keyboard.append(row)
+
+        # Add skip option
+        keyboard.append([InlineKeyboardButton("⏩ Skip for now", callback_data="prd_skip")])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_project_type_description(self, project_type_id: str) -> str:
+        """Get description for a specific project type.
+
+        Args:
+            project_type_id: ID of the project type
+
+        Returns:
+            Description string
+        """
+        if not self.prd_generator_available:
+            return "PRD generator not available"
+
+        project_types = self.prd_generator.get_project_types()
+        for pt in project_types:
+            if pt['id'] == project_type_id:
+                return f"{pt['emoji']} *{pt['name']}*\n\n{pt['description']}"
+
+        return "Unknown project type"
+
+    async def generate_prd_for_project(
+        self,
+        project_type: str,
+        project_name: str,
+        output_path: str = "scripts/ralph/prd.json"
+    ) -> bool:
+        """Generate PRD file for the selected project type.
+
+        Args:
+            project_type: Type of project (telegram_bot, web_app, etc.)
+            project_name: Name of the project
+            output_path: Where to save the PRD file
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.prd_generator_available:
+            self.logger.error("OB-028: PRD generator not available")
+            return False
+
+        try:
+            # Generate PRD
+            prd = self.prd_generator.generate_prd(project_type, project_name)
+
+            # Save to file
+            success = self.prd_generator.save_prd(prd, output_path)
+
+            if success:
+                self.logger.info(f"OB-028: Generated PRD for {project_name} ({project_type})")
+                self.logger.info(f"OB-028: Saved to {output_path}")
+                self.logger.info(f"OB-028: Created {len(prd['tasks'])} initial tasks")
+            else:
+                self.logger.error("OB-028: Failed to save PRD file")
+
+            return success
+
+        except Exception as e:
+            self.logger.error(f"OB-028: Error generating PRD: {e}")
+            return False
+
+    def get_prd_generation_success_message(self, project_type: str, num_tasks: int) -> str:
+        """Get success message after PRD is generated.
+
+        Args:
+            project_type: Type of project selected
+            num_tasks: Number of tasks created
+
+        Returns:
+            Success message with details
+        """
+        return f"""*Yay! Ralph made your task list!* 🎉
+
+Created **{num_tasks} tasks** for your project!
+
+*What's in it:*
+• Setup tasks to get started
+• Core features to implement
+• Testing and documentation
+• Everything organized in priority order!
+
+*Where is it?*
+Your PRD is saved at `scripts/ralph/prd.json`
+
+*What now?*
+You can edit the file to:
+• Add more tasks
+• Change priorities
+• Update acceptance criteria
+• Remove tasks you don't need
+
+Ralph will work through these tasks one by one! Each task has clear acceptance criteria so Ralph knows when it's done!
+
+Want to see what Ralph does? Check out the PRD file!"""
+
+    def get_prd_explanation_message(self) -> str:
+        """Get explanation of what a PRD is and how it works.
+
+        Returns:
+            Educational message about PRDs
+        """
+        if not self.prd_generator_available:
+            return "PRD generator not available"
+
+        return self.prd_generator.get_prd_explanation()
+
+    def get_prd_skip_message(self) -> str:
+        """Get message when user skips PRD generation.
+
+        Returns:
+            Message explaining they can create PRD later
+        """
+        return """*No problem!* 👍
+
+You can always create a PRD later!
+
+*Ways to make one:*
+• Use `/prd_template` command
+• Manually edit `scripts/ralph/prd.json`
+• Copy from another project
+
+*For now*, Ralph can still work on your project! Just tell Ralph what to do and Ralph will do it!
+
+Ralph works great with OR without a PRD! The PRD just helps Ralph know what to build when you're sleeping! 😴"""
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
