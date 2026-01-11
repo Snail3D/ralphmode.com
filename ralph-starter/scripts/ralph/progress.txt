@@ -17475,3 +17475,31 @@ GLM-4.7 (Cost-optimized)
 - Testing locally showed accurate detection: Python, Flask, Redis, Docker, Telegram Bot, Groq, Pytest
 
 ---
+## Iteration N - 2026-01-11
+**Task**: [MM-019] Local Model Discovery
+**Status**: ✅ Complete
+
+### What was implemented
+- Added discover_local_models() async method to scan for running local AI servers
+- Auto-detects Ollama (port 11434), LM Studio (port 1234), and llama.cpp (port 8080)
+- Returns full server metadata including provider, base_url, models list, status, and version
+- Added auto_register_local_models() for one-click registration of all discovered models
+- Uses aiohttp with 2-second timeout for fast, non-blocking detection
+- Integrates seamlessly with existing ModelRegistry for persistent storage
+- Generated registry names follow pattern: local_{provider}_{model_id}
+- Auto-tags discovered models with ["local", "auto-discovered", provider_name]
+
+### Files changed
+- model_manager.py
+
+### Learnings
+- Local model discovery enables zero-config setup for users with Ollama/LM Studio installed
+- Async HTTP with tight timeout (2s) prevents hanging when servers aren't running
+- Auto-registration makes discovered models immediately usable without manual config
+- Standardized registry naming (local_ollama_llama3.2_1b) makes models easy to identify
+- The feature tested successfully with live Ollama server, discovering 11 models
+- Debug-level logging for "not found" prevents spam when servers aren't running
+- Info-level logging for successful discovery provides good visibility
+
+---
+
