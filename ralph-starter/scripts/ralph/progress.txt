@@ -8102,3 +8102,155 @@ Doc specialist character was already fully implemented in ralph_bot.py:
 - Import pattern uses try/except with AVAILABLE flags for graceful degradation
 
 ---
+
+## Iteration - 2026-01-10 (OB-002)
+**Task**: [OB-002] SSH Key Generation Wizard
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive SSH key generation methods to OnboardingWizard class
+- `get_ssh_key_intro_message()` - Explains SSH keys using simple analogies (handshake, badge, lock and key)
+- `get_ssh_check_command()` - Command to detect existing SSH keys
+- `get_ssh_keygen_command()` - Generates proper ssh-keygen command with ed25519 encryption
+- `get_ssh_keygen_message()` - Handles both new key generation and existing key scenarios
+- `get_ssh_keygen_keyboard()` - Interactive buttons for user actions (generate, use existing, help)
+- `get_ssh_success_message()` - Celebrates completion and explains what was created
+- `get_ssh_help_message()` - Comprehensive troubleshooting for common SSH key issues
+- Includes video tutorial links (YouTube with timestamps)
+- Explains each command flag in kid-friendly language
+- Supports optional email parameter for SSH key comment
+
+### Files changed
+- onboarding_wizard.py (added 7 new methods, ~187 lines)
+- scripts/ralph/prd.json (marked OB-002 as passes: true)
+
+### Learnings
+- SSH key explanation needs to be accessible - used metaphors kids understand (lock/key, badge, handshake)
+- ed25519 is the modern SSH key type - stronger and faster than RSA
+- Users need both detection (do they have a key?) and generation (make a new one) paths
+- Copy-paste commands reduce friction - users can't type cryptic ssh-keygen flags wrong
+- Help messages should anticipate common problems (wrong terminal, permissions, file exists)
+- Video tutorials need timestamps so users can jump to relevant sections
+- Ralph's personality shines in success messages ("Ralph so proud!") - makes technical setup fun
+- The `-N ""` flag creates passwordless keys for easier automation (with security note)
+- Public vs private key distinction is critical - users must understand which to share
+- Existing key detection avoids user confusion and allows reuse of working keys
+
+---
+
+## Iteration - 2026-01-10 (OB-003)
+**Task**: [OB-003] GitHub SSH Key Addition Guide
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive GitHub SSH key addition methods to OnboardingWizard class
+- `get_public_key_command()` - Command to read and display public key
+- `get_github_ssh_guide_message()` - Introduction to adding SSH key to GitHub
+- `get_github_ssh_instructions_message()` - Detailed step-by-step instructions
+- `get_github_ssh_keyboard()` - Interactive buttons with direct GitHub link
+- `get_ssh_test_command()` - Command to test SSH connection to GitHub
+- `get_github_ssh_test_message()` - Instructions for testing connection
+- `get_github_ssh_test_keyboard()` - Success/error buttons for test results
+- `get_github_ssh_success_message()` - Enthusiastic celebration message
+- `get_github_ssh_error_help()` - Comprehensive troubleshooting for SSH errors
+- Includes video tutorial with timestamp (3:45 for GitHub-specific steps)
+- Direct link button to GitHub SSH settings page
+- Clear explanation of expected test outputs
+
+### Files changed
+- onboarding_wizard.py (added 8 new methods, ~212 lines)
+- scripts/ralph/prd.json (marked OB-003 as passes: true)
+
+### Learnings
+- Direct URL buttons in Telegram keyboards provide seamless navigation to external pages
+- SSH connection testing must explain the "no shell access" message to avoid user confusion
+- Users need to understand the difference between public and private keys repeatedly
+- Error messages should map to specific solutions (e.g., "Permission denied" → check which key was copied)
+- The `ssh -T git@github.com` test is the definitive way to verify GitHub SSH setup
+- First-time SSH connections ask for host key verification - users need to know this is normal
+- Video timestamps are crucial - users don't want to watch entire tutorials
+- Ralph's celebration ("You're like a REAL developer now!") builds confidence
+- Troubleshooting should cover both technical errors and user confusion (like "what's terminal?")
+- GitHub requires password confirmation when adding keys - prepare users for this
+
+---
+
+## Iteration - 2026-01-10 (OB-004)
+**Task**: [OB-004] Repository Creation Wizard
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive repository creation methods to OnboardingWizard class
+- `get_repo_creation_intro_message()` - Explains repositories and asks for project name
+- `get_repo_creation_method_message()` - Offers web or CLI method choice
+- `get_repo_creation_keyboard()` - Buttons for method selection
+- `get_repo_web_creation_message()` - Step-by-step web UI instructions
+- `get_repo_cli_creation_message()` - gh CLI commands for public/private repos
+- `get_repo_creation_cli_keyboard()` - CLI action buttons
+- `get_repo_web_creation_keyboard()` - Web action buttons with direct GitHub link
+- `get_repo_public_vs_private_message()` - Detailed comparison of repo visibility
+- `get_repo_success_message()` - Celebration and next steps
+- `get_repo_help_message()` - Troubleshooting gh CLI issues
+- Supports both `gh repo create` CLI and github.com/new web methods
+- Explains --public, --private, and --clone flags
+
+### Files changed
+- onboarding_wizard.py (added 9 new methods, ~285 lines)
+- scripts/ralph/prd.json (marked OB-004 as passes: true)
+
+### Learnings
+- Repository creation has two distinct workflows - need to support both for user flexibility
+- GitHub CLI (`gh`) requires authentication first - must guide users through gh auth login
+- The --clone flag is helpful as it creates AND downloads the repo in one command
+- Public vs private is a critical decision point - users need clear guidance
+- Many beginners don't know what a repository IS - need simple metaphors ("code house")
+- GitHub now allows unlimited private repos for free - this is important to communicate
+- Web UI method is more visual/beginner-friendly, CLI is faster for experienced users
+- Repository name conflicts are common - help should suggest checking existing repos
+- The "Add a README file" checkbox on web UI is important for new users
+- Success message should recap the entire journey (SSH → GitHub connection → Repo)
+- Users can switch methods mid-flow (web → CLI or vice versa) with button options
+
+---
+
+## Iteration - 2026-01-10 (SEC-026)
+**Task**: [SEC-026] Security Documentation
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive security documentation suite in docs/security/
+- `security_policy.md` - Information security policy framework, security controls, compliance requirements
+- `acceptable_use_policy.md` - Defines appropriate use of systems, prohibited activities, enforcement
+- `data_classification_policy.md` - Four-tier data classification (RESTRICTED, CONFIDENTIAL, INTERNAL, PUBLIC)
+- `access_control_policy.md` - Six-tier RBAC model, authentication/authorization requirements, access reviews
+- `incident_response.md` - IR plan with STRIDE methodology, playbooks for common incidents, communication protocols
+- `business_continuity_plan.md` - Disaster recovery procedures, RTO/RPO targets, backup strategies
+- `architecture_diagram.md` - System architecture, data flows, trust boundaries, security controls mapping
+- `threat_model.md` - STRIDE-based threat analysis, 19 identified threats with mitigations, risk prioritization
+
+### Files changed
+- docs/security/ (8 new markdown files, ~5600 lines)
+- scripts/ralph/prd.json (marked SEC-026 as passes: true)
+
+### Learnings
+- Enterprise-grade security documentation requires 8 interconnected documents (policy, procedures, architecture, threats)
+- Data classification drives all other security decisions - classify first, protect accordingly
+- STRIDE methodology (Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege) provides systematic threat coverage
+- API key exposure is the #1 threat - requires multiple layers (git-secrets, .env, rotation, monitoring)
+- Incident response needs clear severity levels (P0-P3) with specific SLAs and escalation paths
+- Business continuity requires documented RTO (Recovery Time Objective) and RPO (Recovery Point Objective) for each service
+- Security architecture diagrams must show trust boundaries explicitly - this is where attacks cross zones
+- Threat modeling is never "done" - must be updated quarterly and after any major changes
+- Compliance requirements (GDPR, CCPA) drive many security controls - build for compliance from day 1
+- The human factor is critical - even perfect technical controls fail if admins accidentally log secrets
+- Defense in depth is essential - assume each control may fail, layer multiple controls
+- Database backups are useless if not encrypted - attackers can steal backups from cloud storage
+- Rate limiting protects against both DDoS and API quota exhaustion ($$$)
+- Insider threats are hardest to prevent - requires separation of duties + audit logging
+- Public repos mean NEVER commit secrets - once on GitHub, consider it permanently exposed
+- Disaster recovery testing is mandatory - untested backups are worthless when you need them
+- Communication during incidents is as important as technical response - keep users informed
+- Post-incident reviews (PIR) are where real learning happens - document what went well AND poorly
+- Security documentation for a small project: ~5600 lines. For enterprise: 10x that. Start early.
+
+---
