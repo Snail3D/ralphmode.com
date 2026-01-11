@@ -12285,3 +12285,46 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Random worker selection keeps it fresh (don't always pick same person)
 
 ---
+
+## Iteration 21 - 2026-01-11
+**Task**: [VO-006] Multi-Input Session Support
+**Status**: ✅ Complete
+
+### What was implemented
+- Added input_sequence tracking dict to __init__ (tracks last 5 inputs per user)
+- Created track_input() method to log input type, time, and summary
+- Created get_coherent_scene_intro() method with 30-second window for multi-input coherence
+- Integrated coherent scene intros into handle_voice, handle_text, handle_document
+- 9 transition types: voice→text, voice→file, text→file, text→voice, file→text, file→voice, and same-type continuations
+- Scene transitions connect inputs naturally (e.g., "hangs up and drops a box", "slides over the actual files")
+
+### Files changed
+- ralph_bot.py (__init__, track_input, get_coherent_scene_intro, handle_voice, handle_text, handle_document)
+
+### Learnings
+- 30-second window balances coherence (inputs feel connected) vs. independence (after 30s, treat as separate)
+- Transition variety critical: 3-4 options per input combination prevents repetition
+- Voice→file and text→file most common patterns (user explains then provides files)
+- Empty string in transitions array ("") allows natural flow without forced transition sometimes
+- Same-type repetition needs handling: "continues typing" vs. "adds more" for text sequences
+- Tracking must happen AFTER scene is shown (so coherence check sees previous input)
+- scene_intro can be empty string (means no transition needed, first input or too much time passed)
+
+### Patterns discovered
+- Time-based coherence window: (datetime.now() - last_input['time']).total_seconds() < 30
+- Conditional scene prefix: if scene_intro: scene_text = f"{scene_intro}\n\n{scene_text}"
+- Input summary truncation: text[:50] or file_name for tracking (brief context)
+- Rolling window: keep only last 5 inputs with list slicing input_sequence[user_id][-5:]
+- Check last input type before generating new scene: last_type = last_input['type']
+- Bilateral transitions: voice→text is different from text→voice (direction matters!)
+
+### Gotchas to avoid
+- Must track input AFTER sending scene (so next input sees current one)
+- Check if input_sequence exists for user before accessing (KeyError prevention)
+- Time window must be reasonable: too short (5s) misses multi-input, too long (60s) connects unrelated inputs
+- Coherent intro replaces default scene for files (either use intro OR default scene, not both)
+- For text with translation engine, prepend intro to translated scene (don't replace)
+- Empty transition list means no transitions defined for that combo (return "")
+- Random choice from empty list crashes - always check if transitions list has items
+
+---

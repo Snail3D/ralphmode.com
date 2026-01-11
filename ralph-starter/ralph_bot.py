@@ -1183,6 +1183,8 @@ class RalphBot:
         # RM-057: MUD-Style Presence System
         self.last_status_update: Dict[int, datetime] = {}  # Track when last status update happened
         self.status_update_task: Dict[int, asyncio.Task] = {}  # Track status update background tasks
+        # VO-006: Multi-Input Session Support - Track input sequences for coherent scenes
+        self.input_sequence: Dict[int, List[Dict[str, Any]]] = {}  # Track recent inputs (type, time, content)
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -6096,6 +6098,144 @@ Your style: {worker['style']}
         # Default to calm
         return 'calm'
 
+    # ==================== VO-006: MULTI-INPUT COHERENCE ====================
+
+    def track_input(self, user_id: int, input_type: str, content_summary: str = ""):
+        """
+        VO-006: Track an input in the sequence for multi-input coherence.
+
+        Args:
+            user_id: User ID
+            input_type: 'voice', 'text', 'file'
+            content_summary: Brief summary of content (e.g., filename, first words)
+        """
+        if user_id not in self.input_sequence:
+            self.input_sequence[user_id] = []
+
+        # Add this input to the sequence
+        self.input_sequence[user_id].append({
+            'type': input_type,
+            'time': datetime.now(),
+            'summary': content_summary
+        })
+
+        # Keep only last 5 inputs (enough for context, not too much memory)
+        if len(self.input_sequence[user_id]) > 5:
+            self.input_sequence[user_id] = self.input_sequence[user_id][-5:]
+
+    def get_coherent_scene_intro(self, user_id: int, current_input_type: str, current_content: str = "") -> str:
+        """
+        VO-006: Generate a coherent scene introduction based on recent input sequence.
+
+        Creates natural transitions when user combines voice + text + files in one session.
+        Examples:
+        - Voice then text: "*Mr. Worms sets down his coffee and clarifies...*"
+        - Text then file: "*Mr. Worms slides over a document*"
+        - Voice then file: "*Mr. Worms hangs up and drops a heavy box on the table*"
+
+        Args:
+            user_id: User ID
+            current_input_type: 'voice', 'text', 'file'
+            current_content: Content summary (filename, etc.)
+
+        Returns:
+            Scene description string with context from previous inputs
+        """
+        if user_id not in self.input_sequence or not self.input_sequence[user_id]:
+            # First input - no context needed
+            return ""
+
+        recent_inputs = self.input_sequence[user_id]
+        last_input = recent_inputs[-1] if recent_inputs else None
+
+        if not last_input:
+            return ""
+
+        # Check if this input came quickly after the last one (within 30 seconds)
+        time_since_last = (datetime.now() - last_input['time']).total_seconds()
+        if time_since_last > 30:
+            # Too much time passed, treat as separate
+            return ""
+
+        last_type = last_input['type']
+
+        # Generate coherent transitions based on input sequence
+        transitions = []
+
+        # Voice → Text
+        if last_type == 'voice' and current_input_type == 'text':
+            transitions = [
+                "*Mr. Worms sets down his coffee and types out a clarification*",
+                "*Mr. Worms hangs up and adds more details in writing*",
+                "*Mr. Worms puts the phone down and clarifies via text*",
+                "*Mr. Worms follows up in writing*",
+            ]
+
+        # Voice → File
+        elif last_type == 'voice' and current_input_type == 'file':
+            transitions = [
+                "*Mr. Worms hangs up and drops a heavy box on the table*",
+                "*Mr. Worms sets down his phone and slides over a package*",
+                "*Mr. Worms ends the call and tosses a folder onto Ralph's desk*",
+                "*Mr. Worms finishes talking and hands over the files*",
+            ]
+
+        # Text → File
+        elif last_type == 'text' and current_input_type == 'file':
+            transitions = [
+                "*Mr. Worms slides over the actual files*",
+                "*Mr. Worms drops the documents on the desk*",
+                "*Mr. Worms hands over the files he mentioned*",
+                "*Mr. Worms places the folder in front of Ralph*",
+            ]
+
+        # Text → Voice
+        elif last_type == 'text' and current_input_type == 'voice':
+            transitions = [
+                "*Mr. Worms picks up the phone to elaborate*",
+                "*Mr. Worms calls in with more details*",
+                "*Mr. Worms decides to explain by voice*",
+            ]
+
+        # File → Text
+        elif last_type == 'file' and current_input_type == 'text':
+            transitions = [
+                "*Mr. Worms adds a note about the files*",
+                "*Mr. Worms clarifies what's in the documents*",
+                "*Mr. Worms explains the files*",
+            ]
+
+        # File → Voice
+        elif last_type == 'file' and current_input_type == 'voice':
+            transitions = [
+                "*Mr. Worms calls in to explain the files*",
+                "*Mr. Worms picks up the phone to elaborate on the documents*",
+            ]
+
+        # Same type repeated - show continuation
+        elif last_type == current_input_type == 'text':
+            transitions = [
+                "*Mr. Worms continues typing*",
+                "*Mr. Worms adds more*",
+                "",  # Sometimes no transition, just flow naturally
+            ]
+        elif last_type == current_input_type == 'voice':
+            transitions = [
+                "*Mr. Worms keeps talking*",
+                "*Mr. Worms continues on the phone*",
+                "",
+            ]
+        elif last_type == current_input_type == 'file':
+            transitions = [
+                "*Mr. Worms drops another file on the desk*",
+                "*Mr. Worms slides over more documents*",
+            ]
+
+        if transitions:
+            return random.choice(transitions)
+
+        return ""
+
     # ==================== RM-030: CEO SENTIMENT ANALYSIS ====================
 
     def analyze_ceo_sentiment(self, text: str) -> str:
@@ -8571,22 +8711,30 @@ _Drop a zip file to get started!_
             object_options = file_type_objects.get(file_ext, ['file', 'document', 'paperwork'])
             object_name = random.choice(object_options)
 
-            # Vary the scene actions
-            scene_actions = [
-                f"*Mr. Worms drops a {object_name} on Ralph's desk*",
-                f"*Mr. Worms slaps a {object_name} on the table*",
-                f"*Mr. Worms slides over a {object_name}*",
-                f"*Mr. Worms throws a {object_name} gently onto the desk*",
-                f"*Mr. Worms hands over a {object_name}*",
-                f"*Mr. Worms places a {object_name} in front of Ralph*",
-                f"*Mr. Worms tosses a {object_name} across the desk*",
-                f"*Mr. Worms sets down a {object_name}*",
-            ]
+            # VO-006: Get coherent scene intro if multi-input sequence
+            scene_intro = self.get_coherent_scene_intro(user_id, 'file', file_name)
 
-            scene_desc = random.choice(scene_actions)
+            # If we have a coherent intro, use it; otherwise generate standard scene
+            if scene_intro:
+                # Use the coherent transition
+                scene_message = f"{scene_intro}\n\n_\"{file_name}\"_"
+            else:
+                # Vary the scene actions (first time or standalone)
+                scene_actions = [
+                    f"*Mr. Worms drops a {object_name} on Ralph's desk*",
+                    f"*Mr. Worms slaps a {object_name} on the table*",
+                    f"*Mr. Worms slides over a {object_name}*",
+                    f"*Mr. Worms throws a {object_name} gently onto the desk*",
+                    f"*Mr. Worms hands over a {object_name}*",
+                    f"*Mr. Worms places a {object_name} in front of Ralph*",
+                    f"*Mr. Worms tosses a {object_name} across the desk*",
+                    f"*Mr. Worms sets down a {object_name}*",
+                ]
 
-            # Add file name for context
-            scene_message = f"{scene_desc}\n\n_\"{file_name}\"_"
+                scene_desc = random.choice(scene_actions)
+
+                # Add file name for context
+                scene_message = f"{scene_desc}\n\n_\"{file_name}\"_"
 
             # Send scene description
             await context.bot.send_message(
@@ -8640,6 +8788,9 @@ _Drop a zip file to get started!_
                     use_buttons=False,
                     with_typing=True
                 )
+
+                # VO-006: Track file input for multi-input coherence
+                self.track_input(user_id, 'file', file_name)
 
                 logger.info(f"VO-005: Processed {file_ext} file as scene object: {object_name}")
 
@@ -9989,8 +10140,15 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                     # Detect emotional tone from text
                     tone = self._detect_text_tone(text)
 
+                    # VO-006: Get coherent scene intro if multi-input sequence
+                    scene_intro = self.get_coherent_scene_intro(user_id, 'text', text[:50])
+
                     # Translate to scene
                     scene_text = translate_to_scene(text, tone=tone)
+
+                    # VO-006: Prepend coherent intro if present
+                    if scene_intro:
+                        scene_text = f"{scene_intro}\n\n{scene_text}"
 
                     # TL-004: Delete original message (optional - makes it feel more theatrical)
                     # Can be disabled via DELETE_ORIGINAL_MESSAGES env var
@@ -10006,6 +10164,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                         text=scene_text,
                         parse_mode="Markdown"
                     )
+
+                    # VO-006: Track text input for multi-input coherence
+                    self.track_input(user_id, 'text', text[:50])
 
                     logging.info(f"VO-001: Translated text to scene for tier {user_tier_obj.display_name if user_tier_obj else 'Unknown'} user")
                 except Exception as e:
@@ -10484,6 +10645,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                     with_typing=False  # No typing delay - quick acknowledgment
                 )
                 logger.info(f"RM-061: Acknowledged voice input from user {user_id}")
+
+                # VO-006: Track voice input for multi-input coherence
+                self.track_input(user_id, 'voice', transcription[:50])
 
                 # Create a synthetic text message to process through existing handle_text
                 original_text = update.message.text
