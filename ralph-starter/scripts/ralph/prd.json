@@ -5214,6 +5214,2974 @@
         "security_drama.py"
       ],
       "passes": true
+    },
+    {
+      "id": "PD-001",
+      "category": "PD",
+      "title": "PRD Completeness Analyzer",
+      "description": "Score PRD quality 0-100 to determine if discovery is needed",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "prd_analyzer.py"
+      ],
+      "passes": true
+    },
+    {
+      "id": "PD-002",
+      "category": "PD",
+      "title": "Smart Discovery Trigger",
+      "description": "Detect when to offer discovery mode based on PRD state",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-003",
+      "category": "PD",
+      "title": "Enhanced Codebase Sweep",
+      "description": "Analyze CLAUDE.md, README, package.json, .env.example for project context",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_analyzer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-004",
+      "category": "PD",
+      "title": "Folder Structure Intelligence",
+      "description": "Detect MVC, monorepo, microservices patterns from folder structure",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_analyzer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-005",
+      "category": "PD",
+      "title": "Technology Stack Detection",
+      "description": "Identify frameworks, libraries, databases from project files",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_analyzer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-006",
+      "category": "PD",
+      "title": "Discovery State Machine",
+      "description": "Track conversation flow through discovery phases",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-007",
+      "category": "PD",
+      "title": "Dynamic Question Generation",
+      "description": "Generate contextual questions based on codebase analysis",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-008",
+      "category": "PD",
+      "title": "Claude-Powered Question Analysis",
+      "description": "Extract requirements from user answers using Claude",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-009",
+      "category": "PD",
+      "title": "PRD Task Addition During Discovery",
+      "description": "Add tasks dynamically as requirements emerge",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "prd_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-010",
+      "category": "PD",
+      "title": "PRD Task Removal Logic",
+      "description": "Remove irrelevant tasks with option to restore",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "prd_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-011",
+      "category": "PD",
+      "title": "Continuous PRD Rearrangement",
+      "description": "Reorder tasks as understanding of project grows",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "prd_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-012",
+      "category": "PD",
+      "title": "PRD Change Commentary",
+      "description": "Ralph announces PRD changes in character",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-013",
+      "category": "PD",
+      "title": "Smart Conversation Ending Detection",
+      "description": "Know when Ralph has enough info to suggest stopping",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-014",
+      "category": "PD",
+      "title": "User Override Controls",
+      "description": "Handle 'start building' and 'more questions' commands",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-015",
+      "category": "PD",
+      "title": "Complexity-Aware Encouragement",
+      "description": "Encourage more discussion for complex projects",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-016",
+      "category": "PD",
+      "title": "Personality Intensity Slider",
+      "description": "Scale from 0 (serious) to 100 (full Ralph)",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "personality_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-017",
+      "category": "PD",
+      "title": "Ralph's Job Anxiety Trait",
+      "description": "Ralph is scared of losing job 'in this economy'",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "personality_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-018",
+      "category": "PD",
+      "title": "Mr. Worms Obedience Protocol",
+      "description": "Always defer to the boss, adjust tone on request",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "personality_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-019",
+      "category": "PD",
+      "title": "Voice Message Discovery Support",
+      "description": "Support voice messages during discovery phase",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "voice_handler.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-020",
+      "category": "PD",
+      "title": "Input Mode Detection",
+      "description": "Detect user preference for voice vs text",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-021",
+      "category": "PD",
+      "title": "Multi-Modal Answer Processing",
+      "description": "Process text, voice, screenshots, and code in answers",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-022",
+      "category": "PD",
+      "title": "Discovery-to-Build Transition",
+      "description": "Smooth handoff from discovery to build loop",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-023",
+      "category": "PD",
+      "title": "Discovery Context Preservation",
+      "description": "Workers reference user's exact words from discovery",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-024",
+      "category": "PD",
+      "title": "Mid-Build Discovery Resumption",
+      "description": "Pause build for clarification when needed",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-025",
+      "category": "PD",
+      "title": "Discovery Analytics Tracking",
+      "description": "Track time, questions asked, engagement metrics",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "analytics.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-026",
+      "category": "PD",
+      "title": "Discovery Quality Feedback Loop",
+      "description": "Did Ralph understand correctly? Learn from mistakes",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "analytics.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-027",
+      "category": "PD",
+      "title": "Discovery Progress Indicator",
+      "description": "Show 'Question 3 of ~8' style progress",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-028",
+      "category": "PD",
+      "title": "Discovery Session Resume",
+      "description": "Continue interrupted discovery sessions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "discovery_state.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-029",
+      "category": "PD",
+      "title": "Date Stripping Buffer",
+      "description": "Filter dates from Telegram output for broadcast safety",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "sanitizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "PD-030",
+      "category": "PD",
+      "title": "Timeless Content Guidelines",
+      "description": "No hardcoded years in personality responses",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "personality_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-001",
+      "category": "BM",
+      "title": "Between-Session Memory Gap",
+      "description": "Ralph forgets PREVIOUS sessions, remembers CURRENT session",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "memory_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-002",
+      "category": "BM",
+      "title": "Embarrassed Asking Variations",
+      "description": "50+ ways Ralph asks 'what were we doing?' with embarrassment",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-003",
+      "category": "BM",
+      "title": "Context Extraction from User Reminder",
+      "description": "Parse what user tells Ralph about previous work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "memory_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-004",
+      "category": "BM",
+      "title": "Oh I Remember Moment",
+      "description": "Ralph's eureka moment when context clicks",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-005",
+      "category": "BM",
+      "title": "Memory Persistence for Workers",
+      "description": "Workers remember context even when Ralph forgets",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-006",
+      "category": "BM",
+      "title": "Confusion-Driven Questions",
+      "description": "Ralph asks because he genuinely doesn't understand",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-007",
+      "category": "BM",
+      "title": "Clarification Loops",
+      "description": "Ralph says 'Wait, so you mean...' to verify understanding",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-008",
+      "category": "BM",
+      "title": "Summary Attempts",
+      "description": "Ralph tries to summarize, often hilariously wrong",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-009",
+      "category": "BM",
+      "title": "Mr. Worms Patience System",
+      "description": "Boss can be patient or hurry Ralph along",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-010",
+      "category": "BM",
+      "title": "Workers Help Ralph Remember",
+      "description": "Workers say 'Sir, I think Mr. Worms said...'",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-011",
+      "category": "BM",
+      "title": "Apology Variations",
+      "description": "Never the same apology twice when Ralph forgets",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-012",
+      "category": "BM",
+      "title": "Self-Deprecating Humor",
+      "description": "Ralph jokes about his bad memory naturally",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-013",
+      "category": "BM",
+      "title": "Compensation Enthusiasm",
+      "description": "Ralph is extra eager to make up for forgetting",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-014",
+      "category": "BM",
+      "title": "Memory Triggers",
+      "description": "Sometimes something jogs Ralph's memory mid-task",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "BM-015",
+      "category": "BM",
+      "title": "Session Handoff Notes",
+      "description": "Workers leave notes for themselves that Ralph can't read",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-001",
+      "category": "HR",
+      "title": "Hardcore Rules Registry",
+      "description": "Immutable foundation document defining core values",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "HARDCORE_RULES.md"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-002",
+      "category": "HR",
+      "title": "Rule Change Deliberation Process",
+      "description": "Git history review and impact analysis before changes",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "rule_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-003",
+      "category": "HR",
+      "title": "Foundational Check Gate",
+      "description": "Block casual changes to core rules",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "rule_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-004",
+      "category": "HR",
+      "title": "Rule Change Documentation",
+      "description": "Full reasoning required for any hardcore rule change",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "rule_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-005",
+      "category": "HR",
+      "title": "PRD Generator Rule Awareness",
+      "description": "PRD generators know what they can't touch",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "prd_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-006",
+      "category": "HR",
+      "title": "Memory Fade System",
+      "description": "Let non-critical things fade over time gracefully",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "memory_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "IN-001",
+      "category": "IN",
+      "title": "Intent Detection Over Words",
+      "description": "See what users mean, not just what they say",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "sanitizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "IN-002",
+      "category": "IN",
+      "title": "Natural Reframing",
+      "description": "Translate harsh input through Ralph's innocent worldview",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "sanitizer.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "IN-003",
+      "category": "IN",
+      "title": "Genuine Encouragement",
+      "description": "Encouragement that's truly felt, not scripted",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "IN-004",
+      "category": "IN",
+      "title": "No Malice Response",
+      "description": "Ralph never gets defensive or angry",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "IN-005",
+      "category": "IN",
+      "title": "Sweetness Consistency",
+      "description": "Maintain authentic warmth throughout all interactions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SP-003",
+      "category": "SP",
+      "title": "Incremental Improvement",
+      "description": "+15% clarity per scolding, capped at ~70%",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SP-004",
+      "category": "SP",
+      "title": "Gradual Reversion",
+      "description": "Fade back to natural Ralph-speak over time",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SP-005",
+      "category": "SP",
+      "title": "Critical Moment Clarity",
+      "description": "Always clear when communicating important info",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-001",
+      "category": "AU",
+      "title": "Autonomy Level State",
+      "description": "Track current supervision level per user",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "session_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-002",
+      "category": "AU",
+      "title": "Autonomy Question Scene",
+      "description": "Ralph asks about supervision at session start",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-003",
+      "category": "AU",
+      "title": "Level Detection from Natural Language",
+      "description": "Parse Mr. Worms' supervision preferences",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-004",
+      "category": "AU",
+      "title": "Mid-Session Adjustment",
+      "description": "Change autonomy level with natural commands",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-005",
+      "category": "AU",
+      "title": "Autonomy-Aware Check-ins",
+      "description": "Workers ask based on current autonomy level",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-006",
+      "category": "AU",
+      "title": "Work Permission State",
+      "description": "Simple on/off gate for work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "session_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-007",
+      "category": "AU",
+      "title": "Pause Detection",
+      "description": "Natural language triggers work pause",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-008",
+      "category": "AU",
+      "title": "Resume Detection",
+      "description": "Natural language triggers work resume",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-009",
+      "category": "AU",
+      "title": "Idle Scene Generation",
+      "description": "Workers waiting when paused - natural dialog",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "AU-010",
+      "category": "AU",
+      "title": "Resume Scene Generation",
+      "description": "Workers spring back to action naturally",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-001",
+      "category": "RS",
+      "title": "Research Trigger",
+      "description": "After intake, Ralph goes to computer to research",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-002",
+      "category": "RS",
+      "title": "Typing GIF Selection",
+      "description": "Funny infinite typing animation while researching",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "media_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-003",
+      "category": "RS",
+      "title": "Research Delay Timing",
+      "description": "Long enough to feel real, not too long",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-004",
+      "category": "RS",
+      "title": "Grok Console Integration",
+      "description": "Connect to Deep Search API for research",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "research_engine.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-005",
+      "category": "RS",
+      "title": "Search Query Generation",
+      "description": "Turn user requirements into search queries",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "research_engine.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-006",
+      "category": "RS",
+      "title": "Result Analysis",
+      "description": "Compare findings to what Mr. Worms said",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "research_engine.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-007",
+      "category": "RS",
+      "title": "Better Approach Detection",
+      "description": "Detect if there's a better way than requested",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "research_engine.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RS-008",
+      "category": "RS",
+      "title": "Nervous Suggestion",
+      "description": "Ralph presents better approaches without offending",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MW-001",
+      "category": "MW",
+      "title": "Brevity Detection",
+      "description": "Know when to be extra short with responses",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MW-002",
+      "category": "MW",
+      "title": "Critical Detail Detection",
+      "description": "What MUST be mentioned vs what can be skipped",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MW-003",
+      "category": "MW",
+      "title": "Status Summary Format",
+      "description": "Quick, scannable status updates",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MW-004",
+      "category": "MW",
+      "title": "Gotcha Flagging",
+      "description": "Always surface things that could bite later",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RD-001",
+      "category": "RD",
+      "title": "Recall System",
+      "description": "Ralph can explain what Mr. Worms said when asked",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "memory_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RD-002",
+      "category": "RD",
+      "title": "Certainty Detection",
+      "description": "Is Ralph SURE about something?",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RD-003",
+      "category": "RD",
+      "title": "Pushback Trigger",
+      "description": "When Ralph should speak up despite fear",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RD-004",
+      "category": "RD",
+      "title": "Pushback Scene",
+      "description": "Nervous but firm refusal on important issues",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RD-005",
+      "category": "RD",
+      "title": "Job Anxiety Integration",
+      "description": "Balance fear of job loss vs integrity",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-001",
+      "category": "WL",
+      "title": "Persistent User Memory",
+      "description": "Rolling 50-exchange history per user like Withers",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_memory.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-002",
+      "category": "WL",
+      "title": "Photo Screenshot Support",
+      "description": "Users can send images, Claude reads them",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-003",
+      "category": "WL",
+      "title": "Full Claude Code Integration",
+      "description": "Use --dangerously-skip-permissions for autonomous work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-004",
+      "category": "WL",
+      "title": "macOS App Launcher",
+      "description": "Clean toggle app button like Withers.app",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "Ralph.app"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-005",
+      "category": "WL",
+      "title": "Startup Notifications",
+      "description": "Bot announces when it comes online via Telegram",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-006",
+      "category": "WL",
+      "title": "Background Process Management",
+      "description": "Use caffeinate -i to prevent sleep during work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-007",
+      "category": "WL",
+      "title": "Graceful Shutdown Messages",
+      "description": "Bot announces when going offline",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WL-008",
+      "category": "WL",
+      "title": "User Profile System",
+      "description": "Store user preferences and communication style",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_memory.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-001",
+      "category": "VE",
+      "title": "Audio Feature Extraction",
+      "description": "Extract pitch, speed, volume, pauses from voice messages",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_detector.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-002",
+      "category": "VE",
+      "title": "Emotion Classification Model",
+      "description": "Map audio features to emotions (frustrated, excited, tired, etc.)",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_detector.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-003",
+      "category": "VE",
+      "title": "Confidence Scoring",
+      "description": "How sure are we about detected emotion?",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_detector.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-004",
+      "category": "VE",
+      "title": "Multi-Emotion Detection",
+      "description": "Detect combinations like frustrated AND tired",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_detector.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-005",
+      "category": "VE",
+      "title": "Emotion-to-Scene Mapping",
+      "description": "Each emotion has scene descriptors for theater",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_translator.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-006",
+      "category": "VE",
+      "title": "Scene Atmosphere Injection",
+      "description": "Add emotional context to output",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_translator.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-007",
+      "category": "VE",
+      "title": "Character Reaction Generation",
+      "description": "How Ralph/workers respond to user's tone",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_translator.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-008",
+      "category": "VE",
+      "title": "Intensity Scaling",
+      "description": "Mild frustration vs furious - scale reactions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "emotion_translator.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-009",
+      "category": "VE",
+      "title": "Pre-Whisper Audio Analysis",
+      "description": "Analyze audio before transcription",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "voice_handler.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-010",
+      "category": "VE",
+      "title": "Parallel Processing",
+      "description": "Words and emotion analyzed simultaneously",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "voice_handler.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-011",
+      "category": "VE",
+      "title": "Combined Output Format",
+      "description": "Words + emotion metadata in response",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "voice_handler.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-012",
+      "category": "VE",
+      "title": "Emotional State Tracking",
+      "description": "Ralph's mood affected by Mr. Worms' tone",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-013",
+      "category": "VE",
+      "title": "Response Tone Matching",
+      "description": "Ralph adjusts his tone to match situation",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-014",
+      "category": "VE",
+      "title": "Worker Mood Propagation",
+      "description": "Workers sense tension in the room",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "VE-015",
+      "category": "VE",
+      "title": "Scene Continuity",
+      "description": "Emotion carries through entire scene",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-001",
+      "category": "RV",
+      "title": "Event Stream Architecture",
+      "description": "Single source of truth for all events",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "river.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-002",
+      "category": "RV",
+      "title": "Event Types Definition",
+      "description": "All possible events enumerated and typed",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "river.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-003",
+      "category": "RV",
+      "title": "Event Persistence",
+      "description": "Events stored for replay and sync",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "river.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-004",
+      "category": "RV",
+      "title": "Real-time Sync",
+      "description": "WebSocket for instant updates across platforms",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "river.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-005",
+      "category": "RV",
+      "title": "Telegram Event Publisher",
+      "description": "Push events to River from Telegram",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "telegram_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-006",
+      "category": "RV",
+      "title": "Telegram Event Consumer",
+      "description": "Receive from River, display in Telegram",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "telegram_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-007",
+      "category": "RV",
+      "title": "Telegram-Specific Formatting",
+      "description": "Apply Telegram markdown to events",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "telegram_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-008",
+      "category": "RV",
+      "title": "Website Event Publisher",
+      "description": "Push events to River from website",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "web_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-009",
+      "category": "RV",
+      "title": "Website Event Consumer",
+      "description": "Receive from River, render in React",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "web_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-010",
+      "category": "RV",
+      "title": "Website-Specific Rendering",
+      "description": "React component mapping for events",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "web_adapter.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-011",
+      "category": "RV",
+      "title": "Mirror Verification Tests",
+      "description": "Ensure 1:1 parity between platforms",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "tests/test_river.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "RV-012",
+      "category": "RV",
+      "title": "Cross-Platform Session",
+      "description": "Start on Telegram, continue on web seamlessly",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "session_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-001",
+      "category": "TM",
+      "title": "Dual Layer Event System",
+      "description": "Terminal and Theater run in parallel",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-002",
+      "category": "TM",
+      "title": "Real-time Translation Engine",
+      "description": "Convert terminal events to theater",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-003",
+      "category": "TM",
+      "title": "Mode Switching Commands",
+      "description": "/terminal, /theater, /split commands",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-004",
+      "category": "TM",
+      "title": "Session Mode Persistence",
+      "description": "Remember user's preferred mode",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "session_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-005",
+      "category": "TM",
+      "title": "Raw Input Handler",
+      "description": "No translation, direct to Claude in terminal mode",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "terminal_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-006",
+      "category": "TM",
+      "title": "Raw Output Display",
+      "description": "No personality, just results in terminal mode",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "terminal_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-007",
+      "category": "TM",
+      "title": "Terminal UI Web",
+      "description": "Actual terminal aesthetic on website",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "web_terminal.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-008",
+      "category": "TM",
+      "title": "Terminal Telegram Mode",
+      "description": "Minimal formatting for Telegram terminal",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "terminal_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-009",
+      "category": "TM",
+      "title": "Translation Pipeline",
+      "description": "Convert terminal events to theater events",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-010",
+      "category": "TM",
+      "title": "Timing Injection",
+      "description": "Add dramatic pauses, typing indicators for theater",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-011",
+      "category": "TM",
+      "title": "Personality Injection",
+      "description": "Add character voices to theater mode",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-012",
+      "category": "TM",
+      "title": "Media Injection",
+      "description": "Add GIFs, emojis at appropriate moments",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-013",
+      "category": "TM",
+      "title": "Split View Web",
+      "description": "Terminal left, Theater right on website",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "web_split.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-014",
+      "category": "TM",
+      "title": "Event Sync",
+      "description": "Both views show same work in real-time",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "theater_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "TM-015",
+      "category": "TM",
+      "title": "Mode Toggle UI",
+      "description": "Easy switch between views",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-001",
+      "category": "MM",
+      "title": "Model Abstraction Layer",
+      "description": "Unified interface for all model types",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-002",
+      "category": "MM",
+      "title": "Model Registry",
+      "description": "Store configured models with metadata",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-003",
+      "category": "MM",
+      "title": "Role-Based Assignment",
+      "description": "Map roles (Ralph, workers, builder) to models",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-004",
+      "category": "MM",
+      "title": "Model Switching",
+      "description": "Change models without restart",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-005",
+      "category": "MM",
+      "title": "Test Prompt Library",
+      "description": "2-3 sentence validation prompts per role",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_tester.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-006",
+      "category": "MM",
+      "title": "Test Runner",
+      "description": "Execute validation and score results",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_tester.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-007",
+      "category": "MM",
+      "title": "Pass Fail Detection",
+      "description": "Determine if model 'gets' the character",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_tester.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-008",
+      "category": "MM",
+      "title": "Validation Cache",
+      "description": "Remember which models passed tests",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-009",
+      "category": "MM",
+      "title": "Re-test Trigger",
+      "description": "Manual re-validation option",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-010",
+      "category": "MM",
+      "title": "Anthropic Adapter",
+      "description": "Claude models via API",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/anthropic.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-011",
+      "category": "MM",
+      "title": "OpenAI Adapter",
+      "description": "GPT models via API",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/openai.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-012",
+      "category": "MM",
+      "title": "Groq Adapter",
+      "description": "Fast Llama/Mixtral via Groq",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/groq.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-013",
+      "category": "MM",
+      "title": "Generic OpenAI-Compatible Adapter",
+      "description": "Any OpenAI-compatible API",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/generic.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-014",
+      "category": "MM",
+      "title": "API Key Management",
+      "description": "Secure storage for API keys",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "secrets_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-015",
+      "category": "MM",
+      "title": "Ollama Adapter",
+      "description": "Connect to local Ollama",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/ollama.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-016",
+      "category": "MM",
+      "title": "LM Studio Adapter",
+      "description": "Connect to LM Studio",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/lmstudio.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-017",
+      "category": "MM",
+      "title": "llama.cpp Adapter",
+      "description": "Raw local inference",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/llamacpp.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-018",
+      "category": "MM",
+      "title": "Custom Endpoint Adapter",
+      "description": "User-provided URL endpoint",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "adapters/custom.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-019",
+      "category": "MM",
+      "title": "Local Model Discovery",
+      "description": "Auto-detect running local models",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-020",
+      "category": "MM",
+      "title": "Model Configuration UI",
+      "description": "Backend settings page for models",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_config.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-021",
+      "category": "MM",
+      "title": "BYOM Flow",
+      "description": "Add custom model wizard",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_config.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-022",
+      "category": "MM",
+      "title": "Connection Testing",
+      "description": "Verify model reachability",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_tester.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-023",
+      "category": "MM",
+      "title": "Model Recommendations",
+      "description": "Suggest models by use case",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-024",
+      "category": "MM",
+      "title": "Ralph Flow Model Injection",
+      "description": "Use configured model for personality",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MM-025",
+      "category": "MM",
+      "title": "Builder Flow Model Injection",
+      "description": "Use configured model for coding",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-001",
+      "category": "WS",
+      "title": "Website Framework Setup",
+      "description": "Next.js/Astro with edge deployment",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-002",
+      "category": "WS",
+      "title": "Automated Deployment Pipeline",
+      "description": "Push to deploy",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/deploy.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-003",
+      "category": "WS",
+      "title": "Database Integration",
+      "description": "Connect to Ralph's data",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/db.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-004",
+      "category": "WS",
+      "title": "Real-time WebSocket Layer",
+      "description": "Live updates on website",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/websocket.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-005",
+      "category": "WS",
+      "title": "Git History Parser",
+      "description": "Extract milestones from commits",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/git_parser.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-006",
+      "category": "WS",
+      "title": "Week Counter Component",
+      "description": "Week X since project start",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-007",
+      "category": "WS",
+      "title": "Timeline Visualization",
+      "description": "Beautiful milestone display",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-008",
+      "category": "WS",
+      "title": "Auto-milestone Detection",
+      "description": "Flag significant commits",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/git_parser.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-009",
+      "category": "WS",
+      "title": "Build Log Streaming",
+      "description": "Real-time from ralph.sh",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/stream.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-010",
+      "category": "WS",
+      "title": "Chat Interface Component",
+      "description": "Telegram-style on web",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-011",
+      "category": "WS",
+      "title": "Commit Live Feed",
+      "description": "See git pushes happen",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/stream.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-012",
+      "category": "WS",
+      "title": "PRD Progress Dashboard",
+      "description": "Tasks completing live",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/dashboard.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-013",
+      "category": "WS",
+      "title": "Code Upload Component",
+      "description": "Drag-drop or paste code",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-014",
+      "category": "WS",
+      "title": "Sandboxed Ralph Instance",
+      "description": "Safe demo environment",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/sandbox.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-015",
+      "category": "WS",
+      "title": "Session Spin-off",
+      "description": "Demo to real session",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/session.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-016",
+      "category": "WS",
+      "title": "User Authentication",
+      "description": "Sign up to save sessions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/auth.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-017",
+      "category": "WS",
+      "title": "Feedback Form Component",
+      "description": "Structured input for feedback",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-018",
+      "category": "WS",
+      "title": "PRD Auto-Integration",
+      "description": "Feedback becomes PRD tasks",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/feedback.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-019",
+      "category": "WS",
+      "title": "Voting System",
+      "description": "Upvote features",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/voting.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-020",
+      "category": "WS",
+      "title": "Status Tracker",
+      "description": "Your feedback: In Progress",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/status.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-021",
+      "category": "WS",
+      "title": "Simpsons Color Palette",
+      "description": "Yellow, blue, pink theme",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/styles/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-022",
+      "category": "WS",
+      "title": "Character Illustrations",
+      "description": "Ralph, workers, Mr. Worms art",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/assets/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-023",
+      "category": "WS",
+      "title": "Bubbly UI Components",
+      "description": "Buttons, cards, modals",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-024",
+      "category": "WS",
+      "title": "Animation System",
+      "description": "Playful micro-interactions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/animations/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-025",
+      "category": "WS",
+      "title": "Typography System",
+      "description": "Fun but readable fonts",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/styles/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-026",
+      "category": "WS",
+      "title": "Self-Rebuilding System",
+      "description": "Website updates from code",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/deploy.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-027",
+      "category": "WS",
+      "title": "Auto-Changelog",
+      "description": "From git commits",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/changelog.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-028",
+      "category": "WS",
+      "title": "Stats Dashboard",
+      "description": "Live PRD progress",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/dashboard.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-029",
+      "category": "WS",
+      "title": "Status Page",
+      "description": "Auto-monitored uptime",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/status.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-030",
+      "category": "WS",
+      "title": "Webhook Integration",
+      "description": "Everything connected",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/webhooks.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-031",
+      "category": "WS",
+      "title": "Playwright E2E Tests",
+      "description": "Full test coverage",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/tests/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-032",
+      "category": "WS",
+      "title": "Visual Regression Tests",
+      "description": "Design consistency",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/tests/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-033",
+      "category": "WS",
+      "title": "Performance Optimization",
+      "description": "Core Web Vitals",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-034",
+      "category": "WS",
+      "title": "Accessibility Audit",
+      "description": "WCAG compliance",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-035",
+      "category": "WS",
+      "title": "Design Iteration Cycles",
+      "description": "Research, test, refine",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WS-036",
+      "category": "WS",
+      "title": "Dedication Page",
+      "description": "Credits to Geoffrey Huntley & Ryan Carson",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/pages/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-001",
+      "category": "NB",
+      "title": "Image Generation Service Setup",
+      "description": "Configure chosen provider (Replicate/FAL/etc)",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-002",
+      "category": "NB",
+      "title": "API Key Management",
+      "description": "Secure storage for image gen keys",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "secrets_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-003",
+      "category": "NB",
+      "title": "Prompt Engineering",
+      "description": "Ralph-style prompts that work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-004",
+      "category": "NB",
+      "title": "Image Response Handler",
+      "description": "Send images in Telegram",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-005",
+      "category": "NB",
+      "title": "Idea-to-Image Translation",
+      "description": "Ralph describes, system generates",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-006",
+      "category": "NB",
+      "title": "Ralph's Art Commentary",
+      "description": "Ralph reacts to his own creations",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_personality.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-007",
+      "category": "NB",
+      "title": "Multiple Options Generation",
+      "description": "Here's a few ideas, boss!",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-008",
+      "category": "NB",
+      "title": "Revision Requests",
+      "description": "Make it more... you know... better?",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-009",
+      "category": "NB",
+      "title": "Website Mockup Generator",
+      "description": "Quick site concepts",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-010",
+      "category": "NB",
+      "title": "UI Component Sketcher",
+      "description": "Buttons, forms, layouts",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-011",
+      "category": "NB",
+      "title": "Logo Branding Ideas",
+      "description": "Simple logo concepts",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-012",
+      "category": "NB",
+      "title": "Diagram Generator",
+      "description": "Flow charts, architecture",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-013",
+      "category": "NB",
+      "title": "Celebration Images",
+      "description": "Fun victory pics",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-014",
+      "category": "NB",
+      "title": "Content Filter",
+      "description": "Family-safe images only",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "NB-015",
+      "category": "NB",
+      "title": "Style Consistency",
+      "description": "Ralph Mode aesthetic throughout",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "image_gen.py"
+      ],
+      "passes": false
     }
   ],
   "priority_order": [
@@ -5244,9 +8212,9 @@
     "SEC-009 - Known Vulnerabilities Monitoring",
     "SEC-030 - Supply Chain Security",
     "SEC-011 - API Rate Limiting",
+    "SEC-016 - Secrets Management",
     "SEC-028 - Telegram Bot Security",
     "SEC-031 - Hacker Character - Security Breach Storyline",
-    "SEC-016 - Secrets Management",
     "SEC-012 - API Input Validation",
     "SEC-019 - GDPR Compliance",
     "--- TASK CLUSTERING (PRD Organization) ---",
@@ -5405,9 +8373,9 @@
     "AN-001 - User Satisfaction Tracking",
     "BC-002 - Output Filter Before Telegram Send",
     "BC-001 - Sanitization Layer Between Claude and Groq",
-    "BC-003 - Regex Patterns for Common Secrets",
     "BC-005 - Audit Logging for Filtered Content",
     "BC-004 - .env Key Name Detection",
+    "BC-003 - Regex Patterns for Common Secrets",
     "BC-006 - Broadcast-Safe Flag",
     "BO-001 - Build Orchestrator Service",
     "BO-003 - Build Failure Handling",
