@@ -18,6 +18,14 @@ except ImportError:
     GITHUB_MCP_AVAILABLE = False
     logging.warning("GitHub MCP setup helper not available")
 
+# Import Slack MCP setup helper (OB-043)
+try:
+    from slack_mcp_setup import get_slack_mcp_setup
+    SLACK_MCP_AVAILABLE = True
+except ImportError:
+    SLACK_MCP_AVAILABLE = False
+    logging.warning("Slack MCP setup helper not available")
+
 
 class MCPManager:
     """Manages MCP server browsing and installation."""
@@ -35,6 +43,12 @@ class MCPManager:
             self.github_setup = get_github_mcp_setup()
         else:
             self.github_setup = None
+
+        # Initialize Slack MCP setup helper (OB-043)
+        if SLACK_MCP_AVAILABLE:
+            self.slack_setup = get_slack_mcp_setup()
+        else:
+            self.slack_setup = None
 
     def _build_server_catalog(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build comprehensive server catalog with installation info.
@@ -392,6 +406,78 @@ class MCPManager:
             return "GitHub MCP setup helper not available"
 
         return self.github_setup.format_setup_guide()
+
+    # OB-043: Slack MCP Server Setup Methods
+
+    def setup_slack_mcp(self) -> Dict[str, Any]:
+        """Guide through Slack MCP server setup.
+
+        Returns:
+            Dictionary with setup status and instructions
+        """
+        if not self.slack_setup:
+            return {
+                "success": False,
+                "error": "Slack MCP setup helper not available"
+            }
+
+        # Check all prerequisites
+        node_ok, node_msg = self.slack_setup.check_node_installed()
+        server_ok, server_msg = self.slack_setup.check_mcp_server_installed()
+
+        return {
+            "node_js": {
+                "installed": node_ok,
+                "message": node_msg
+            },
+            "mcp_server": {
+                "ready": server_ok,
+                "message": server_msg,
+                "install_instructions": self.slack_setup.get_install_instructions() if not server_ok else None
+            },
+            "slack_app": {
+                "creation_guide": self.slack_setup.get_slack_app_creation_guide(),
+                "oauth_guide": self.slack_setup.get_oauth_setup_guide(),
+                "channel_guide": self.slack_setup.get_channel_setup_guide(),
+                "workspace_id_guide": self.slack_setup.get_workspace_id_instructions()
+            },
+            "all_ready": node_ok and server_ok,
+            "setup_guide": self.slack_setup.format_setup_guide(),
+            "test_info": self.slack_setup.get_test_command()
+        }
+
+    def verify_slack_connection(self) -> Tuple[bool, str]:
+        """Verify Slack MCP server is ready to use.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.slack_setup:
+            return False, "Slack MCP setup helper not available"
+
+        return self.slack_setup.verify_connection()
+
+    def get_slack_capabilities(self) -> Dict[str, list]:
+        """Get list of Slack MCP server capabilities.
+
+        Returns:
+            Dictionary with categorized capabilities
+        """
+        if not self.slack_setup:
+            return {}
+
+        return self.slack_setup.get_available_actions()
+
+    def format_slack_setup_guide(self) -> str:
+        """Get formatted Slack setup guide for display.
+
+        Returns:
+            Formatted markdown guide
+        """
+        if not self.slack_setup:
+            return "Slack MCP setup helper not available"
+
+        return self.slack_setup.format_setup_guide()
 
 
 # Singleton instance
