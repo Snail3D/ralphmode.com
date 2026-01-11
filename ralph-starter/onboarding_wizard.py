@@ -219,6 +219,16 @@ class OnboardingWizard:
             self.mcp_explainer_available = False
             self.logger.warning("MCP explainer not available")
 
+        # Import MCP manager (OB-017: MCP Server List Browser)
+        try:
+            from mcp_manager import get_mcp_manager
+            self.mcp_manager = get_mcp_manager()
+            self.mcp_manager_available = True
+        except ImportError:
+            self.mcp_manager = None
+            self.mcp_manager_available = False
+            self.logger.warning("MCP manager not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -7710,6 +7720,262 @@ MCP (Model Context Protocol) lets Claude Code connect to external systems like G
         message = "*Why Use MCP?* 💡\n\n"
         for benefit in benefits:
             message += f"{benefit}\n"
+
+        return message
+
+    # ==================== OB-017: MCP SERVER LIST BROWSER ====================
+
+    def get_mcp_browser_welcome_message(self) -> str:
+        """Get welcome message for MCP server browser.
+
+        Returns:
+            Welcome message introducing the browser (OB-017)
+        """
+        return """*MCP Server Browser* 🔌
+
+Me Ralph! Me show you all the cool MCP servers you can use!
+
+**What you can do here:**
+→ Browse servers by category (Database, API, Productivity, etc.)
+→ Search for specific servers
+→ See installation commands
+→ Filter by difficulty level
+
+Each server comes with:
+• 📝 Description of what it does
+• 🔑 Whether it needs setup/API keys
+• 🟢🟡🔴 Difficulty level
+• 📦 One-click install command
+
+*Pick a category or search!*"""
+
+    def get_mcp_category_browser_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for browsing MCP servers by category.
+
+        Returns:
+            InlineKeyboardMarkup with category buttons (OB-017)
+        """
+        keyboard = [
+            [InlineKeyboardButton("🗄️ Database Servers", callback_data="mcp_category:Database")],
+            [InlineKeyboardButton("💻 Development Tools", callback_data="mcp_category:Development")],
+            [InlineKeyboardButton("📊 Productivity Apps", callback_data="mcp_category:Productivity")],
+            [InlineKeyboardButton("📂 File System Tools", callback_data="mcp_category:File System")],
+            [InlineKeyboardButton("🌟 Popular Picks", callback_data="mcp_popular")],
+            [InlineKeyboardButton("🟢 Beginner Friendly", callback_data="mcp_difficulty:Easy")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_mcp_category_list(self, category: str) -> str:
+        """Get formatted list of MCP servers in a category.
+
+        Args:
+            category: Category name (Database, Development, Productivity, File System)
+
+        Returns:
+            Formatted server list (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available. Please check your setup."
+
+        return self.mcp_manager.format_category_overview(category)
+
+    def get_mcp_category_servers_keyboard(self, category: str) -> InlineKeyboardMarkup:
+        """Get keyboard showing servers in a category.
+
+        Args:
+            category: Category name
+
+        Returns:
+            InlineKeyboardMarkup with server buttons (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="mcp_browser")]])
+
+        servers = self.mcp_manager.filter_by_category(category)
+        keyboard = []
+
+        for server in servers[:10]:  # Limit to 10 to avoid too many buttons
+            difficulty_emoji = {"Easy": "🟢", "Medium": "🟡", "Advanced": "🔴"}.get(
+                server.get("difficulty", "Medium"), "⚪"
+            )
+            button_text = f"{difficulty_emoji} {server['name']}"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f"mcp_server:{server['name']}")])
+
+        keyboard.append([InlineKeyboardButton("⬅️ Back to Categories", callback_data="mcp_browser")])
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_mcp_server_details(self, server_name: str) -> str:
+        """Get detailed information about a specific MCP server.
+
+        Args:
+            server_name: Name of the server
+
+        Returns:
+            Formatted server details (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        server = self.mcp_manager.get_server_by_name(server_name)
+        if not server:
+            return f"Server '{server_name}' not found."
+
+        return self.mcp_manager.format_server_card(server)
+
+    def get_mcp_server_details_keyboard(self, server_name: str) -> InlineKeyboardMarkup:
+        """Get keyboard for server details page.
+
+        Args:
+            server_name: Name of the server
+
+        Returns:
+            InlineKeyboardMarkup with install/back buttons (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="mcp_browser")]])
+
+        server = self.mcp_manager.get_server_by_name(server_name)
+        if not server:
+            return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="mcp_browser")]])
+
+        keyboard = [
+            [InlineKeyboardButton("📦 Copy Install Command", callback_data=f"mcp_install:{server_name}")],
+            [InlineKeyboardButton("🔗 View Documentation", url=server['url'])],
+            [InlineKeyboardButton("⬅️ Back to Browser", callback_data="mcp_browser")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_mcp_search_results(self, query: str) -> str:
+        """Get formatted search results for MCP servers.
+
+        Args:
+            query: Search query
+
+        Returns:
+            Formatted search results (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        results = self.mcp_manager.search_servers(query)
+
+        if not results:
+            return f"*No servers found for '{query}'* 😕\n\nTry searching for:\n• Server names (GitHub, Slack, PostgreSQL)\n• Categories (database, api, productivity)\n• Tags (beginner-friendly, requires-token)"
+
+        message = f"*Search Results for '{query}'* 🔍\n\n"
+        message += f"Found {len(results)} server(s):\n\n"
+
+        for server in results[:5]:  # Show top 5 results
+            difficulty_emoji = {"Easy": "🟢", "Medium": "🟡", "Advanced": "🔴"}.get(
+                server.get("difficulty", "Medium"), "⚪"
+            )
+            message += f"{difficulty_emoji} **{server['name']}**\n"
+            message += f"   {server['description']}\n\n"
+
+        if len(results) > 5:
+            message += f"_...and {len(results) - 5} more. Refine your search to see specific results._"
+
+        return message
+
+    def get_mcp_popular_servers_message(self) -> str:
+        """Get message showing popular MCP servers.
+
+        Returns:
+            Formatted popular servers list (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        popular = self.mcp_manager.get_popular_servers()
+
+        message = """*Popular MCP Servers* 🌟
+
+These are the most commonly used servers by the community!
+
+"""
+
+        for i, server in enumerate(popular, 1):
+            difficulty_emoji = {"Easy": "🟢", "Medium": "🟡", "Advanced": "🔴"}.get(
+                server.get("difficulty", "Medium"), "⚪"
+            )
+            setup_icon = "🔑" if server.get("setup_required") else "✅"
+
+            message += f"{i}. {difficulty_emoji} {setup_icon} **{server['name']}**\n"
+            message += f"   {server['description']}\n\n"
+
+        message += "\n*Tap a server to see installation details!*"
+        return message
+
+    def get_mcp_popular_servers_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for popular servers.
+
+        Returns:
+            InlineKeyboardMarkup with popular server buttons (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="mcp_browser")]])
+
+        popular = self.mcp_manager.get_popular_servers()
+        keyboard = []
+
+        for server in popular:
+            keyboard.append([InlineKeyboardButton(server['name'], callback_data=f"mcp_server:{server['name']}")])
+
+        keyboard.append([InlineKeyboardButton("⬅️ Back to Browser", callback_data="mcp_browser")])
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_mcp_install_command_message(self, server_name: str) -> str:
+        """Get message with install command for a server.
+
+        Args:
+            server_name: Name of the server
+
+        Returns:
+            Message with copy-pasteable install command (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        server = self.mcp_manager.get_server_by_name(server_name)
+        if not server:
+            return f"Server '{server_name}' not found."
+
+        message = f"""*Install {server['name']}* 📦
+
+**Installation Command:**
+```
+{server.get('install_cmd', 'See documentation')}
+```
+
+**Next Steps:**
+1. Copy the command above
+2. Run it in your Claude Code config
+3. Restart Claude Code to load the server"""
+
+        if server.get('setup_required'):
+            message += "\n\n⚠️ **Note:** This server requires additional setup (API keys or credentials). Check the documentation for details."
+
+        return message
+
+    def get_mcp_quick_start_recommendations_message(self) -> str:
+        """Get quick start recommendations for MCP servers.
+
+        Returns:
+            Formatted recommendations (OB-017)
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        recommendations = self.mcp_manager.get_quick_start_recommendations()
+
+        message = """*Quick Start Recommendations* 💡
+
+**Which servers should you install?**
+
+"""
+
+        for use_case, recommendation in recommendations.items():
+            message += f"**{use_case}:**\n{recommendation}\n\n"
 
         return message
 

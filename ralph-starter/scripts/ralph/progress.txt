@@ -10365,3 +10365,83 @@ Worker reactions:
   ✅ Video explainer link
 
 ---
+
+## Iteration [Latest] - 2026-01-10
+**Task**: OB-017 - MCP Server List Browser
+**Status**: ✅ Complete
+
+### What was implemented
+- Created mcp_manager.py with comprehensive MCP server catalog
+- Enhanced server metadata with install commands, difficulty levels, tags, and setup requirements
+- Added search functionality (by name, description, tags)
+- Added filtering by category and difficulty level
+- Added 11 popular MCP servers across 4 categories (Database, Development, Productivity, File System)
+- Integrated MCP browser into onboarding_wizard.py with 11 new methods
+- Implemented category browsing with inline keyboards
+- Added server detail cards with install commands and documentation links
+- Added popular servers list and beginner-friendly filtering
+- Added quick start recommendations for different use cases
+
+### Files changed
+- mcp_manager.py (created)
+- onboarding_wizard.py (added MCP browser methods and import)
+
+### Implementation details
+**mcp_manager.py features:**
+- Server catalog with 11 servers categorized into Database, Development, Productivity, File System
+- Each server includes: name, description, install command, difficulty level, setup requirements, tags, documentation URL
+- Search functionality across names, descriptions, and tags
+- Filter by category, difficulty level
+- Get beginner-friendly servers
+- Get popular server recommendations
+- Format server cards and category overviews
+
+**onboarding_wizard.py additions:**
+- get_mcp_browser_welcome_message() - Entry point for MCP browser
+- get_mcp_category_browser_keyboard() - Category selection keyboard
+- get_mcp_category_list() - Display servers in a category
+- get_mcp_category_servers_keyboard() - Interactive server selection
+- get_mcp_server_details() - Detailed server information
+- get_mcp_server_details_keyboard() - Install/docs buttons
+- get_mcp_search_results() - Search functionality
+- get_mcp_popular_servers_message() - Popular picks
+- get_mcp_popular_servers_keyboard() - Popular server buttons
+- get_mcp_install_command_message() - Copy-pasteable install commands
+- get_mcp_quick_start_recommendations_message() - Use case based recommendations
+
+### Acceptance criteria met
+✅ Lists popular MCP servers (11 servers across 4 categories)
+✅ Categories: Database, Development (API), Productivity, File System (Dev Tools)
+✅ Brief description of each server
+✅ One-click install option (copy-pasteable install commands)
+✅ Search/filter functionality (by name, category, difficulty, tags)
+
+### Testing performed
+- Syntax validation of both files (py_compile)
+- Tested all mcp_manager methods:
+  - get_all_servers() - returns 11 servers
+  - search_servers() - search by keyword
+  - filter_by_category() - filter by Database/Development/etc
+  - get_beginner_friendly_servers() - 4 easy servers
+  - get_popular_servers() - 5 recommended servers
+  - get_server_by_name() - lookup by name
+  - format_server_card() - display formatting
+- Tested all onboarding_wizard methods:
+  - MCP manager integration
+  - Message generation
+  - Keyboard generation
+  - Category lists
+  - Server details
+  - Search results
+
+### Learnings
+- Building on existing code (mcp_explainer.py) creates consistency
+- Singleton pattern used throughout the codebase for managers
+- Inline keyboards in Telegram use callback_data for interactivity
+- Difficulty levels help users choose appropriate servers
+- Tags enable flexible searching beyond categories
+- Install commands can be displayed in code blocks for easy copying
+- Setup requirements flag helps users prepare for credential setup
+- Popular servers list guides new users to proven choices
+
+---
