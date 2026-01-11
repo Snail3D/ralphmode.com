@@ -1,1107 +1,525 @@
-# Ralph Mode - Security Incident Response Plan
+# Security Incident Response Plan
 
+**Ralph Mode - AI Dev Team Telegram Bot**
+**Last Updated:** 2026-01-10
 **Version:** 1.0
-**Effective Date:** January 2026
-**Document Owner:** Security Team
-**Review Cycle:** Semi-Annual
-
-## 1. Purpose
-
-This Security Incident Response Plan (IRP) establishes procedures for detecting, responding to, and recovering from security incidents affecting Ralph Mode systems, data, or users. It defines roles, responsibilities, and processes to minimize impact and ensure timely, effective incident resolution.
-
-## 2. Scope
-
-This plan applies to:
-- All security incidents affecting Ralph Mode systems, applications, or data
-- All personnel involved in incident detection, response, or recovery
-- Third-party service providers supporting Ralph Mode infrastructure
-- Incidents affecting confidentiality, integrity, or availability of systems/data
-
-## 3. Incident Definition and Classification
-
-### 3.1 What is a Security Incident?
-
-A security incident is any event that compromises or threatens to compromise:
-- Confidentiality (unauthorized data disclosure)
-- Integrity (unauthorized data modification)
-- Availability (service disruption or denial)
-- Compliance (regulatory violation)
-
-### 3.2 Incident Categories
-
-**Data Breach:**
-- Unauthorized access to user data or PII
-- Exfiltration of confidential information
-- Exposure of RESTRICTED data (API keys, secrets)
-- Database compromise
-
-**System Compromise:**
-- Server or application takeover
-- Malware infection
-- Backdoor installation
-- Privilege escalation
-
-**Service Disruption:**
-- DDoS attack
-- Ransomware
-- Infrastructure failure due to attack
-- Critical service outage
-
-**Policy Violation:**
-- Unauthorized access attempts
-- Insider threat activities
-- Data mishandling
-- Security control bypass
-
-**Vulnerability:**
-- Zero-day vulnerability discovered
-- Critical CVE affecting systems
-- Misconfiguration exposing data
-- Supply chain vulnerability
-
-### 3.3 Severity Levels
-
-#### P0 - CRITICAL (Response: Immediate)
-**Impact:** Severe harm to users, business, or reputation
-
-**Examples:**
-- Active data breach with PII exposure
-- Production system fully compromised
-- Ransomware encryption in progress
-- Widespread service outage (100% downtime)
-- Regulatory breach requiring notification
-
-**Response Time:** Immediate (15 minutes)
-**Escalation:** Executive team notified immediately
-**Communication:** Hourly updates
+**Owner:** Security Team
 
 ---
 
-#### P1 - HIGH (Response: 1 hour)
-**Impact:** Significant harm or major service degradation
+## Table of Contents
 
-**Examples:**
-- Attempted data breach (unsuccessful but detected)
-- Partial system compromise (contained)
-- DDoS attack causing performance degradation
-- Critical vulnerability actively exploited
-- Significant service outage (>50% capacity)
-
-**Response Time:** 1 hour
-**Escalation:** Security lead + on-call engineer
-**Communication:** Every 4 hours
-
----
-
-#### P2 - MEDIUM (Response: 4 hours)
-**Impact:** Moderate harm or limited service impact
-
-**Examples:**
-- Vulnerability discovered (not yet exploited)
-- Unauthorized access attempt (blocked)
-- Malware detected and quarantined
-- Minor data exposure (non-PII)
-- Service degradation (<50% capacity)
-
-**Response Time:** 4 hours (business hours)
-**Escalation:** Security team
-**Communication:** Daily
+1. [Purpose and Scope](#purpose-and-scope)
+2. [Roles and Responsibilities](#roles-and-responsibilities)
+3. [Incident Classification](#incident-classification)
+4. [Response Phases](#response-phases)
+5. [Communication Templates](#communication-templates)
+6. [Escalation Paths](#escalation-paths)
+7. [Evidence Preservation](#evidence-preservation)
+8. [Post-Incident Review](#post-incident-review)
+9. [Tabletop Exercises](#tabletop-exercises)
+10. [Contact List](#contact-list)
 
 ---
 
-#### P3 - LOW (Response: 24 hours)
-**Impact:** Minimal harm or no immediate risk
+## Purpose and Scope
 
-**Examples:**
-- Security misconfiguration (no active exploit)
-- Policy violation (no data impact)
-- Phishing email reported
-- Outdated software detected
-- Security audit finding
+This Security Incident Response Plan (SIRP) defines the procedures for detecting, responding to, and recovering from security incidents affecting the Ralph Mode Telegram bot and its infrastructure.
 
-**Response Time:** 24 hours (business hours)
-**Escalation:** Not required
-**Communication:** As needed
+**Scope:**
+- Telegram bot application (ralph_bot.py)
+- API integrations (Groq, Anthropic, Telegram)
+- User data and PII
+- Server infrastructure (Linode)
+- Code repositories (GitHub)
+- Third-party dependencies
 
----
-
-## 4. Incident Response Team
-
-### 4.1 Core Team Roles
-
-#### Incident Commander (IC)
-**Responsibility:** Overall incident coordination and decision-making
-
-**Duties:**
-- Declare incident and severity
-- Coordinate response activities
-- Make critical decisions (system shutdown, user notification, etc.)
-- Communicate with executive team
-- Authorize emergency actions
-
-**Personnel:** Security Lead (primary), CTO (backup)
+**Out of Scope:**
+- Physical security incidents
+- Non-security operational issues (unless they become security incidents)
 
 ---
 
-#### Technical Lead
-**Responsibility:** Technical investigation and remediation
+## Roles and Responsibilities
 
-**Duties:**
-- Investigate root cause
+### Incident Commander (IC)
+**Primary:** Project Owner  
+**Backup:** Lead Developer
+
+**Responsibilities:**
+- Overall incident coordination
+- Authority to make critical decisions
+- Declare incident severity level
+- Activate incident response team
+- Communicate with stakeholders
+- Approve public communications
+
+### Security Lead
+**Primary:** Security Engineer (if available) or Lead Developer  
+**Backup:** Senior Developer
+
+**Responsibilities:**
+- Technical investigation of security incidents
 - Implement containment measures
-- Coordinate remediation efforts
-- Provide technical guidance
-- Document technical findings
+- Coordinate evidence collection
+- Perform root cause analysis
+- Recommend remediation steps
+- Update security controls post-incident
 
-**Personnel:** Senior DevOps Engineer or Senior Developer
+### Communications Lead
+**Primary:** Project Owner or designated spokesperson  
+**Backup:** Community Manager (if available)
 
----
+**Responsibilities:**
+- Draft incident communications
+- Notify affected users
+- Coordinate with PR team if needed
+- Manage social media responses
+- Document all external communications
 
-#### Communications Lead
-**Responsibility:** Internal and external communications
+### Technical Lead
+**Primary:** Lead Developer  
+**Backup:** Backend Developer
 
-**Duties:**
-- Notify stakeholders
-- Draft user communications
-- Coordinate with PR/Legal
-- Manage media inquiries
-- Track communication timeline
+**Responsibilities:**
+- Execute technical remediation
+- Deploy patches and fixes
+- Verify system integrity post-incident
+- Coordinate with infrastructure team
+- Document technical changes
 
-**Personnel:** Product Manager or designated communications personnel
+### Documentation Lead
+**Primary:** Assigned team member per incident  
+**Backup:** Incident Commander
 
----
-
-#### Documentation Lead
-**Responsibility:** Incident documentation and tracking
-
-**Duties:**
+**Responsibilities:**
 - Maintain incident timeline
-- Document all actions taken
-- Track follow-up items
-- Prepare post-incident report
-- Update runbooks
-
-**Personnel:** Junior developer or operations team member
+- Record all actions taken
+- Collect evidence metadata
+- Prepare incident report
+- Update runbooks based on learnings
 
 ---
 
-### 4.2 Extended Team (As Needed)
+## Incident Classification
 
-- **Legal Counsel:** Regulatory compliance, liability assessment
-- **PR/Marketing:** Public communications, reputation management
-- **Customer Support:** User inquiries, support ticket management
-- **Third-Party Vendors:** Cloud provider, security consultants
-- **Law Enforcement:** For criminal activity or legal requirements
+### Severity Levels
 
-### 4.3 Contact Information
+#### **Critical (SEV-1)**
+**Response Time:** Immediate (within 15 minutes)
 
-**Incident Response Hotline:** [To be established]
-**Email:** security@ralphmode.com (monitored 24/7)
-**Slack Channel:** #incident-response
+**Examples:**
+- Active data breach in progress
+- Unauthorized access to production systems
+- Complete service outage affecting all users
+- Ransomware or destructive malware
+- API keys or credentials exposed publicly
+- PII leak affecting >1000 users
 
-**On-Call Rotation:**
-- Security Lead: [Contact info]
-- Senior DevOps: [Contact info]
-- CTO (Escalation): [Contact info]
-
-**External Contacts:**
-- Linode Support: https://www.linode.com/support/
-- GitHub Support: https://support.github.com
-- Legal Counsel: [Contact info]
-- PR Firm: [Contact info]
+**Escalation:** Incident Commander + Full team activation
 
 ---
 
-## 5. Incident Response Process
+#### **High (SEV-2)**
+**Response Time:** Within 1 hour
 
-### Phase 1: Preparation
+**Examples:**
+- Suspected unauthorized access
+- Partial service degradation
+- Vulnerability with known exploit
+- PII leak affecting <1000 users
+- DDoS attack in progress
+- Suspicious activity in logs
 
-**Before Incidents Occur:**
-- Maintain up-to-date incident response plan
-- Train incident response team (quarterly)
-- Conduct tabletop exercises (semi-annual)
-- Maintain incident response tools and access
-- Document system architecture and dependencies
-- Establish communication channels
-- Maintain contact lists
-
-**Tools and Resources:**
-- Log aggregation and SIEM (if available)
-- Forensic analysis tools
-- Backup and recovery systems
-- Communication platforms (Slack, email)
-- Incident tracking system
-- Runbooks and playbooks
+**Escalation:** Incident Commander + Security Lead + Technical Lead
 
 ---
 
-### Phase 2: Detection and Analysis
+#### **Medium (SEV-3)**
+**Response Time:** Within 4 hours
 
-#### 2.1 Incident Detection
+**Examples:**
+- Vulnerability discovered (no active exploit)
+- Abnormal system behavior
+- Failed authentication attempts (potential brute force)
+- Minor data exposure (non-PII)
+- Dependency with security advisory
 
-**Detection Methods:**
-- Automated alerts (failed logins, anomalous activity)
-- User reports (via email, Telegram, Slack)
-- Security monitoring and SIEM
-- Vulnerability scanners
-- Third-party notifications (security researchers, HackerOne)
-- Media or social media reports
-
-**Initial Triage (Within 15 minutes):**
-1. Gather initial information (what, when, where, who)
-2. Assess credibility and validity
-3. Determine if it's truly a security incident
-4. Assign initial severity (P0-P3)
-5. Alert incident response team
-
-#### 2.2 Incident Declaration
-
-**Incident Commander Actions:**
-1. Declare incident and severity level
-2. Activate incident response team
-3. Establish communication channel (Slack #incident-YYYY-MM-DD-HHMM)
-4. Assign roles (Technical Lead, Comms Lead, Doc Lead)
-5. Set initial objectives and priorities
-
-**Initial Assessment Questions:**
-- What systems or data are affected?
-- Is the incident ongoing or contained?
-- What is the potential impact?
-- Is user data at risk?
-- Are backups intact and available?
-- What evidence exists?
-
-#### 2.3 Investigation
-
-**Evidence Collection (CRITICAL - Do NOT destroy evidence):**
-- Capture system logs before rotation
-- Take snapshots or images of affected systems
-- Preserve memory dumps if malware suspected
-- Screenshot relevant alerts or dashboards
-- Document timestamp of events (UTC)
-- Chain of custody for evidence
-
-**Analysis:**
-- Determine attack vector (how attacker gained access)
-- Identify scope (what systems/data affected)
-- Assess impact (confidentiality, integrity, availability)
-- Determine root cause
-- Identify indicators of compromise (IOCs)
-
-**Investigation Tools:**
-- Log analysis: `grep`, `awk`, Splunk
-- Network traffic: `tcpdump`, Wireshark
-- File integrity: `sha256sum`, `diff`
-- Process inspection: `ps`, `top`, `lsof`
-- Forensics: `dd`, `strings`, volatility
+**Escalation:** Security Lead + Technical Lead
 
 ---
 
-### Phase 3: Containment
+#### **Low (SEV-4)**
+**Response Time:** Within 24 hours
 
-**Objective:** Stop incident from spreading while preserving evidence
+**Examples:**
+- Security policy violation
+- Phishing attempt targeting team
+- Minor configuration issue
+- Outdated dependency (low risk)
 
-#### 3.1 Short-Term Containment (Immediate)
+**Escalation:** Security Lead (investigation and fix)
 
-**Actions (based on incident type):**
+---
 
-**Data Breach:**
-- Isolate affected systems from network
-- Revoke compromised credentials immediately
-- Block attacker IP addresses
-- Disable compromised accounts
+## Response Phases
 
-**System Compromise:**
-- Disconnect affected servers from network (do NOT power off yet)
-- Block malicious processes
-- Capture memory dump for forensics
-- Enable additional logging
+### 1. Detection and Identification
 
-**DDoS Attack:**
-- Enable DDoS mitigation (Cloudflare, Linode DDoS protection)
-- Implement rate limiting
-- Block attack sources
-- Scale infrastructure if possible
+**Monitoring Sources:**
+- Application logs (/tmp/ralph.log)
+- Security monitoring alerts (SEC-025)
+- User reports
+- Automated security scans (SEC-023)
+- Third-party notifications (GitHub, Groq, etc.)
+- Rate limiting alerts
+- Failed authentication logs
 
-**Malware Infection:**
-- Isolate infected systems
-- Prevent lateral movement (segment network)
-- Capture samples for analysis
-- Block malware signatures in firewall/antivirus
+**Initial Assessment Actions:**
+1. Confirm the incident is real (not false positive)
+2. Classify severity level
+3. Document initial observations
+4. Activate incident response team
+5. Start incident timeline
 
-#### 3.2 Long-Term Containment
+---
 
-**Goal:** Stabilize systems while preparing for recovery
+### 2. Containment
+
+#### **Short-term Containment**
+Goal: Stop the bleeding immediately
 
 **Actions:**
-- Patch vulnerabilities that were exploited
-- Implement temporary workarounds
-- Deploy additional monitoring
-- Harden security controls
-- Prepare clean backup for recovery
+- **Service Level:**
+  - If compromised: Stop the bot (pkill -f ralph_bot)
+  - If DDoS: Enable rate limiting or block IPs
+  - If API abuse: Rotate API keys immediately
+  - If data breach: Revoke access tokens
+
+- **Network Level:**
+  - Block malicious IPs at firewall
+  - Isolate affected systems
+  - Disable compromised user accounts
+
+- **Data Level:**
+  - Take database snapshot for forensics
+  - Freeze affected records
+  - Enable audit logging if not already on
 
 ---
 
-### Phase 4: Eradication
+### 3. Eradication
 
-**Objective:** Remove the threat and close attack vectors
+Goal: Remove the threat completely
 
-**Eradication Steps:**
-1. **Remove Malware/Backdoors:**
-   - Delete malicious files
-   - Remove persistence mechanisms
-   - Clean registry entries (if Windows)
-   - Verify removal with antivirus/EDR
-
-2. **Close Attack Vectors:**
-   - Patch vulnerabilities (apply security updates)
-   - Fix misconfigurations
-   - Strengthen authentication
-   - Update firewall rules
-
-3. **Rebuild Compromised Systems:**
-   - Restore from clean backups (pre-compromise)
-   - Rebuild from scratch if necessary
-   - Verify system integrity before redeployment
-   - Update to latest secure versions
-
-4. **Credential Reset:**
-   - Rotate all API keys and secrets
-   - Force password resets for affected users
-   - Regenerate SSH keys
-   - Revoke and reissue certificates
-
-5. **Verification:**
-   - Scan for residual threats
-   - Verify vulnerabilities are patched
-   - Confirm no unauthorized access remains
-   - Test security controls
+**Actions:**
+1. Identify root cause
+2. Remove malicious elements
+3. Patch vulnerabilities
+4. Update compromised dependencies
+5. Rotate ALL credentials
+6. Verify clean state
 
 ---
 
-### Phase 5: Recovery
+### 4. Recovery
 
-**Objective:** Restore systems to normal operation
+Goal: Restore normal operations safely
 
-#### 5.1 System Restoration
+**Actions:**
+1. Restore from clean state
+2. Gradual restoration with monitoring
+3. Verify all critical functions
+4. User communication if applicable
 
-**Pre-Recovery Checklist:**
-- [ ] Threat fully eradicated and verified
-- [ ] Vulnerabilities patched
-- [ ] Credentials rotated
-- [ ] Security controls strengthened
-- [ ] Monitoring enhanced
-- [ ] Backups verified clean
-- [ ] Rollback plan prepared
+---
 
-**Recovery Process:**
-1. **Restore Services (Phased Approach):**
-   - Start with non-critical systems
-   - Monitor for signs of re-compromise
-   - Gradually restore critical systems
-   - Full production last
+### 5. Post-Incident Activity
 
-2. **Validation:**
-   - Functional testing (all features working)
-   - Security testing (no vulnerabilities)
-   - Performance testing (normal operation)
-   - User acceptance testing
+Goal: Learn and improve
 
-3. **Monitoring:**
-   - Enhanced monitoring for 72 hours
-   - Watch for signs of re-infection
-   - Review logs for anomalies
-   - Alert on unusual patterns
+**Actions:**
+1. Write incident report
+2. Implement permanent fixes
+3. Post-mortem meeting (within 7 days)
+4. External notifications if required
 
-#### 5.2 User Communication
+---
 
-**When to Notify Users:**
-- PII or sensitive data accessed/exfiltrated
-- Service disruption exceeding 4 hours
-- Credentials compromised
-- Regulatory requirement (GDPR: 72 hours)
+## Communication Templates
 
-**Communication Template:**
+### Internal Notification (SEV-1/SEV-2)
+
+Subject: [SEV-X] Security Incident - [Brief Description]
+
+Body:
 ```
-Subject: Security Notice - Ralph Mode Incident Update
+INCIDENT ALERT - [SEVERITY LEVEL]
 
-Dear Ralph Mode Users,
-
-We are writing to inform you of a security incident affecting Ralph Mode services.
+Incident ID: INC-[YYYYMMDD]-[001]
+Detected: [Timestamp]
+Severity: [SEV-1/2/3/4]
+Status: [Detection/Containment/Eradication/Recovery]
 
 WHAT HAPPENED:
-[Brief description of incident]
+[Brief description of the incident]
 
-WHAT INFORMATION WAS INVOLVED:
-[Specific data types affected, e.g., email addresses, project names]
+IMPACT:
+[Affected systems, users, data]
 
-WHAT WE ARE DOING:
-[Containment, eradication, and prevention measures]
+ACTIONS TAKEN:
+[Immediate response steps]
 
-WHAT YOU SHOULD DO:
-[User actions: password reset, enable MFA, monitor accounts]
+NEXT STEPS:
+[Planned actions]
 
-MORE INFORMATION:
-[Link to detailed incident page or FAQ]
+INCIDENT COMMANDER: [Name]
 
-We sincerely apologize for this incident and are committed to protecting your data.
-
-Questions: security@ralphmode.com
-
-The Ralph Mode Security Team
+DO NOT share this information externally.
 ```
 
 ---
 
-### Phase 6: Post-Incident Activity
+### User Notification (Data Breach)
 
-#### 6.1 Post-Incident Review (PIR)
+Subject: Important Security Notice - Action Required
 
-**Timeline:** Within 5 business days of incident closure
-
-**Attendees:**
-- Incident response team
-- Engineering team
-- Management
-- Legal (if applicable)
-
-**Agenda:**
-1. Incident timeline review
-2. What went well
-3. What went poorly
-4. Root cause analysis (5 Whys)
-5. Lessons learned
-6. Action items and ownership
-
-**PIR Template:**
-
-```markdown
-# Post-Incident Review: [Incident Name]
-
-**Date:** [Date]
-**Severity:** P[0-3]
-**Duration:** [Start time] - [End time] (Total: X hours)
-**Incident Commander:** [Name]
-
-## Executive Summary
-[2-3 sentence summary of incident and impact]
-
-## Timeline
-| Time (UTC) | Event |
-|------------|-------|
-| 14:23 | Incident detected via alert |
-| 14:30 | Incident declared, team assembled |
-| 14:45 | Containment actions initiated |
-| ... | ... |
-
-## Impact
-- **Users Affected:** [Number/percentage]
-- **Data Affected:** [Description]
-- **Downtime:** [Duration]
-- **Financial Impact:** [Estimated cost]
-
-## Root Cause
-[Detailed explanation using 5 Whys methodology]
-
-## What Went Well
-- [Bullet point]
-- [Bullet point]
-
-## What Went Poorly
-- [Bullet point]
-- [Bullet point]
-
-## Action Items
-| Action | Owner | Due Date | Status |
-|--------|-------|----------|--------|
-| Patch XYZ vulnerability | DevOps | 2026-01-20 | Open |
-| Improve alerting for ABC | Security | 2026-01-25 | Open |
-
-## Lessons Learned
-- [Lesson 1]
-- [Lesson 2]
+Body:
 ```
-
-#### 6.2 Evidence Preservation
-
-**Retention Requirements:**
-- Incident reports: 7 years
-- Evidence (logs, snapshots): 7 years (encrypted storage)
-- Communications: 3 years
-- PIR and action items: Indefinite
-
-**Legal Hold:**
-- Preserve all evidence if legal action anticipated
-- Consult legal before destroying evidence
-- Maintain chain of custody documentation
-
-#### 6.3 Process Improvement
-
-**Update Based on Lessons Learned:**
-- Incident response plan updates
-- Runbook enhancements
-- Security control improvements
-- Monitoring and alerting tuning
-- Training gaps addressed
-
----
-
-## 6. Incident Response Playbooks
-
-### Playbook 1: Data Breach
-
-**Scenario:** Unauthorized access to user data or PII
-
-**Immediate Actions (0-30 minutes):**
-1. Isolate affected database/system
-2. Revoke all access to affected data
-3. Capture evidence (logs, queries, access records)
-4. Determine scope (what data, how many users)
-5. Alert Incident Commander
-
-**Investigation (30 minutes - 4 hours):**
-1. Review access logs to determine entry point
-2. Identify all affected records
-3. Determine if data was exfiltrated (evidence: network logs)
-4. Assess root cause (SQL injection, compromised credentials, etc.)
-
-**Containment (1-4 hours):**
-1. Patch vulnerability or revoke compromised credentials
-2. Implement additional access controls
-3. Enable enhanced database auditing
-4. Change all database passwords
-
-**Eradication (4-24 hours):**
-1. Remove attacker access completely
-2. Patch all related vulnerabilities
-3. Harden database security
-4. Review and revoke excessive privileges
-
-**Recovery (1-3 days):**
-1. Restore normal database access
-2. Implement data loss prevention (DLP) controls
-3. Enhanced monitoring for 72 hours
-
-**Notification:**
-- Legal: Immediately
-- Users: Within 72 hours (GDPR requirement)
-- Regulators: As required by law
-- Public: If widespread impact
-
----
-
-### Playbook 2: Compromised API Key
-
-**Scenario:** Production API key (Telegram, Groq, etc.) exposed in code, logs, or public repository
-
-**Immediate Actions (0-15 minutes):**
-1. **Revoke compromised key immediately**
-   - Telegram: https://core.telegram.org/bots/faq#how-do-i-revoke-my-bot-39s-token
-   - Groq: Revoke via dashboard
-2. Remove from public exposure (if in Git, contact GitHub Support)
-3. Alert Incident Commander
-
-**Investigation (15-60 minutes):**
-1. Determine how key was exposed (git commit, logs, Slack message)
-2. Identify who had access to the exposed key
-3. Review API usage logs for unauthorized activity
-4. Check if other keys are also exposed
-
-**Containment (15-30 minutes):**
-1. Generate new API key with proper scoping
-2. Deploy new key to production (update `.env`)
-3. Verify service restored with new key
-4. Block any suspicious API usage patterns
-
-**Eradication (1-4 hours):**
-1. Audit all code and docs for other exposed secrets
-2. Implement pre-commit hooks to prevent future exposure
-3. Review and restrict access to production secrets
-4. Update security awareness training
-
-**Recovery (4-24 hours):**
-1. Verify no unauthorized bot activity
-2. Monitor API usage for anomalies
-3. Review billing for unexpected charges
-4. Document incident and update runbooks
-
-**Prevention:**
-- Implement secret scanning (git-secrets, truffleHog)
-- Pre-commit hooks to block secret commits
-- Regular secret rotation
-- Secrets management training
-
----
-
-### Playbook 3: DDoS Attack
-
-**Scenario:** Distributed Denial of Service attack causing service disruption
-
-**Immediate Actions (0-15 minutes):**
-1. Confirm DDoS (vs. legitimate traffic spike)
-2. Enable Linode DDoS protection
-3. Alert Incident Commander
-4. Implement rate limiting
-
-**Investigation (15-60 minutes):**
-1. Analyze traffic patterns (source IPs, request types)
-2. Determine attack vector (Layer 3/4 or Layer 7)
-3. Identify attacker motivation (if apparent)
-4. Assess current capacity and degradation
-
-**Containment (30 minutes - 2 hours):**
-1. **Layer 3/4 (Network/Transport):**
-   - Enable upstream DDoS protection (Linode, Cloudflare)
-   - Implement IP blacklisting
-   - Rate limit per IP
-
-2. **Layer 7 (Application):**
-   - Implement request rate limiting
-   - Enable CAPTCHAs for suspicious requests
-   - Block malicious user agents
-   - Use CDN caching
-
-**Mitigation Strategies:**
-1. Scale infrastructure (horizontal scaling)
-2. Implement geographic filtering (if attack from specific region)
-3. Contact ISP/hosting provider for upstream filtering
-4. Consider Cloudflare or similar DDoS protection service
-
-**Recovery (2-6 hours):**
-1. Gradually restore normal operations
-2. Monitor for attack resumption
-3. Keep mitigation controls active for 48 hours
-4. Review and tune rate limiting
-
-**Post-Incident:**
-- Permanent DDoS protection implementation
-- Load testing and capacity planning
-- Incident response runbook updates
-
----
-
-### Playbook 4: Ransomware
-
-**Scenario:** Malware encrypts files and demands payment
-
-**Immediate Actions (0-15 minutes):**
-1. **DO NOT power off infected systems (preserves memory evidence)**
-2. Disconnect affected systems from network immediately
-3. Alert Incident Commander (P0 severity)
-4. Contact law enforcement (FBI IC3: ic3.gov)
-
-**Investigation (15-60 minutes):**
-1. Identify ransomware variant (from ransom note or file extensions)
-2. Determine infection vector (email, exploit, etc.)
-3. Assess spread (which systems affected)
-4. Verify backup integrity and availability
-
-**Containment (30 minutes - 2 hours):**
-1. Isolate all potentially infected systems
-2. Block ransomware signatures in antivirus/firewall
-3. Segment network to prevent lateral movement
-4. Capture memory dumps and disk images for analysis
-
-**Eradication (2-24 hours):**
-1. **DO NOT pay ransom** (FBI recommendation, no guarantee of decryption)
-2. Check for decryption tools (NoMoreRansom.org)
-3. Rebuild affected systems from scratch (do NOT restore infected images)
-4. Patch vulnerabilities that allowed infection
-5. Scan all systems for malware
-
-**Recovery (1-7 days):**
-1. Restore data from clean backups (verified pre-infection)
-2. Rebuild systems with latest security patches
-3. Implement additional security controls:
-   - Application whitelisting
-   - Endpoint detection and response (EDR)
-   - Network segmentation
-   - Enhanced email filtering
-4. Test restored systems thoroughly
-5. Monitor for reinfection
-
-**User Communication:**
-- Immediate notification of incident
-- Daily updates on recovery progress
-- Transparency about impact (no data loss if backups work)
-
-**Prevention:**
-- Regular offline backups (air-gapped or immutable)
-- Email filtering and anti-phishing training
-- Endpoint protection (EDR)
-- Network segmentation
-- Patch management
-
----
-
-## 7. Communication Plan
-
-### 7.1 Internal Communication
-
-**During Incident:**
-- **Slack #incident-response:** Real-time updates (every 30 min for P0/P1)
-- **Email:** Summary updates to leadership (every 4 hours)
-- **Standups:** Twice daily for extended incidents
-
-**Communication Guidelines:**
-- Use facts, not speculation
-- Timestamp all communications (UTC)
-- Avoid jargon, use clear language
-- Include current status, next steps, ETA
-- Designate single source of truth (Incident Commander)
-
-**Status Update Template:**
-```
-INCIDENT UPDATE [YYYY-MM-DD HH:MM UTC]
-
-STATUS: [Investigating | Contained | Recovering | Resolved]
-SEVERITY: P[0-3]
-IMPACT: [Brief description]
-CURRENT ACTIONS: [What we're doing now]
-NEXT STEPS: [What's coming next]
-ETA: [Estimated resolution time or "Unknown"]
-NEXT UPDATE: [Time of next update]
-
-- Incident Commander
-```
-
-### 7.2 External Communication
-
-**User Notification Triggers:**
-- PII breach or data exposure
-- Service downtime exceeding 4 hours
-- Credential compromise
-- Regulatory requirement (GDPR 72-hour rule)
-
-**Channels:**
-- Email (all affected users)
-- In-app notification
-- Website status page (status.ralphmode.com)
-- Social media (Twitter/X @ralphmode)
-- Press release (if major incident)
-
-**Tone Guidelines:**
-- Transparent and honest
-- Apologetic but not defensive
-- Factual and clear
-- Action-oriented (what users should do)
-- Empathetic to user concerns
-
-**Sample User Email:**
-```
-Subject: Important Security Update for Ralph Mode Users
-
 Dear Ralph Mode User,
 
-We are writing to inform you of a recent security incident that may have affected your account.
+We are writing to inform you of a security incident that may have affected your account.
 
 WHAT HAPPENED:
-On [Date], we discovered that [brief description of incident]. We immediately began investigating and took action to secure our systems.
+[Clear, non-technical explanation]
 
 WHAT INFORMATION WAS AFFECTED:
-The incident may have involved [specific data types: usernames, project names, etc.]. We have no evidence that [more sensitive data types] were accessed.
+[Specific data types - be transparent]
 
-WHAT WE'RE DOING:
-- We have [containment actions taken]
-- We have [eradication actions taken]
-- We are implementing [additional security measures]
+WHAT WE'VE DONE:
+[Actions taken to secure the system]
 
 WHAT YOU SHOULD DO:
-1. [Specific user action, e.g., reset your password]
-2. [Enable multi-factor authentication]
-3. [Monitor your account for unusual activity]
+1. [Specific action]
+2. [Monitor for suspicious activity]
+3. [Contact us if needed]
 
-We take the security of your data very seriously and sincerely apologize for this incident. We are committed to learning from this event and strengthening our security practices.
-
-For more information, please visit: [link to FAQ or detailed incident page]
-
-If you have questions, contact us at: security@ralphmode.com
+For questions: [Contact information]
 
 Sincerely,
-The Ralph Mode Security Team
-```
-
-### 7.3 Regulatory Notification
-
-**GDPR Requirements:**
-- Notify supervisory authority within 72 hours of becoming aware
-- Provide: nature of breach, affected individuals, likely consequences, mitigation measures
-- If high risk to individuals, notify affected users without undue delay
-
-**CCPA Requirements:**
-- Notify California Attorney General if >500 California residents affected
-- Notify affected users without unreasonable delay
-
-**Notification Template (Regulatory):**
-```
-TO: [Data Protection Authority]
-FROM: Ralph Mode Data Protection Officer
-RE: Personal Data Breach Notification
-
-1. NATURE OF BREACH:
-   [Description of incident, including categories of data affected]
-
-2. AFFECTED INDIVIDUALS:
-   Approximate number: [X] individuals
-   Categories: [EU residents, California residents, etc.]
-
-3. LIKELY CONSEQUENCES:
-   [Risk assessment: low/medium/high risk to individuals]
-
-4. MEASURES TAKEN:
-   [Containment, eradication, notification actions]
-
-5. CONTACT INFORMATION:
-   Name: [DPO Name]
-   Email: dpo@ralphmode.com
-   Phone: [Number]
-
-[Detailed timeline and technical appendix attached]
+The Ralph Mode Team
 ```
 
 ---
 
-## 8. Tools and Resources
+## Escalation Paths
 
-### 8.1 Incident Response Tools
+### Internal Escalation
 
-**Detection and Monitoring:**
-- Log aggregation: Centralized logging
-- SIEM: (To be implemented)
-- Intrusion detection: Fail2ban
-- Vulnerability scanning: Nessus, OpenVAS
+```
+Level 1: Detection
+   ↓
+Level 2: Security Lead (SEV-3/4)
+   ↓
+Level 3: Incident Commander (SEV-2)
+   ↓
+Level 4: Full Team + Owner (SEV-1)
+   ↓
+Level 5: External (Legal, PR, Law Enforcement if needed)
+```
 
-**Analysis and Forensics:**
-- Network analysis: tcpdump, Wireshark
-- Log analysis: grep, awk, Splunk
-- Memory forensics: Volatility
-- Disk imaging: dd, FTK Imager
+### Severity-Based Escalation
 
-**Containment and Remediation:**
-- Firewall: iptables, ufw
-- Access control: sudo, IAM
-- Backup and recovery: Restic, rsync
-- Patch management: apt, yum
+| Severity | Initial Contact | Escalate To | Escalate When |
+|----------|----------------|-------------|---------------|
+| SEV-1 | Incident Commander | Owner, Legal, PR | Immediately |
+| SEV-2 | Security Lead | Incident Commander | Within 30 min |
+| SEV-3 | Security Lead | Technical Lead | If unresolved in 2hr |
+| SEV-4 | On-call Engineer | Security Lead | If escalates |
 
-### 8.2 Documentation Templates
+### External Escalation Triggers
 
-**Incident Tracker:**
-- Incident ID format: `INC-YYYY-MM-DD-###`
-- Tracking spreadsheet or ticket system
-- Fields: ID, Date, Severity, Category, Status, Owner, Description
+**Contact Legal If:**
+- Regulatory reporting required (GDPR, CCPA, etc.)
+- Criminal activity suspected
+- Potential lawsuit risk
 
-**Communication Templates:**
-- Internal status update
-- User notification email
-- Regulatory notification
-- Press release (if needed)
+**Contact Law Enforcement If:**
+- Criminal hacking/unauthorized access
+- Ransomware attack
 
-**Post-Incident Report Template:**
-- Executive summary
-- Timeline
-- Impact assessment
-- Root cause analysis
-- Lessons learned
-- Action items
-
-### 8.3 External Resources
-
-**Threat Intelligence:**
-- CVE Database: https://cve.mitre.org
-- NVD: https://nvd.nist.gov
-- Security advisories: GitHub Security Advisories
-
-**Incident Response Guidance:**
-- NIST SP 800-61: Computer Security Incident Handling Guide
-- SANS Incident Handler's Handbook
-- OWASP Incident Response Cheat Sheet
-
-**Law Enforcement:**
-- FBI IC3: https://ic3.gov (Internet Crime Complaint Center)
-- Local law enforcement: [Contact information]
-
-**Ransomware Resources:**
-- No More Ransom: https://www.nomoreransom.org (free decryption tools)
-- FBI Ransomware Guidance: https://www.fbi.gov/how-we-can-help-you/safety-resources/scams-and-safety/common-scams-and-crimes/ransomware
+**Contact PR/Communications If:**
+- Public disclosure likely
+- >10,000 users affected
 
 ---
 
-## 9. Training and Exercises
+## Evidence Preservation
 
-### 9.1 Incident Response Training
+### What to Preserve
 
-**Quarterly Training (All Personnel):**
-- Incident identification and reporting
-- Escalation procedures
-- Communication protocols
-- Roles and responsibilities
+1. **Logs**
+   - Application logs (ralph.log)
+   - System logs
+   - API access logs
 
-**Advanced Training (IR Team):**
-- Forensics and evidence handling
-- Containment techniques
-- Communication under pressure
-- Legal and regulatory requirements
+2. **System State**
+   - Memory dump (if needed)
+   - Database dump
+   - Network connections
 
-### 9.2 Tabletop Exercises
+3. **Communications**
+   - All incident communications
+   - User reports
 
-**Frequency:** Semi-annual (every 6 months)
+### Evidence Handling
 
-**Scenario Examples:**
-1. Data breach via SQL injection
-2. Compromised API key in public GitHub repo
-3. DDoS attack during peak usage
-4. Ransomware infection
-5. Insider threat (malicious employee)
+```bash
+# Log snapshot
+cp /tmp/ralph.log /var/security/incidents/INC-001/ralph.log.$(date +%s)
 
-**Exercise Format:**
-1. Present scenario (fictional but realistic)
-2. Walk through response steps
-3. Identify gaps or challenges
-4. Document lessons learned
-5. Update IRP based on findings
+# Database snapshot  
+pg_dump ralph_db > /var/security/incidents/INC-001/db_snapshot.sql
 
-**Debrief Questions:**
-- What went well?
-- What was confusing?
-- What resources were missing?
-- What should we change in the plan?
+# System snapshot
+tar -czf /var/security/incidents/INC-001/system_snapshot.tar.gz /var/log /etc
+```
 
 ---
 
-## 10. Metrics and KPIs
+## Post-Incident Review
 
-### 10.1 Incident Response Metrics
+### Incident Report Template
 
-**Response Times:**
-- Time to detect (detection to awareness)
-- Time to respond (awareness to action)
-- Time to contain (action to containment)
-- Time to resolve (containment to resolution)
+**INCIDENT REPORT**
 
-**Target SLAs:**
-| Severity | Detection | Response | Containment | Resolution |
-|----------|-----------|----------|-------------|------------|
-| P0 | <15 min | <15 min | <1 hour | <24 hours |
-| P1 | <30 min | <1 hour | <4 hours | <72 hours |
-| P2 | <2 hours | <4 hours | <24 hours | <7 days |
-| P3 | <24 hours | <24 hours | <7 days | <30 days |
+**Incident ID:** INC-[YYYYMMDD]-[###]  
+**Report Date:** [Date]  
+**Incident Commander:** [Name]
 
-**Quality Metrics:**
-- Incidents with complete documentation
-- Post-incident reviews completed on time
-- Action items completed within due date
-- False positive rate (alerts vs. real incidents)
+**EXECUTIVE SUMMARY**  
+[2-3 sentences]
 
-### 10.2 Reporting
+**TIMELINE**  
+[Chronological events]
 
-**Weekly Reports (Security Team):**
-- New incidents opened
-- Incidents closed
-- Open incidents and status
-- Trends and patterns
+**IMPACT ANALYSIS**  
+- Users Affected: [Number]
+- Data Compromised: [Types]
+- Service Downtime: [Duration]
 
-**Quarterly Reports (Executive Team):**
-- Total incidents by severity
-- Average response times
-- Top incident categories
-- Action items completed vs. outstanding
-- Budget impact (costs incurred)
+**ROOT CAUSE**  
+[Technical analysis]
+
+**REMEDIATION ACTIONS**  
+[List of fixes implemented]
+
+**LESSONS LEARNED**  
+[Key takeaways]
 
 ---
 
-## 11. Policy Review and Updates
+## Tabletop Exercises
 
-This Incident Response Plan is reviewed:
-- **Semi-annually** (June and December)
-- **After major incidents** (within 30 days of PIR)
-- **When systems/architecture change**
-- **When regulations change**
+### Frequency
+**Quarterly** - Every 3 months minimum
 
-**Update Process:**
-1. Security team reviews plan
-2. Incorporate lessons learned from incidents
-3. Update contact information
-4. Test updated procedures
-5. Obtain executive approval
-6. Distribute updated plan to all personnel
-7. Conduct training on changes
+### Format
+1. Scenario Presentation (5 min)
+2. Team Response Discussion (30 min)
+3. Debrief and IRP Updates (15 min)
 
----
+### Sample Scenarios
 
-## 12. Appendices
+#### Scenario 1: API Key Leak
+```
+GitHub Security Alert: Groq API key detected in public repository
+- Key exposed 2 hours ago
+- Repository has 45 stars
+- Bot still running
 
-### Appendix A: Incident Classification Matrix
+Discussion: Response actions?
+```
 
-| Category | P0 (Critical) | P1 (High) | P2 (Medium) | P3 (Low) |
-|----------|---------------|-----------|-------------|----------|
-| Data Breach | PII exfiltrated | Attempted breach blocked | Vulnerability found | Misconfiguration found |
-| System Compromise | Production server pwned | Dev server compromised | Malware quarantined | Security scan finding |
-| Service Disruption | 100% downtime | >50% degradation | <50% degradation | Minor performance issue |
-| Compliance | GDPR violation | Audit finding | Policy violation | Process gap |
+#### Scenario 2: Unauthorized Access
+```
+Alert: Multiple failed logins, then one successful
+- User reports they didn't log in
+- User has PII database access
 
-### Appendix B: Contact Lists
+Discussion: Containment strategy?
+```
 
-**Internal Contacts:**
-| Role | Name | Phone | Email |
-|------|------|-------|-------|
-| Incident Commander | [Name] | [Phone] | [Email] |
-| Technical Lead | [Name] | [Phone] | [Email] |
-| CTO | [Name] | [Phone] | [Email] |
+#### Scenario 3: Dependency Vulnerability
+```
+Critical CVE in python-telegram-bot (CVSS 9.8)
+- Remote code execution possible
+- Patch available but requires upgrade
 
-**External Contacts:**
-| Organization | Contact | Phone | Email/URL |
-|--------------|---------|-------|-----------|
-| Linode Support | - | - | https://www.linode.com/support |
-| Legal Counsel | [Name] | [Phone] | [Email] |
-| PR Firm | [Name] | [Phone] | [Email] |
-| FBI IC3 | - | - | https://ic3.gov |
+Discussion: Urgency and approach?
+```
 
-### Appendix C: Evidence Collection Checklist
+#### Scenario 4: DDoS Attack
+```
+API rate limits exceeded by 1000x
+- Service degraded
+- Costs spiking
 
-- [ ] Capture system logs (syslog, application logs, access logs)
-- [ ] Take VM/container snapshots
-- [ ] Capture memory dumps (if malware suspected)
-- [ ] Screenshot alerts and dashboards
-- [ ] Export database audit logs
-- [ ] Preserve network packet captures
-- [ ] Document timeline with UTC timestamps
-- [ ] Photograph physical evidence (if applicable)
-- [ ] Maintain chain of custody log
-- [ ] Store evidence in secure, access-controlled location
-
-### Appendix D: Regulatory Requirements Summary
-
-**GDPR (EU):**
-- Notify supervisory authority within 72 hours
-- Notify affected individuals if high risk
-- Document all breaches (even if not reportable)
-
-**CCPA (California):**
-- Notify California AG if >500 CA residents affected
-- Notify affected individuals without unreasonable delay
-
-**Telegram Terms of Service:**
-- Maintain bot security
-- Report security incidents affecting platform
-- Comply with takedown requests
+Discussion: Immediate mitigation?
+```
 
 ---
 
-## 13. Approval
+## Contact List
 
-This Incident Response Plan has been reviewed and approved by:
+### Internal Contacts
 
-- **Chief Technology Officer**
-- **Chief Information Security Officer**
-- **Legal Counsel**
-- **Data Protection Officer**
+| Role | Primary | Backup | Contact |
+|------|---------|--------|---------|
+| Incident Commander | [Name] | [Name] | [Phone/Email] |
+| Security Lead | [Name] | [Name] | [Phone/Email] |
+| Technical Lead | [Name] | [Name] | [Phone/Email] |
 
-**Effective Date:** January 2026
-**Next Review:** July 2026
+### External Contacts
+
+| Entity | Purpose | Contact |
+|--------|---------|---------|
+| Legal Counsel | Legal advice | [Contact] |
+| Hosting (Linode) | Infrastructure | support.linode.com |
+| GitHub Security | Code exposure | security@github.com |
+| Law Enforcement | Criminal activity | [Local contact] |
 
 ---
 
-**For incident reporting or questions, contact:** security@ralphmode.com
+## Quick Reference
 
-**Version History:**
-- v1.0 (January 2026): Initial release
+### Emergency Response Checklist
+
+```
+IMMEDIATE (0-15 min):
+[ ] Confirm incident
+[ ] Classify severity
+[ ] Notify Incident Commander
+[ ] Start timeline
+[ ] Activate team
+
+SHORT-TERM (15-60 min):
+[ ] Contain threat
+[ ] Preserve evidence
+[ ] Begin investigation
+[ ] Notify stakeholders
+
+ONGOING:
+[ ] Eradicate root cause
+[ ] Recover systems
+[ ] Document everything
+
+POST-INCIDENT:
+[ ] Write report
+[ ] Hold post-mortem
+[ ] Implement improvements
+```
+
+---
+
+**Remember: In a crisis, this plan is your guide. Follow it, document everything, and protect users and data first. 🔒**
