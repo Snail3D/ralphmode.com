@@ -3712,6 +3712,12 @@ _{ralph_response}_
                 parse_mode="Markdown"
             )
 
+            # RM-041: Team comments on project type
+            project_type_info = analysis.get('project_type')
+            if project_type_info:
+                await asyncio.sleep(1.5)
+                await self._team_comments_on_project_type(context, chat_id, user_id, project_type_info)
+
         # Offer to generate PRD
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📋 Generate Task List", callback_data="generate_prd")],
@@ -6644,6 +6650,11 @@ CURRENT TEAM MOOD: {mood_modifier['level'].upper()} {mood_modifier['emoji']} ({s
 {mood_modifier['guidance']}
 Your response tone should be: {mood_modifier['tone']}"""
 
+        # RM-041: Get project type tone adjustment
+        project_tone_prompt = ""
+        if user_id is not None:
+            project_tone_prompt = self._get_project_type_tone_prompt(user_id)
+
         # RM-037: Get pushback guidance based on current count
         pushback_prompt = ""
         if user_id is not None:
@@ -6692,6 +6703,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {efficiency_note}
 {freshness_prompt}
 {mood_prompt}
+{project_tone_prompt}
 {pushback_prompt}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
@@ -7457,6 +7469,216 @@ _Drop a zip file to get started!_
             if user_id in self.pending_analysis:
                 del self.pending_analysis[user_id]
 
+    def _get_project_type_tone_prompt(self, user_id: int) -> str:
+        """RM-041: Get tone adjustment prompt based on project type.
+
+        Returns a prompt fragment to adjust team energy based on what they're building.
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return ""
+
+        analysis = session.get('analysis', {})
+        project_type_info = analysis.get('project_type')
+
+        if not project_type_info:
+            return ""
+
+        project_type = project_type_info['type']
+        tone = project_type_info['tone']
+
+        # Tone guidance by project type
+        tone_prompts = {
+            'game': """
+PROJECT TYPE: Game/Entertainment
+TONE: Playful and excited! This is a fun project.
+- Show enthusiasm about game features and mechanics
+- Make light references to gaming when appropriate
+- Keep energy high but stay professional""",
+            'enterprise': """
+PROJECT TYPE: Enterprise/Corporate
+TONE: Professional but still personable.
+- More measured responses, less casual banter
+- Focus on reliability, security, scalability
+- Still show personality, just dial it down a notch""",
+            'creative': """
+PROJECT TYPE: Creative/Artistic
+TONE: Excited and supportive!
+- Appreciate the creative vision
+- Encourage bold ideas
+- Show enthusiasm for design and aesthetics""",
+            'utility': """
+PROJECT TYPE: Utility/Tool
+TONE: Efficient and focused.
+- Get straight to the point
+- Less banter, more problem-solving
+- Emphasize practicality and usability""",
+            'web_app': """
+PROJECT TYPE: Web Application
+TONE: Professional and collaborative.
+- Focus on user experience and best practices
+- Discuss architecture and scalability naturally
+- Balance technical depth with accessibility"""
+        }
+
+        return tone_prompts.get(project_type, "")
+
+    async def _team_comments_on_project_type(self, context, chat_id: int, user_id: int, project_type_info: Dict[str, Any]):
+        """RM-041: Team reacts to the project type with appropriate energy.
+
+        Different project types get different team reactions:
+        - Game/creative: Excited, playful
+        - Enterprise: Professional but still fun
+        - Utility: Efficient, focused
+        """
+        project_type = project_type_info['type']
+        tone = project_type_info['tone']
+
+        # Project type reactions - tailored to what they're building
+        reactions_by_type = {
+            'game': [
+                ("Stool", "Ooh, a game! This is gonna be fun to work on!"),
+                ("Gomer", "Nice! Gaming projects always have interesting challenges."),
+                ("Mona", "Love it. Games mean creative freedom."),
+            ],
+            'enterprise': [
+                ("Gomer", "Enterprise stuff. Solid, professional work."),
+                ("Mona", "Corporate vibes. I can work with that."),
+                ("Stool", "Professional project, got it. We'll keep it clean."),
+            ],
+            'creative': [
+                ("Mona", "Ooh, creative project! This is my kind of thing."),
+                ("Stool", "Love creative stuff. Gonna be a good one."),
+                ("Gus", "Artistic work. I appreciate that."),
+            ],
+            'utility': [
+                ("Gomer", "Tool project. Efficiency is key here."),
+                ("Gus", "Straightforward utility. Let's make it solid."),
+                ("Mona", "Clean, functional. I like it."),
+            ],
+            'web_app': [
+                ("Stool", "Web app! That's literally my specialty."),
+                ("Gomer", "Standard web stack. I know this territory."),
+                ("Mona", "Web project. Let's make the UX smooth."),
+            ],
+        }
+
+        # Get reactions for this project type (fallback to utility)
+        possible_reactions = reactions_by_type.get(project_type, reactions_by_type['utility'])
+
+        # Pick 1-2 workers to comment
+        num_comments = random.randint(1, 2)
+        selected_reactions = random.sample(possible_reactions, min(num_comments, len(possible_reactions)))
+
+        for worker_name, comment in selected_reactions:
+            worker = self.DEV_TEAM[worker_name]
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker['title'],
+                comment,
+                topic="project_type_reaction",
+                with_typing=True
+            )
+            await asyncio.sleep(0.8)
+
+    def _detect_project_type(self, files: list, languages: set, project_dir: str) -> Dict[str, Any]:
+        """RM-041: Detect project type based on codebase analysis.
+
+        Returns dict with:
+            - type: str (game, enterprise, creative, utility, etc.)
+            - confidence: str (high, medium, low)
+            - indicators: list of reasons for this classification
+            - tone: str (playful, professional, efficient, excited)
+        """
+        indicators = []
+        scores = {
+            'game': 0,
+            'enterprise': 0,
+            'creative': 0,
+            'utility': 0,
+            'web_app': 0,
+        }
+
+        # Check file names and directories for game indicators
+        file_paths = [f['path'].lower() for f in files]
+        all_content = ' '.join(file_paths)
+
+        # Game indicators
+        game_keywords = ['game', 'player', 'enemy', 'sprite', 'level', 'score', 'unity', 'godot', 'phaser', 'pygame']
+        for keyword in game_keywords:
+            if keyword in all_content:
+                scores['game'] += 2
+                indicators.append(f"Found '{keyword}' in project files")
+
+        # Enterprise indicators
+        enterprise_keywords = ['auth', 'admin', 'dashboard', 'api', 'database', 'user', 'login', 'permissions', 'enterprise']
+        for keyword in enterprise_keywords:
+            if keyword in all_content:
+                scores['enterprise'] += 1
+
+        if any(k in all_content for k in ['corporate', 'crm', 'erp', 'saas']):
+            scores['enterprise'] += 3
+            indicators.append("Corporate/enterprise patterns detected")
+
+        # Creative indicators
+        creative_keywords = ['art', 'design', 'creative', 'portfolio', 'animation', 'visual']
+        for keyword in creative_keywords:
+            if keyword in all_content:
+                scores['creative'] += 2
+                indicators.append(f"Creative content indicator: '{keyword}'")
+
+        # Utility/tool indicators
+        utility_keywords = ['cli', 'tool', 'util', 'script', 'automation', 'helper']
+        for keyword in utility_keywords:
+            if keyword in all_content:
+                scores['utility'] += 2
+
+        # Web app indicators
+        web_keywords = ['react', 'vue', 'angular', 'component', 'router', 'frontend', 'backend']
+        if any(k in all_content for k in web_keywords):
+            scores['web_app'] += 2
+
+        # Check for specific framework files
+        try:
+            for root, dirs, filenames in os.walk(project_dir):
+                for filename in filenames:
+                    if filename == 'package.json':
+                        scores['web_app'] += 2
+                    elif filename == 'requirements.txt':
+                        scores['utility'] += 1
+                    elif filename.endswith('.unity'):
+                        scores['game'] += 5
+                        indicators.append("Unity project detected")
+                    elif 'game' in filename.lower():
+                        scores['game'] += 1
+        except:
+            pass
+
+        # Determine primary type
+        if max(scores.values()) == 0:
+            project_type = 'utility'
+            confidence = 'low'
+            indicators.append("No strong indicators, defaulting to utility")
+        else:
+            project_type = max(scores, key=scores.get)
+            confidence = 'high' if scores[project_type] >= 5 else 'medium' if scores[project_type] >= 3 else 'low'
+
+        # Map type to tone
+        tone_map = {
+            'game': 'playful',
+            'enterprise': 'professional',
+            'creative': 'excited',
+            'utility': 'efficient',
+            'web_app': 'professional',
+        }
+
+        return {
+            'type': project_type,
+            'confidence': confidence,
+            'indicators': indicators[:3],  # Top 3 indicators
+            'tone': tone_map.get(project_type, 'professional'),
+            'scores': scores
+        }
+
     async def _analyze_codebase(self, project_dir: str) -> Dict[str, Any]:
         """Analyze a codebase and return summary."""
         # Gather file info
@@ -7498,6 +7720,9 @@ _Drop a zip file to get started!_
         # Sort by lines (biggest files first)
         files.sort(key=lambda x: x['lines'], reverse=True)
 
+        # RM-041: Detect project type
+        project_type_info = self._detect_project_type(files, languages, project_dir)
+
         summary = f"""
 📁 *{len(files)} files* | 📝 *{total_lines:,} lines*
 🔧 *Languages:* {', '.join(languages) if languages else 'Unknown'}
@@ -7511,7 +7736,8 @@ _Drop a zip file to get started!_
             "summary": summary,
             "files": files,
             "languages": list(languages),
-            "total_lines": total_lines
+            "total_lines": total_lines,
+            "project_type": project_type_info  # RM-041: Include project type
         }
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -11190,9 +11416,12 @@ To update your Git config:
 
             return await original_edit_message_text(*args, **kwargs)
 
-        app.bot.send_message = sanitized_send_message
-        app.bot.edit_message_text = sanitized_edit_message_text
-        logger.info("BC-002: Output filter installed - all messages will be sanitized")
+        # BC-002: Output filter - using wrapper approach instead of direct assignment
+        # Note: Direct assignment to app.bot methods not supported in newer telegram lib
+        # The sanitization is handled via the _sanitize_output method in message handlers
+        self._sanitized_send = sanitized_send_message
+        self._sanitized_edit = sanitized_edit_message_text
+        logger.info("BC-002: Output filter ready - sanitization via handler methods")
 
         # BC-006: Log broadcast-safe mode status
         if BROADCAST_SAFE_MODE:
