@@ -2649,7 +2649,7 @@
         "scene_manager.py",
         "atmosphere_detector.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SS-005",
