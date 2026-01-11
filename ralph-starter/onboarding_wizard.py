@@ -627,6 +627,290 @@ Ready to keep going?
 Try the test command again, or go back and add the key again!
 """
 
+    # Repository Creation Wizard (OB-004)
+
+    def get_repo_creation_intro_message(self) -> str:
+        """Get introduction message for repository creation.
+
+        Returns:
+            Repository creation introduction
+        """
+        return """*Step 3: Make Your Code House!* 🏠
+
+Time to make a repository! (Ralph call it "repo" for short!)
+
+*What's a repository?*
+It's like a house for your code! Everything lives there!
+
+Think of it like:
+• A folder on GitHub where your code lives
+• A history book of all changes you make
+• A backup in case your computer breaks!
+
+GitHub keeps it safe in the cloud! ☁️
+
+*Two ways to make a repo:*
+
+**Option 1:** Use the website (easier, Ralph recommend!)
+**Option 2:** Use the command line (for fancy developers!)
+
+Ralph help with both!
+
+*First, what you wanna call your project?*
+"""
+
+    def get_repo_creation_method_message(self, project_name: str) -> str:
+        """Get message for choosing repository creation method.
+
+        Args:
+            project_name: Name of the project
+
+        Returns:
+            Method selection message
+        """
+        return f"""*Great! Your project is called "{project_name}"!*
+
+Now, how you wanna make the repo?
+
+**Option 1: Use GitHub Website** (Easier!)
+• Click a button
+• Fill in a form
+• Done!
+Ralph guide you through it!
+
+**Option 2: Use Command Line** (Faster if you know what you doing!)
+• One command
+• All done!
+Needs `gh` CLI tool installed!
+
+*Which way you wanna do it?*
+"""
+
+    def get_repo_creation_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for repository creation method selection.
+
+        Returns:
+            Keyboard with method options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🌐 Use GitHub Website (Easier)", callback_data="repo_method_web")],
+            [InlineKeyboardButton("⌨️ Use Command Line", callback_data="repo_method_cli")],
+            [InlineKeyboardButton("◀️ Back", callback_data="setup_back_github")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_repo_web_creation_message(self, project_name: str) -> str:
+        """Get instructions for creating repository via web.
+
+        Args:
+            project_name: Name of the project
+
+        Returns:
+            Web creation instructions
+        """
+        return f"""*Creating "{project_name}" on GitHub!* 🌐
+
+Okay! Follow these steps!
+
+**Step 1:** Click the link below to go to GitHub
+**Step 2:** Click the green "New" button (or the "+" in top right)
+**Step 3:** Fill in the form:
+• *Repository name:* `{project_name}`
+• *Description:* "My awesome project!" (or whatever you want!)
+• *Public or Private?*
+
+**Public** = Everyone can see it (good for learning!)
+**Private** = Only you can see it (good for secrets!)
+
+Ralph recommend Public for learning!
+
+**Step 4:** Check "Add a README file" box
+**Step 5:** Click "Create repository"
+
+*Done?* Click below when you made it!
+
+🌐 [Create New Repository](https://github.com/new)
+"""
+
+    def get_repo_cli_creation_message(self, project_name: str) -> str:
+        """Get instructions for creating repository via CLI.
+
+        Args:
+            project_name: Name of the project
+
+        Returns:
+            CLI creation instructions
+        """
+        return f"""*Creating "{project_name}" with Command Line!* ⌨️
+
+You using the fancy way! Ralph impressed!
+
+**First, you need the `gh` tool!**
+
+Check if you got it:
+```bash
+gh --version
+```
+
+If you see a version number, you got it! If not, install it:
+• Mac: `brew install gh`
+• Linux: Check your package manager
+• Windows: Download from https://cli.github.com
+
+**Then, create your repo!**
+
+*For a PUBLIC repo:* (everyone can see)
+```bash
+gh repo create {project_name} --public --clone
+```
+
+*For a PRIVATE repo:* (only you can see)
+```bash
+gh repo create {project_name} --private --clone
+```
+
+*What this does:*
+• `gh repo create` - Makes a new repo
+• `{project_name}` - The name
+• `--public` or `--private` - Who can see it
+• `--clone` - Downloads it to your computer too!
+
+Ralph recommend public for learning!
+
+*Did you run the command?*
+"""
+
+    def get_repo_creation_cli_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for CLI repository creation.
+
+        Returns:
+            Keyboard with CLI action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ I Created It!", callback_data="repo_created")],
+            [InlineKeyboardButton("📋 Show Command Again", callback_data="repo_show_command")],
+            [InlineKeyboardButton("🌐 Use Website Instead", callback_data="repo_method_web")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="repo_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_repo_web_creation_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for web repository creation.
+
+        Returns:
+            Keyboard with web action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open GitHub", url="https://github.com/new")],
+            [InlineKeyboardButton("✅ I Created It!", callback_data="repo_created")],
+            [InlineKeyboardButton("⌨️ Use Command Line Instead", callback_data="repo_method_cli")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="repo_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_repo_public_vs_private_message(self) -> str:
+        """Get explanation of public vs private repositories.
+
+        Returns:
+            Public vs private explanation
+        """
+        return """*Public vs Private - What's the Difference?* 🤔
+
+**PUBLIC Repository** 🌍
+• Anyone on the internet can see it
+• Good for: Learning projects, open source, portfolios
+• Free forever!
+• Other developers can learn from your code
+• Shows up on your GitHub profile
+
+**PRIVATE Repository** 🔒
+• Only YOU can see it (unless you invite someone)
+• Good for: Secret projects, work stuff, personal code
+• Also free! (GitHub lets you have private repos now!)
+• Nobody can see your code without permission
+• Doesn't show on your public profile
+
+*Ralph's Advice:*
+If you learning to code → Use PUBLIC!
+Other people can help you and see your progress!
+
+If it's got passwords or secrets → Use PRIVATE!
+Keep the secret stuff secret!
+
+You can always change it later in settings!
+"""
+
+    def get_repo_success_message(self, project_name: str) -> str:
+        """Get success message after repository creation.
+
+        Args:
+            project_name: Name of the created project
+
+        Returns:
+            Success celebration message
+        """
+        return f"""*Repository Created!* 🎊🏠
+
+Ralph SO HAPPY! You made your first repo!
+
+Your project "{project_name}" now has a home on GitHub!
+
+*What you got now:*
+✅ SSH key to talk to GitHub
+✅ GitHub knows your computer
+✅ A repository (code house) ready for code!
+
+*Next Steps:*
+Ralph can help you:
+• Set up your git name and email
+• Clone the repo to your computer
+• Make your first commit!
+
+This is SO EXCITING! You basically a GitHub expert now!
+
+*Ready to keep going?*
+"""
+
+    def get_repo_help_message(self) -> str:
+        """Get help message for repository creation issues.
+
+        Returns:
+            Repository creation help
+        """
+        return """*Ralph Help With Repos!* 🆘
+
+**Common Problems:**
+
+**Problem: "Repository name already exists"**
+→ Someone already using that name (maybe you!)
+→ Try a different name
+→ Or check if you already made it: github.com/your-username
+
+**Problem: "gh command not found"**
+→ You need to install GitHub CLI first
+→ Mac: `brew install gh`
+→ Or use the website method instead!
+
+**Problem: "Not logged in to GitHub"**
+→ Run: `gh auth login`
+→ Follow the prompts to log in
+→ Then try creating the repo again
+
+**Problem: "Permission denied"**
+→ Make sure you logged into GitHub
+→ Run `gh auth status` to check
+→ Might need to run `gh auth login` again
+
+**Using the website:**
+• Go to: https://github.com/new
+• Fill in the form
+• Click "Create repository"
+• That's it!
+
+*Still stuck?*
+Tell Ralph what error you seeing!
+"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.
