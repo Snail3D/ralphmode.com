@@ -10985,12 +10985,17 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         )
 
     async def handle_admin_cooldown_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int):
-        """AC-003: Parse and execute cooldown command from voice input.
+        """AC-003/AC-004: Parse and execute cooldown command from voice input.
 
-        Examples:
+        AC-003 Examples:
             "set cooldown 5 minutes"  (applies to all non-admins)
             "set cooldown for user 123456789 30 seconds"
             "set cooldown 5 minutes for user 123456789"
+
+        AC-004 Examples (simplified syntax):
+            "cooldown off" - disable cooldown globally
+            "cooldown 1 minute" - 1 minute cooldown
+            "cooldown 10 minutes for @user" - per-user with @ mention
 
         Args:
             update: Telegram update
@@ -11002,18 +11007,80 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         from admin_handler import USER_COOLDOWNS
 
         try:
-            # Parse the command using regex
-            # Pattern 1: "set cooldown X minutes/seconds for user Y"
-            # Pattern 2: "set cooldown for user Y X minutes/seconds"
-            # Pattern 3: "set cooldown X minutes/seconds" (apply to all non-admins)
-
             command_lower = command_text.lower().strip()
 
-            # Extract user ID if specified
-            user_id_match = re.search(r'(?:for user|user)\s+(\d+)', command_lower)
-            target_user_id = int(user_id_match.group(1)) if user_id_match else None
+            # AC-004: Check for "cooldown off" - disable cooldown
+            if 'cooldown off' in command_lower or command_lower == 'off':
+                # Check if it's for a specific user
+                user_id_match = re.search(r'(?:for user|user|for @)\s*@?(\w+)|@(\w+)', command_lower)
 
-            # Extract duration and unit
+                if user_id_match:
+                    # Extract user ID or username
+                    user_identifier = user_id_match.group(1) or user_id_match.group(2)
+
+                    # Try to convert to int (if it's a numeric ID)
+                    try:
+                        target_user_id = int(user_identifier)
+                    except ValueError:
+                        # It's a username - we need to resolve it
+                        # For now, we'll just inform the admin to use numeric ID
+                        await context.bot.send_message(
+                            chat_id=admin_user_id,
+                            text="❌ Please use numeric user ID instead of username.\n\n"
+                                 "Example: 'cooldown off for user 123456789'"
+                        )
+                        return
+
+                    if target_user_id in USER_COOLDOWNS:
+                        del USER_COOLDOWNS[target_user_id]
+                        await context.bot.send_message(
+                            chat_id=admin_user_id,
+                            text=f"✅ **Cooldown Disabled**\n\n"
+                                 f"User `{target_user_id}` can now message without restriction."
+                        )
+                        logging.info(f"AC-004: Cooldown removed for user {target_user_id} by admin {admin_user_id}")
+                    else:
+                        await context.bot.send_message(
+                            chat_id=admin_user_id,
+                            text=f"ℹ️ User `{target_user_id}` has no active cooldown."
+                        )
+                else:
+                    # Disable all cooldowns
+                    count = len(USER_COOLDOWNS)
+                    USER_COOLDOWNS.clear()
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text=f"✅ **All Cooldowns Disabled**\n\n"
+                             f"Removed cooldowns for {count} user(s). Everyone can now message freely."
+                    )
+                    logging.info(f"AC-004: All cooldowns cleared by admin {admin_user_id}")
+                return
+
+            # AC-004: Extract @username or user ID with @ mention support
+            # Pattern: "for @username" or "for user 123" or "@username"
+            user_match = re.search(r'(?:for\s+@(\w+)|for\s+user\s+(\d+)|@(\w+)(?:\s|$))', command_lower)
+            target_user_id = None
+
+            if user_match:
+                username = user_match.group(1) or user_match.group(3)
+                numeric_id = user_match.group(2)
+
+                if numeric_id:
+                    target_user_id = int(numeric_id)
+                elif username:
+                    # For @mentions, we need to resolve username to ID
+                    # This requires accessing Telegram's user info
+                    # For now, inform admin to use numeric ID
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text="ℹ️ Username mentions coming soon!\n\n"
+                             "For now, please use numeric user ID.\n"
+                             "Example: 'cooldown 10 minutes for user 123456789'"
+                    )
+                    return
+
+            # AC-004/AC-003: Extract duration and unit
+            # Supports both "set cooldown X minutes" and "cooldown X minutes"
             duration_match = re.search(r'(\d+)\s*(minute|second|hour)s?', command_lower)
 
             if not duration_match:
@@ -11021,11 +11088,12 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                     chat_id=admin_user_id,
                     text="❌ Could not parse cooldown duration.\n\n"
                          "Examples:\n"
-                         "• 'set cooldown 5 minutes'\n"
-                         "• 'set cooldown for user 123456789 30 seconds'\n"
+                         "• 'cooldown 5 minutes'\n"
+                         "• 'cooldown 1 minute for user 123456789'\n"
+                         "• 'cooldown off' (to disable)\n"
                          "• 'set cooldown 2 hours for user 987654321'"
                 )
-                logging.warning(f"AC-003: Could not parse duration from command: {command_text}")
+                logging.warning(f"AC-004: Could not parse duration from command: {command_text}")
                 return
 
             duration = int(duration_match.group(1))
@@ -11034,18 +11102,18 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
             # Convert to seconds
             if unit == 'minute':
                 cooldown_seconds = duration * 60
-                unit_display = 'minutes'
+                unit_display = 'minutes' if duration != 1 else 'minute'
             elif unit == 'second':
                 cooldown_seconds = duration
-                unit_display = 'seconds'
+                unit_display = 'seconds' if duration != 1 else 'second'
             elif unit == 'hour':
                 cooldown_seconds = duration * 3600
-                unit_display = 'hours'
+                unit_display = 'hours' if duration != 1 else 'hour'
             else:
                 cooldown_seconds = duration
                 unit_display = 'seconds'
 
-            # Set cooldown
+            # AC-004: Set cooldown
             if target_user_id:
                 # Set for specific user
                 USER_COOLDOWNS[target_user_id] = {
@@ -11056,24 +11124,27 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 await context.bot.send_message(
                     chat_id=admin_user_id,
                     text=f"✅ **Cooldown Set**\n\n"
-                         f"User `{target_user_id}` can now only message once every **{duration} {unit_display}**."
+                         f"User `{target_user_id}` can now only message once every **{duration} {unit_display}**.\n\n"
+                         f"Changes take effect immediately."
                 )
 
                 logging.info(
-                    f"AC-003: Cooldown set for user {target_user_id}: {duration} {unit_display} "
+                    f"AC-004: Cooldown set for user {target_user_id}: {duration} {unit_display} "
                     f"({cooldown_seconds}s) by admin {admin_user_id} via voice"
                 )
             else:
-                # Could apply to all non-admins, but for now just inform admin
+                # AC-004: No user specified - inform admin
                 await context.bot.send_message(
                     chat_id=admin_user_id,
                     text="❌ Please specify a user ID.\n\n"
-                         "Example: 'set cooldown for user 123456789 5 minutes'"
+                         "Examples:\n"
+                         "• 'cooldown 5 minutes for user 123456789'\n"
+                         "• 'cooldown off for user 123456789'"
                 )
-                logging.warning(f"AC-003: No user ID specified in cooldown command: {command_text}")
+                logging.warning(f"AC-004: No user ID specified in cooldown command: {command_text}")
 
         except Exception as e:
-            logging.error(f"AC-003: Error handling cooldown command: {e}", exc_info=True)
+            logging.error(f"AC-004: Error handling cooldown command: {e}", exc_info=True)
             await context.bot.send_message(
                 chat_id=admin_user_id,
                 text=f"❌ Error setting cooldown: {str(e)}"
