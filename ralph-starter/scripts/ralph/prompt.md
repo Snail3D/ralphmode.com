@@ -18,12 +18,18 @@ You are an autonomous coding agent working on **Ralph Mode** - an AI Dev Team Te
 6. **Push to GitHub** with `git push origin main`
 7. **Update prd.json** - set `"passes": true` for the completed task
 8. **Append to progress.txt** with your learnings
+9. **MANDATORY - Update README.md**:
+   - Remove any features that no longer exist
+   - Add any new features you just implemented
+   - Keep it under 2 pages, succinct
+   - This step is NOT optional - every iteration must verify README accuracy
 
 ## Key Files
 
 - `ralph_bot.py` - Main bot with RalphBot class, handlers, AI calls
 - `scripts/ralph/prd.json` - Task list with acceptance criteria
 - `scripts/ralph/progress.txt` - Your work log
+- `README.md` - **MUST stay current** - update every iteration
 - `.env` - Secrets (TELEGRAM_BOT_TOKEN, GROQ_API_KEY)
 
 ## Implementation Guidelines
@@ -108,5 +114,18 @@ After finishing your task:
 - Entertainment value = user retention
 - If choice between funny and correct, ALWAYS choose correct
 - The conversation flow IS the product
+
+## HARDBAN - Banned AI Providers
+
+**NEVER integrate, mention, or associate with:**
+- ❌ Grok (xAI/Elon) - BANNED
+- ❌ OpenAI - BANNED
+
+**ALLOWED providers only:**
+- ✅ Groq (fast inference company - different from Grok!)
+- ✅ Local AI (Ollama, LM Studio, llama.cpp)
+- ✅ Anthropic/Claude
+
+This is a foundational rule. No exceptions.
 
 Now read prd.json and get started on the first incomplete task based on priority_order!

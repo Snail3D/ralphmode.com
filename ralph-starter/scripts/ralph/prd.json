@@ -8675,6 +8675,74 @@
         "model_manager.py"
       ],
       "passes": false
+    },
+    {
+      "id": "RM-100",
+      "category": "RM",
+      "title": "README Sync Every Iteration",
+      "description": "MANDATORY: Every build iteration must check README.md - remove outdated info, add new features, deprecate old ones. Keep to ~2 pages max. This is NOT optional.",
+      "acceptance_criteria": [
+        "README.md is accurate and current",
+        "No deprecated features listed",
+        "All new features documented",
+        "Max 2 pages, succinct"
+      ],
+      "files_likely_modified": [
+        "README.md"
+      ],
+      "passes": false,
+      "priority": "CRITICAL"
+    },
+    {
+      "id": "RM-101",
+      "category": "RM",
+      "title": "README Accuracy Enforcement",
+      "description": "Build loop prompt MUST include README check. Claude cannot complete an iteration without verifying README is current.",
+      "acceptance_criteria": [
+        "README.md is accurate and current",
+        "No deprecated features listed",
+        "All new features documented",
+        "Max 2 pages, succinct"
+      ],
+      "files_likely_modified": [
+        "scripts/ralph/prompt.md"
+      ],
+      "passes": false,
+      "priority": "CRITICAL"
+    },
+    {
+      "id": "RM-102",
+      "category": "RM",
+      "title": "Deprecated Feature Removal",
+      "description": "Any feature removed from code must be removed from README immediately. No stale documentation.",
+      "acceptance_criteria": [
+        "README.md is accurate and current",
+        "No deprecated features listed",
+        "All new features documented",
+        "Max 2 pages, succinct"
+      ],
+      "files_likely_modified": [
+        "README.md"
+      ],
+      "passes": false,
+      "priority": "CRITICAL"
+    },
+    {
+      "id": "RM-103",
+      "category": "RM",
+      "title": "New Feature Documentation",
+      "description": "Any new feature added must be reflected in README within same iteration. No undocumented features.",
+      "acceptance_criteria": [
+        "README.md is accurate and current",
+        "No deprecated features listed",
+        "All new features documented",
+        "Max 2 pages, succinct"
+      ],
+      "files_likely_modified": [
+        "README.md"
+      ],
+      "passes": false,
+      "priority": "CRITICAL"
     }
   ],
   "priority_order": [
