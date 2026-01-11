@@ -57,6 +57,7 @@ python ralph_bot.py
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
 | 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your use case, budget, and hardware. |
 | 🔍 **Local Model Discovery** | Auto-detects Ollama, LM Studio, and llama.cpp servers. Zero-config local AI! |
+| ✅ **Validation Cache** | Remembers which models passed tests. Skip re-testing! Smart model selection based on validation history. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |

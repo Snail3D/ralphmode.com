@@ -17503,3 +17503,34 @@ GLM-4.7 (Cost-optimized)
 
 ---
 
+## Iteration N+1 - 2026-01-11
+**Task**: [MM-008] Validation Cache
+**Status**: ✅ Complete
+
+### What was implemented
+- Added persistent validation cache system to ModelRegistry
+- Stores test results in ~/.ralph/validation_cache.json separate from model configs
+- Tracks per-test metadata: pass/fail status, timestamp, custom details dict
+- Added record_test_result() to store test outcomes
+- Added get_test_results() to retrieve all tests for a model
+- Added model_passed_test() for quick yes/no validation checks
+- Added list_validated_models() to filter by test passage
+- Added clear_test_results() to reset validation state per-test or wholesale
+- ModelManager convenience methods: record_test(), is_model_validated(), get_validated_models()
+- Automatic cache persistence on every test record
+- Counters track total_tests and passed_tests for quick health checks
+
+### Files changed
+- model_manager.py
+
+### Learnings
+- Validation cache enables smart model selection based on historical test results
+- Separating validation cache from model registry keeps concerns cleanly divided
+- Storing detailed test metadata (latency, error messages, scores) aids debugging
+- Quick validation checks (model_passed_test) make pre-flight validation easy
+- Cache persistence means models stay validated across bot restarts
+- Clearing individual tests useful for re-validation without losing all history
+- list_validated_models() with filters enables "show me all models that passed X" queries
+
+---
+
