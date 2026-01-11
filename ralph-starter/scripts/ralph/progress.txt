@@ -9536,3 +9536,68 @@ Following the proven wizard pattern from OB-036:
 This task completes the group chat onboarding flow! Users can now confidently set up Ralph for team collaboration.
 
 ---
+
+## Iteration - 2025-01-10
+**Task**: [OB-014] YouTube Tutorial Library
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive tutorial_library.py with TutorialLibrary class
+- Curated 30+ YouTube tutorials across 10 categories
+- Integrated tutorials into onboarding_wizard.py help messages
+- Added mobile-friendly Telegram markdown formatting
+- Implemented version tracking (v1.0.0, last updated 2025-01)
+- Added search functionality across all tutorials
+- Created convenience functions for quick tutorial access
+
+### Tutorial Categories
+- SSH Keys (3 tutorials - general, Mac/Linux, Windows)
+- GitHub Basics (2 tutorials)
+- Git Basics (2 tutorials)
+- API Keys (2 tutorials - general + Anthropic specific)
+- Telegram Bots (3 tutorials - creation, permissions, groups)
+- Environment Variables (2 tutorials)
+- Python Basics (2 tutorials - venv, requirements)
+- Claude Code (2 tutorials - placeholder URLs)
+- Webhooks vs Polling (2 tutorials)
+- Troubleshooting (2 tutorials - Git errors, Python imports)
+
+### Files changed
+- tutorial_library.py (new, 550+ lines)
+- onboarding_wizard.py (modified - integrated tutorials in 5 key help methods)
+
+### Integration Points
+Updated the following methods to use tutorial library:
+1. get_ssh_keygen_message() - SSH key generation
+2. get_ssh_help_message() - SSH troubleshooting
+3. get_github_ssh_instructions_message() - GitHub SSH setup
+4. get_github_ssh_error_help() - GitHub SSH errors
+5. get_anthropic_api_key_message() - API key setup
+6. get_telegram_bot_help_message() - Telegram bot creation
+
+### Learnings
+- Tutorial metadata (duration, timestamps, level) is crucial for user experience
+- Mobile-friendly formatting matters for Telegram - keep it concise
+- Graceful fallback when tutorial library unavailable maintains stability
+- Timestamps allow users to jump to specific sections (huge time saver!)
+- Version tracking helps identify when tutorials need updating
+- Dataclass pattern perfect for structured tutorial data
+- Singleton pattern (get_tutorial_library) prevents duplicate loading
+- Search functionality enables future "find tutorial about X" commands
+
+### Acceptance Criteria Met
+✅ Tutorial links for SSH, GitHub, API keys
+✅ Timestamps for relevant sections
+✅ Brief description of each video
+✅ Mobile-friendly link format (Telegram markdown)
+✅ Version tracked (VERSION = "1.0.0", LAST_UPDATED = "2025-01")
+
+### Future Enhancements
+- Replace placeholder YouTube URLs for Claude Code tutorials
+- Add /tutorials command to browse all available tutorials
+- Implement tutorial analytics (track which tutorials users click)
+- Auto-update check for outdated tutorials
+- User feedback system for tutorial quality
+- Multi-language tutorial support
+
+---
