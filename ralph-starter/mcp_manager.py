@@ -50,6 +50,14 @@ except ImportError:
     NOTION_MCP_AVAILABLE = False
     logging.warning("Notion MCP setup helper not available")
 
+# Import Database MCP setup helper (OB-019)
+try:
+    from database_mcp_setup import get_database_mcp_setup
+    DATABASE_MCP_AVAILABLE = True
+except ImportError:
+    DATABASE_MCP_AVAILABLE = False
+    logging.warning("Database MCP setup helper not available")
+
 
 class MCPManager:
     """Manages MCP server browsing and installation."""
@@ -91,6 +99,12 @@ class MCPManager:
             self.notion_setup = get_notion_mcp_setup()
         else:
             self.notion_setup = None
+
+        # Initialize Database MCP setup helper (OB-019)
+        if DATABASE_MCP_AVAILABLE:
+            self.database_setup = get_database_mcp_setup()
+        else:
+            self.database_setup = None
 
     def _build_server_catalog(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build comprehensive server catalog with installation info.
