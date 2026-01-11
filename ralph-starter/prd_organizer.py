@@ -8,8 +8,8 @@ This maximizes context retention and minimizes Claude Code context-switching.
 
 import re
 import numpy as np
-from typing import List, Dict, Set, Tuple
-from collections import defaultdict
+from typing import List, Dict, Set, Tuple, Optional
+from collections import defaultdict, deque
 
 
 def extract_file_hints(task: Dict) -> Set[str]:
@@ -322,6 +322,149 @@ def assign_cluster_names(clusters: List[List[Dict]]) -> List[Tuple[str, List[Dic
     return named_clusters
 
 
+def topological_sort_clusters(
+    clusters: List[List[Dict]],
+    graph: Dict[str, Set[str]]
+) -> List[List[Dict]]:
+    """
+    Order clusters using topological sort based on dependency graph.
+
+    Ensures foundational tasks come before dependent ones.
+    Handles cycles by breaking at the lowest cost edge.
+
+    Args:
+        clusters: List of task clusters
+        graph: Dependency graph from dependency_graph.py (task_id -> dependencies)
+
+    Returns:
+        Ordered list of clusters (foundational first, UI/polish last)
+    """
+    from dependency_graph import detect_cycles, topological_sort
+
+    if not clusters or not graph:
+        return clusters
+
+    # Build cluster dependency graph
+    # For each cluster, determine which other clusters it depends on
+    cluster_deps = {}
+    cluster_id_map = {}  # cluster_idx -> cluster
+    task_to_cluster = {}  # task_id -> cluster_idx
+
+    # Map tasks to their clusters
+    for idx, cluster in enumerate(clusters):
+        cluster_id_map[idx] = cluster
+        for task in cluster:
+            task_id = task.get("id", "")
+            if task_id:
+                task_to_cluster[task_id] = idx
+
+    # Calculate cluster dependencies
+    for idx, cluster in enumerate(clusters):
+        deps = set()
+
+        for task in cluster:
+            task_id = task.get("id", "")
+            if task_id in graph:
+                # For each dependency of this task
+                for dep_id in graph[task_id]:
+                    # Find which cluster that dependency belongs to
+                    dep_cluster_idx = task_to_cluster.get(dep_id)
+                    if dep_cluster_idx is not None and dep_cluster_idx != idx:
+                        # This cluster depends on another cluster
+                        deps.add(dep_cluster_idx)
+
+        cluster_deps[idx] = deps
+
+    # Detect and break cycles if they exist
+    cycles = detect_cycles(cluster_deps)
+    if cycles:
+        # Break cycles at the lowest cost edge
+        # Cost = number of dependencies between the two clusters
+        for cycle in cycles:
+            # Find the weakest link in the cycle
+            weakest_edge = None
+            min_cost = float('inf')
+
+            for i in range(len(cycle) - 1):
+                from_idx = cycle[i]
+                to_idx = cycle[i + 1]
+
+                # Count how many task dependencies exist between these clusters
+                cost = 0
+                for task in cluster_id_map[from_idx]:
+                    task_id = task.get("id", "")
+                    if task_id in graph:
+                        for dep_id in graph[task_id]:
+                            if task_to_cluster.get(dep_id) == to_idx:
+                                cost += 1
+
+                if cost < min_cost:
+                    min_cost = cost
+                    weakest_edge = (from_idx, to_idx)
+
+            # Remove the weakest edge
+            if weakest_edge:
+                from_idx, to_idx = weakest_edge
+                if to_idx in cluster_deps[from_idx]:
+                    cluster_deps[from_idx].discard(to_idx)
+
+    # Perform topological sort on clusters
+    sorted_cluster_indices = topological_sort(cluster_deps)
+
+    if sorted_cluster_indices is None:
+        # Fallback: return clusters as-is if sort fails
+        return clusters
+
+    # Apply priority heuristics for foundational vs UI/polish
+    # Categorize clusters by type
+    foundational_indices = []
+    business_logic_indices = []
+    ui_polish_indices = []
+    other_indices = []
+
+    for idx in sorted_cluster_indices:
+        cluster = cluster_id_map[idx]
+
+        # Analyze cluster to determine type
+        categories = [task.get("category", "") for task in cluster]
+        titles = [task.get("title", "").lower() for task in cluster]
+
+        # Check for foundational keywords
+        is_foundational = any(
+            any(keyword in cat.lower() or keyword in title
+                for keyword in ["database", "schema", "model", "setup", "config", "init"])
+            for cat, title in zip(categories, titles)
+        )
+
+        # Check for UI/polish keywords
+        is_ui_polish = any(
+            any(keyword in cat.lower() or keyword in title
+                for keyword in ["ui", "polish", "styling", "animation", "visual", "color", "css"])
+            for cat, title in zip(categories, titles)
+        )
+
+        if is_foundational:
+            foundational_indices.append(idx)
+        elif is_ui_polish:
+            ui_polish_indices.append(idx)
+        elif any("api" in cat.lower() or "handler" in cat.lower() or "service" in cat.lower()
+                 for cat in categories):
+            business_logic_indices.append(idx)
+        else:
+            other_indices.append(idx)
+
+    # Rebuild sorted order: foundational -> business logic -> other -> ui/polish
+    final_order = (
+        foundational_indices +
+        business_logic_indices +
+        other_indices +
+        ui_polish_indices
+    )
+
+    # Return clusters in sorted order
+    return [cluster_id_map[idx] for idx in final_order]
+
+
 def test_hybrid_cluster():
     """Test hybrid clustering with sample tasks"""
     from task_embeddings import generate_embeddings
@@ -477,6 +620,116 @@ def test_extract_file_hints():
     print("\n✅ All tests passed!")
 
 
+def test_topological_sort_clusters():
+    """Test cluster ordering by dependencies"""
+    from task_embeddings import generate_embeddings
+    from dependency_graph import build_dependency_graph
+
+    sample_tasks = [
+        {
+            "id": "DB-001",
+            "title": "Create Database Schema",
+            "description": "Set up initial database tables",
+            "category": "Database",
+            "files_likely_modified": ["database.py"]
+        },
+        {
+            "id": "DB-002",
+            "title": "Add User Queries",
+            "description": "Create SQL queries for user operations",
+            "category": "Database",
+            "files_likely_modified": ["database.py"]
+        },
+        {
+            "id": "API-001",
+            "title": "Create User Handler",
+            "description": "Add user business logic handler",
+            "category": "Backend API",
+            "files_likely_modified": ["user_handler.py"]
+        },
+        {
+            "id": "API-002",
+            "title": "Create User Endpoint",
+            "description": "Add POST /api/users endpoint",
+            "category": "Backend API",
+            "files_likely_modified": ["api_server.py", "user_handler.py"]
+        },
+        {
+            "id": "UI-001",
+            "title": "Add User Registration Form",
+            "description": "Create registration form UI",
+            "category": "UI/UX",
+            "files_likely_modified": ["ui.py"]
+        },
+        {
+            "id": "UI-002",
+            "title": "Polish Button Colors",
+            "description": "Update button colors for brand",
+            "category": "UI/UX - Polish",
+            "files_likely_modified": ["styles.css"]
+        }
+    ]
+
+    print("=== Topological Sort Clusters Test ===\n")
+
+    # Extract file hints
+    file_hints = {}
+    for task in sample_tasks:
+        file_hints[task["id"]] = extract_file_hints(task)
+
+    # Generate embeddings
+    embeddings = generate_embeddings(sample_tasks, use_cache=False)
+
+    # Cluster tasks
+    clusters = hybrid_cluster(sample_tasks, file_hints, embeddings, similarity_threshold=0.2)
+    print(f"Created {len(clusters)} clusters:")
+    for i, cluster in enumerate(clusters):
+        task_ids = [t["id"] for t in cluster]
+        print(f"  Cluster {i}: {task_ids}")
+
+    # Build dependency graph
+    graph = build_dependency_graph(sample_tasks)
+    print(f"\nDependency graph:")
+    for task_id, deps in sorted(graph.items()):
+        if deps:
+            print(f"  {task_id} depends on: {deps}")
+
+    # Sort clusters by dependencies
+    sorted_clusters = topological_sort_clusters(clusters, graph)
+
+    print(f"\nClusters after topological sort:")
+    for i, cluster in enumerate(sorted_clusters):
+        task_ids = [t["id"] for t in cluster]
+        categories = [t.get("category", "") for t in cluster]
+        print(f"  {i + 1}. {task_ids} ({categories[0] if categories else 'Unknown'})")
+
+    # Verify ordering
+    cluster_positions = {}
+    for idx, cluster in enumerate(sorted_clusters):
+        for task in cluster:
+            cluster_positions[task["id"]] = idx
+
+    # Database tasks should come before API tasks
+    assert cluster_positions["DB-001"] <= cluster_positions["API-001"], \
+        "Database tasks should come before API tasks"
+
+    # API handler should come before API endpoint
+    assert cluster_positions["API-001"] <= cluster_positions["API-002"], \
+        "API handler should come before API endpoint"
+
+    # UI polish should come last
+    if "UI-002" in cluster_positions:
+        ui_polish_pos = cluster_positions["UI-002"]
+        max_pos = max(cluster_positions.values())
+        assert ui_polish_pos == max_pos or ui_polish_pos == max_pos - 1, \
+            "UI polish should be in the last or second-to-last cluster"
+
+    print("\n✅ All topological sort tests passed!")
+    print("   - Database tasks come first (foundational)")
+    print("   - API tasks come after database")
+    print("   - UI polish tasks come last")
+
+
 if __name__ == "__main__":
     print("=== PRD Organizer Tests ===\n")
     print("=" * 50)
@@ -488,3 +741,8 @@ if __name__ == "__main__":
     print("Test 2: Hybrid Task Clustering")
     print("=" * 50)
     test_hybrid_cluster()
+
+    print("\n" + "=" * 50)
+    print("Test 3: Topological Sort Clusters")
+    print("=" * 50)
+    test_topological_sort_clusters()
