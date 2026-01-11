@@ -2373,6 +2373,67 @@ IMPORTANT:
             with_typing=True
         )
 
+    def detect_work_resume(self, message: str, user_id: int) -> bool:
+        """AU-008: Detect natural language commands to resume work.
+
+        Detects phrases like:
+        - "resume", "continue", "keep going"
+        - "get back to work", "back to it"
+        - "let's go", "carry on", "proceed"
+
+        Args:
+            message: The CEO's message to analyze
+            user_id: User session ID
+
+        Returns:
+            True if resume command detected, False otherwise
+        """
+        message_lower = message.lower().strip()
+
+        # Resume indicators
+        resume_patterns = [
+            "resume", "continue", "keep going", "carry on",
+            "get back to work", "back to it", "back to work",
+            "let's go", "go ahead", "proceed", "start again",
+            "unpause", "keep working", "continue work",
+            "go on", "move forward", "get moving"
+        ]
+
+        # Check for patterns
+        for pattern in resume_patterns:
+            if pattern in message_lower:
+                logger.info(f"AU-008: Detected resume command from user {user_id}: '{message[:50]}'")
+                return True
+
+        return False
+
+    async def acknowledge_work_resume(self, context, chat_id: int, user_id: int):
+        """AU-008: Ralph acknowledges work resume naturally.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID for sending messages
+            user_id: User session ID
+        """
+        acknowledgments = [
+            "Okay Mr. Worms! We'll get back to work now!",
+            "Got it boss! The team's ready to go!",
+            "You got it! Let's do this!",
+            "Alright! We're back in bizness!",
+            "Okay! Time to get stuff done!",
+            "Roger that Mr. Worms! Let's get crackin'!"
+        ]
+
+        response = random.choice(acknowledgments)
+
+        await self.send_styled_message(
+            context, chat_id,
+            "Ralph", "Boss",
+            response,
+            topic="work_resume",
+            with_typing=True
+        )
+
     def get_autonomy_prompt_context(self, user_id: int) -> str:
         """AU-001: Get prompt context explaining current autonomy level to AI.
 
@@ -13402,7 +13463,11 @@ _Drop a zip file to get started!_
                 "health_concern_level": "none",  # none, mild, moderate, high
                 # AU-001: Autonomy Level State
                 "autonomy_level": "collaborative",  # autonomous, collaborative, supervised
-                "autonomy_changed_at": None  # Track when level was last changed
+                "autonomy_changed_at": None,  # Track when level was last changed
+                # AU-006: Work Permission State
+                "work_allowed": True,  # Simple on/off gate for work
+                "work_paused_at": None,  # When work was paused
+                "pause_reason": None  # Optional reason for pause
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -15017,6 +15082,17 @@ Be specific about the TYPE but don't include actual details. 1-2 sentences max."
                 success = self.set_autonomy_level(user_id, new_autonomy, reason="Natural language command from CEO")
                 if success:
                     await self.acknowledge_autonomy_change(context, chat_id, user_id, new_autonomy)
+
+            # AU-008: Detect work resume commands from natural language
+            if self.detect_work_resume(text, user_id):
+                session = self.active_sessions.get(user_id)
+                if session and not session.get("work_allowed", True):
+                    # Resume work
+                    session["work_allowed"] = True
+                    session["work_paused_at"] = None
+                    session["pause_reason"] = None
+                    logger.info(f"AU-008: Work resumed for user {user_id}")
+                    await self.acknowledge_work_resume(context, chat_id, user_id)
 
         # RM-011: Handle Q&A mode - Ralph answers questions about the session
         session = self.active_sessions.get(user_id)
