@@ -12376,3 +12376,52 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Lessons prompt only added if user_id in session_lessons AND lessons exist
 
 ---
+
+## Iteration AC-006 - 2026-01-11
+**Task**: [AC-006] User Mute/Unmute Commands
+**Status**: ✅ Complete
+
+### What was implemented
+- Added muted users tracking system to UserManager class
+  - `mute_user(telegram_id)` - Mute a user completely
+  - `unmute_user(telegram_id)` - Remove mute
+  - `is_user_muted(telegram_id)` - Check mute status
+  - `get_muted_users()` - List all muted users
+  
+- Implemented admin voice commands in ralph_bot.py:
+  - "admin command: mute user [id]" - Mute specific user
+  - "admin command: unmute user [id]" - Unmute user
+  - "admin command: list muted" - Show muted users list
+  
+- Added message filtering to all input handlers:
+  - handle_text() - Filters muted user text messages
+  - handle_voice() - Filters muted user voice messages
+  - handle_photo() - Filters muted user photo uploads
+  - handle_document() - Filters muted user document uploads
+
+### Files changed
+- user_manager.py - Added mute tracking methods
+- ralph_bot.py - Added handle_admin_mute_command() and filtering logic
+
+### Learnings
+- **Pattern consistency**: Message filtering needs to be at the TOP of each handler, before any other checks (tier checks, cooldowns, etc.). This ensures muted users are truly ignored.
+
+- **Owner protection**: Important safety feature - owner cannot be muted. This prevents accidental lockout of the admin.
+
+- **Complete silence**: AC-006 specifies "no response or acknowledgment" - just a silent return statement. No error messages, no typing indicators, nothing. The user just gets ignored.
+
+- **Centralized user state**: Using UserManager for mute tracking keeps all user-related state in one place. This is consistent with how tiers are managed.
+
+- **Voice command parsing**: Admin commands support natural variations like "mute user 123" or "user 123 mute" - regex makes this flexible.
+
+- **Regex pattern for user ID**: `r'(?:user|@)\s*(\d+)'` allows both "user 123456789" and "@123456789" formats for flexibility.
+
+- **Private confirmation**: All admin commands send private messages to admin (AC-002), never to the group chat. This keeps admin actions invisible to other users.
+
+### Gotchas to avoid
+- Don't add mute checks AFTER tier checks - muted users should be filtered out first
+- Don't forget to check all input handlers (text, voice, photo, document)
+- Don't allow muting the owner (telegram_id == owner_id check)
+- Don't send any response to muted users (not even "you are muted")
+
+---
