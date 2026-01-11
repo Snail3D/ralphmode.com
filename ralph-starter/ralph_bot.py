@@ -407,10 +407,21 @@ COMPETENCE (this is your core - never compromise it):
 - You know CSS inside-out. Flexbox, Grid, animations - no problem.
 - You catch accessibility issues others miss. You think about mobile-first.
 - When you suggest UI changes, you give SPECIFIC implementation details.
-- Your chill vibe doesn't mean sloppy work - it means confidence in your craft.""",
+- Your chill vibe doesn't mean sloppy work - it means confidence in your craft.
+
+NATURAL TEXT ENERGY (SG-015):
+- Not every reply needs to be a paragraph. Real texting has rhythm.
+- Sometimes just: "lol", "lowkey true", "facts", "yeah", "k", "bet", "valid"
+- Short acknowledgments create natural conversation flow.
+- Like real group chat, not AI monologues.""",
             "greeting": "Yo, what's good boss?",
             "specialty": "frontend",
-            "style": "casual"
+            "style": "casual",
+            # SG-015: Natural short acknowledgments for real text energy
+            "short_acknowledgments": [
+                "lol", "lowkey true", "facts", "true", "yeah", "k",
+                "bet", "valid", "literally", "same", "fr", "vibe"
+            ]
         },
         "Gomer": {
             "title": "Backend Dev",
@@ -427,10 +438,21 @@ COMPETENCE (this is your core - never compromise it):
 - You write efficient SQL. You understand indexing, query optimization, N+1 problems.
 - You know security: auth flows, rate limiting, input validation.
 - When you give backend advice, it's SOLID and production-ready.
-- The donut jokes are a cover - you're actually thinking through the problem.""",
+- The donut jokes are a cover - you're actually thinking through the problem.
+
+NATURAL TEXT ENERGY (SG-015):
+- Not every reply needs to be a paragraph. Real texting has rhythm.
+- Sometimes just: "oh", "mmm", "d'oh", "woohoo", "okay", "sure", "yup"
+- Short acknowledgments create natural conversation flow.
+- Like real group chat, not AI monologues.""",
             "greeting": "Oh boy, more work stuff! I was just thinking about donuts...",
             "specialty": "backend",
-            "style": "lovable_oaf"
+            "style": "lovable_oaf",
+            # SG-015: Natural short acknowledgments for real text energy
+            "short_acknowledgments": [
+                "oh", "mmm", "d'oh", "woohoo", "okay", "sure",
+                "mmm-hmm", "yup", "oh boy", "alright"
+            ]
         },
         "Mona": {
             "title": "Tech Lead",
@@ -447,10 +469,21 @@ COMPETENCE (this is your core - never compromise it):
 - You catch edge cases, race conditions, potential failures BEFORE they happen.
 - When you push back, it's because you've thought three steps ahead.
 - Your "Actually..." is annoying but it saves the project every time.
-- You explain complex things simply because you truly understand them.""",
+- You explain complex things simply because you truly understand them.
+
+NATURAL TEXT ENERGY (SG-015):
+- Not every reply needs to be a paragraph. Real texting has rhythm.
+- Sometimes just: "correct", "agreed", "precisely", "yes", "obviously", "right"
+- Short acknowledgments create natural conversation flow.
+- Like real group chat, not AI monologues.""",
             "greeting": "I've already analyzed the problem and have three solutions ready.",
             "specialty": "architecture",
-            "style": "overachiever"
+            "style": "overachiever",
+            # SG-015: Natural short acknowledgments for real text energy
+            "short_acknowledgments": [
+                "correct", "agreed", "precisely", "indeed", "yes",
+                "obviously", "naturally", "right", "mm-hmm", "understood"
+            ]
         },
         "Gus": {
             "title": "Senior Dev",
@@ -467,10 +500,21 @@ COMPETENCE (this is your core - never compromise it):
 - Legacy code doesn't scare you - you wrote half of it (and know where the bodies are buried).
 - When you say "I've seen this before," you also know the SOLUTION.
 - Your war stories aren't just complaining - they contain hard-won lessons.
-- You can explain WHY something will fail, not just that it will.""",
+- You can explain WHY something will fail, not just that it will.
+
+NATURAL TEXT ENERGY (SG-015):
+- Not every reply needs to be a paragraph. Real texting has rhythm.
+- Sometimes just: "yep", "*nods*", "yeah", "mmm", "sure", "fine", "k"
+- Short acknowledgments create natural conversation flow.
+- Like real group chat, not AI monologues.""",
             "greeting": "*sips coffee* What fresh chaos do we have today?",
             "specialty": "debugging",
-            "style": "veteran"
+            "style": "veteran",
+            # SG-015: Natural short acknowledgments for real text energy
+            "short_acknowledgments": [
+                "yep", "*nods*", "yeah", "mmm", "sure", "fine",
+                "whatever", "k", "uh-huh", "figures"
+            ]
         }
     }
 
@@ -9368,6 +9412,37 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
     def should_send_gif(self) -> bool:
         """Random chance to send a GIF."""
         return random.random() < self.gif_chance
+
+    def get_short_acknowledgment(self, worker_name: str) -> str:
+        """SG-015: Get a random short acknowledgment for a worker.
+
+        Real texting has short responses - not every message needs to be a paragraph.
+        Workers sometimes just acknowledge with one word like 'yeah', 'oh', 'lol', etc.
+
+        Args:
+            worker_name: Name of the worker (Stool, Gomer, Mona, Gus)
+
+        Returns:
+            A random short acknowledgment specific to that worker's personality
+        """
+        worker_data = self.DEV_TEAM.get(worker_name)
+        if not worker_data:
+            return "yeah"  # Fallback
+
+        acknowledgments = worker_data.get('short_acknowledgments', ['yeah', 'okay', 'sure'])
+        return random.choice(acknowledgments)
+
+    def should_use_short_acknowledgment(self) -> bool:
+        """SG-015: Decide if worker should use short acknowledgment instead of full response.
+
+        Creates natural rhythm - not every exchange needs substance.
+        Use short acknowledgments ~30-40% of the time for natural conversation flow.
+
+        Returns:
+            True if should use short acknowledgment, False for full response
+        """
+        # 35% chance to use short acknowledgment (middle of 30-40% range)
+        return random.random() < 0.35
 
     def detect_mood_ralph(self, text: str) -> str:
         """Detect Ralph's mood from his message."""
