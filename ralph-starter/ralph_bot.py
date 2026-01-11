@@ -7450,7 +7450,7 @@ Your style: {worker['style']}
 
 2-3 sentences max. Be helpful but stay in character."""
 
-        name, title, response = self.call_worker(worker_prompt, preferred_worker=worker_name)
+        name, title, response = await self.call_worker(worker_prompt, preferred_worker=worker_name)
 
         await self.send_styled_message(
             context, chat_id, name, title,
@@ -8879,7 +8879,7 @@ You're in a quick post-task huddle with the team. Share your thoughts on how it 
 
 Be natural and conversational. This is a real team discussion, not a report."""
 
-        name, title, response, tokens = self.call_worker(
+        name, title, response, tokens = await self.call_worker(
             reflection_prompt,
             context="post-task reflection",
             worker_name=first_worker,
@@ -8896,7 +8896,7 @@ Be natural and conversational. This is a real team discussion, not a report."""
 
 React to what they said (1 sentence). {"Agree about being careful" if had_mistakes else "Build on what worked"}."""
 
-        name2, title2, response2, tokens2 = self.call_worker(
+        name2, title2, response2, tokens2 = await self.call_worker(
             second_prompt,
             context="post-task reflection response",
             worker_name=second_worker,
@@ -8929,7 +8929,7 @@ React to what they said (1 sentence). {"Agree about being careful" if had_mistak
 
 Add one brief insight or nod (1 sentence)."""
 
-            name3, title3, response3, tokens3 = self.call_worker(
+            name3, title3, response3, tokens3 = await self.call_worker(
                 third_prompt,
                 context="post-task reflection close",
                 worker_name=third_worker,
@@ -9009,7 +9009,7 @@ Based on your specialty ({specialty1}), what's your perspective on this?
 
 This is the START of a team debate - present your view clearly."""
 
-        name1, title1, response1, tokens1 = self.call_worker(
+        name1, title1, response1, tokens1 = await self.call_worker(
             first_prompt,
             context="multi-perspective debate - first perspective",
             worker_name=first_worker,
@@ -9042,7 +9042,7 @@ From your perspective as a {specialty2} specialist, do you agree or see it diffe
 
 This is real debate - first argument seems right until you hear the second."""
 
-        name2, title2, response2, tokens2 = self.call_worker(
+        name2, title2, response2, tokens2 = await self.call_worker(
             second_prompt,
             context="multi-perspective debate - counter perspective",
             worker_name=second_worker,
@@ -9075,7 +9075,7 @@ From your {specialty3} perspective, what do you think?
 - Be specific and concrete
 - Keep it conversational (2-3 sentences)"""
 
-            name3, title3, response3, tokens3 = self.call_worker(
+            name3, title3, response3, tokens3 = await self.call_worker(
                 third_prompt,
                 context="multi-perspective debate - third perspective",
                 worker_name=third_worker,
@@ -9115,7 +9115,7 @@ Now synthesize: Based on THIS specific situation, whose approach makes the most 
 
 This is real synthesis - what actually makes sense for THIS problem?"""
 
-        synth_name, synth_title, synthesis, synth_tokens = self.call_worker(
+        synth_name, synth_title, synthesis, synth_tokens = await self.call_worker(
             synthesis_prompt,
             context="multi-perspective debate - synthesis",
             worker_name=synthesizer,
@@ -9977,7 +9977,7 @@ Give ONE brief pushback (1 sentence):
 
 Stay in character as {pushback_worker}."""
 
-            name, title, pushback, tokens = self.call_worker(
+            name, title, pushback, tokens = await self.call_worker(
                 pushback_prompt,
                 context="ship it pushback",
                 worker_name=pushback_worker,
@@ -12524,7 +12524,7 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
 
         return response_with_misspellings
 
-    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None, issue_context: str = "general", is_pushback: bool = False) -> tuple:
+    async def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None, issue_context: str = "general", is_pushback: bool = False) -> tuple:
         """Get response from a specific team member. Returns (name, title, response, tokens).
 
         task_type can be: "general", "code", "analysis", "review" - affects quality emphasis
@@ -12754,7 +12754,19 @@ Break complex info across multiple messages. Let it breathe. Stay in character."
         response = None
 
         while attempt < max_attempts:
-            response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
+            # MM-025: Use ModelManager for worker/builder flow (fallback to legacy if not available)
+            if self.model_manager:
+                try:
+                    response = await self.model_manager.generate(
+                        role=ModelRole.WORKER,
+                        messages=messages,
+                        max_tokens=200 if not efficiency_mode else 100
+                    )
+                except Exception as e:
+                    logger.error(f"MM-025: ModelManager failed, falling back to legacy: {e}")
+                    response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
+            else:
+                response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
 
             # SG-029: Check similarity if user_id provided
             if user_id is not None:
@@ -13147,7 +13159,7 @@ Keep it SHORT - 2-3 sentences max. Stay in character but be CLEAR."""},
 Start with a technical explanation but keep it conversational - you're teaching Ralph.
 Stay in character ({worker['style']}). 2-3 sentences max."""
 
-        name, title, initial_explanation = self.call_worker(
+        name, title, initial_explanation = await self.call_worker(
             worker_prompt,
             context="educational explanation",
             worker_name=worker_name,
@@ -13188,7 +13200,7 @@ Use an analogy Ralph would actually get. Be patient and kind - he's trying.
 
 Stay in character ({worker['style']}) but make it VERY simple. 1-2 sentences."""
 
-        name, title, simple_explanation = self.call_worker(
+        name, title, simple_explanation = await self.call_worker(
             worker_simple_prompt,
             context="explaining to confused boss",
             worker_name=worker_name,
@@ -13228,7 +13240,7 @@ Your "aha moment" should be enthusiastic but completely silly. One sentence."""
 He... kind of gets it? In his own way? Be encouraging but gently correct if needed.
 Stay in character ({worker['style']}). Keep it short - 1 sentence."""
 
-            name, title, affirmation = self.call_worker(
+            name, title, affirmation = await self.call_worker(
                 worker_affirm_prompt,
                 context="affirming ralph's understanding",
                 worker_name=worker_name,
@@ -13255,7 +13267,7 @@ Examples: "You know what boss? Don't worry about it." or "Let's just... let's ju
 
 Stay in character ({worker['style']}). 1 sentence."""
 
-            name, title, giveup = self.call_worker(
+            name, title, giveup = await self.call_worker(
                 worker_giveup_prompt,
                 context="lovingly giving up on explanation",
                 worker_name=worker_name,
@@ -15426,7 +15438,7 @@ _The team nods in unison._
             tone_context = f"\n\nBoss's Tone: The boss sounds {tone_data['primary_tone']} ({tone_data['intensity']} intensity). {tone_data.get('description', '')}"
             context_info += tone_context
 
-        name, title, worker_response, token_count = self.call_worker(
+        name, title, worker_response, token_count = await self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
             context=context_info,
             efficiency_mode=efficiency_mode,
