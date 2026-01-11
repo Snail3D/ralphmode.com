@@ -61,6 +61,16 @@ class OnboardingWizard:
             self.verifier_available = False
             self.logger.warning("Setup verification not available")
 
+        # Import troubleshooting guide
+        try:
+            from troubleshooting import get_troubleshooting_guide
+            self.troubleshooting = get_troubleshooting_guide()
+            self.troubleshooting_available = True
+        except ImportError:
+            self.troubleshooting = None
+            self.troubleshooting_available = False
+            self.logger.warning("Troubleshooting guide not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -105,6 +115,13 @@ Don't worry! Ralph make it super easy! Like eating paste... but PRODUCTIVE!
                 InlineKeyboardButton("⚡ Quick Setup", callback_data="setup_quick"),
             ],
         ]
+
+        # Add troubleshooting option if available
+        if self.troubleshooting_available:
+            keyboard.append([
+                InlineKeyboardButton("🔧 Troubleshooting Guide", callback_data="troubleshoot_menu")
+            ])
+
         return InlineKeyboardMarkup(keyboard)
 
     def get_setup_overview(self, setup_type: str) -> str:
@@ -163,6 +180,13 @@ Ralph help you check each one super fast!
             [InlineKeyboardButton("▶️ Let's Go!", callback_data="setup_continue")],
             [InlineKeyboardButton("◀️ Back", callback_data="setup_back_welcome")],
         ]
+
+        # Add troubleshooting option if available
+        if self.troubleshooting_available:
+            keyboard.append([
+                InlineKeyboardButton("🔧 Need Help?", callback_data="troubleshoot_menu")
+            ])
+
         return InlineKeyboardMarkup(keyboard)
 
     def init_onboarding_state(self, user_id: int) -> Dict[str, Any]:

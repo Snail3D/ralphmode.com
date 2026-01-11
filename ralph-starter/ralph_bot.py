@@ -5880,6 +5880,11 @@ _Drop a zip file to get started!_
             await self.handle_setup_callback(query, context, user_id, data)
             return
 
+        # OB-046: Handle troubleshooting guide callbacks
+        if data.startswith("troubleshoot_"):
+            await self.handle_troubleshooting_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -6302,6 +6307,15 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         text = update.message.text
+
+        # OB-046: Handle troubleshooting search queries
+        if context.user_data.get('awaiting_troubleshoot_search'):
+            context.user_data['awaiting_troubleshoot_search'] = False
+            troubleshooting = self.onboarding_wizard.troubleshooting
+            if troubleshooting:
+                await troubleshooting.process_search_query(update, context, text)
+                logger.info(f"OB-046: User {user_id} searched troubleshooting: {text}")
+                return
 
         # RM-053: Track user message timestamp and pause idle chatter
         self.last_user_message_time[user_id] = datetime.now()
@@ -8127,6 +8141,83 @@ Use `/version <type>` to switch!
                 reply_markup=welcome_keyboard
             )
             logger.info(f"OB-001: User {user_id} went back to welcome screen")
+
+    async def handle_troubleshooting_callback(self, query, context, user_id: int, data: str):
+        """Handle troubleshooting guide button callbacks.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'troubleshoot_menu', 'troubleshoot_ssh_key_exists')
+        """
+        await query.answer()
+
+        # Get the troubleshooting guide
+        troubleshooting = self.onboarding_wizard.troubleshooting
+
+        if not troubleshooting:
+            await query.edit_message_text(
+                "Troubleshooting guide not available. Please contact support.",
+                parse_mode="Markdown"
+            )
+            return
+
+        update = Update.de_json({"callback_query": query.to_dict()}, query.get_bot())
+
+        # Handle different troubleshooting actions
+        if data == "troubleshoot_menu":
+            await troubleshooting.show_troubleshooting_menu(update, context)
+            logger.info(f"OB-046: User {user_id} opened troubleshooting menu")
+
+        elif data == "troubleshoot_search":
+            await troubleshooting.handle_search(update, context)
+            logger.info(f"OB-046: User {user_id} started troubleshooting search")
+
+        elif data == "troubleshoot_submit":
+            await troubleshooting.handle_submit_issue(update, context)
+            logger.info(f"OB-046: User {user_id} wants to submit new issue")
+
+        elif data.startswith("troubleshoot_helpful_"):
+            issue_id = data.replace("troubleshoot_helpful_", "")
+            await troubleshooting.handle_helpful(update, context, issue_id)
+            logger.info(f"OB-046: User {user_id} marked issue {issue_id} as helpful")
+
+        elif data.startswith("troubleshoot_stuck_"):
+            issue_id = data.replace("troubleshoot_stuck_", "")
+            await troubleshooting.handle_stuck(update, context, issue_id)
+            logger.info(f"OB-046: User {user_id} still stuck on issue {issue_id}")
+
+        elif data == "onboarding_back":
+            # Go back to onboarding
+            if user_id in self.onboarding_state:
+                state = self.onboarding_state[user_id]
+                setup_type = state.get("setup_type", self.onboarding_wizard.SETUP_GUIDED)
+                overview_text = self.onboarding_wizard.get_setup_overview(setup_type)
+                overview_keyboard = self.onboarding_wizard.get_overview_keyboard()
+
+                await query.edit_message_text(
+                    overview_text,
+                    parse_mode="Markdown",
+                    reply_markup=overview_keyboard
+                )
+            else:
+                # No state, show welcome
+                welcome_text = self.onboarding_wizard.get_welcome_message()
+                welcome_keyboard = self.onboarding_wizard.get_welcome_keyboard()
+
+                await query.edit_message_text(
+                    welcome_text,
+                    parse_mode="Markdown",
+                    reply_markup=welcome_keyboard
+                )
+            logger.info(f"OB-046: User {user_id} went back to onboarding from troubleshooting")
+
+        else:
+            # It's a specific issue ID (e.g., "troubleshoot_ssh_key_exists")
+            issue_id = data.replace("troubleshoot_", "")
+            await troubleshooting.show_issue(update, context, issue_id)
+            logger.info(f"OB-046: User {user_id} viewing issue {issue_id}")
 
     def run(self):
         """Start the bot."""
