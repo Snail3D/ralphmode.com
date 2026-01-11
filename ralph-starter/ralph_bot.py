@@ -1086,6 +1086,35 @@ class RalphBot:
     # Reference to ComedicTiming for easy access
     timing = ComedicTiming
 
+    # RM-043: Worker task enthusiasm preferences
+    # Maps task keywords to worker excitement levels
+    WORKER_TASK_PREFERENCES = {
+        "Stool": {
+            "loves": ["ui", "frontend", "component", "button", "animation", "design", "css", "style", "visual"],
+            "dislikes": ["backend", "database", "api", "server", "sql", "query"],
+            "excited_reaction": "Ooh, {task_type}! This is my jam!",
+            "bored_reaction": "Ugh, {task_type}? Can someone else take this one?",
+        },
+        "Gomer": {
+            "loves": ["backend", "api", "database", "server", "data", "sql", "query", "performance", "optimization"],
+            "dislikes": ["frontend", "css", "animation", "styling", "ui"],
+            "excited_reaction": "Mmm, {task_type}! Chunky data work. Love it.",
+            "bored_reaction": "CSS? Why won't this box just go where I want it...",
+        },
+        "Mona": {
+            "loves": ["architecture", "complex", "algorithm", "optimization", "refactor", "design pattern", "system"],
+            "dislikes": ["simple fix", "typo", "formatting", "minor", "trivial"],
+            "excited_reaction": "Finally! A real challenge. {task_type} is actually interesting.",
+            "bored_reaction": "This is beneath my talents. Simple {task_type}? Really?",
+        },
+        "Gus": {
+            "loves": ["legacy", "debug", "bug", "fix", "problem", "issue", "broken"],
+            "perks_up": ["war story", "seen this before", "remember when"],
+            "excited_reaction": "Ah, {task_type}. I've seen this pattern before. Let me tell you...",
+            "default_reaction": "*sips coffee* Another day, another {task_type}.",
+        },
+    }
+
     def __init__(self):
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.boss_queue: Dict[int, list] = {}  # Queued messages for boss
@@ -6655,6 +6684,9 @@ Your response tone should be: {mood_modifier['tone']}"""
         if user_id is not None:
             project_tone_prompt = self._get_project_type_tone_prompt(user_id)
 
+        # RM-043: Get task-specific enthusiasm modifier
+        enthusiasm_prompt = self._get_worker_enthusiasm_prompt(worker_name, message, context)
+
         # RM-037: Get pushback guidance based on current count
         pushback_prompt = ""
         if user_id is not None:
@@ -6704,6 +6736,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {freshness_prompt}
 {mood_prompt}
 {project_tone_prompt}
+{enthusiasm_prompt}
 {pushback_prompt}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
@@ -7468,6 +7501,61 @@ _Drop a zip file to get started!_
             # Clean up on error
             if user_id in self.pending_analysis:
                 del self.pending_analysis[user_id]
+
+    def _get_worker_enthusiasm_prompt(self, worker_name: str, message: str, context: str = "") -> str:
+        """RM-043: Get enthusiasm modifier based on task type and worker preferences.
+
+        Returns a prompt fragment adjusting worker energy based on what they like/dislike.
+        """
+        if worker_name not in self.WORKER_TASK_PREFERENCES:
+            return ""
+
+        prefs = self.WORKER_TASK_PREFERENCES[worker_name]
+        full_text = f"{message} {context}".lower()
+
+        # Check if worker loves this type of work
+        for loved_keyword in prefs.get("loves", []):
+            if loved_keyword in full_text:
+                task_type = loved_keyword
+                reaction = prefs.get("excited_reaction", "").format(task_type=task_type)
+                return f"""
+TASK ENTHUSIASM: HIGH! 🔥
+This is {worker_name}'s favorite kind of work: {task_type}
+- Show extra enthusiasm and energy
+- Maybe start with an excited comment: "{reaction}"
+- This is your chance to shine - you LOVE this stuff"""
+
+        # Check if worker dislikes this type of work
+        for disliked_keyword in prefs.get("dislikes", []):
+            if disliked_keyword in full_text:
+                task_type = disliked_keyword
+                reaction = prefs.get("bored_reaction", "").format(task_type=task_type)
+                return f"""
+TASK ENTHUSIASM: LOW 😐
+This is NOT {worker_name}'s favorite work: {task_type}
+- Show less enthusiasm (but still do good work)
+- Maybe start with: "{reaction}"
+- You'll do it professionally, but you're not thrilled"""
+
+        # Special case for Gus - check if it's a war story opportunity
+        if worker_name == "Gus":
+            for perk_keyword in prefs.get("perks_up", []):
+                if perk_keyword in full_text:
+                    return """
+TASK ENTHUSIASM: PERKS UP ☕
+This is a chance for Gus to share wisdom from experience.
+- You've seen this before - share a brief war story if relevant
+- Show that veteran energy - calm confidence
+- "I remember when..." or "Back in my day..." vibes acceptable"""
+
+            # Gus default: seen it all
+            return f"""
+TASK ENTHUSIASM: NEUTRAL (VETERAN)
+Gus has seen everything. Nothing surprises him anymore.
+- Calm, measured, professional
+- {prefs.get("default_reaction", "*sips coffee*")}"""
+
+        return ""
 
     def _get_project_type_tone_prompt(self, user_id: int) -> str:
         """RM-041: Get tone adjustment prompt based on project type.
