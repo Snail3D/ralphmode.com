@@ -416,6 +416,217 @@ Ready?
 Still stuck? Tell Ralph what error message you seeing!
 """
 
+    # GitHub SSH Key Addition Guide (OB-003)
+
+    def get_public_key_command(self) -> str:
+        """Get the command to read the public key.
+
+        Returns:
+            Command to display public key content
+        """
+        return "cat ~/.ssh/id_ed25519.pub"
+
+    def get_github_ssh_guide_message(self) -> str:
+        """Get the message for adding SSH key to GitHub.
+
+        Returns:
+            GitHub SSH addition guide message
+        """
+        return """*Step 2: Tell GitHub About Your Key!* 🎫
+
+Okay! Now GitHub needs to know your public key!
+
+Remember: public key is SAFE to share! (The other one stays secret!)
+
+*Here's what we gonna do:*
+
+**Step 1:** Copy your public key
+**Step 2:** Go to GitHub settings
+**Step 3:** Paste the key
+**Step 4:** Test it works!
+
+Ralph walk you through each step!
+
+*First, let's get your public key...*
+
+Run this command in Terminal:
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+
+This will show your public key! It looks like random letters and numbers!
+
+*Ready to copy your key?*
+"""
+
+    def get_github_ssh_instructions_message(self) -> str:
+        """Get detailed instructions for adding SSH key to GitHub.
+
+        Returns:
+            Detailed step-by-step instructions
+        """
+        return """*Adding Key to GitHub - Step by Step!* 📝
+
+Okay! Follow these steps EXACTLY!
+
+**Step 1: Copy Your Public Key**
+Run this command:
+```bash
+cat ~/.ssh/id_ed25519.pub
+```
+Copy EVERYTHING it shows (starts with `ssh-ed25519`)
+
+**Step 2: Go to GitHub**
+Click this link: [GitHub SSH Settings](https://github.com/settings/keys)
+
+**Step 3: Add New SSH Key**
+• Click the green "New SSH key" button
+• Title: Put "My Computer" (or whatever you want!)
+• Key type: Choose "Authentication Key"
+• Key: Paste what you copied from Step 1
+• Click "Add SSH key"
+
+**Step 4: You might need to enter your GitHub password**
+That's normal! GitHub making sure it's really you!
+
+*Done?* Click the button below when you added the key!
+
+*Need Help?*
+🎥 [How to Add SSH Key to GitHub](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
+   (Skip to 3:45 for adding to GitHub!)
+"""
+
+    def get_github_ssh_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for GitHub SSH addition step.
+
+        Returns:
+            Keyboard with relevant action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open GitHub SSH Settings", url="https://github.com/settings/keys")],
+            [InlineKeyboardButton("✅ I Added the Key!", callback_data="github_ssh_added")],
+            [InlineKeyboardButton("📋 Show Command Again", callback_data="github_show_key_command")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="github_ssh_help")],
+            [InlineKeyboardButton("◀️ Back", callback_data="setup_back_ssh")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_ssh_test_command(self) -> str:
+        """Get the command to test SSH connection to GitHub.
+
+        Returns:
+            SSH test command
+        """
+        return "ssh -T git@github.com"
+
+    def get_github_ssh_test_message(self) -> str:
+        """Get message for testing GitHub SSH connection.
+
+        Returns:
+            SSH connection test instructions
+        """
+        return """*Let's Test It!* 🧪
+
+Ralph wanna make sure it works!
+
+Run this command to test your connection:
+```bash
+ssh -T git@github.com
+```
+
+*What you'll see:*
+
+If it WORKS, you'll see:
+```
+Hi [your-username]! You've successfully authenticated...
+```
+
+If it asks "Are you sure you want to continue connecting?", type `yes` and press Enter!
+
+Don't worry if it says "You've successfully authenticated, but GitHub does not provide shell access" - that's GOOD! It means it works!
+
+If you see an error, click "Help" below!
+
+*Did you run the test?*
+"""
+
+    def get_github_ssh_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for SSH connection test.
+
+        Returns:
+            Keyboard with test result options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ It Works!", callback_data="github_ssh_success")],
+            [InlineKeyboardButton("❌ Got an Error", callback_data="github_ssh_error")],
+            [InlineKeyboardButton("📋 Show Command Again", callback_data="github_show_test_command")],
+            [InlineKeyboardButton("❓ Help", callback_data="github_ssh_test_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_github_ssh_success_message(self) -> str:
+        """Get success message after GitHub SSH is working.
+
+        Returns:
+            Success celebration message
+        """
+        return """*IT WORKS!* 🎉🎊🎈
+
+Ralph SO PROUD of you!
+
+Your computer can now talk to GitHub! No more typing passwords!
+
+*What we did:*
+✅ Made a special key on your computer
+✅ Told GitHub about your key
+✅ Tested the connection
+✅ EVERYTHING WORKS!
+
+You're like a REAL developer now! 👨‍💻👩‍💻
+
+*Next step:* Make a code house (repository) for your projects!
+
+Ready to keep going?
+"""
+
+    def get_github_ssh_error_help(self) -> str:
+        """Get help message for SSH connection errors.
+
+        Returns:
+            Troubleshooting help for SSH errors
+        """
+        return """*Ralph Help Fix It!* 🔧
+
+**Common Errors and Fixes:**
+
+**Error: "Permission denied (publickey)"**
+→ Your key isn't added to GitHub or you added the PRIVATE key by mistake
+→ Make sure you copied the PUBLIC key (ends with .pub)
+→ Try adding the key to GitHub again
+
+**Error: "Could not resolve hostname github.com"**
+→ Check your internet connection!
+→ Make sure you spelled github.com correctly
+
+**Error: "Host key verification failed"**
+→ Type `yes` when it asks "Are you sure you want to continue?"
+→ This is normal the first time!
+
+**Error: "No such file or directory"**
+→ Your SSH key might not exist
+→ Go back and generate the key first
+
+**Wrong key copied?**
+→ Make sure you ran: `cat ~/.ssh/id_ed25519.pub`
+→ Copy EVERYTHING from ssh-ed25519 to the end
+→ Don't copy the PRIVATE key (without .pub)!
+
+*Still stuck?*
+🎥 [SSH Troubleshooting Video](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
+
+Try the test command again, or go back and add the key again!
+"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.
