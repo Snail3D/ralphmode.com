@@ -13333,3 +13333,39 @@ if should_ship:
 - Not announcing workload constantly (15% chance) keeps it special when it happens
 
 ---
+
+## Iteration - 2026-01-11 (SG-014)
+**Task**: SG-014 - Milestone Awareness - Feel the Progress
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `milestone_team_reaction()` function that triggers natural team reactions at key milestones
+- 50% milestone: Workers announce "Halfway there, folks!" with team high-fives and Ralph celebrating
+- 75% milestone: Workers say "Home stretch. Don't get sloppy now." with focused, professional energy
+- 90% milestone: Workers declare "SO CLOSE. Focus up." with intense determination
+- Last task (before final): Workers realize "This is IT. One more and we're done!" with Ralph getting excited
+- Integrated milestone awareness into `show_task_completion()` flow
+- Added `last_milestone_announced` tracking to prevent duplicate reactions
+
+### Files changed
+- ralph_bot.py:
+  - Added milestone_team_reaction() function (lines 7847-7999)
+  - Integrated into show_task_completion() (line 8117-8119)
+  - Added last_milestone_announced to init_quality_metrics() (line 7329)
+
+### Learnings
+- Energy shifts are REAL - different milestones require different tones:
+  - 50%: Optimistic celebration (we're making progress!)
+  - 75%: Focused professionalism (don't lose quality now)
+  - 90%: Intense determination (almost there, lock in)
+  - Last task: Excited anticipation (final push!)
+- Ralph's reactions need to match his personality (excited, simple language, endearing)
+- Workers are ADULTS - they celebrate professionally (high-fives, fist bumps) not childishly
+- Tracking prevents duplicate reactions - milestone_announced vs reported_milestone are separate
+- Natural reactions > forced celebrations (the acceptance criteria explicitly said this)
+- The team genuinely FEELS the progress through their dialogue and actions
+
+### Pattern discovered
+Milestone reactions should come BEFORE random Ralph comments or worker high-fives so they don't get buried. This ensures users always see the milestone moment, which is important for the sense of progress.
+
+---
