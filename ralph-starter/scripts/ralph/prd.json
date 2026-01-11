@@ -4525,7 +4525,7 @@
         "telegram_utils.py",
         "help_tooltips.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-016",
