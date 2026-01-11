@@ -12006,3 +12006,67 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Don't break mid-sentence - respect sentence boundaries
 
 ---
+## Iteration [Auto] - 2026-01-11
+**Task**: [RM-057] MUD-Style Presence System
+**Status**: ✅ Complete
+
+### What was implemented
+- Added WORKER_STATUSES constant with 6 statuses: working, chatting, thinking, coffee break, reviewing code, debugging
+- Added WORKER_STATUS_ACTIONS dict with 4-6 status-specific actions per worker, personalized to each character
+- Implemented worker status tracking in active_sessions via 'worker_statuses' dict
+- Created initialize_worker_statuses() - initializes all workers with varied statuses at session start
+- Created update_worker_status() - updates individual worker status
+- Created get_worker_status() - retrieves current worker status
+- Created get_worker_status_action() - gets random action description for worker's current status
+- Created periodic_status_updates() - background task showing occasional worker actions (every 3-8 minutes)
+- Created get_workers_present() - returns formatted description of all workers and their activities
+- Added /lookaround and /whos_here commands to show worker presence
+- Created add_spatial_reaction() - 15% chance workers react to each other spatially
+- Integrated status initialization into _start_ralph_session()
+- Started periodic_status_updates task on session start
+- Added spatial reactions to idle_codebase_chatter() after each worker message
+- Updated session start message to include new commands
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- MUD-style presence creates immersion through ambient environmental details
+- Status updates should be infrequent (3-8 min) to avoid spam while maintaining presence
+- Worker-specific actions make each character feel unique even in status messages
+- Spatial reactions ("Hey Stool, you see this?") bridge text chat and physical space concepts
+- 15% chance for spatial reactions feels natural without being overwhelming
+- Background tasks need proper initialization at session start
+- Multiple command aliases (/lookaround, /whos_here) improve discoverability
+- Workers having 'chatting' status initially creates more dynamic opening than all 'working'
+- Varied statuses (not all uniform) makes the space feel organic
+
+### Acceptance criteria met
+✅ Workers have 'status': chatting, working, thinking, coffee break
+✅ Occasional status updates: '_Gus refills his coffee_'
+✅ User can 'look around' to see who's present
+✅ Workers react to each other: 'Hey Stool, you see this?'
+✅ Spatial feeling - workers move around conceptually
+✅ Group chat energy but with physical presence hints
+✅ Commands like 'Who's here?' get answered naturally
+
+### Technical patterns discovered
+- Status tracking via session['worker_statuses'] dict keyed by worker name
+- Background task pattern: asyncio.create_task() + store in self.status_update_task dict
+- Periodic updates with random.uniform() for varied timing (feels less robotic)
+- Status rotation: 40% chance to change status on each update
+- Spatial reactions as async method called after message sends (non-blocking)
+- Command aliases via multiple CommandHandler calls to same method
+- Worker-specific action pools indexed by [worker_name][status] for O(1) lookup
+
+### Gotchas to avoid
+- Must initialize status_update_task dict in __init__
+- Must initialize worker_statuses in session before starting periodic task
+- Don't make status updates too frequent (3-8 min is right balance)
+- Spatial reaction chance shouldn't be too high (15% is sweet spot)
+- Must check session still active in periodic_status_updates loop
+- Must handle asyncio.CancelledError in background tasks
+- Don't forget to add new commands to handler registration in run()
+- Must update help text to show new commands
+
+---
