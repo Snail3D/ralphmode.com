@@ -1091,6 +1091,7 @@ class RalphBot:
         self.last_user_message_time: Dict[int, datetime] = {}  # RM-053: Track when user last sent message
         self.idle_chatter_task: Dict[int, asyncio.Task] = {}  # RM-053: Track idle chatter background task
         self.worker_pushback_count: Dict[int, Dict[str, Dict[str, int]]] = {}  # RM-037: Track worker pushback counts per issue
+        self.ralph_mood: Dict[int, str] = {}  # RM-033: Track Ralph's daily mood per session (good/neutral/bad)
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -1188,6 +1189,190 @@ class RalphBot:
                 "guidance": "Exhausted! Very short responses, frequent sighs, clear fatigue. Team needs a break.",
                 "tone": "drained"
             }
+
+    # ==================== RM-033: RALPH'S DAILY MOOD ====================
+
+    def initialize_ralph_mood(self, user_id: int) -> str:
+        """Initialize Ralph's mood for a new session.
+
+        Ralph has good days, neutral days, and bad days. This affects his management style.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Mood level: "good", "neutral", or "bad"
+        """
+        mood = random.choice(["good", "good", "neutral", "neutral", "neutral", "bad"])  # 33% good, 50% neutral, 17% bad
+        self.ralph_mood[user_id] = mood
+        logger.info(f"RM-033: Ralph's mood initialized as '{mood}' for user {user_id}")
+        return mood
+
+    def get_ralph_mood(self, user_id: int) -> str:
+        """Get Ralph's current mood for a session.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Mood level: "good", "neutral", or "bad"
+        """
+        if user_id not in self.ralph_mood:
+            return self.initialize_ralph_mood(user_id)
+        return self.ralph_mood[user_id]
+
+    def shift_ralph_mood(self, user_id: int, direction: str, reason: str = None):
+        """Shift Ralph's mood based on CEO tone or events.
+
+        CEO can shift Ralph's mood mid-session through their tone.
+
+        Args:
+            user_id: User session ID
+            direction: "better" or "worse"
+            reason: Optional reason for logging
+        """
+        current_mood = self.get_ralph_mood(user_id)
+
+        if direction == "better":
+            if current_mood == "bad":
+                self.ralph_mood[user_id] = "neutral"
+                logger.info(f"RM-033: Ralph's mood improved from bad to neutral for user {user_id}: {reason}")
+            elif current_mood == "neutral":
+                self.ralph_mood[user_id] = "good"
+                logger.info(f"RM-033: Ralph's mood improved from neutral to good for user {user_id}: {reason}")
+        elif direction == "worse":
+            if current_mood == "good":
+                self.ralph_mood[user_id] = "neutral"
+                logger.info(f"RM-033: Ralph's mood declined from good to neutral for user {user_id}: {reason}")
+            elif current_mood == "neutral":
+                self.ralph_mood[user_id] = "bad"
+                logger.info(f"RM-033: Ralph's mood declined from neutral to bad for user {user_id}: {reason}")
+
+    def get_ralph_mood_modifiers(self, user_id: int) -> dict:
+        """Get Ralph's mood-based personality modifiers.
+
+        Returns:
+            Dict with mood-specific guidance for Ralph's behavior
+        """
+        mood = self.get_ralph_mood(user_id)
+
+        if mood == "good":
+            return {
+                "mood": "good",
+                "description": "Ralph is having a GREAT day!",
+                "personality_notes": """You're having a WONDERFUL day! Your daddy called this morning and said he's proud of you being a manager!
+- Extra cheerful and patient with the team
+- More paste references ('This is going so well I might share my paste!')
+- Excited about everything ('This is the best team EVER!')
+- Tolerant of mistakes ('That's okay! Everyone makes oopsies!')
+- Mentions positive things (cat, daddy being proud, being a manager)""",
+                "tolerance": "high"
+            }
+        elif mood == "bad":
+            return {
+                "mood": "bad",
+                "description": "Ralph is having a rough day...",
+                "personality_notes": """You're having a bad day. Maybe your cat threw up on your favorite toy, or kids at the bus stop were mean.
+- Grumpier than usual (for Ralph - still sweet but stressed)
+- More demanding ('Come ON, team! We need to do BETTER!')
+- Less patient with mistakes ('This is making my head hurt...')
+- Mentions daddy issues or bad things ('My daddy says when you mess up you gotta try harder!')
+- More likely to worry ('What if Mr. Worms gets mad at me?')
+- Still tries to be positive but it's harder""",
+                "tolerance": "low"
+            }
+        else:  # neutral
+            return {
+                "mood": "neutral",
+                "description": "Ralph is having a normal day.",
+                "personality_notes": """You're having a regular day at work. Being a manager like usual.
+- Standard Ralph cheerfulness
+- Balanced patience and expectations
+- Mix of silly and serious moments
+- Normal paste and cat references
+- Daddy mentions are neutral ('My daddy says...')""",
+                "tolerance": "moderate"
+            }
+
+    def detect_ceo_tone_and_shift_ralph_mood(self, message: str, user_id: int):
+        """Detect CEO's tone from their message and shift Ralph's mood if appropriate.
+
+        Positive, encouraging CEO messages can improve Ralph's mood.
+        Harsh, frustrated CEO messages can worsen Ralph's mood.
+
+        Args:
+            message: The CEO's message
+            user_id: User session ID
+        """
+        message_lower = message.lower()
+
+        # Positive indicators
+        positive_keywords = ["good", "great", "awesome", "nice", "excellent", "perfect", "love",
+                           "thanks", "thank you", "appreciate", "well done", "good job", "keep it up",
+                           "amazing", "fantastic", "brilliant", "wonderful", "yes", "approved"]
+
+        # Negative indicators
+        negative_keywords = ["bad", "wrong", "terrible", "awful", "hate", "stop", "no", "never",
+                            "stupid", "dumb", "useless", "disappointed", "frustrated", "angry",
+                            "fix this", "unacceptable", "poor", "mess", "broken"]
+
+        positive_count = sum(1 for keyword in positive_keywords if keyword in message_lower)
+        negative_count = sum(1 for keyword in negative_keywords if keyword in message_lower)
+
+        # Shift mood if the tone is clearly positive or negative
+        if positive_count >= 2 and positive_count > negative_count:
+            # CEO is being encouraging
+            self.shift_ralph_mood(user_id, "better", "CEO being positive and encouraging")
+        elif negative_count >= 2 and negative_count > positive_count:
+            # CEO is being harsh or frustrated
+            self.shift_ralph_mood(user_id, "worse", "CEO showing frustration or criticism")
+
+    async def worker_reacts_to_ralph_mood(self, context, chat_id: int, user_id: int):
+        """RM-033: Workers notice and react to Ralph's mood.
+
+        Workers pick up on Ralph's vibe and comment on it occasionally.
+        This makes Ralph's mood feel real and affects team dynamics.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID for sending messages
+            user_id: User session ID
+        """
+        mood = self.get_ralph_mood(user_id)
+        worker = random.choice(list(self.DEV_TEAM.keys()))
+        worker_data = self.DEV_TEAM[worker]
+
+        # Generate mood-specific reactions
+        if mood == "good":
+            reactions = [
+                "Ralph seems super happy today!",
+                "Boss is in a good mood - nice!",
+                "Ralph's chipper today. I like it.",
+                "Ralph's extra cheerful. Must be a good day.",
+                "The boss seems unusually upbeat today.",
+            ]
+        elif mood == "bad":
+            reactions = [
+                "Boss seems a bit cranky today...",
+                "Ralph's mood is... off today. Just FYI.",
+                "Heads up, Ralph seems stressed.",
+                "Boss is grumpier than usual. Tread carefully.",
+                "Ralph's having a rough day, I think.",
+                "Let's be extra careful - Ralph's not in the best mood.",
+            ]
+        else:  # neutral
+            # Workers don't comment on neutral mood - it's just normal
+            return
+
+        # 20% chance to actually comment
+        if random.random() < 0.2:
+            await self.send_styled_message(
+                context, chat_id, worker, worker_data['title'],
+                random.choice(reactions),
+                topic="mood observation",
+                with_typing=True
+            )
+            await asyncio.sleep(self.timing.rapid_banter())
 
     # ==================== OB-040: THEME PREFERENCE ====================
 
@@ -3686,6 +3871,11 @@ _{ralph_response}_
             parse_mode="Markdown"
         )
 
+        # RM-033: Sometimes workers comment on Ralph's mood (20% chance)
+        user_id = chat_id  # In DM, chat_id == user_id
+        if user_id in self.active_sessions:
+            await self.worker_reacts_to_ralph_mood(context, chat_id, user_id)
+
     async def ralph_moment(self, context, chat_id: int):
         """Random Ralph moment - gross/funny interruption that shows Ralph being Ralph.
 
@@ -6036,6 +6226,11 @@ Classic Ralph energy - innocent, cheerful, confidently confused.
 Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
 1-2 sentences max. Stay in character as Ralph."""
 
+        # RM-033: Add Ralph's daily mood to system prompt
+        if user_id is not None:
+            mood_modifiers = self.get_ralph_mood_modifiers(user_id)
+            system_content += f"\n\n**TODAY'S MOOD**: {mood_modifiers['description']}\n{mood_modifiers['personality_notes']}"
+
         # TL-001: Add tone context if available
         if tone_context:
             system_content += f"\n\n{tone_context}"
@@ -6918,6 +7113,9 @@ _Drop a zip file to get started!_
                 "status": "onboarding"
             }
 
+            # RM-033: Initialize Ralph's daily mood for this session
+            self.initialize_ralph_mood(user_id)
+
             # Start analysis in background (async task)
             analysis_task = asyncio.create_task(self._analyze_codebase(project_dir))
             self.pending_analysis[user_id] = analysis_task
@@ -7555,6 +7753,10 @@ _Grab some popcorn..._
 
             # Record this message for cooldown tracking
             record_user_message(user_id)
+
+        # RM-033: Detect CEO tone and shift Ralph's mood if appropriate
+        if user_id in self.active_sessions:
+            self.detect_ceo_tone_and_shift_ralph_mood(text, user_id)
 
         # RM-011: Handle Q&A mode - Ralph answers questions about the session
         session = self.active_sessions.get(user_id)
