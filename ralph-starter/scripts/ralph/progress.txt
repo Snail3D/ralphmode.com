@@ -13771,3 +13771,53 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 - Each character needs location-appropriate examples (Willie = server room, Frinky = design corner)
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-11
+**Task**: SG-033 - Pre-Report Accountability Check
+**Status**: ✅ Complete
+
+### What was implemented
+- Modified generate_ralph_report() to include accountability checklist before report generation
+- Added user_id parameter to generate_ralph_report()
+- Report now includes REQUIREMENTS ACCOUNTABILITY section showing Yes/No/Maybe counts
+- Ralph's AI prompt explicitly requires acknowledging missed/unclear requirements
+- Phrases like "We didn't get to X yet" or "Not sure if we fully covered X" now appear in reports
+- Maintains Ralph's voice while being honest about incomplete work
+
+### Files changed
+- ralph_bot.py (generate_ralph_report at line 11142, deliver_ralph_report at line 11279)
+
+### Learnings
+- Ralph already had accountability infrastructure from SG-032
+- get_accountability_checklist_status() evaluates all session_requirements
+- evaluate_requirement_accountability() returns "yes"/"no"/"maybe" based on requirement status
+- The key gap was connecting this checklist to the MAIN report content
+- Ralph's report is generated via Groq AI using a detailed prompt
+- The prompt guides Ralph's personality AND business insights
+- Adding accountability context to the prompt ensures it appears in final report
+
+### Patterns discovered
+- Session requirements tracked in session["session_requirements"] list
+- Each requirement has: requirement text, status (pending/in_progress/completed), added_at timestamp
+- Checklist evaluations happen automatically based on status and session context
+- Report generation happens BEFORE detailed checklist review (line 11279 vs line 11289)
+- This creates: High-level report → Detailed checklist → Quality metrics flow
+
+### Gotchas to avoid
+- Don't just show checklist separately - must integrate into MAIN report content
+- Accountability section must be in the AI prompt, not post-processed into report
+- Ralph's honesty must be EXPLICIT instruction in prompt ("NO PRETENDING")
+- Include specific examples of missed requirements (up to 2) so Ralph has context
+- Report is limited to 500 tokens - keep accountability summary concise
+
+### How it works now
+1. deliver_ralph_report() is called
+2. generate_ralph_report() gets accountability checklist via get_accountability_checklist_status()
+3. Formats Yes/No/Maybe counts + specific examples into prompt
+4. Groq generates Ralph's report WITH accountability awareness
+5. Report naturally includes acknowledgment of missed/unclear work
+6. Then detailed checklist shown (existing SG-032 behavior)
+7. Then quality metrics
+8. Then team reactions
+
+---
