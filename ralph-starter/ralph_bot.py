@@ -12037,6 +12037,11 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
             if freshness_prompt:
                 system_content += f"\n\n{freshness_prompt}"
 
+        # AU-005: Add autonomy-aware check-ins context
+        if user_id is not None:
+            autonomy_context = self.get_autonomy_prompt_context(user_id)
+            system_content += f"\n\n{autonomy_context}"
+
         messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": message}
@@ -12229,6 +12234,11 @@ Show professionalism by making their vision work."""
         # SG-013: Add workload awareness context
         workload_prompt = self.get_workload_awareness_prompt(user_id)
 
+        # AU-005: Add autonomy-aware context for check-ins
+        autonomy_prompt = ""
+        if user_id is not None:
+            autonomy_prompt = self.get_autonomy_prompt_context(user_id)
+
         # Build initial system content
         system_content = f"""{WORK_QUALITY_PRIORITY}
 
@@ -12262,6 +12272,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {scene_prompt}
 {requirements_prompt}
 {workload_prompt}
+{autonomy_prompt}
 
 SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
 
