@@ -10840,3 +10840,90 @@ All functionality tested and verified:
 - Manager integration fully functional
 
 ---
+
+## Iteration [OB-021] - 2026-01-11 05:58 UTC
+**Task**: [OB-021] MCP Health Check System
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive health_check.py module with MCPHealthChecker class
+- Health status enum: HEALTHY, DEGRADED, DOWN, UNKNOWN
+- Server-specific health checks for GitHub, Slack, Discord, Notion
+- Node.js prerequisite check (required for all MCP servers)
+- Async check_all_servers() method for comprehensive health checks
+- Individual check_server() method for targeted checks
+- Reconnect functionality for failed MCP connections
+- Health check history logging with JSON persistence (last 1000 records)
+- Alert callback system for connection loss notifications
+- Health summary reporting with overall status calculation
+- Formatted health report generation with status emojis
+- Integrated into mcp_manager.py with 7 new async methods
+
+### Files changed
+- health_check.py (created - 572 lines)
+- mcp_manager.py (added 100+ lines of health check integration)
+
+### Acceptance criteria met
+1. ✅ Checks each configured MCP server (GitHub, Slack, Discord, Notion)
+2. ✅ Reports status: healthy, degraded, down (plus unknown)
+3. ✅ Reconnect option for failed connections (reconnect_server method)
+4. ✅ Logs health check history (JSON persistence to logs/mcp_health_history.json)
+5. ✅ Alerts on connection loss (callback registration system)
+
+### Implementation details
+
+**Health Check System**:
+- HealthStatus enum for consistent status values
+- check_github_mcp(): Validates gh CLI + auth status
+- check_slack_mcp(): Validates SLACK_BOT_TOKEN env var
+- check_discord_mcp(): Validates DISCORD_BOT_TOKEN env var
+- check_notion_mcp(): Validates NOTION_API_KEY env var
+- check_node_installed(): Prerequisite check for all MCP servers
+
+**History & Logging**:
+- Stores last 1000 health check records to prevent bloat
+- Auto-loads on init, auto-saves after each check
+- JSON format with timestamps and full results
+- get_health_history(limit) for recent records
+
+**Alert System**:
+- register_alert_callback(callback) for custom alerting
+- Triggers on status change to DOWN or DEGRADED
+- Supports both sync and async callbacks
+- Multiple callbacks can be registered
+
+**MCP Manager Integration**:
+- check_all_mcp_servers() - comprehensive health check
+- check_mcp_server(name) - individual server check
+- reconnect_mcp_server(name) - attempt reconnection
+- get_mcp_health_summary() - overall health status
+- get_mcp_health_history(limit) - recent history
+- format_mcp_health_report(results) - formatted report
+- register_mcp_health_alert(callback) - alert registration
+
+### Testing
+Tested successfully on current environment:
+- Node.js v22.20.0 detected as HEALTHY
+- GitHub CLI detected as HEALTHY (authenticated)
+- Slack/Discord/Notion detected as DOWN (tokens not configured)
+- Overall status: DEGRADED (expected, tokens not in .env)
+- Health history persists correctly to disk
+- Report formatting works with proper emojis (✅ ⚠️ ❌)
+
+### Learnings
+- Subprocess timeout handling is critical for health checks (5s timeout)
+- GitHub auth status: `gh auth status` returns exit code 0 when authenticated
+- Token format validation catches common config errors early
+- JSON persistence with last-N-records pattern prevents log bloat
+- Async/await throughout for consistency with bot architecture
+- Alert callbacks need both sync/async support for flexibility
+- Health status should distinguish between DEGRADED (configured but issues) and DOWN (not configured)
+
+### Gotchas to avoid
+- Don't forget subprocess timeouts - hanging health checks break the system
+- FileNotFoundError vs subprocess failure have different meanings
+- Health history can grow unbounded - implement rotation (done: last 1000)
+- Alert spam - only trigger on status *change*, not every check
+- Need graceful fallback when health_check.py not available in mcp_manager
+
+---
