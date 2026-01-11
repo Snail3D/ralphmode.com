@@ -8844,3 +8844,29 @@ Check priority_order for exact sequence.
 - Stores history in .ralph_backups/rollback_history.json
 
 ---
+
+## Iteration 152 - 2026-01-10
+**Task**: [RM-038] Conflict Escalation to Ralph
+**Status**: ✅ Complete
+
+### What was implemented
+- Added detect_conflict() method to identify genuine technical disagreements between workers
+- Created escalate_conflict_to_ralph() to present conflicts to Ralph and get his wisdom
+- Implemented handle_conflict_response() to process team decisions (accept, discuss, escalate)
+- Integrated conflict handling into existing callback system via "conflict_" prefix routing
+- Ralph provides naive-but-insightful perspective using call_boss() with full session context
+- Supports three resolution paths: accept Ralph's guidance, continue discussion, or escalate to CEO
+
+### Files changed
+- ralph_bot.py (added 247 lines: methods at lines 2418-2658, callback routing at line 5898-5901)
+- scripts/ralph/prd.json (marked RM-038 as passes: true)
+
+### Learnings
+- The blocker escalation pattern (RM-027) is an excellent template for similar features
+- Session state management follows consistent pattern: session["conflicts"] with status tracking
+- Conflict detection requires both disagreement signals AND technical complexity to be real
+- Ralph's wisdom comes from get_session_context() + call_boss() with carefully crafted prompts
+- Inline buttons use format "action_type_index" for clean callback routing
+- Following established patterns makes integration seamless and maintainable
+
+---
