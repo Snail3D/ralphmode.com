@@ -2108,6 +2108,99 @@ class RalphBot:
                 pass
             return False
 
+    def split_into_byte_sized_chunks(self, text: str, max_sentences: int = 2) -> List[str]:
+        """RM-060: Split text into byte-sized learning chunks (max 2 sentences each).
+
+        Args:
+            text: The full text to split
+            max_sentences: Maximum sentences per chunk (default 2)
+
+        Returns:
+            List of text chunks, each with max_sentences or fewer
+        """
+        import re
+
+        # Split text into sentences (handles ., !, ?, but preserves ellipsis...)
+        sentence_endings = r'(?<!\.\.)\.(?!\.)|[!?]'
+        sentences = re.split(f'({sentence_endings})', text)
+
+        # Recombine sentences with their punctuation
+        combined_sentences = []
+        i = 0
+        while i < len(sentences):
+            if i + 1 < len(sentences) and sentences[i+1] in '.!?':
+                combined_sentences.append((sentences[i] + sentences[i+1]).strip())
+                i += 2
+            else:
+                combined_sentences.append(sentences[i].strip())
+                i += 1
+
+        # Filter out empty sentences
+        combined_sentences = [s for s in combined_sentences if s]
+
+        # Group into chunks of max_sentences
+        chunks = []
+        for i in range(0, len(combined_sentences), max_sentences):
+            chunk = ' '.join(combined_sentences[i:i+max_sentences])
+            if chunk:
+                chunks.append(chunk)
+
+        return chunks if chunks else [text]  # Fallback to original text if splitting fails
+
+    async def send_byte_sized_chunks(
+        self,
+        context,
+        chat_id: int,
+        name: str,
+        title: str = None,
+        message: str = "",
+        topic: str = None,
+        use_buttons: bool = True,
+        pause_range: tuple = (5, 15)
+    ) -> bool:
+        """RM-060: Send message as byte-sized learning chunks with natural pauses.
+
+        Splits longer messages into 2-sentence chunks and sends them with
+        5-15 second pauses between, creating a natural conversational flow
+        where information breathes and is absorbed gradually.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat to send to
+            name: Character name
+            title: Optional job title
+            message: The message content (will be split)
+            topic: Optional topic for context
+            use_buttons: Whether to use button styling
+            pause_range: Tuple of (min, max) seconds for pauses between chunks
+
+        Returns:
+            True if all chunks sent successfully
+        """
+        chunks = self.split_into_byte_sized_chunks(message)
+
+        # If only one chunk, just send normally
+        if len(chunks) == 1:
+            return await self.send_styled_message(
+                context, chat_id, name, title, message, topic, use_buttons, with_typing=True
+            )
+
+        # Send multiple chunks with pauses
+        success = True
+        for i, chunk in enumerate(chunks):
+            # Send chunk
+            result = await self.send_styled_message(
+                context, chat_id, name, title, chunk, topic, use_buttons, with_typing=True
+            )
+            success = success and result
+
+            # Add natural pause before next chunk (except after last one)
+            if i < len(chunks) - 1:
+                pause_seconds = random.uniform(pause_range[0], pause_range[1])
+                await asyncio.sleep(pause_seconds)
+
+        return success
+
     def generate_tap_response(self, name: str, topic: str = None) -> str:
         """Generate a fresh "tap on shoulder" response for a character.
 
@@ -7181,7 +7274,8 @@ You love your team! You want to make the CEO proud of you.
 You might mention your cat, your daddy, paste, or that you're a manager now.
 Classic Ralph energy - innocent, cheerful, confidently confused.
 Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
-1-2 sentences max. Stay in character as Ralph."""
+
+RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph."""
 
         # RM-033: Add Ralph's daily mood to system prompt
         if user_id is not None:
@@ -7333,7 +7427,9 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {project_tone_prompt}
 {enthusiasm_prompt}
 {pushback_prompt}
-2-3 sentences max. Stay in character."""},
+
+RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
+Break complex info across multiple messages. Let it breathe. Stay in character."""},
             {"role": "user", "content": message}
         ]
         response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
