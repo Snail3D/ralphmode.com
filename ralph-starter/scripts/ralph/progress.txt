@@ -14200,3 +14200,41 @@ GOOD_NEWS_SOURCES = {
 - **Anti-misinformation**: Clear attribution prevents spreading unverified feel-good nonsense
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-11
+**Task**: SG-021 - Session Start Good News Fetch
+**Status**: ✅ Complete
+
+### What was implemented
+- Added session-level caching with `self.session_good_news` and `self.session_good_news_used`
+- Created `fetch_session_good_news()` async method that:
+  - Fetches 10 unique good news stories at session start
+  - Prioritizes local stories if user has location set
+  - Runs in background (doesn't block session start)
+  - Gracefully handles failures - session continues without cache
+- Called fetch via `asyncio.create_task()` when session is created in `handle_document()`
+- Modified `generate_good_news_flow_with_citation()` to:
+  - First check session cache for unused stories
+  - Track used stories by URL to prevent repetition
+  - Fall back to live fetch if cache unavailable or exhausted
+- Workers now draw from a consistent pool of stories throughout the session
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- **Background async tasks**: Using `asyncio.create_task()` lets expensive operations run without blocking UX
+- **No-repeat guarantee**: Tracking used URLs via set ensures workers don't repeat the same story
+- **Graceful degradation**: If cache fetch fails, system falls back to live fetching seamlessly
+- **Performance benefit**: Pre-fetching 10 stories at session start eliminates API latency during idle chatter
+- **Session consistency**: Workers reference the same pool of stories, feels more coherent
+- **Location integration**: Leverages existing user location from SG-018 for local news priority
+
+### Why this matters
+- **Better UX**: Good news flows happen instantly during idle chatter (no API wait)
+- **No repetition**: Users won't hear the same story twice in a session
+- **Reduced API calls**: Fetch once at session start instead of per-mention
+- **Feels natural**: Workers seem like they read the news earlier and are referencing it
+- **Scalability**: Minimizes Reddit API hammering as user base grows
+
+---
