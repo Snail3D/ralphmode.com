@@ -10323,6 +10323,88 @@ I'm not that smart, but I remember ALL of it!
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "approved")
 
+    async def send_worker_handoff_message(self, context, chat_id: int, user_id: int):
+        """SG-037: Worker sends warm handoff message when session ends.
+
+        After wrap-up, a worker messages Mr. Worms directly offering continued availability.
+        Creates sense of ongoing relationship, like real coworkers leaving for the day.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+        """
+        # Pick a random worker (not Ralph - he already said goodbye)
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
+
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # Generate fresh sign-off messages - NEVER verbatim from examples
+        # These templates create variety while maintaining the vibe
+
+        sign_off_templates = [
+            # Pattern: Acknowledge wrap, offer availability
+            [
+                "Alright Mr. Worms, we're wrapping up for today.",
+                "If anything comes up or you got questions, just drop me a message.",
+                "I'll be around - even if I'm off the clock, I got you."
+            ],
+            # Pattern: Heading out, stay reachable
+            [
+                "Heading out, boss.",
+                "But seriously, if you need to run anything by me, shoot me a text.",
+                "I'll get back to you quick, even from the road."
+            ],
+            # Pattern: Done for now, door open
+            [
+                "We're done for now, Mr. Worms.",
+                "Hit me up if you think of anything or want to dig deeper on something.",
+                "No rush - whenever works for you."
+            ],
+            # Pattern: See you later, reachable
+            [
+                "That's a wrap on our end.",
+                "Questions come up later? Don't hesitate to reach out.",
+                "I'll fill you in on whatever you need."
+            ],
+            # Pattern: Personal life mention + availability
+            [
+                f"Gotta bounce - {random.choice(['picking up the kids', 'meeting up with someone', 'got an appointment', 'heading to grab dinner'])}.",
+                "But if something pops up, text me anytime.",
+                "I'll catch you up even if I'm out."
+            ],
+            # Pattern: End of day, open door
+            [
+                "Alright boss, calling it for today.",
+                "You need anything clarified or want to talk through something, I'm a message away.",
+                "Seriously - don't be a stranger."
+            ],
+            # Pattern: Professional warm close
+            [
+                "That's everything on my end, Mr. Worms.",
+                "If you got follow-up questions, feel free to ping me.",
+                "Happy to jump on anytime you need."
+            ],
+            # Pattern: Quick check-in offer
+            [
+                "We're good here for now.",
+                "But yo, if you want to review anything or need a second opinion, hit me up.",
+                "I'm around all evening if you need me."
+            ],
+        ]
+
+        # Pick one template and send as multi-part message
+        selected_template = random.choice(sign_off_templates)
+
+        for line in selected_template:
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker["title"],
+                line,
+                with_typing=True
+            )
+            await asyncio.sleep(self.timing.brief_pause())
+
     # ==================== TELEGRAM HANDLERS ====================
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -11457,6 +11539,10 @@ Type your question now!
             session = self.active_sessions.get(user_id)
             if session:
                 project_name = session.get('project_name', 'the project')
+
+                # SG-037: Worker handoff message before session ends
+                await self.send_worker_handoff_message(context, chat_id, user_id)
+
                 del self.active_sessions[user_id]
                 # Clear history too
                 if user_id in self.session_history:
