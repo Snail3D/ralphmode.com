@@ -357,6 +357,20 @@ COMPETENCE (this is your core - never compromise it):
         }
     }
 
+    # RM-016: Specialist Agents - Called in for specific tasks
+    # These are expert consultants who can be summoned when needed
+    SPECIALISTS = {
+        # Specialists will be added in subsequent tasks (RM-017, RM-018, RM-019, etc.)
+        # Each specialist has same structure as DEV_TEAM members:
+        # - title: Their job title/role
+        # - personality: Full personality description with competence section
+        # - greeting: How they announce their arrival
+        # - specialty: What they're expert in
+        # - catchphrases: List of signature phrases
+        # - entry_animation: How they enter the scene
+        # - exit_animation: How they leave the scene
+    }
+
     # The CEO (user talks to Mr. Worms through Ralphie)
     CEO_NAME = "Mr. Worms"
 
@@ -367,6 +381,10 @@ COMPETENCE (this is your core - never compromise it):
         "Gomer": "🟡",      # Yellow for lovable backend
         "Mona": "🔵",       # Blue for smart tech lead
         "Gus": "🟤",        # Brown for grizzled senior
+        # Specialist colors (RM-016+):
+        # "Frinky": "🟣",   # Purple for design specialist (RM-017)
+        # "册子": "🟠",     # Orange for API specialist (RM-018)
+        # "Willie": "🟫",   # Dark brown for DevOps (RM-019)
     }
 
     # Ralph's dyslexia/word mix-ups - he misspells things authentically
@@ -4304,6 +4322,85 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
             self.track_response(user_id, response, worker_name)
 
         return (worker_name, worker['title'], response, token_count)
+
+    async def call_specialist(self, context, chat_id: int, specialist_name: str, task: str, summoned_by: str = "Ralph") -> dict:
+        """RM-016: Call in a specialist for a specific task.
+
+        Args:
+            context: Telegram context for sending messages
+            chat_id: Chat ID to send messages to
+            specialist_name: Name of the specialist to call
+            task: What they're being called in to help with
+            summoned_by: Who called them ("Ralph" or worker name)
+
+        Returns:
+            Dict with specialist response details
+        """
+        if specialist_name not in self.SPECIALISTS:
+            return {"error": f"Specialist '{specialist_name}' not found"}
+
+        specialist = self.SPECIALISTS[specialist_name]
+
+        # Entry animation
+        entry_animation = specialist.get('entry_animation', f"_{specialist_name} walks in._")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=entry_animation,
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(ComedicTiming.normal())
+
+        # Specialist greeting
+        greeting = specialist.get('greeting', f"You called for a {specialist['title']}?")
+        await self.send_styled_message(
+            context, chat_id, specialist_name, specialist['title'], greeting,
+            topic="specialist arrival",
+            with_typing=True
+        )
+        await asyncio.sleep(ComedicTiming.normal())
+
+        # Get specialist's response to the task
+        messages = [
+            {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
+
+{specialist['personality']}
+
+You're a specialist who was just called in by {summoned_by}.
+You work under Ralph Wiggum as your boss - be respectful but stay in character.
+{summoned_by} needs your specialized expertise for this task.
+Provide expert advice in your unique voice.
+Use your catchphrases naturally (don't force them).
+2-3 sentences. Stay in character."""},
+            {"role": "user", "content": f"Task: {task}"}
+        ]
+
+        specialist_response = self.call_groq(WORKER_MODEL, messages, max_tokens=200)
+
+        await self.send_styled_message(
+            context, chat_id, specialist_name, specialist['title'], specialist_response,
+            topic=specialist['specialty'],
+            with_typing=True
+        )
+
+        # Maybe a GIF
+        if self.should_send_gif():
+            await self.send_worker_gif(context, chat_id, "working")
+
+        await asyncio.sleep(ComedicTiming.normal())
+
+        # Exit animation
+        exit_animation = specialist.get('exit_animation', f"_{specialist_name} heads back to their desk._")
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=exit_animation,
+            parse_mode="Markdown"
+        )
+
+        return {
+            "specialist": specialist_name,
+            "response": specialist_response,
+            "specialty": specialist['specialty']
+        }
 
     def check_work_quality(self, response: str, task_type: str = "general") -> dict:
         """Check if a worker's response meets quality standards.
