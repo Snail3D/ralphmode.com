@@ -167,6 +167,14 @@ except ImportError:
     DATABASE_AVAILABLE = False
     logging.warning("Database not available - /mystatus command will be disabled")
 
+# OB-001: Import onboarding wizard for /setup command
+try:
+    from onboarding_wizard import get_onboarding_wizard
+    ONBOARDING_WIZARD_AVAILABLE = True
+except ImportError:
+    ONBOARDING_WIZARD_AVAILABLE = False
+    logging.warning("OB-001: Onboarding wizard not available - /setup command disabled")
+
 # SEC-020: Import PII masking for safe logging
 try:
     from pii_handler import PIIMasker, mask_for_logs, PIIField
@@ -1007,6 +1015,13 @@ class RalphBot:
             logging.info("MU-003: Character manager initialized")
         else:
             self.character_manager = None
+
+        # OB-001: Initialize onboarding wizard for /setup command
+        if ONBOARDING_WIZARD_AVAILABLE:
+            self.onboarding_wizard = get_onboarding_wizard()
+            logging.info("OB-001: Onboarding wizard initialized")
+        else:
+            self.onboarding_wizard = None
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
@@ -5122,6 +5137,11 @@ _Drop a zip file to get started!_
             await self.handle_onboarding_answer(query, context, user_id, data)
             return
 
+        # OB-001: Handle setup wizard callbacks
+        if data.startswith("setup_"):
+            await self.handle_setup_callback(query, context, user_id, data)
+            return
+
         # Handle CEO order priority selection
         if data.startswith("priority_"):
             await self.handle_priority_selection(query, context, user_id, data)
@@ -7196,6 +7216,120 @@ Use `/version <type>` to switch!
             await initial_msg.edit_text(error_msg, parse_mode="Markdown")
             logger.error(f"TC-007: Clustering error: {e}", exc_info=True)
 
+    async def setup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /setup command - OB-001: Onboarding Entry Point."""
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        logger.info(f"OB-001: Processing /setup command from user {telegram_id}")
+
+        # Check if onboarding wizard is available
+        if not ONBOARDING_WIZARD_AVAILABLE:
+            await update.message.reply_text(
+                "😔 Sorry! The setup wizard isn't available right now.\n\n"
+                "Try again later, or contact support!",
+                parse_mode="Markdown"
+            )
+            logger.error("OB-001: Onboarding wizard not available")
+            return
+
+        # Initialize onboarding state for this user
+        if telegram_id not in self.onboarding_state:
+            self.onboarding_state[telegram_id] = self.onboarding_wizard.init_onboarding_state(telegram_id)
+            self.onboarding_state[telegram_id]["started_at"] = datetime.now()
+            logger.info(f"OB-001: Initialized onboarding state for user {telegram_id}")
+        else:
+            # User already has onboarding state - they're resuming
+            logger.info(f"OB-001: User {telegram_id} resuming onboarding from step {self.onboarding_state[telegram_id].get('step')}")
+
+        # Get welcome message and keyboard
+        welcome_text = self.onboarding_wizard.get_welcome_message()
+        welcome_keyboard = self.onboarding_wizard.get_welcome_keyboard()
+
+        # Send welcome message with setup type selection
+        await update.message.reply_text(
+            welcome_text,
+            parse_mode="Markdown",
+            reply_markup=welcome_keyboard
+        )
+
+        logger.info(f"OB-001: Sent welcome message to user {telegram_id}")
+
+    async def handle_setup_callback(self, query, context, user_id: int, data: str):
+        """Handle setup wizard button callbacks.
+
+        Args:
+            query: Callback query from Telegram
+            context: Context object
+            user_id: Telegram user ID
+            data: Callback data (e.g., 'setup_guided', 'setup_quick')
+        """
+        await query.answer()
+
+        # Get or initialize onboarding state
+        if user_id not in self.onboarding_state:
+            self.onboarding_state[user_id] = self.onboarding_wizard.init_onboarding_state(user_id)
+            self.onboarding_state[user_id]["started_at"] = datetime.now()
+
+        state = self.onboarding_state[user_id]
+
+        # Handle setup type selection
+        if data == "setup_guided":
+            state = self.onboarding_wizard.set_setup_type(state, self.onboarding_wizard.SETUP_GUIDED)
+            state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_SETUP_TYPE)
+            self.onboarding_state[user_id] = state
+
+            overview_text = self.onboarding_wizard.get_setup_overview(self.onboarding_wizard.SETUP_GUIDED)
+            overview_keyboard = self.onboarding_wizard.get_overview_keyboard()
+
+            await query.edit_message_text(
+                overview_text,
+                parse_mode="Markdown",
+                reply_markup=overview_keyboard
+            )
+            logger.info(f"OB-001: User {user_id} selected guided setup")
+
+        elif data == "setup_quick":
+            state = self.onboarding_wizard.set_setup_type(state, self.onboarding_wizard.SETUP_QUICK)
+            state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_SETUP_TYPE)
+            self.onboarding_state[user_id] = state
+
+            overview_text = self.onboarding_wizard.get_setup_overview(self.onboarding_wizard.SETUP_QUICK)
+            overview_keyboard = self.onboarding_wizard.get_overview_keyboard()
+
+            await query.edit_message_text(
+                overview_text,
+                parse_mode="Markdown",
+                reply_markup=overview_keyboard
+            )
+            logger.info(f"OB-001: User {user_id} selected quick setup")
+
+        elif data == "setup_continue":
+            # User clicked "Let's Go!" button - move to next step (SSH key generation)
+            # For now, just show a placeholder
+            await query.edit_message_text(
+                "*Setup will continue in next iteration!* 🚧\n\n"
+                "This is the entry point (OB-001). The SSH key wizard (OB-002) is coming next!\n\n"
+                "Your progress has been saved. Type /setup to see where you are!",
+                parse_mode="Markdown"
+            )
+            logger.info(f"OB-001: User {user_id} ready to continue (waiting for OB-002)")
+
+        elif data == "setup_back_welcome":
+            # User clicked back button - go back to welcome screen
+            state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_WELCOME)
+            self.onboarding_state[user_id] = state
+
+            welcome_text = self.onboarding_wizard.get_welcome_message()
+            welcome_keyboard = self.onboarding_wizard.get_welcome_keyboard()
+
+            await query.edit_message_text(
+                welcome_text,
+                parse_mode="Markdown",
+                reply_markup=welcome_keyboard
+            )
+            logger.info(f"OB-001: User {user_id} went back to welcome screen")
+
     def run(self):
         """Start the bot."""
         if not TELEGRAM_BOT_TOKEN:
@@ -7257,6 +7391,7 @@ Use `/version <type>` to switch!
         app.add_handler(CommandHandler("password", self.password_command))  # MU-002
         app.add_handler(CommandHandler("version", self.version_command))  # VM-003
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
+        app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         app.add_handler(MessageHandler(filters.VOICE, self.handle_voice))
         app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
