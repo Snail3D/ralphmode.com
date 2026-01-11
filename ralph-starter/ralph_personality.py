@@ -359,6 +359,128 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(prompts), chance=0.3)
 
+    @staticmethod
+    def get_apology() -> str:
+        """Get one of 50+ unique apology variations from Ralph.
+
+        Used when Ralph forgets or makes mistakes. Never the same apology twice.
+        These are genuine, sweet apologies that maintain Ralph's lovable personality.
+
+        Returns:
+            A random apology from Ralph
+        """
+        apologies = [
+            # Direct apologies
+            "Me sorry!",
+            "Ralph really sorry!",
+            "Sorry about that!",
+            "Me apologize!",
+            "Ralph feel bad!",
+
+            # Sweet/innocent apologies
+            "Ralph didn't mean to!",
+            "Me tried my best!",
+            "Sorry! Ralph's brain is silly sometimes!",
+            "Me feel bad now!",
+            "Ralph promise to try harder!",
+
+            # Self-aware apologies
+            "Ralph know me forget a lot!",
+            "Me not good at remembering! Sorry!",
+            "Ralph's brain is like sieve! Sorry!",
+            "Me try to be better! Sorry!",
+            "Ralph mess up again! Sorry!",
+
+            # Comparative apologies
+            "Sorry like when Ralph broke Principal Skinner's window!",
+            "Me sorry like the time Ralph ate Lisa's homework!",
+            "Sorry! Ralph feel bad like when me lost my mittens!",
+            "Me apologize like Ralph apologizes to his dad!",
+            "Sorry like when Ralph accidentally sat on cat!",
+
+            # Hopeful apologies
+            "Sorry! But Ralph learn from mistakes!",
+            "Me sorry! Ralph do better next time!",
+            "Sorry! Me promise to remember!",
+            "Ralph sorry but me still happy to help!",
+            "Me apologize but won't give up!",
+
+            # Physical/action apologies
+            "Ralph bow head in shame! Sorry!",
+            "Me hide face! So sorry!",
+            "Ralph's ears are down! Sorry!",
+            "Me give you sorry hug! Sorry!",
+            "Ralph do apologize dance! Sorry!",
+
+            # Endearing apologies
+            "Sorry Mr. Worms!",
+            "Me really really sorry!",
+            "Super sorry!",
+            "Extra sorry!",
+            "Ralph mega sorry!",
+
+            # Worker-involved apologies
+            "The team says sorry too!",
+            "Workers feel bad Ralph forgot! Sorry!",
+            "Everyone is sorry! Including Ralph!",
+            "The whole crew apologizes!",
+            "Me and the workers say sorry!",
+
+            # Comedic apologies
+            "Sorry! Ralph's brain took vacation!",
+            "Me sorry! Brain on coffee break!",
+            "Ralph apologize! Memory went bye-bye!",
+            "Sorry! Ralph's think-box broke!",
+            "Me sorry! Forgot to remember!",
+
+            # Humble apologies
+            "Ralph not perfect! Sorry!",
+            "Me just Ralph! Sorry for mistakes!",
+            "Sorry! Ralph trying his best!",
+            "Me know me not smartest! Sorry!",
+            "Ralph do what Ralph can! Sorry!",
+
+            # Explanatory apologies (sweet)
+            "Sorry! Ralph's memory is fuzzy!",
+            "Me apologize! Brain got confused!",
+            "Sorry! Ralph was thinking about snacks!",
+            "Me sorry! Too many thoughts in Ralph's head!",
+            "Sorry! Ralph's brain did spinny thing!",
+
+            # Promise apologies
+            "Sorry! Ralph won't do it again!",
+            "Me apologize and will be more careful!",
+            "Sorry! Ralph learning!",
+            "Me sorry! Will pay more attention!",
+            "Ralph promise to focus! Sorry!",
+
+            # Cute apologies
+            "Sowwy!",
+            "Me vewy sorry!",
+            "Ralph super duper sorry!",
+            "Big sorry from Ralph!",
+            "Sorry with cherry on top!",
+
+            # Additional variations for 50+
+            "Me bad! Sorry!",
+            "Ralph goofed! Sorry!",
+            "Oopsie! Sorry!",
+            "Me messed up! Sorry!",
+            "Ralph's fault! Sorry!",
+            "Sorry! Ralph can do better!",
+            "Me won't forget next time! Sorry!",
+            "Ralph embarrassed! Sorry!",
+            "So so sorry!",
+            "Me sincerely sorry!",
+            "Ralph heart says sorry!",
+            "Sorry from bottom of Ralph's heart!",
+            "Me truly sorry!",
+            "Ralph genuine sorry!",
+            "Sorry! Me learn lesson!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(apologies), chance=0.3)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
