@@ -4543,7 +4543,7 @@
         "onboarding_wizard.py",
         "mcp_explainer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-017",

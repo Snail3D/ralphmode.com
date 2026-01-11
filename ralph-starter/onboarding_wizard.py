@@ -209,6 +209,16 @@ class OnboardingWizard:
             self.notification_settings_available = False
             self.logger.warning("Notification settings not available")
 
+        # Import MCP explainer (OB-016: MCP Concept Explainer)
+        try:
+            from mcp_explainer import get_mcp_explainer
+            self.mcp_explainer = get_mcp_explainer()
+            self.mcp_explainer_available = True
+        except ImportError:
+            self.mcp_explainer = None
+            self.mcp_explainer_available = False
+            self.logger.warning("MCP explainer not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -7621,6 +7631,87 @@ Your notification preferences have been saved!
 You can change these anytime by running `/settings` and selecting "Notifications".
 
 Let's continue with setup!"""
+
+    def get_mcp_explainer_message(self) -> str:
+        """Get the MCP concept explainer message.
+
+        Returns:
+            MCP explanation message (OB-016)
+        """
+        if self.mcp_explainer_available:
+            return self.mcp_explainer.get_mcp_explainer_message()
+        else:
+            # Fallback if MCP explainer not available
+            return """*What's MCP? (Model Context Protocol)* 🔌
+
+MCP is like giving Claude Code superpowers!
+
+Think of it as installing apps on your phone:
+→ Claude Code = smartphone 📱
+→ MCP servers = apps 📲
+→ Each app gives Claude new abilities! ✨
+
+**What MCP Enables:**
+→ Database access (PostgreSQL, MySQL, SQLite)
+→ API integrations (GitHub, Slack, Discord, Notion)
+→ File system tools
+→ Custom company-specific tools
+
+**Learn More:**
+📖 Docs: https://modelcontextprotocol.io/
+🎥 Video: https://www.youtube.com/watch?v=8lik7EJBAH4
+💻 GitHub: https://github.com/modelcontextprotocol
+
+Ready to supercharge Ralph? 💪"""
+
+    def get_mcp_quick_explainer(self) -> str:
+        """Get quick MCP explanation.
+
+        Returns:
+            Quick MCP summary (OB-016)
+        """
+        if self.mcp_explainer_available:
+            return self.mcp_explainer.get_mcp_quick_explainer()
+        else:
+            return """*MCP in 2 Sentences:*
+
+MCP (Model Context Protocol) lets Claude Code connect to external systems like GitHub, databases, and APIs. Think of it as installing apps on your phone - each MCP server gives Claude new superpowers! 🦸"""
+
+    def get_mcp_server_categories_display(self) -> str:
+        """Get formatted display of MCP server categories.
+
+        Returns:
+            Formatted server categories (OB-016)
+        """
+        if not self.mcp_explainer_available:
+            return "MCP server categories not available."
+
+        categories = self.mcp_explainer.get_mcp_server_categories()
+        message = "*Popular MCP Servers* 🔌\n\n"
+
+        for category, servers in categories.items():
+            message += f"**{category}:**\n"
+            for server in servers:
+                message += f"• {server['name']}: {server['description']}\n"
+            message += "\n"
+
+        return message
+
+    def get_mcp_benefits_display(self) -> str:
+        """Get formatted display of MCP benefits.
+
+        Returns:
+            Formatted benefits list (OB-016)
+        """
+        if not self.mcp_explainer_available:
+            return "MCP benefits information not available."
+
+        benefits = self.mcp_explainer.get_mcp_benefits_list()
+        message = "*Why Use MCP?* 💡\n\n"
+        for benefit in benefits:
+            message += f"{benefit}\n"
+
+        return message
 
 
 def get_onboarding_wizard() -> OnboardingWizard:
