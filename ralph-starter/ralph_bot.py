@@ -2415,6 +2415,248 @@ _{ralph_message}_
         # Not a blocker - just a regular error
         return (False, "", "")
 
+    def detect_conflict(self, worker_responses: List[Dict[str, str]], context: str = "") -> Tuple[bool, str, List[str]]:
+        """
+        RM-038: Detect if workers have a real technical conflict that needs Ralph's guidance.
+
+        Args:
+            worker_responses: List of dicts with 'worker_name' and 'response' keys
+            context: Additional context about the situation
+
+        Returns:
+            Tuple of (is_conflict, conflict_description, involved_workers)
+        """
+        if len(worker_responses) < 2:
+            return (False, "", [])
+
+        # Look for disagreement keywords in responses
+        disagreement_signals = [
+            "disagree", "not sure about", "actually", "but", "however",
+            "alternative", "different approach", "i think we should",
+            "wouldn't recommend", "concern", "issue with", "problem with",
+            "rather", "instead"
+        ]
+
+        # Check for technical complexity indicators
+        complexity_signals = [
+            "depends on", "trade-off", "could break", "might cause",
+            "performance", "security", "bug", "error", "compatibility",
+            "technical debt", "refactor", "architecture"
+        ]
+
+        # Count disagreements
+        disagreement_count = 0
+        complexity_count = 0
+        involved_workers = []
+
+        for response_data in worker_responses:
+            response = response_data.get('response', '').lower()
+            worker_name = response_data.get('worker_name', '')
+
+            if any(signal in response for signal in disagreement_signals):
+                disagreement_count += 1
+                if worker_name not in involved_workers:
+                    involved_workers.append(worker_name)
+
+            if any(signal in response for signal in complexity_signals):
+                complexity_count += 1
+                if worker_name not in involved_workers:
+                    involved_workers.append(worker_name)
+
+        # Real conflict = multiple disagreements + technical complexity
+        is_conflict = disagreement_count >= 2 and complexity_count >= 1
+
+        if is_conflict:
+            conflict_desc = f"Technical disagreement between {', '.join(involved_workers)} about {context}"
+            return (True, conflict_desc, involved_workers)
+
+        return (False, "", [])
+
+    async def escalate_conflict_to_ralph(self, context, chat_id: int, user_id: int,
+                                         worker_responses: List[Dict[str, str]],
+                                         conflict_description: str):
+        """
+        RM-038: Escalate a worker conflict to Ralph for guidance.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            worker_responses: List of worker responses that led to the conflict
+            conflict_description: Description of the conflict
+        """
+        # Track conflict in session
+        session = self.active_sessions.get(user_id, {})
+        if "conflicts" not in session:
+            session["conflicts"] = []
+
+        conflict_data = {
+            "description": conflict_description,
+            "worker_responses": worker_responses,
+            "timestamp": datetime.now().isoformat(),
+            "status": "pending"
+        }
+        session["conflicts"].append(conflict_data)
+
+        # Get session context for Ralph's understanding
+        session_context = self.get_session_context(user_id)
+
+        # Build conflict summary for Ralph
+        conflict_summary = f"The team has a technical disagreement:\n\n"
+        for resp_data in worker_responses:
+            worker_name = resp_data.get('worker_name', 'Unknown')
+            response = resp_data.get('response', '')
+            worker_title = self.DEV_TEAM.get(worker_name, {}).get('title', 'Team Member')
+            conflict_summary += f"*{worker_name}* ({worker_title}): {response}\n\n"
+
+        # Ralph reviews the situation and provides guidance
+        ralph_guidance_prompt = f"""You're Ralph Wiggum, the lovable boss. Your team has hit a disagreement and they need your wisdom.
+
+{conflict_summary}
+
+Context: {conflict_description}
+
+Recent session history:
+{session_context[-500:] if session_context else "This is a new situation."}
+
+What's your take on this, Ralph? You might not understand all the technical details, but you have good instincts about people and can ask the right simple questions. Sometimes your naive perspective helps the team see things differently.
+
+Provide your guidance in 2-3 sentences. Be Ralph - sweet, occasionally wise, sometimes accidentally brilliant."""
+
+        ralph_response = self.call_boss(ralph_guidance_prompt, apply_misspellings=True)
+
+        # Store Ralph's guidance in the conflict
+        conflict_data["ralph_guidance"] = ralph_response
+
+        # Send Ralph's guidance to the team
+        guidance_message = f"""🤔 *RALPH WEIGHS IN*
+
+The team hit a disagreement, so I asked Ralph what he thinks...
+
+{conflict_summary}
+
+*Ralph's take:*
+_{ralph_response}_
+
+What should we do?"""
+
+        # Create inline buttons for resolution
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Ralph's right, go with it", callback_data=f"conflict_accept_{len(session['conflicts'])-1}")],
+            [InlineKeyboardButton("🤔 Need more discussion", callback_data=f"conflict_discuss_{len(session['conflicts'])-1}")],
+            [InlineKeyboardButton("👔 Mr. Worms decides", callback_data=f"conflict_escalate_{len(session['conflicts'])-1}")],
+        ])
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=guidance_message,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        logger.info(f"RM-038: Escalated conflict to Ralph for user {user_id}")
+
+    async def handle_conflict_response(self, query, context, user_id: int, data: str):
+        """
+        RM-038: Handle Ralph's conflict resolution response.
+
+        Args:
+            query: Callback query
+            context: Telegram context
+            user_id: User ID
+            data: Callback data (conflict_accept_0, conflict_discuss_0, conflict_escalate_0)
+        """
+        await query.answer()
+
+        # Parse callback data: conflict_action_index
+        parts = data.split("_")
+        if len(parts) != 3:
+            logger.error(f"RM-038: Invalid conflict callback data: {data}")
+            return
+
+        action = parts[1]  # accept, discuss, escalate
+        conflict_index = int(parts[2])
+
+        session = self.active_sessions.get(user_id)
+        if not session or "conflicts" not in session:
+            await query.edit_message_text("Error: Session or conflict not found.")
+            return
+
+        if conflict_index >= len(session["conflicts"]):
+            await query.edit_message_text("Error: Invalid conflict index.")
+            return
+
+        conflict = session["conflicts"][conflict_index]
+
+        # Handle the action
+        if action == "accept":
+            conflict["status"] = "resolved_with_ralph"
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Yay! I helped! Okay team, let's do it that way!",
+                "I knew we could figure it out! Thanks for listening to me!",
+                "See? Sometimes the simple way is the best way!",
+                "Great! Now we're all on the same team again!"
+            ]))
+
+            await query.edit_message_text(
+                f"{query.message.text}\n\n✅ *TEAM DECISION: Following Ralph's guidance*\n\n_{ralph_response}_",
+                parse_mode="Markdown"
+            )
+
+        elif action == "discuss":
+            conflict["status"] = "needs_more_discussion"
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Okay, you guys talk it out! I'll wait. Take your time!",
+                "Good idea! Sometimes talking helps. I'm here if you need me!",
+                "Yeah, you guys are smart! Work it out together!"
+            ]))
+
+            await query.edit_message_text(
+                f"{query.message.text}\n\n💬 *TEAM DECISION: More discussion needed*\n\n_{ralph_response}_\n\nTeam will continue discussing...",
+                parse_mode="Markdown"
+            )
+
+        elif action == "escalate":
+            conflict["status"] = "escalated_to_ceo"
+
+            ralph_response = self.ralph_misspell(random.choice([
+                "Mr. Worms! The team needs you! This one's too big for me!",
+                "Uh oh, I think we need the boss's boss for this one...",
+                "Mr. Worms! Can you help us decide? Pretty please?"
+            ]))
+
+            # Get conflict summary for CEO
+            conflict_summary = conflict.get("description", "Technical disagreement")
+            worker_responses = conflict.get("worker_responses", [])
+
+            escalation_text = f"""🚨 *CONFLICT ESCALATED TO CEO* 🚨
+
+_{ralph_response}_
+
+*The situation:*
+{conflict_summary}
+
+*Worker opinions:*
+"""
+            for resp_data in worker_responses:
+                worker_name = resp_data.get('worker_name', 'Unknown')
+                response = resp_data.get('response', '')
+                escalation_text += f"\n*{worker_name}:* {response}\n"
+
+            escalation_text += f"\n*Ralph's take:*\n_{conflict.get('ralph_guidance', 'Not available')}_\n\n*Mr. Worms, what should the team do?*"
+
+            await query.edit_message_text(
+                escalation_text,
+                parse_mode="Markdown"
+            )
+
+            # Mark session as awaiting CEO input
+            session["awaiting_conflict_resolution"] = conflict_index
+
+        logger.info(f"RM-038: Team chose '{action}' for conflict {conflict_index} for user {user_id}")
+
     async def check_and_escalate_if_blocker(self, context, chat_id: int, user_id: int, response: str, operation_context: str = "") -> bool:
         """
         RM-027: Helper method to check if a response indicates a blocker and escalate if needed.
@@ -5651,6 +5893,11 @@ _Drop a zip file to get started!_
         # RM-027: Handle blocker response callbacks
         if data.startswith("blocker_"):
             await self.handle_blocker_response(query, context, user_id, data)
+            return
+
+        # RM-038: Handle conflict response callbacks
+        if data.startswith("conflict_"):
+            await self.handle_conflict_response(query, context, user_id, data)
             return
 
         await query.answer()
