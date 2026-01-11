@@ -961,6 +961,342 @@ Ralph uses Git EVERY DAY! All the professionals do!
 *Cool right?* Now you know why we set up your name! 🎉
 """
 
+    # Anthropic API Key Setup (OB-006)
+
+    def get_anthropic_api_intro_message(self) -> str:
+        """Get introduction message for Anthropic API key setup.
+
+        Returns:
+            Anthropic API key introduction
+        """
+        return """*Time to Connect Ralph's Brain!* 🧠
+
+Okay! This is the IMPORTANT part!
+
+Ralph needs a special key to talk to Claude AI! That's what makes Ralph smart!
+
+*What's an API key?*
+Think of it like:
+• A library card for using Claude's brain 📚
+• A ticket to ride the AI train 🎫
+• Your permission slip to use super smart AI 📝
+
+This key connects Ralph to Anthropic's servers, where Claude lives!
+
+*Why you need this:*
+• Ralph uses Claude to understand your code
+• Claude writes the actual code changes
+• Without this key, Ralph just a regular bot!
+
+*Important:*
+⚠️ API keys are SECRETS! Never share them!
+⚠️ Don't put them in your code or GitHub!
+⚠️ Only put them in the `.env` file (which stays on YOUR computer!)
+
+*Ready to get your key?*
+"""
+
+    def get_anthropic_signup_message(self) -> str:
+        """Get message with signup instructions for Anthropic.
+
+        Returns:
+            Signup instructions message
+        """
+        return """*Step 1: Sign Up for Anthropic!* 📝
+
+First, you need an Anthropic account!
+
+*Follow these steps:*
+
+**Step 1:** Click the link below to go to Anthropic
+**Step 2:** Click "Sign Up" or "Get Started"
+**Step 3:** Create your account (use email or Google)
+**Step 4:** Verify your email if needed
+
+*The link:*
+🔗 [Anthropic Console](https://console.anthropic.com)
+
+*After you sign up:*
+You might need to add a payment method! Don't worry - Anthropic gives you FREE credits to start!
+
+**Pricing (as of 2024):**
+• You get some free credits when you sign up
+• After that, it's pay-as-you-go
+• Claude is VERY affordable (pennies per request!)
+• You can set spending limits!
+
+Ralph recommend starting with free credits to test everything!
+
+*Need help understanding pricing?*
+🎥 [Anthropic Pricing Guide](https://www.anthropic.com/pricing)
+
+*Did you create your account?*
+"""
+
+    def get_anthropic_signup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Anthropic signup step.
+
+        Returns:
+            Keyboard with signup action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open Anthropic Console", url="https://console.anthropic.com")],
+            [InlineKeyboardButton("✅ I Have an Account!", callback_data="anthropic_has_account")],
+            [InlineKeyboardButton("💰 Learn About Pricing", url="https://www.anthropic.com/pricing")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="anthropic_signup_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_anthropic_api_key_message(self) -> str:
+        """Get instructions for getting the API key.
+
+        Returns:
+            API key retrieval instructions
+        """
+        return """*Step 2: Get Your API Key!* 🔑
+
+Perfect! Now let's get your API key!
+
+*Follow these steps EXACTLY:*
+
+**Step 1:** Go to the Anthropic Console
+**Step 2:** Click on "API Keys" in the left menu
+**Step 3:** Click "Create Key" or "+ Create Key"
+**Step 4:** Give it a name like "Ralph Mode Bot"
+**Step 5:** Copy the key! (It only shows ONCE!)
+
+*IMPORTANT:*
+⚠️ The key starts with `sk-ant-`
+⚠️ Copy the WHOLE thing (it's long!)
+⚠️ Save it somewhere safe for now
+⚠️ You can't see it again after you close the page!
+
+*What your key looks like:*
+```
+sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+*Security Reminders:*
+🔒 NEVER share this key with anyone
+🔒 NEVER post it on GitHub, Twitter, Discord, etc.
+🔒 NEVER put it directly in your code
+🔒 Ralph will help you save it SAFELY in the `.env` file
+
+*Got your key copied?*
+
+🔗 [Get API Key](https://console.anthropic.com/settings/keys)
+
+*Need a video tutorial?*
+🎥 [How to Get Anthropic API Key](https://www.youtube.com/watch?v=example)
+"""
+
+    def get_anthropic_api_key_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for API key retrieval step.
+
+        Returns:
+            Keyboard with API key action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open API Keys Page", url="https://console.anthropic.com/settings/keys")],
+            [InlineKeyboardButton("✅ I Copied My Key!", callback_data="anthropic_key_copied")],
+            [InlineKeyboardButton("📋 Show Instructions Again", callback_data="anthropic_show_key_instructions")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="anthropic_key_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_anthropic_key_entry_message(self) -> str:
+        """Get message for entering the API key.
+
+        Returns:
+            Key entry request message
+        """
+        return """*Step 3: Send Ralph Your Key!* 📨
+
+Okay! Now Ralph needs you to send the API key!
+
+*How to do this:*
+1. Just paste your API key in the chat
+2. Ralph will save it SAFELY in your `.env` file
+3. Nobody else will see it!
+
+*What to paste:*
+The WHOLE key that starts with `sk-ant-`
+
+*Example:*
+```
+sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**SECURITY NOTE:**
+Ralph will validate the key format before saving!
+If it doesn't look right, Ralph will warn you!
+
+*Ready? Paste your API key now:*
+"""
+
+    def validate_anthropic_key_format(self, key: str) -> bool:
+        """Validate that the API key has the correct format.
+
+        Args:
+            key: The API key to validate
+
+        Returns:
+            True if format is valid, False otherwise
+        """
+        # Anthropic keys start with sk-ant- and are typically 100+ characters
+        if not key:
+            return False
+
+        key = key.strip()
+
+        # Check if it starts with the correct prefix
+        if not key.startswith("sk-ant-"):
+            return False
+
+        # Check minimum length (Anthropic keys are usually 100+ chars)
+        if len(key) < 50:
+            return False
+
+        # Check that it only contains valid characters (alphanumeric, hyphens, underscores)
+        import re
+        if not re.match(r'^sk-ant-[a-zA-Z0-9_-]+$', key):
+            return False
+
+        return True
+
+    def get_anthropic_key_invalid_message(self, key: str) -> str:
+        """Get message for invalid API key format.
+
+        Args:
+            key: The invalid key that was provided
+
+        Returns:
+            Error message explaining what's wrong
+        """
+        issues = []
+
+        if not key or not key.strip():
+            issues.append("❌ The key is empty!")
+        elif not key.startswith("sk-ant-"):
+            issues.append("❌ API key should start with `sk-ant-`")
+        elif len(key) < 50:
+            issues.append("❌ API key is too short! Real keys are 100+ characters!")
+        else:
+            issues.append("❌ API key has invalid characters!")
+
+        return f"""*Hmm... That Key Doesn't Look Right!* 🤔
+
+Ralph found some problems:
+
+{chr(10).join(issues)}
+
+*What Anthropic API keys look like:*
+✅ Starts with: `sk-ant-`
+✅ Length: Usually 100+ characters
+✅ Contains: Letters, numbers, hyphens, underscores
+✅ Example: `sk-ant-api03-xxxxxxxxxxxxxxxxxxxx...`
+
+*Common mistakes:*
+• Copied only part of the key (copy ALL of it!)
+• Added extra spaces (Ralph can fix this!)
+• Copied the wrong thing (make sure it's from Anthropic Console!)
+• Confused it with another API key (Groq? OpenAI? Wrong key!)
+
+*Try again!*
+Go back to: https://console.anthropic.com/settings/keys
+Copy the WHOLE key and send it again!
+"""
+
+    def get_anthropic_key_success_message(self) -> str:
+        """Get success message after API key is saved.
+
+        Returns:
+            Success celebration message
+        """
+        return """*API Key Saved!* 🎉🔐
+
+Ralph SO EXCITED! You did it!
+
+*What Ralph just did:*
+✅ Validated your API key format
+✅ Saved it to your `.env` file
+✅ Made sure it's secure (only on YOUR computer!)
+
+*Where is it saved?*
+The key is in: `.env` (this file is in `.gitignore`, so it NEVER goes to GitHub!)
+
+*What this means:*
+🧠 Ralph can now use Claude's brain!
+💡 You can build AI-powered features!
+🚀 Your bot is ready to be SUPER SMART!
+
+*Security reminder:*
+Your `.env` file is LOCAL only! If you push to GitHub, the key won't be included!
+That's GOOD! It keeps your key safe!
+
+*Next steps:*
+Ralph can help you:
+• Test the API key with a quick request
+• Set up other API keys (Telegram, Groq, etc.)
+• Start using Ralph Mode!
+
+*Want to test the key real quick?*
+"""
+
+    def get_anthropic_key_security_reminder(self) -> str:
+        """Get security reminder message about API keys.
+
+        Returns:
+            Security education message
+        """
+        return """*Ralph's Security Lesson!* 🔒📚
+
+Ralph wants to make sure you understand API key security!
+
+*Why API keys are secret:*
+• Anyone with your key can use YOUR account
+• They can spend YOUR money on API calls
+• They can see YOUR data
+• You're responsible for what they do!
+
+*Good practices:*
+✅ Only put keys in `.env` (never in code!)
+✅ Add `.env` to `.gitignore` (it's already there!)
+✅ Never post keys in Discord, Twitter, etc.
+✅ Rotate keys if you think they're compromised
+✅ Set spending limits in Anthropic Console
+
+*Bad practices:*
+❌ Putting keys directly in code files
+❌ Committing `.env` to GitHub
+❌ Sharing keys with friends ("just for testing")
+❌ Posting keys in screenshots
+❌ Emailing keys to yourself
+
+*What if your key gets leaked?*
+1. Go to Anthropic Console IMMEDIATELY
+2. Delete the leaked key
+3. Create a new one
+4. Update your `.env` file
+
+*Remember:*
+Your API key = Your money = Your responsibility!
+Ralph helps you keep it safe! 🛡️
+"""
+
+    def get_anthropic_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for API key testing options.
+
+        Returns:
+            Keyboard with testing action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🧪 Test the Key!", callback_data="anthropic_test_key")],
+            [InlineKeyboardButton("📚 Security Reminder", callback_data="anthropic_security_reminder")],
+            [InlineKeyboardButton("▶️ Continue Setup", callback_data="setup_continue_next")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
     # Repository Creation Wizard (OB-004)
 
     def get_repo_creation_intro_message(self) -> str:

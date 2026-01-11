@@ -4367,7 +4367,7 @@
         "onboarding_wizard.py",
         "api_key_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-007",
