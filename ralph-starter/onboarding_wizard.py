@@ -48,6 +48,14 @@ try:
     VENV_SETUP_AVAILABLE = True
 except ImportError:
     VENV_SETUP_AVAILABLE = False
+
+# Import security checker for OB-051
+try:
+    from security_checker import SecurityChecker
+    SECURITY_CHECKER_AVAILABLE = True
+except ImportError:
+    SECURITY_CHECKER_AVAILABLE = False
+    logging.warning("Security checker not available")
     logging.warning("Virtual environment setup not available")
 
 # Import Claude Code CLI setup for OB-026
@@ -79,6 +87,7 @@ class OnboardingWizard:
     STEP_FOLDERS = "folders"  # OB-029: Folder structure creation
     STEP_PYTHON_ENV = "python_env"  # OB-024: Python environment setup
     STEP_CLAUDE_CLI = "claude_cli"  # OB-026: Claude Code CLI installation
+    STEP_SECURITY = "security"  # OB-051: Security checkpoint - secrets safety review
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_BOT_TEST = "bot_test"  # OB-039: Bot testing walkthrough
@@ -217,6 +226,14 @@ class OnboardingWizard:
         else:
             self.venv_setup = None
             self.logger.warning("Virtual environment setup not available")
+
+        # Import security checker (OB-051: Security Checkpoint - Secrets Safety Review)
+        if SECURITY_CHECKER_AVAILABLE:
+            import os
+            self.security_checker = SecurityChecker(os.getcwd())
+        else:
+            self.security_checker = None
+            self.logger.warning("Security checker not available")
 
         # Import theme manager (OB-040: Visual Theme Selector)
         try:
@@ -9430,6 +9447,230 @@ Ralph here to help! Don't give up! 💪"""
             [InlineKeyboardButton("⬅️ Back", callback_data="setup_back")]
         ])
         return InlineKeyboardMarkup(keyboard)
+
+
+    # OB-051: Security Checkpoint - Secrets Safety Review
+    def get_security_checkpoint_message(self, results: Dict[str, any]) -> str:
+        """
+        Generate Ralph-style security checkpoint message.
+
+        Args:
+            results: Security scan results from SecurityChecker
+
+        Returns:
+            Formatted security checkpoint message with Ralph's personality
+        """
+        if not SECURITY_CHECKER_AVAILABLE or not self.security_checker:
+            return "⚠️ Security checker not available. Please manually verify your .env and .gitignore files."
+
+        # Use the SecurityChecker's Ralph message
+        return self.security_checker.get_ralph_security_message(results)
+
+    async def run_security_checkpoint(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE
+    ) -> Tuple[bool, str]:
+        """
+        Run the security checkpoint scan and display results.
+
+        Args:
+            update: Telegram update
+            context: Telegram context
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not SECURITY_CHECKER_AVAILABLE or not self.security_checker:
+            return True, "Security checker not available, skipping"
+
+        # Send initial message
+        message = await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="🔍 *RALPH'S SEKURITY SCAN STARTING...*\n\nI'm looking for passwords in weird places...",
+            parse_mode="Markdown"
+        )
+
+        try:
+            # Run the security scan
+            results = self.security_checker.scan_project()
+
+            # Get Ralph's message about the results
+            security_msg = self.get_security_checkpoint_message(results)
+
+            # Add action buttons
+            keyboard = []
+            if results['critical_issues'] > 0 or not results['has_env_file'] or not results['gitignore_configured']:
+                keyboard.append([InlineKeyboardButton("✅ Auto-Fix Issues (Recommended)", callback_data="security_autofix")])
+            else:
+                keyboard.append([InlineKeyboardButton("✅ Looks Good! Continue", callback_data="security_continue")])
+
+            keyboard.extend([
+                [InlineKeyboardButton("📚 Security Best Practices", callback_data="security_learn")],
+                [InlineKeyboardButton("⏭️ Skip (Not Recommended)", callback_data="security_skip")]
+            ])
+
+            # Update message with results
+            await message.edit_text(
+                security_msg,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+            # Block if critical issues (as per acceptance criteria)
+            if results['critical_issues'] > 0:
+                return False, "Critical security issues found - must fix before proceeding"
+
+            return True, "Security checkpoint completed"
+
+        except Exception as e:
+            self.logger.error(f"Security checkpoint error: {e}")
+            await message.edit_text(
+                f"❌ *Security Scan Error*\n\n{str(e)}\n\nYou can skip for now, but please check your .env and .gitignore manually.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⏭️ Skip", callback_data="security_skip")]
+                ])
+            )
+            return False, str(e)
+
+    async def security_autofix(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE
+    ) -> Tuple[bool, str]:
+        """
+        Auto-fix security issues found during scan.
+
+        Args:
+            update: Telegram update
+            context: Telegram context
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not SECURITY_CHECKER_AVAILABLE or not self.security_checker:
+            return False, "Security checker not available"
+
+        query = update.callback_query
+        await query.answer()
+
+        # Update message to show fixing
+        await query.edit_message_text(
+            "🔧 *RALPH'S FIXING STUFF...*\n\nI'm making your secrets safe!\n\n⏳ Please wait...",
+            parse_mode="Markdown"
+        )
+
+        try:
+            # Run scan first to get results
+            results = self.security_checker.scan_project()
+
+            # Auto-fix issues
+            fixed = self.security_checker.auto_fix_issues(results)
+
+            # Build success message
+            fix_msg = "✅ *RALPH FIXED STUFF!*\n\n"
+
+            if fixed['created_env']:
+                fix_msg += "✅ Created .env file with placeholders\n"
+            if fixed['created_gitignore']:
+                fix_msg += "✅ Created .gitignore to protect secrets\n"
+            if fixed['updated_gitignore']:
+                fix_msg += "✅ Updated .gitignore with security patterns\n"
+
+            # Re-scan to verify
+            new_results = self.security_checker.scan_project()
+
+            if new_results['critical_issues'] == 0:
+                fix_msg += "\n🎉 All critical issues fixed!\n"
+                fix_msg += "\n*Remember:*\n"
+                fix_msg += "• Put your real API keys in .env\n"
+                fix_msg += "• Never commit .env to GitHub\n"
+                fix_msg += "• The .gitignore file protects you!\n"
+
+                keyboard = [[InlineKeyboardButton("✅ Continue", callback_data="security_continue")]]
+            else:
+                fix_msg += f"\n⚠️ Still have {new_results['critical_issues']} issues to fix manually.\n"
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="security_autofix")],
+                    [InlineKeyboardButton("📖 Get Help", callback_data="security_learn")]
+                ]
+
+            await query.edit_message_text(
+                fix_msg,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+            return new_results['critical_issues'] == 0, "Auto-fix completed"
+
+        except Exception as e:
+            self.logger.error(f"Security auto-fix error: {e}")
+            await query.edit_message_text(
+                f"❌ *Auto-Fix Failed*\n\n{str(e)}\n\nPlease fix manually or ask for help.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📖 Get Help", callback_data="security_learn")],
+                    [InlineKeyboardButton("⏭️ Skip", callback_data="security_skip")]
+                ])
+            )
+            return False, str(e)
+
+    def get_security_best_practices_message(self) -> str:
+        """
+        Get security best practices documentation.
+
+        Returns:
+            Message with security best practices and links
+        """
+        msg = """🔒 *RALPH'S SEKURITY LESSONS* 🔒
+
+**What Are Secrets?**
+API keys, passwords, tokens - anything that proves you're you!
+
+**Why .env Files?**
+→ Keeps secrets on YOUR computer only
+→ Never uploaded to GitHub
+→ Each developer has their own
+
+**Why .gitignore?**
+→ Tells Git to ignore certain files
+→ Prevents accidental commits of .env
+→ Protects you from yourself!
+
+**Golden Rules:**
+1. NEVER put API keys directly in code
+2. ALWAYS use .env for secrets
+3. ALWAYS have .env in .gitignore
+4. Test before pushing to GitHub
+
+**What Happens If Secrets Leak?**
+→ Bad guys can use YOUR accounts
+→ They rack up charges on YOUR credit card
+→ Your API keys get revoked
+→ You have to change everything
+
+**Real Example:**
+Someone committed AWS keys to GitHub.
+Bots found them in 5 minutes.
+They mined Bitcoin on his account.
+Bill: $50,000. 😱
+
+**Stay Safe!**
+→ Use .env for secrets
+→ Check GitHub before pushing
+→ Use `git status` to see what you're committing
+→ When in doubt, ask!
+
+**Learn More:**
+"""
+        # Add the documentation link
+        if SECURITY_CHECKER_AVAILABLE and self.security_checker:
+            msg += self.security_checker.get_secrets_documentation_link()
+        else:
+            msg += "https://docs.github.com/en/code-security/getting-started/best-practices-for-preventing-data-leaks-in-your-organization"
+
+        return msg
 
 
 def get_onboarding_wizard() -> OnboardingWizard:

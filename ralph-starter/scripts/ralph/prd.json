@@ -5168,7 +5168,7 @@
         "onboarding_wizard.py",
         "security_checker.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-052",
