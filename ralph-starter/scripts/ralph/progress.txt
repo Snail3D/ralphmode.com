@@ -9745,3 +9745,46 @@ Updated the following methods to use tutorial library:
 ✅ Quality of work doesn't suffer from disagreement - still do it RIGHT - explicit in prompt
 
 ---
+
+## Iteration 173 - 2026-01-10
+**Task**: [RM-031] CEO Can Defend Workers
+**Status**: ✅ Complete
+
+### What was implemented
+- Added detect_ceo_management_directive() function to detect when CEO is defending workers or pushing harder
+  * Detects "ease up" patterns: "take it easy", "lighten up", "give them a break", etc.
+  * Detects "push harder" patterns: "work harder", "pick it up", "step it up", etc.
+  * Returns 'defend_workers', 'push_harder', or None
+- Added handle_ceo_management_directive() async function for full interaction flow
+  * When CEO defends workers:
+    - Ralph immediately softens with apologetic response
+    - Random worker responds with relief/excitement
+    - 40% chance Ralph corrects them about chain of command
+  * When CEO says push harder:
+    - Ralph gets more demanding
+    - Random worker responds with determination
+- Integrated detection into message handling flow (runs before sentiment analysis)
+- Each worker has personality-appropriate responses (Stool casual, Mona analytical, Gus grizzled, Gomer earnest)
+
+### Files changed
+- ralph_bot.py (added RM-031 detection and handling functions)
+- scripts/ralph/prd.json (marked RM-031 as passes: true)
+
+### Learnings
+- CEO intervention creates fun team dynamics - workers feel protected or motivated
+- Chain of command enforcement adds comedy when Ralph reminds workers not to skip him
+- Random selection of responder keeps interactions fresh and unpredictable
+- 40% chance for chain of command correction prevents it from being repetitive
+- Pattern matching works well for natural language detection of management directives
+- Integration before sentiment analysis allows this to short-circuit normal order processing
+- This complements RM-037 (pushback) by showing CEO can also influence Ralph's management style
+
+### Acceptance Criteria Met
+✅ CEO: 'Hey Ralph, take it easier on the guys!' - Pattern detection includes "ease up", "take it easy"
+✅ Ralph immediately softens: 'Yes Mr. Worms! Sorry everyone!' - Immediate apologetic response
+✅ Workers react with relief/excitement - Each worker has relief responses appropriate to personality
+✅ Worker might slip: 'Thanks Mr. Worms! You're the best!' - Workers thank CEO directly
+✅ Ralph corrects them about chain of command - 40% chance correction with multiple variations
+✅ CEO can also tell Ralph to push harder if needed - "push harder" pattern detection and Ralph gets demanding
+
+---
