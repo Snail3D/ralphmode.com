@@ -1751,6 +1751,9 @@ class RalphBot:
         # BM-005: Memory Persistence for Workers - Workers remember context even when Ralph forgets
         self.worker_memories: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}  # Track per-worker memories across sessions
 
+        # BM-015: Session Handoff Notes - Workers leave notes for themselves that Ralph can't read
+        self.worker_handoff_notes: Dict[int, Dict[str, str]] = {}  # Track per-worker handoff notes when session ends
+
         # SG-010: Ralph's Simple Wisdom - Track when last wisdom was shared
         self.last_wisdom_moment: Dict[int, datetime] = {}  # Track when last wisdom was dropped
         self.wisdom_cooldown = 1800  # 30 minutes between wisdom moments (not constant)
@@ -10184,6 +10187,111 @@ Stay in character as {pushback_worker}."""
 
         return "\n".join(lines)
 
+    # ==================== BM-015: SESSION HANDOFF NOTES ====================
+
+    async def create_session_handoff_notes(self, user_id: int) -> Dict[str, str]:
+        """BM-015: Workers leave notes for themselves when session ends.
+
+        Each worker writes a handoff note about what they were working on,
+        what still needs to be done, and any gotchas/context for next session.
+        These notes are only visible to the workers, NOT to Ralph (maintains the comedy).
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Dict mapping worker_name to handoff note
+        """
+        # Get current session context
+        session_context = self.get_session_context(user_id)
+
+        # Get active requirements for this user
+        requirements = self.get_all_requirements(user_id) if hasattr(self, 'get_all_requirements') else []
+        req_summary = "\n".join([f"- {r}" for r in requirements[:5]]) if requirements else "No specific requirements noted"
+
+        handoff_notes = {}
+
+        # Each worker creates their handoff note based on what they were working on
+        for worker_name in self.DEV_TEAM.keys():
+            # Get worker's recent memories to inform the handoff note
+            worker_memories = []
+            if user_id in self.worker_memories and worker_name in self.worker_memories[user_id]:
+                worker_memories = self.worker_memories[user_id][worker_name][-5:]  # Last 5 memories
+
+            # Build context for handoff note generation
+            memory_summary = ""
+            if worker_memories:
+                memory_items = [f"- {m.get('content', '')}" for m in worker_memories]
+                memory_summary = "\n".join(memory_items)
+            else:
+                memory_summary = "No specific work tracked this session"
+
+            # Generate handoff note using AI
+            prompt = f"""You are {worker_name}, a professional developer leaving work for the day.
+Write a brief handoff note for yourself to read when you come back tomorrow.
+
+RECENT SESSION CONTEXT:
+{session_context[:500] if session_context else 'No recent activity'}
+
+YOUR RECENT WORK:
+{memory_summary}
+
+CURRENT REQUIREMENTS FROM MR. WORMS:
+{req_summary}
+
+Write a 3-5 sentence handoff note that includes:
+1. What you were working on
+2. Current status/progress
+3. What needs to happen next
+4. Any gotchas or important context
+
+Keep it professional and concise. This is just for you, not for Ralph or Mr. Worms.
+Format: Just the note itself, no greeting or signature."""
+
+            messages = [
+                {"role": "system", "content": f"You are {worker_name}, writing a handoff note for yourself at end of workday. Professional, concise, helpful for tomorrow's you."},
+                {"role": "user", "content": prompt}
+            ]
+
+            try:
+                handoff_note = self.call_groq("llama-3.3-70b-versatile", messages, max_tokens=200)
+                handoff_notes[worker_name] = handoff_note.strip()
+                logger.debug(f"BM-015: {worker_name} created handoff note: {handoff_note[:50]}...")
+            except Exception as e:
+                logger.error(f"BM-015: Failed to generate handoff note for {worker_name}: {e}")
+                handoff_notes[worker_name] = f"Session ended while working on current project. Continue where we left off."
+
+        # Store handoff notes
+        if user_id not in self.worker_handoff_notes:
+            self.worker_handoff_notes[user_id] = {}
+
+        self.worker_handoff_notes[user_id].update(handoff_notes)
+
+        return handoff_notes
+
+    def get_worker_handoff_note(self, user_id: int, worker_name: str) -> str:
+        """BM-015: Get the handoff note for a specific worker.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+
+        Returns:
+            Formatted handoff note for inclusion in worker prompt
+        """
+        if user_id not in self.worker_handoff_notes:
+            return ""
+
+        if worker_name not in self.worker_handoff_notes[user_id]:
+            return ""
+
+        note = self.worker_handoff_notes[user_id][worker_name]
+
+        return f"""HANDOFF NOTE FROM LAST SESSION (your note to yourself, Ralph doesn't see this):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{note}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+
     # ==================== SG-031: REQUIREMENT MEMORY ====================
 
     def remember_requirement(self, user_id: int, directive: str, context: str = None):
@@ -12490,6 +12598,13 @@ Show professionalism by making their vision work."""
             if worker_memory_context:
                 worker_memory_prompt = f"\n\n{worker_memory_context}"
 
+        # BM-015: Add handoff note from last session (workers only)
+        handoff_note_prompt = ""
+        if user_id is not None:
+            handoff_note = self.get_worker_handoff_note(user_id, worker_name)
+            if handoff_note:
+                handoff_note_prompt = f"\n\n{handoff_note}"
+
         # BM-010: Add Mr. Worms directives memory context
         worms_memory_prompt = ""
         if user_id is not None:
@@ -12534,6 +12649,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {autonomy_prompt}
 {patience_prompt}
 {worker_memory_prompt}
+{handoff_note_prompt}
 {worms_memory_prompt}
 
 SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
@@ -13434,6 +13550,13 @@ Format: Just the excuse itself as {worker_name} would say it, no quotes or forma
         )
 
         logger.info(f"SG-036: Natural session end initiated by {worker_name} for user {user_id}")
+
+        # BM-015: Workers create handoff notes for themselves (Ralph doesn't see these)
+        try:
+            handoff_notes = await self.create_session_handoff_notes(user_id)
+            logger.info(f"BM-015: Created handoff notes for {len(handoff_notes)} workers")
+        except Exception as e:
+            logger.error(f"BM-015: Failed to create handoff notes: {e}")
 
         # SG-038: Mark this session as ended for continuity tracking
         self.mark_session_ended(user_id)
