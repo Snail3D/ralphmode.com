@@ -59,6 +59,7 @@ python ralph_bot.py
 | 🔍 **Local Model Discovery** | Auto-detects Ollama, LM Studio, and llama.cpp servers. Zero-config local AI! |
 | ✅ **Validation Cache** | Remembers which models passed tests. Skip re-testing! Smart model selection based on validation history. |
 | 🧪 **Test Prompt Library** | 12 role-specific validation prompts. Test Ralph's personality, worker coding skills, builder planning, and design decisions. |
+| 🏃 **Test Runner** | Execute validation tests against any model. Score results, measure latency, record to registry. CLI + integration ready! |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |
@@ -75,6 +76,7 @@ python ralph_bot.py
 | `/mystatus` | Check your permissions and quality score |
 | `/report` | Get a detailed work summary |
 | `/lookaround` | See who's in the office right now |
+| `/whos_here` | Alternative way to check who's present |
 | `/setmodel` | Switch AI models on the fly. No restart needed! |
 | `/retest` | Re-validate AI models. Check if they still work! |
 | `/reorganize` | Re-cluster PRD tasks for optimal order |
@@ -82,10 +84,14 @@ python ralph_bot.py
 | `/theme` | Change visual theme |
 | `/character` | Select character avatar |
 | `/templates` | Browse project templates |
+| `/setlocation` | Set your location for time-aware scenes |
 | `/version` | Check current version |
 | `/analytics` | View usage analytics |
 | `/auditlog` | Security audit log *(owner only)* |
 | `/hacktest` | Run security tests *(owner only)* |
+| `/password` | Security password operations *(owner only)* |
+| `/goodnews` | Celebrate milestones and victories |
+| `/reconfigure` | Reconfigure bot settings *(owner only)* |
 
 ---
 
