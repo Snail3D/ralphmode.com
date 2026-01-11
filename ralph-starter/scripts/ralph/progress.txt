@@ -8749,3 +8749,63 @@ Check priority_order for exact sequence.
 ✅ Contact list maintained (internal, external, regulatory contacts)
 
 ---
+
+## Iteration [SEC-031] - 2026-01-10
+**Task**: [SEC-031] Hacker Character - Security Breach Storyline
+**Status**: ✅ Complete
+
+### What was implemented
+- Created 5 distinct hacker villain characters with Simpsons-inspired personalities:
+  - Slithery Sam (SQL Injection) - Snake Jailbird-inspired, makes snake puns
+  - Scripter Sid (XSS) - Sideshow Bob-inspired, theatrical and dramatic
+  - Token Tina (Auth) - Cat burglar type, smooth-talking thief
+  - Keymaster Kyle (Secrets) - Sneaky whisper-talker who finds hidden things
+  - Bug Bart (Generic) - Bart Simpson-inspired mischievous troublemaker
+- Each villain has unique entrance, taunts, and retreat messages
+- Implemented full security breach storyline flow:
+  1. Dramatic security alert
+  2. Hacker makes entrance
+  3. Ralph's confused reaction (comedy)
+  4. Hacker taunts the office
+  5. Worker volunteers to be hero (assigned by expertise)
+  6. Worker explains and fixes the issue (educational)
+  7. Hacker retreats in defeat
+  8. Ralph's relieved response
+  9. Team congratulates the hero
+- Added /hacktest command for testing different vulnerability scenarios
+- Integrated with existing character system (colors, messaging, timing)
+
+### Files changed
+- ralph_bot.py
+  - Added HACKER_VILLAINS dictionary with 5 villain personas
+  - Added CHARACTER_COLORS entries for villain emojis
+  - Created security_breach_storyline() async method (full storyline)
+  - Created _pick_security_hero() method (smart worker assignment)
+  - Added hacktest_command() for testing/demonstration
+  - Registered /hacktest command handler
+
+### Learnings
+- Character design pattern is consistent across DEV_TEAM, SPECIALISTS, and now HACKER_VILLAINS
+- Each character needs: name, title, personality, specialty/style
+- Villains need additional fields: entrance, taunts (list), retreat, vulnerability_type
+- Comedic timing is critical - use self.timing methods for proper pacing
+- Ralph's confused reactions provide comedy relief in tense moments
+- Worker assignment by expertise makes the story feel authentic
+- Kid-friendly approach: no real hacking details, just comedic drama
+- Educational moments fit naturally when workers explain their fixes
+- The /hacktest command makes it easy to demonstrate all villain types
+
+### Integration notes
+- This feature integrates with any security checkpoint/scanning system
+- Can be triggered when vulnerabilities are detected in user code
+- Different villains map to different OWASP Top 10 categories
+- Workers are assigned based on their specialty (Gomer for SQL, Stool for XSS, etc.)
+- Maintains the entertainment-first philosophy while teaching security concepts
+
+### Next steps
+- Could integrate with actual security scanning tools
+- Could add more villain variants (CSRF, Rate Limiting, etc.)
+- Could track "security battles won" as a stat
+- Could add villain comeback appearances for recurring issues
+
+---
