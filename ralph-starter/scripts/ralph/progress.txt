@@ -16495,3 +16495,113 @@ cleanup_faded_memories(user_id, relevance_threshold=0.2)
 - Periodic auto-cleanup (cron job or on-session-end)
 
 ---
+
+## Iteration [HR-002] - 2026-01-11 15:03
+**Task**: [HR-002] Rule Change Deliberation Process
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive rule_manager.py module (536 lines)
+- Implemented 4-step deliberation process from HARDCORE_RULES.md:
+  * Step 1: Git history review (when established, what led to it, problems solved)
+  * Step 2: Foundational check (identity alignment, red flag detection)
+  * Step 3: Impact analysis (what breaks, what we lose, affected systems)
+  * Step 4: Deliberation guidelines (sleep on it, discuss, default to keeping rule)
+  
+- Git history review features:
+  * Extracts file creation date and first commit
+  * Shows total commits and recent commit history
+  * Identifies original author and motivation
+  * Handles git errors gracefully
+  
+- Foundational check features:
+  * Red flag keyword detection (remove, delete, bypass, exception, etc.)
+  * Core identity questions for Mr. Worms to answer
+  * Reminds that rules define WHO WE ARE
+  * Default stance: if unsure, KEEP THE RULE
+  
+- Impact analysis features:
+  * Maps all 10 rules to affected systems
+  * Identifies potential breaks and losses for each rule
+  * Risk level assessment (HIGH/CRITICAL)
+  * Code change requirement detection
+  * Rule 1 affects: content_filter.py, sanitizer.py, personality_manager.py
+  * Rule 2 affects: ralph_personality.py, character responses
+  * Rule 3 affects: permission_system, command handlers, feedback loop
+  * (Full mapping for all 10 rules included)
+  
+- Deliberation report generation:
+  * Comprehensive report with all 4 steps
+  * Decision section for Mr. Worms (APPROVED/REJECTED/REVISED)
+  * Signature and date fields
+  * Saved to FOUNDATION/deliberations/ with timestamp
+  * 24-hour minimum deliberation period recommended
+  
+- CLI interface for testing:
+  * `python rule_manager.py <rule_number> <proposed_change>`
+  * Example: `python rule_manager.py 1 "Allow edge cases"`
+  * Generates and saves report automatically
+  
+- Safety mechanisms:
+  * Only Mr. Worms can approve changes
+  * No automatic rule changes (report only)
+  * Red flag detection prevents weakening principles
+  * Risk assessment before any change
+  * Full audit trail in git and deliberations folder
+
+### Files changed
+- rule_manager.py (NEW - 536 lines)
+- FOUNDATION/deliberations/ (NEW - directory for deliberation reports)
+- scripts/ralph/prd.json (HR-002 passes: true)
+
+### Learnings
+- **Rules are sacred**: The HARDCORE_RULES define the identity of Ralph Mode
+- **Deliberation is a feature**: Forcing a slow, thoughtful process prevents impulsive changes
+- **Git history matters**: Understanding WHY a rule exists prevents accidental abandonment
+- **Impact analysis is critical**: Must know what breaks before making changes
+- **Default to keeping**: If unsure, keep the rule - changes should strengthen, not weaken
+- **Red flags are warnings**: Keywords like "remove", "exception", "bypass" suggest principle weakening
+- **Only Mr. Worms decides**: Not Ralph, not workers, not feedback, not the build loop
+- **Audit trail required**: Every proposed change must be documented and reviewable
+- **24-hour minimum**: Prevents hot-take decisions on foundational principles
+
+### Testing
+```bash
+# Test with sample rule change
+python3 rule_manager.py 1 "Allow edge cases for content filtering" "Test User"
+
+# Output:
+✅ Deliberation report generated successfully
+✅ Report saved to FOUNDATION/deliberations/rule_1_deliberation_20260111_150321.txt
+✅ Red flags detected: mentions 'edge case'
+✅ Risk Level: HIGH
+✅ Affected systems: content_filter.py, sanitizer.py, personality_manager.py
+✅ Requires Mr. Worms approval before any changes
+```
+
+### Acceptance Criteria Met
+✅ Feature implemented and working
+✅ Integrated with existing systems (HARDCORE_RULES.md, git, file system)
+✅ Git history review for when/what/why rule was established
+✅ Impact analysis for what breaks if changed
+✅ Deliberation process enforced (not quick decisions)
+✅ Only Mr. Worms can approve (enforced by process, not automatic)
+✅ Comprehensive reports generated and saved
+✅ Red flag detection for principle weakening
+✅ Risk assessment before changes
+✅ Full audit trail maintained
+
+### Why This Matters
+HARDCORE_RULES.md states: "These define WHO WE ARE. Changes require deliberation."
+
+Without this system, rules could be changed on a whim. With it:
+- Every change requires deep thought
+- History is reviewed before decisions
+- Impact is understood before action
+- Mr. Worms has full information to decide
+- Principles are protected from erosion
+
+This is a SAFETY MECHANISM, not a feature blocker. The goal is to make changing rules POSSIBLE but DELIBERATE.
+
+---
+
