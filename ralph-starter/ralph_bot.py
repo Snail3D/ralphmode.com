@@ -198,6 +198,14 @@ except ImportError:
     TEMPLATE_MANAGER_AVAILABLE = False
     logging.warning("OB-027: Template manager not available - /templates command disabled")
 
+# SG-004: Import weather service for natural weather references
+try:
+    from weather_service import get_weather, is_api_configured as is_weather_configured
+    WEATHER_SERVICE_AVAILABLE = True
+except ImportError:
+    WEATHER_SERVICE_AVAILABLE = False
+    logging.warning("SG-004: Weather service not available - weather references disabled")
+
 # SEC-020: Import PII masking for safe logging
 try:
     from pii_handler import PIIMasker, mask_for_logs, PIIField
@@ -8101,6 +8109,11 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
             time_prompt = self._get_time_of_day_prompt_ralph(time_context)
             system_content += f"\n\n{time_prompt}"
 
+        # SG-004: Add weather awareness
+        weather_context = self._get_weather_context(worker_name=None)  # None = Ralph
+        if weather_context:
+            system_content += weather_context
+
         # RM-010: Add freshness prompt to avoid repetitive responses
         if user_id is not None:
             freshness_prompt = self.get_freshness_prompt(user_id, "Ralph")
@@ -8250,6 +8263,9 @@ Show professionalism by making their vision work."""
             time_context = get_time_of_day_context()
             time_prompt = self._get_time_of_day_prompt_worker(time_context, worker_name)
 
+        # SG-004: Add weather awareness
+        weather_prompt = self._get_weather_context(worker_name=worker_name)
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -8273,6 +8289,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {pushback_prompt}
 {lessons_prompt}
 {time_prompt}
+{weather_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""},
@@ -9447,6 +9464,95 @@ YOUR SPECIFIC ENERGY ({worker_name}): {specific_behavior}
 
 NOTE: Time references should be NATURAL, not forced. Don't mention time every message.
 Just let it inform your energy level and occasional natural references."""
+
+    def _get_weather_context(self, worker_name: Optional[str] = None) -> str:
+        """SG-004: Generate weather-aware context for natural dialogue.
+
+        Args:
+            worker_name: Name of the worker (Stool, Gomer, Mona, Gus) or None for Ralph
+
+        Returns:
+            Weather context prompt fragment, or empty string if weather unavailable
+        """
+        if not WEATHER_SERVICE_AVAILABLE:
+            return ""
+
+        try:
+            weather = get_weather()
+            weather_type = weather.get('type', 'overcast')
+            description = weather.get('description', '')
+            is_real = weather.get('real', False)
+
+            # Base weather context
+            base_context = f"\n\nWEATHER OUTSIDE: {description}"
+
+            # Worker-specific weather reactions (INSPIRATION - generate fresh responses!)
+            worker_reactions = {
+                'Gus': {
+                    'rainy': "It's rainy out. Your knees might be aching. You feel it in your bones.",
+                    'stormy': "Storm's rolling in. You hope power doesn't go out mid-session.",
+                    'sunny': "Beautiful day out there. Shame you're stuck inside coding.",
+                    'foggy': "Foggy morning. Can barely see out the window.",
+                    'overcast': "Gray skies. Typical coding weather."
+                },
+                'Stool': {
+                    'rainy': "Rain tapping on the windows. Perfect coding vibes.",
+                    'stormy': "Storm outside. Cozy indoors with coffee and code.",
+                    'sunny': "Sunny out but you're grinding inside. Worth it though.",
+                    'foggy': "Fog out there. Mysterious vibes.",
+                    'overcast': "Overcast. Not too bright, not too dark. Just right."
+                },
+                'Gomer': {
+                    'rainy': "Rainy day. Makes you want donuts and coffee.",
+                    'stormy': "Thunder outside! Kind of exciting actually.",
+                    'sunny': "Nice day but you're working. That's okay!",
+                    'foggy': "Foggy. Hard to see outside.",
+                    'overcast': "Gray day. Good day for coding."
+                },
+                'Mona': {
+                    'rainy': "Rain outside. Analytically speaking, perfect focus weather.",
+                    'stormy': "Storm approaching. Hope infrastructure stays up.",
+                    'sunny': "Sunny weather data received. Noted but not distracted.",
+                    'foggy': "Fog density: high. Visibility: low.",
+                    'overcast': "Overcast conditions. Neutral environmental factors."
+                }
+            }
+
+            # Ralph's simple weather observations
+            ralph_reactions = {
+                'rainy': "It's raining! I like the sound on the window!",
+                'stormy': "There's thunder! I hope everyone's safe!",
+                'sunny': "It's sunny! That makes me happy!",
+                'foggy': "It's all foggy. I can't see very far!",
+                'overcast': "It's cloudy today. That's okay!"
+            }
+
+            # Get appropriate reaction
+            if worker_name:
+                reactions = worker_reactions.get(worker_name, worker_reactions['Stool'])
+                context_note = reactions.get(weather_type, "")
+                if context_note:
+                    base_context += f"\nYOUR AWARENESS: {context_note}"
+            else:
+                # Ralph's reaction
+                ralph_note = ralph_reactions.get(weather_type, "")
+                if ralph_note:
+                    base_context += f"\nYOUR AWARENESS: {ralph_note}"
+
+            # Guidance on using weather
+            base_context += """
+
+IMPORTANT: Weather references should be OCCASIONAL and NATURAL, not forced.
+- Maybe 1 in 10 messages might reference weather
+- Only when it fits the conversation naturally
+- Generate FRESH responses, never use the examples verbatim
+- Examples above are for TONE/VIBE only, not exact words"""
+
+            return base_context
+
+        except Exception as e:
+            logger.warning(f"SG-004: Error getting weather context: {e}")
+            return ""
 
     async def _team_comments_on_project_type(self, context, chat_id: int, user_id: int, project_type_info: Dict[str, Any]):
         """RM-041: Team reacts to the project type with appropriate energy.
