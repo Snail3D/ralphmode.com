@@ -8154,6 +8154,316 @@ These are the most commonly used servers by the community!
 
 Ready to build your custom server? 🛠️"""
 
+    # OB-018: GitHub MCP Server Setup
+
+    def get_github_mcp_setup_welcome(self) -> str:
+        """Get welcome message for GitHub MCP setup.
+
+        Returns:
+            Welcome message introducing GitHub MCP setup
+        """
+        return """*GitHub MCP Server Setup* 🐙
+
+Hey! Ralph gonna help you connect GitHub to Claude Code!
+
+**What this lets you do:**
+→ Create and manage GitHub repos from chat
+→ Read and write code in any repo
+→ Create issues and pull requests
+→ Manage collaborators and settings
+→ All without leaving Ralph Mode!
+
+**What you need:**
+✅ GitHub account (free or paid)
+✅ GitHub CLI installed (`gh`)
+✅ Node.js installed (for MCP server)
+
+Ralph walk you through each step! Let's do this! 🚀"""
+
+    def get_github_mcp_status_message(self) -> str:
+        """Get current status of GitHub MCP setup.
+
+        Returns:
+            Status check message showing what's ready
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available. Cannot check GitHub setup status."
+
+        status = self.mcp_manager.setup_github_mcp()
+
+        message = """*GitHub MCP Setup Status* 🔍
+
+Let me check what you got...
+
+"""
+
+        # GitHub CLI
+        if status['github_cli']['installed']:
+            message += f"✅ **GitHub CLI**: {status['github_cli']['message']}\n"
+        else:
+            message += f"❌ **GitHub CLI**: {status['github_cli']['message']}\n"
+
+        # Authentication
+        if status['authentication']['authenticated']:
+            username = status['authentication']['username']
+            message += f"✅ **GitHub Auth**: Logged in as @{username}\n"
+        else:
+            message += "❌ **GitHub Auth**: Not authenticated\n"
+
+        # MCP Server
+        if status['mcp_server']['ready']:
+            message += f"✅ **MCP Server**: {status['mcp_server']['message']}\n"
+        else:
+            message += f"⚠️ **MCP Server**: {status['mcp_server']['message']}\n"
+
+        message += "\n"
+
+        if status['all_ready']:
+            message += "🎉 **Everything is ready!** GitHub MCP is good to go!\n\n"
+            message += "Ralph can now help you manage GitHub repos! What you wanna do?"
+        else:
+            message += "🔧 **Some setup needed.** Ralph help you fix it!"
+
+        return message
+
+    def get_github_mcp_status_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for GitHub MCP status.
+
+        Returns:
+            Keyboard with setup actions
+        """
+        if not self.mcp_manager_available:
+            return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="mcp_browser")]])
+
+        status = self.mcp_manager.setup_github_mcp()
+        keyboard = []
+
+        # Add action buttons based on what's missing
+        if not status['github_cli']['installed']:
+            keyboard.append([InlineKeyboardButton("📥 Install GitHub CLI", callback_data="github_mcp_install_cli")])
+
+        if not status['authentication']['authenticated']:
+            keyboard.append([InlineKeyboardButton("🔑 Authenticate with GitHub", callback_data="github_mcp_auth")])
+
+        if status['all_ready']:
+            keyboard.append([InlineKeyboardButton("🎯 Show What I Can Do", callback_data="github_mcp_capabilities")])
+            keyboard.append([InlineKeyboardButton("🧪 Test Connection", callback_data="github_mcp_test")])
+        else:
+            keyboard.append([InlineKeyboardButton("📖 Show Setup Guide", callback_data="github_mcp_guide")])
+
+        keyboard.append([InlineKeyboardButton("⬅️ Back to MCP Browser", callback_data="mcp_browser")])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_github_mcp_install_cli_message(self) -> str:
+        """Get instructions for installing GitHub CLI.
+
+        Returns:
+            Installation instructions with commands
+        """
+        return """*Install GitHub CLI* 📥
+
+GitHub CLI (`gh`) lets you talk to GitHub from your terminal!
+
+**For Mac:**
+```bash
+brew install gh
+```
+
+**For Windows:**
+```bash
+winget install --id GitHub.cli
+```
+
+**For Linux (Debian/Ubuntu):**
+```bash
+sudo apt install gh
+```
+
+**For other Linux distros:**
+See: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+
+**After installing:**
+1. Open a new terminal window
+2. Run: `gh --version`
+3. Come back and click "Check Status" again!
+
+Ralph be waiting! 😊"""
+
+    def get_github_mcp_auth_message(self) -> str:
+        """Get instructions for GitHub authentication.
+
+        Returns:
+            Authentication guide with steps
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        status = self.mcp_manager.setup_github_mcp()
+        auth_instructions = status['authentication'].get('instructions', {})
+
+        if not auth_instructions:
+            return "Authentication instructions not available."
+
+        steps = auth_instructions.get('steps', [])
+        steps_text = "\n".join([f"{i+1}. {step}" for i, step in enumerate(steps)])
+
+        return f"""*GitHub Authentication* 🔑
+
+Ralph show you how to login to GitHub!
+
+**Run this command in your terminal:**
+```bash
+{auth_instructions.get('command', 'gh auth login')}
+```
+
+**Then follow these steps:**
+{steps_text}
+
+**Quick tips:**
+→ Choose HTTPS (easier for beginners)
+→ Use web browser login (safest)
+→ Make sure you login to GitHub.com (not Enterprise)
+
+After you're done, come back here and click "Check Status"!"""
+
+    def get_github_mcp_guide_message(self) -> str:
+        """Get complete GitHub MCP setup guide.
+
+        Returns:
+            Full setup guide formatted for display
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        return self.mcp_manager.format_github_setup_guide()
+
+    def get_github_mcp_capabilities_message(self) -> str:
+        """Get message showing GitHub MCP capabilities.
+
+        Returns:
+            Formatted list of what GitHub MCP can do
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        capabilities = self.mcp_manager.get_github_capabilities()
+
+        message = """*What GitHub MCP Can Do* 🎯
+
+Once setup is complete, Ralph and the team can:
+
+"""
+
+        for category, actions in capabilities.items():
+            message += f"**{category}:**\n"
+            for action in actions:
+                message += f"{action}\n"
+            message += "\n"
+
+        message += "Pretty cool, right? Ralph team can help you build features using ALL of these! 🚀"
+
+        return message
+
+    def get_github_mcp_test_message(self) -> str:
+        """Get message for testing GitHub MCP connection.
+
+        Returns:
+            Test instructions and expected results
+        """
+        if not self.mcp_manager_available:
+            return "MCP manager not available."
+
+        success, msg = self.mcp_manager.verify_github_connection()
+
+        if success:
+            return f"""*Connection Test* ✅
+
+{msg}
+
+**Quick Test Command:**
+```bash
+gh repo list --limit 5
+```
+
+This should show your GitHub repositories!
+
+**Try it:**
+→ Open terminal
+→ Run the command
+→ See your repos listed
+
+Everything working? GitHub MCP is ready to roll! 🎉"""
+        else:
+            return f"""*Connection Test* ❌
+
+Uh oh! Something not quite right...
+
+**Error:** {msg}
+
+**What to do:**
+1. Check the setup guide (click button below)
+2. Make sure you completed all steps
+3. Try running: `gh auth status`
+4. If still stuck, check troubleshooting
+
+Ralph here to help! Don't give up! 💪"""
+
+    def get_github_mcp_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for GitHub MCP test.
+
+        Returns:
+            Keyboard with test and troubleshooting options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔄 Test Again", callback_data="github_mcp_test")],
+            [InlineKeyboardButton("📖 Setup Guide", callback_data="github_mcp_guide")],
+            [InlineKeyboardButton("❓ Troubleshooting", callback_data="github_mcp_troubleshoot")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="github_mcp_setup")]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_github_mcp_troubleshooting_message(self) -> str:
+        """Get troubleshooting help for GitHub MCP issues.
+
+        Returns:
+            Common issues and solutions
+        """
+        return """*GitHub MCP Troubleshooting* 🔧
+
+**Common Issues:**
+
+**1. "gh: command not found"**
+→ GitHub CLI not installed
+→ Install using the instructions (click Install CLI button)
+→ Remember to open a NEW terminal after installing
+
+**2. "Not authenticated"**
+→ Run: `gh auth status`
+→ If not logged in, run: `gh auth login`
+→ Follow the browser login flow
+
+**3. "Token doesn't have required scopes"**
+→ Your token needs `repo` permission
+→ Re-authenticate: `gh auth login --scopes repo`
+
+**4. "npm/npx not found"**
+→ Node.js not installed
+→ Download from: https://nodejs.org
+→ Make sure to get Node.js 18 or newer
+
+**5. Connection test fails**
+→ Check internet connection
+→ Make sure you can access github.com
+→ Try: `gh auth status`
+
+**Still stuck?**
+→ Check Ralph Mode docs
+→ Ask in community Discord
+→ Create a GitHub issue
+
+Ralph believe in you! You got this! 💪"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.

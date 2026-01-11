@@ -7,8 +7,16 @@ Builds on mcp_explainer.py to add interactive features.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from mcp_explainer import get_mcp_explainer
+
+# Import GitHub MCP setup helper (OB-018)
+try:
+    from github_mcp_setup import get_github_mcp_setup
+    GITHUB_MCP_AVAILABLE = True
+except ImportError:
+    GITHUB_MCP_AVAILABLE = False
+    logging.warning("GitHub MCP setup helper not available")
 
 
 class MCPManager:
@@ -21,6 +29,12 @@ class MCPManager:
 
         # Extended server catalog with install commands
         self.server_catalog = self._build_server_catalog()
+
+        # Initialize GitHub MCP setup helper (OB-018)
+        if GITHUB_MCP_AVAILABLE:
+            self.github_setup = get_github_mcp_setup()
+        else:
+            self.github_setup = None
 
     def _build_server_catalog(self) -> Dict[str, List[Dict[str, Any]]]:
         """Build comprehensive server catalog with installation info.
@@ -307,6 +321,77 @@ class MCPManager:
             "Team Collaboration": "Add **Slack** or **Discord** for team notifications",
             "Power User": "Go wild with **GitHub + PostgreSQL + Slack** for the full stack"
         }
+
+    # OB-018: GitHub MCP Server Setup Methods
+
+    def setup_github_mcp(self) -> Dict[str, Any]:
+        """Guide through GitHub MCP server setup.
+
+        Returns:
+            Dictionary with setup status and instructions
+        """
+        if not self.github_setup:
+            return {
+                "success": False,
+                "error": "GitHub MCP setup helper not available"
+            }
+
+        # Check all prerequisites
+        cli_ok, cli_msg = self.github_setup.check_gh_cli_installed()
+        auth_ok, username = self.github_setup.check_gh_auth_status()
+        server_ok, server_msg = self.github_setup.check_mcp_server_installed()
+
+        return {
+            "github_cli": {
+                "installed": cli_ok,
+                "message": cli_msg
+            },
+            "authentication": {
+                "authenticated": auth_ok,
+                "username": username,
+                "instructions": self.github_setup.get_auth_instructions() if not auth_ok else None
+            },
+            "mcp_server": {
+                "ready": server_ok,
+                "message": server_msg,
+                "install_instructions": self.github_setup.get_install_instructions() if not server_ok else None
+            },
+            "all_ready": cli_ok and auth_ok and server_ok,
+            "setup_guide": self.github_setup.format_setup_guide()
+        }
+
+    def verify_github_connection(self) -> Tuple[bool, str]:
+        """Verify GitHub MCP server is ready to use.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.github_setup:
+            return False, "GitHub MCP setup helper not available"
+
+        return self.github_setup.verify_connection()
+
+    def get_github_capabilities(self) -> Dict[str, list]:
+        """Get list of GitHub MCP server capabilities.
+
+        Returns:
+            Dictionary with categorized capabilities
+        """
+        if not self.github_setup:
+            return {}
+
+        return self.github_setup.get_available_actions()
+
+    def format_github_setup_guide(self) -> str:
+        """Get formatted GitHub setup guide for display.
+
+        Returns:
+            Formatted markdown guide
+        """
+        if not self.github_setup:
+            return "GitHub MCP setup helper not available"
+
+        return self.github_setup.format_setup_guide()
 
 
 # Singleton instance
