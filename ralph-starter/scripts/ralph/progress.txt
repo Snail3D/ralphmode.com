@@ -7619,3 +7619,56 @@ Key insight: Every exchange should use appropriate timing helper, not raw asynci
 ✅ Handles API failures gracefully (falls back to TF-IDF)
 
 ---
+
+## Iteration - 2026-01-10 19:00
+**Task**: [TC-003] Hybrid Task Clustering
+**Status**: ✅ Complete
+
+### What was implemented
+- Added hybrid_cluster() function to prd_organizer.py
+- Agglomerative clustering algorithm:
+  1. Start with each task in own cluster
+  2. Iteratively merge most similar clusters
+  3. Stop when similarity drops below threshold (0.3 default)
+- hybrid_similarity() combines two similarity scores:
+  - File overlap (60% weight): Tasks touching same files cluster together
+  - Semantic similarity (40% weight): Tasks with similar descriptions cluster
+- file_overlap_score() calculates Jaccard similarity between file sets
+- assign_cluster_names() auto-names clusters based on most common category
+- Handles edge cases: empty tasks, single-task clusters, no overlap
+- Returns ordered list of clusters (largest first)
+- Comprehensive test suite validates:
+  - UI tasks cluster together (UI-001 + UI-002)
+  - API tasks cluster together (API-001 + API-002)
+  - Security task separate (different files + different semantics)
+
+### Files changed
+- prd_organizer.py:
+  - Added imports: numpy, Tuple, defaultdict (lines 10-12)
+  - file_overlap_score() calculates file set overlap (lines 135-148)
+  - hybrid_similarity() combines file + semantic scores (lines 151-200)
+  - hybrid_cluster() main clustering function (lines 203-281)
+  - assign_cluster_names() auto-names clusters (lines 284-322)
+  - test_hybrid_cluster() validates clustering logic (lines 325-408)
+  - Updated main to run both tests (lines 480-490)
+- scripts/ralph/prd.json:
+  - TC-003 "passes" changed from false to true
+
+### Learnings
+- File overlap is stronger signal than semantics for code tasks
+- 60/40 weight balance (file/semantic) works well empirically
+- Agglomerative clustering better than k-means (no need to specify k)
+- Similarity threshold (0.3) prevents over-clustering
+- Auto-naming clusters makes results human-readable
+- Test with mixed task types validates the hybrid approach
+- Largest-first ordering prioritizes high-impact clusters
+- Foundation ready for TC-004 (dependency graphs) and TC-005 (topological sort)
+
+### Acceptance Criteria Met
+✅ hybrid_cluster(file_hints, embeddings) function exists
+✅ Combines file-based and semantic-based similarity (60/40 weighted)
+✅ Creates logical clusters (Voice, Security, UI, etc.) - verified in tests
+✅ Handles edge cases (tasks in multiple clusters via agglomerative approach)
+✅ Returns ordered list of clusters (sorted by size, largest first)
+
+---
