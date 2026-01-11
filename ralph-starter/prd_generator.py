@@ -4,20 +4,44 @@ PRD Template Generator for Ralph Mode
 
 Generates starting PRD based on project type.
 Pre-populated with common tasks for different project types.
+
+RULE AWARENESS: This generator knows what it CANNOT touch.
+See prd_manager.py for protected resources.
 """
 
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
+
+# Import rule awareness system
+try:
+    from prd_manager import get_prd_rule_awareness
+    RULE_AWARENESS_AVAILABLE = True
+except ImportError:
+    RULE_AWARENESS_AVAILABLE = False
 
 
 class PRDGenerator:
     """Generates PRD templates for different project types."""
 
-    def __init__(self):
-        """Initialize the PRD generator."""
+    def __init__(self, project_root: Optional[str] = None):
+        """
+        Initialize the PRD generator.
+
+        Args:
+            project_root: Root directory of the project (for rule awareness)
+        """
         self.logger = logging.getLogger(__name__)
+        self.project_root = project_root
+
+        # Initialize rule awareness
+        if RULE_AWARENESS_AVAILABLE:
+            self.rule_awareness = get_prd_rule_awareness(project_root)
+            self.logger.info("Rule awareness system initialized")
+        else:
+            self.rule_awareness = None
+            self.logger.warning("Rule awareness system not available")
 
     def get_project_types(self) -> List[Dict[str, str]]:
         """Get available project types with descriptions."""
@@ -72,13 +96,14 @@ class PRDGenerator:
             }
         ]
 
-    def generate_prd(self, project_type: str, project_name: str = "My Project") -> Dict[str, Any]:
+    def generate_prd(self, project_type: str, project_name: str = "My Project", validate: bool = True) -> Dict[str, Any]:
         """
         Generate a PRD template for the given project type.
 
         Args:
             project_type: Type of project (telegram_bot, web_app, etc.)
             project_name: Name of the project
+            validate: Whether to validate tasks against protected resources
 
         Returns:
             Dictionary containing the complete PRD structure
@@ -95,6 +120,18 @@ class PRDGenerator:
 
         # Add project-specific tasks
         tasks = self._get_tasks_for_type(project_type)
+
+        # Validate tasks if rule awareness is available
+        if validate and self.rule_awareness:
+            validation_result = self.rule_awareness.validate_prd_tasks(tasks)
+            if not validation_result['valid']:
+                self.logger.warning(
+                    f"Generated PRD contains {validation_result['tasks_with_protected_files']} "
+                    f"tasks that touch protected files"
+                )
+                for warning in validation_result['warnings']:
+                    self.logger.warning(warning)
+
         prd["tasks"] = tasks
 
         # Generate priority order
@@ -786,6 +823,58 @@ A PRD (Product Requirements Document) is your project's task list. It tells Ralp
 
 You can edit the PRD anytime to add, remove, or reorder tasks!
 """
+
+    def validate_task_files(self, files: List[str]) -> Tuple[bool, List[str]]:
+        """
+        Check if a list of files contains any protected resources.
+
+        Args:
+            files: List of file paths to check
+
+        Returns:
+            Tuple of (all_safe, list of protected files with warnings)
+        """
+        if not self.rule_awareness:
+            return True, []
+
+        warnings = []
+        for file_path in files:
+            is_protected, resource = self.rule_awareness.is_protected(file_path)
+            if is_protected:
+                warnings.append(
+                    f"⚠️  PROTECTED: {file_path}\n"
+                    f"   Reason: {resource.reason}\n"
+                    f"   Change Process: {resource.change_process}"
+                )
+
+        return len(warnings) == 0, warnings
+
+    def can_auto_modify_file(self, file_path: str) -> bool:
+        """
+        Check if PRD generators can auto-create tasks to modify this file.
+
+        Args:
+            file_path: Path to check
+
+        Returns:
+            True if safe for auto-generation, False if requires human review
+        """
+        if not self.rule_awareness:
+            return True  # If no rule awareness, allow everything
+
+        return self.rule_awareness.can_auto_generate_task(file_path)
+
+    def get_protected_files_report(self) -> str:
+        """
+        Get a report of all protected files.
+
+        Returns:
+            Human-readable string listing protected resources
+        """
+        if not self.rule_awareness:
+            return "Rule awareness system not available."
+
+        return self.rule_awareness.get_protection_report()
 
 
 # Singleton instance

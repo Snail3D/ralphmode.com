@@ -16321,3 +16321,88 @@ Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 - Combining multiple extraction strategies (verb patterns, tech keywords, status phrases) gives rich context from simple user responses
 
 ---
+
+## Iteration 300 - 2026-01-11
+**Task**: [HR-005] PRD Generator Rule Awareness
+**Status**: ✅ Complete
+
+### What was implemented
+- Created prd_manager.py - a new rule awareness system that protects foundational files
+- Defined ProtectedResource class to represent files/directories that require special change processes
+- Created PRDRuleAwareness class that:
+  - Maintains list of all protected resources in the project
+  - Validates file paths against protected resources
+  - Validates PRD tasks to detect if they touch protected files
+  - Provides methods to check if auto-generation is safe
+  - Generates human-readable protection reports
+- Protected resources include:
+  - FOUNDATION/ directory and all its files (HARDCORE_RULES.md, WHO_WE_ARE.md, etc.)
+  - .env (secrets)
+  - scripts/ralph/prompt.md (Ralph's core instructions)
+  - .git/ (version control)
+  - .gitignore (controls what gets committed)
+- Integrated rule awareness into prd_generator.py:
+  - Added import for prd_manager with fallback if not available
+  - Modified __init__ to accept project_root and initialize rule_awareness
+  - Modified generate_prd() to validate tasks against protected resources
+  - Added validate_task_files() method to check file lists
+  - Added can_auto_modify_file() to check if auto-generation is safe
+  - Added get_protected_files_report() to show all protected resources
+- Each protected resource includes:
+  - Path to the resource
+  - Reason why it's protected
+  - Change process that must be followed
+
+### Files changed
+- prd_manager.py (NEW - 400+ lines)
+- prd_generator.py (rule awareness integration)
+- scripts/ralph/prd.json (HR-005 passes: true)
+
+### Learnings
+- **Why This Matters**:
+  - The FOUNDATION documents define WHO WE ARE
+  - PRD generators and AI agents should NOT casually modify foundational values
+  - Protection system ensures deliberate change process for core identity files
+  - Following HARDCORE_RULES.md: changes require git history review, impact analysis, and Mr. Worms approval
+
+- **Protected vs Safe Files**:
+  - PROTECTED: FOUNDATION/*.md, .env, scripts/ralph/prompt.md, .git/, .gitignore
+  - SAFE: ralph_bot.py, normal code files, documentation
+  - Protected files get warnings with reason + required change process
+
+- **Integration Pattern**:
+  - prd_manager.py is standalone (can be imported by any PRD tool)
+  - prd_generator.py imports it with try/except (graceful degradation)
+  - Validation happens during PRD generation (warnings logged)
+  - Each protected resource documents its own change process
+
+- **Usage Examples**:
+  - PRD generators can call can_auto_modify_file(path) before creating tasks
+  - validate_prd_tasks(tasks) checks entire PRD for protected file violations
+  - get_protection_report() shows all protected resources to users
+  - is_protected(path) returns (bool, ProtectedResource or None)
+
+- **Design Principles**:
+  - Awareness, not enforcement (warnings, not hard blocks)
+  - Graceful degradation (works without prd_manager.py)
+  - Self-documenting (each resource explains its own rules)
+  - Extensible (easy to add new protected resources)
+
+### Code locations
+- prd_manager.py:77-116 (_define_protected_resources - defines all protected files)
+- prd_manager.py:118-136 (is_protected - checks if file is protected)
+- prd_manager.py:138-179 (validate_prd_tasks - validates entire PRD)
+- prd_generator.py:18-22 (import with fallback)
+- prd_generator.py:28-44 (__init__ - initialize rule awareness)
+- prd_generator.py:124-133 (validate tasks in generate_prd)
+- prd_generator.py:827-877 (new validation methods)
+
+### Future enhancements
+- Add /protected command to show users what files are protected
+- Integrate with git pre-commit hooks to warn about protected file changes
+- Add severity levels (CRITICAL, WARNING, INFO) for different protected resources
+- Track attempted modifications to protected files for audit log
+- Create FOUNDATION/CHANGE_LOG.md when protected files are deliberately changed
+- Add rule awareness to other tools beyond PRD generator (code formatters, refactoring tools, etc.)
+
+---
