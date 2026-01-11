@@ -11671,3 +11671,41 @@ This feature prevents the #1 cause of API key leaks: accidental commits to publi
 - Uses existing OnboardingWizard methods for consistency
 
 ---
+
+## Iteration [Auto] - 2026-01-11
+**Task**: [RM-061] Voice Input from CEO
+**Status**: ✅ Complete
+
+### What was implemented
+- Added voice acknowledgment message in handle_voice() function
+- Ralph now greets voice messages with "Oh! Mr. Worms is calling in! I'm listening boss!"
+- Quick acknowledgment (with_typing=False) for immediate user feedback
+- Uses ralph_misspell() to maintain authentic Ralph personality
+
+### Files changed
+- ralph_bot.py (lines 9255-9264)
+
+### Learnings
+- Voice handler already existed with full Groq Whisper API integration
+- voice_handler.py provides complete pipeline: transcribe → tone analysis → intent extraction
+- Voice messages are processed through handle_text() after transcription
+- The acknowledgment needed to happen AFTER message deletion but BEFORE processing
+- Setting with_typing=False provides instant acknowledgment vs delayed typing simulation
+
+### Implementation details
+- Voice flow: Download audio → Transcribe with Groq Whisper → Acknowledge → Delete original → Process as text
+- Acknowledgment placed strategically at line 9255, right after TL-004 deletion logic
+- Logs acknowledgment with logger.info for debugging
+- Transcribed text becomes synthetic message passed to handle_text()
+- Workers respond naturally since it flows through normal text handling
+
+### All acceptance criteria met
+✅ Handle Telegram voice messages (MessageHandler at line 11954)
+✅ Transcribe using Groq Whisper API (voice_handler.py)
+✅ Treat transcribed text as normal user message (calls handle_text)
+✅ Workers respond naturally to voice input (same path as text)
+✅ Acknowledge the voice: 'Oh! Mr. Worms is calling!' (ADDED)
+✅ Works seamlessly with tap-on-shoulder flow (via handle_text)
+✅ User can literally talk to their dev team (full voice pipeline)
+
+---
