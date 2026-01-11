@@ -1577,6 +1577,288 @@ Ralph just tested Groq and it's BLAZING FAST!
 
         return InlineKeyboardMarkup(keyboard)
 
+    # Groq API Key Setup (OB-010) - Optional
+
+    def get_groq_api_intro_message(self) -> str:
+        """Get introduction message for Groq API key setup (optional).
+
+        Returns:
+            Groq API key introduction
+        """
+        return """*Want to Make Ralph SUPER FAST? ⚡*
+
+This part is OPTIONAL! But Ralph thinks it's pretty cool!
+
+*What's Groq?*
+Groq is like Claude's super-speedy cousin! It's:
+• Lightning fast AI responses ⚡
+• Great for quick tasks and conversations 💨
+• FREE tier available! 🎉
+
+*Why add Groq?*
+• Makes Ralph's responses MUCH faster
+• Reduces costs for simple tasks
+• Still uses Claude for the hard stuff
+• Best of both worlds! 🌍
+
+*Important:*
+⚠️ This is 100% optional!
+⚠️ Ralph works great with just Claude!
+⚠️ You can always add this later!
+
+*What do you want to do?*
+"""
+
+    def get_groq_intro_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Groq intro with setup or skip options.
+
+        Returns:
+            Keyboard with Groq setup options
+        """
+        keyboard = [
+            [InlineKeyboardButton("⚡ Set Up Groq (Recommended)", callback_data="groq_setup_start")],
+            [InlineKeyboardButton("⏭️ Skip for Now", callback_data="groq_skip")],
+            [InlineKeyboardButton("📚 Learn More About Groq", url="https://groq.com")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_groq_signup_message(self) -> str:
+        """Get message with signup instructions for Groq.
+
+        Returns:
+            Signup instructions message
+        """
+        return """*Step 1: Sign Up for Groq!* 🚀
+
+Let's get you set up with BLAZING fast AI!
+
+*Follow these steps:*
+
+**Step 1:** Click the link below to go to Groq
+**Step 2:** Click "Sign Up" or "Get Started"
+**Step 3:** Create your account (use email or Google)
+**Step 4:** Verify your email if needed
+
+*The link:*
+🔗 [Groq Console](https://console.groq.com)
+
+*About Groq pricing:*
+• FREE tier with generous limits! 🎉
+• Perfect for testing and personal projects
+• Much faster than traditional AI
+• Pay-as-you-go after free tier
+
+Ralph says: "Groq is like putting rocket fuel in Ralph's car! Vroom vroom! 🏎️"
+
+*Benefits of Groq:*
+✅ Responses in milliseconds (not seconds!)
+✅ Great for conversations and quick tasks
+✅ Free tier is very generous
+✅ Works alongside Claude perfectly
+
+*Did you create your account?*
+"""
+
+    def get_groq_signup_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Groq signup step.
+
+        Returns:
+            Keyboard with signup action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open Groq Console", url="https://console.groq.com")],
+            [InlineKeyboardButton("✅ I Have an Account!", callback_data="groq_has_account")],
+            [InlineKeyboardButton("📊 Learn About Pricing", url="https://groq.com/pricing")],
+            [InlineKeyboardButton("⏭️ Skip Groq Setup", callback_data="groq_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_groq_api_key_message(self) -> str:
+        """Get instructions for getting the Groq API key.
+
+        Returns:
+            API key retrieval instructions
+        """
+        return """*Step 2: Get Your Groq API Key!* 🔑
+
+Almost there! Let's grab that API key!
+
+*Follow these steps EXACTLY:*
+
+**Step 1:** Go to the Groq Console
+**Step 2:** Click on "API Keys" in the navigation
+**Step 3:** Click "Create API Key" or "+ New API Key"
+**Step 4:** Give it a name like "Ralph Mode Bot"
+**Step 5:** Copy the key! (Save it somewhere safe!)
+
+*IMPORTANT:*
+⚠️ The key starts with `gsk_`
+⚠️ Copy the WHOLE thing (it's long!)
+⚠️ Save it somewhere safe
+⚠️ You might not see it again after closing!
+
+*What your key looks like:*
+```
+gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+*Security Reminders:*
+🔒 NEVER share this key with anyone
+🔒 NEVER post it on GitHub, Twitter, Discord, etc.
+🔒 NEVER put it directly in your code
+🔒 Ralph will save it SAFELY in the `.env` file
+
+*Got your key copied?*
+
+🔗 [Get API Key](https://console.groq.com/keys)
+
+*Need help?*
+Ralph is here if you get stuck!
+"""
+
+    def get_groq_api_key_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Groq API key retrieval step.
+
+        Returns:
+            Keyboard with API key action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🔗 Open API Keys Page", url="https://console.groq.com/keys")],
+            [InlineKeyboardButton("✅ I Copied My Key!", callback_data="groq_key_copied")],
+            [InlineKeyboardButton("📋 Show Instructions Again", callback_data="groq_show_key_instructions")],
+            [InlineKeyboardButton("⏭️ Skip for Now", callback_data="groq_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_groq_key_entry_message(self) -> str:
+        """Get message for entering the Groq API key.
+
+        Returns:
+            Key entry request message
+        """
+        return """*Step 3: Send Ralph Your Groq Key!* 📨
+
+Okay! Now Ralph needs you to send the API key!
+
+*Just send it as a message right here!*
+
+Ralph will:
+✅ Check if the format is correct
+✅ Test it with a real API call
+✅ Save it securely in your `.env` file
+✅ Make sure it works!
+
+*Security note:*
+Don't worry! Ralph will delete your message after saving the key! 🗑️
+(But Telegram servers might keep it, so be careful!)
+
+*Paste your Groq API key below:*
+👇 (It should start with `gsk_`)
+"""
+
+    def get_groq_key_invalid_message(self, key: str) -> str:
+        """Get error message for invalid Groq API key format.
+
+        Args:
+            key: The invalid key that was provided
+
+        Returns:
+            Error message with troubleshooting tips
+        """
+        key_preview = f"{key[:10]}..." if len(key) > 10 else key
+
+        return f"""*Oops! That doesn't look like a Groq API key!* ❌
+
+Ralph got: `{key_preview}`
+
+*Common problems:*
+• Copied only part of the key (copy ALL of it!)
+• Added extra spaces (Ralph can fix this!)
+• Copied the wrong thing (make sure it's from Groq Console!)
+• Confused it with another API key (Anthropic? OpenAI? Wrong key!)
+
+*Try again!*
+Go back to: https://console.groq.com/keys
+
+Make sure to copy the ENTIRE key! It should:
+• Start with `gsk_`
+• Be pretty long (40-50 characters)
+• Have letters and numbers
+
+*Send Ralph the key when you're ready!*
+"""
+
+    def get_groq_key_success_message(self) -> str:
+        """Get success message after Groq API key is saved.
+
+        Returns:
+            Success message with next steps
+        """
+        return """*Ralph Saved Your Groq Key! ⚡*
+
+Woohoo! Ralph tested it and it works GREAT!
+
+*What Ralph did:*
+✅ Validated the key format
+✅ Tested it with Groq's API
+✅ Saved it to your `.env` file
+✅ Made sure it's working perfectly
+
+*What this means for you:*
+⚡ SUPER FAST AI responses
+⚡ Lower costs for simple tasks
+⚡ Best of both worlds (Claude + Groq)
+⚡ Ralph is turbocharged! 🏎️
+
+*Next steps:*
+Ralph can help you:
+• Set up other API keys (OpenWeather, etc.)
+• Continue with the setup wizard
+• Start using Ralph Mode!
+
+*Ready to continue?*
+"""
+
+    def get_groq_test_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Groq API key testing options.
+
+        Returns:
+            Keyboard with testing action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("🧪 Test the Key!", callback_data="groq_test_key")],
+            [InlineKeyboardButton("▶️ Continue Setup", callback_data="setup_continue_next")],
+            [InlineKeyboardButton("⏭️ Skip Groq", callback_data="groq_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_groq_skip_confirmation_message(self) -> str:
+        """Get confirmation message when user skips Groq setup.
+
+        Returns:
+            Skip confirmation message
+        """
+        return """*No Problem! Skipping Groq Setup!* ⏭️
+
+Ralph totally understands! Groq is optional!
+
+*What this means:*
+• Ralph will use only Claude for AI
+• Everything still works perfectly
+• You can add Groq later anytime
+• Just run `/setup` again when ready!
+
+*To add Groq later:*
+1. Run `/setup` command
+2. Select "Configure API Keys"
+3. Choose "Groq API Key"
+4. Follow the setup steps
+
+Ralph says: "That's okay! Ralph works great with just Claude too! Me still smart! 🧠"
+
+*Ready to continue with setup?*
+"""
+
     # Telegram Bot Creation Wizard (OB-007)
 
     def get_telegram_bot_intro_message(self) -> str:
