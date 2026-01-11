@@ -1138,6 +1138,9 @@ class RalphBot:
         self.ralph_mood: Dict[int, str] = {}  # RM-033: Track Ralph's daily mood per session (good/neutral/bad)
         self.ceo_mood: Dict[int, str] = {}  # RM-039: Track CEO mood from recent messages (pissy/neutral/good)
         self.ceo_recent_messages: Dict[int, List[Dict]] = {}  # RM-039: Track recent CEO messages for mood analysis
+        # RM-056: Interrupt and Resume Flow
+        self.conversation_context: Dict[int, Dict[str, Any]] = {}  # Stores ongoing conversation context before interruption
+        self.resume_timer: Dict[int, asyncio.Task] = {}  # Timer tasks for resuming conversation
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -5103,6 +5106,157 @@ _{ralph_response}_
             if user_id in self.idle_chatter_task:
                 del self.idle_chatter_task[user_id]
 
+    async def handle_worker_interrupt(self, context, chat_id: int, user_id: int, worker_name: str, user_question: str):
+        """RM-056: Handle when user interrupts a worker to ask a question.
+
+        Flow:
+        1. Save current conversation context
+        2. Worker immediately acknowledges ("Oh hey Mr. Worms!")
+        3. Worker answers the question in character
+        4. Start resume timer for after 10 seconds of silence
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            worker_name: Which worker was interrupted
+            user_question: The user's question
+        """
+        # Cancel any existing idle chatter
+        if user_id in self.idle_chatter_task:
+            self.idle_chatter_task[user_id].cancel()
+            del self.idle_chatter_task[user_id]
+
+        # Save conversation context if workers were chatting
+        session = self.active_sessions.get(user_id, {})
+        if user_id in self.conversation_context:
+            # Already have context saved
+            pass
+        else:
+            # Save current idle chatter state if any
+            self.conversation_context[user_id] = {
+                "last_topic": session.get("last_idle_topic"),
+                "last_speaker": session.get("last_idle_speaker"),
+                "interrupted_at": datetime.now()
+            }
+
+        # Worker immediately acknowledges - fresh, varied greetings
+        worker = self.DEV_TEAM.get(worker_name, self.DEV_TEAM["Stool"])
+
+        greetings = [
+            f"Oh hey Mr. Worms! What's up?",
+            f"Oh! Mr. Worms - yeah, what do you need?",
+            f"Hey boss! Got a question?",
+            f"Mr. Worms! Yeah, what's going on?",
+            f"Oh - hey Mr. Worms! How can I help?",
+            f"Boss! What's up?",
+            f"Oh hey! Yeah, I got a sec - what do you need?",
+        ]
+
+        greeting = random.choice(greetings)
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker["title"],
+            greeting, with_typing=True
+        )
+
+        # Worker answers the question in character
+        await asyncio.sleep(self.timing.rapid_banter())
+
+        worker_prompt = f"""You're {worker_name}, a dev on Ralph's team. Mr. Worms (the CEO) just interrupted you to ask:
+"{user_question}"
+
+Answer his question helpfully and in character. Keep it conversational - you're explaining to the boss.
+Your style: {worker['style']}
+
+2-3 sentences max. Be helpful but stay in character."""
+
+        name, title, response = self.call_worker(worker_prompt, preferred_worker=worker_name)
+
+        await self.send_styled_message(
+            context, chat_id, name, title,
+            response, with_typing=True
+        )
+
+        # Start resume timer - after 10 seconds of silence, workers resume conversation
+        if user_id in self.resume_timer:
+            self.resume_timer[user_id].cancel()
+
+        async def resume_after_silence():
+            """Wait 10 seconds, then resume conversation if user stays silent"""
+            try:
+                await asyncio.sleep(10)
+                # Check if user sent another message (which would update last_user_message_time)
+                if user_id in self.last_user_message_time:
+                    time_since_msg = (datetime.now() - self.last_user_message_time[user_id]).total_seconds()
+                    if time_since_msg < 10:
+                        # User sent another message, don't resume yet
+                        return
+
+                # Resume conversation
+                await self.resume_conversation(context, chat_id, user_id)
+            except asyncio.CancelledError:
+                pass
+
+        resume_task = asyncio.create_task(resume_after_silence())
+        self.resume_timer[user_id] = resume_task
+
+    async def resume_conversation(self, context, chat_id: int, user_id: int):
+        """RM-056: Workers naturally resume their sidebar conversation after interruption.
+
+        After ~10 seconds of silence, another worker says "Anyway, as I was saying..."
+        and picks up where they left off.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+        """
+        # Get saved conversation context
+        conv_context = self.conversation_context.get(user_id)
+        if not conv_context:
+            # No conversation to resume, restart idle chatter instead
+            if user_id in self.active_sessions:
+                task = asyncio.create_task(self.idle_codebase_chatter(context, chat_id, user_id))
+                self.idle_chatter_task[user_id] = task
+            return
+
+        # Pick a different worker to resume (not the one who just answered)
+        session = self.active_sessions.get(user_id, {})
+        last_speaker = conv_context.get("last_speaker", "Stool")
+
+        other_workers = [name for name in self.DEV_TEAM.keys() if name != last_speaker]
+        resume_worker_name = random.choice(other_workers) if other_workers else "Gomer"
+        worker = self.DEV_TEAM[resume_worker_name]
+
+        # Varied resume phrases
+        resume_phrases = [
+            "Anyway, as I was saying...",
+            "Right, so where were we?",
+            "So yeah, back to what we were talking about...",
+            "Anyway - what were we saying?",
+            "Oh right, so like I was saying...",
+            "Yeah so anyway...",
+            "Alright, so back to the code...",
+        ]
+
+        resume_intro = random.choice(resume_phrases)
+
+        await self.send_styled_message(
+            context, chat_id, resume_worker_name, worker["title"],
+            resume_intro, with_typing=True
+        )
+
+        # Clear saved context
+        if user_id in self.conversation_context:
+            del self.conversation_context[user_id]
+
+        # Resume idle chatter after a beat
+        await asyncio.sleep(self.timing.normal())
+        if user_id in self.active_sessions:
+            task = asyncio.create_task(self.idle_codebase_chatter(context, chat_id, user_id))
+            self.idle_chatter_task[user_id] = task
+
     async def send_with_typing(self, context, chat_id: int, text: str, parse_mode: str = "Markdown", reply_markup=None, typing_duration: float = None):
         """Send a message with a preceding typing indicator.
 
@@ -8873,6 +9027,44 @@ _Grab some popcorn..._
             # Pause idle chatter when user sends message
             self.idle_chatter_task[user_id].cancel()
             del self.idle_chatter_task[user_id]
+
+        # RM-056: Detect if user is "tapping" a worker to ask a question
+        # Patterns: "Stool, how does X work?" or "Hey Gomer, can you explain Y?"
+        if user_id in self.active_sessions:
+            text_lower = text.lower().strip()
+
+            # Check if message starts with or addresses a worker by name
+            for worker_name in self.DEV_TEAM.keys():
+                worker_name_lower = worker_name.lower()
+
+                # Patterns:
+                # - "stool, ..."
+                # - "hey stool, ..."
+                # - "stool: ..."
+                # - "@stool ..."
+                patterns = [
+                    f"{worker_name_lower},",
+                    f"hey {worker_name_lower}",
+                    f"{worker_name_lower}:",
+                    f"@{worker_name_lower}",
+                    f"yo {worker_name_lower}",
+                ]
+
+                if any(text_lower.startswith(pattern) for pattern in patterns):
+                    # User is addressing this worker directly!
+                    # Extract the question (remove the worker name)
+                    question = text
+                    for pattern in patterns:
+                        if text_lower.startswith(pattern):
+                            # Remove the pattern from the question
+                            question = text[len(pattern):].strip()
+                            if question.startswith(','):
+                                question = question[1:].strip()
+                            break
+
+                    # Handle the interrupt
+                    await self.handle_worker_interrupt(context, chat_id, user_id, worker_name, question)
+                    return
 
         # AC-003: Check user cooldown (rate limiting per user)
         if ADMIN_HANDLER_AVAILABLE:

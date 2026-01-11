@@ -11872,3 +11872,69 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Break after first topic match to avoid duplicate storage
 
 ---
+## Iteration [Auto] - 2026-01-11 00:18 PST
+**Task**: [RM-056] Interrupt and Resume Flow
+**Status**: ✅ Complete
+
+### What was implemented
+- Added conversation_context and resume_timer tracking dicts to RalphBot class
+- Implemented handle_worker_interrupt() method to handle user tapping workers
+- Worker immediately acknowledges with varied greetings ("Oh hey Mr. Worms! What's up?")
+- Worker answers question in character using call_worker()
+- Starts 10-second resume timer after answering
+- Implemented resume_conversation() method to naturally resume sidebar chatter
+- Workers say "Anyway, as I was saying..." with varied resume phrases
+- Resumes idle chatter after resuming conversation
+- Added pattern detection in handle_text() for worker taps
+- Detects: "Stool,", "hey Stool", "Stool:", "@Stool", "yo Stool"
+- Extracts question by removing worker name prefix
+- Cancels idle chatter when user interrupts
+- Checks for user silence before resuming (no new messages in 10 seconds)
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- User can interrupt workers anytime by addressing them by name
+- Multiple patterns supported for natural addressing (comma, colon, @, hey, yo)
+- Worker greetings are varied from a list (not canned responses)
+- Resume phrases also varied for freshness
+- Resume timer cancels if user sends another message
+- Conversation context stores last topic and speaker for natural resume
+- If no context exists, just restart idle chatter instead
+- Workers never make user feel rude for interrupting
+- Pattern detection is case-insensitive and checks message start
+- Question extraction removes the worker name cleanly
+- Integration with existing idle_chatter_task mechanism
+
+### Acceptance criteria met
+✅ User tap = immediate attention from that worker
+✅ Worker: 'Oh hey Mr. Worms! What's up?' (varied greetings)
+✅ User asks question about what they were discussing
+✅ Worker answers helpfully, in character
+✅ After ~10 seconds silence, another worker: 'Anyway, as I was saying...'
+✅ Conversation resumes naturally where they left off
+✅ User never feels like they're interrupting rudely
+✅ Workers always happy to explain to the boss
+
+### Technical patterns discovered
+- Pattern matching for worker name detection (multiple formats)
+- Resume timer with async task cancellation
+- Conversation context preservation across interrupts
+- Worker selection for resume (picks different worker)
+- Integration with existing idle chatter system
+- Graceful handling when no conversation to resume
+- Clean question extraction from addressed message
+- Varied response lists for greetings and resume phrases
+
+### Gotchas to avoid
+- Must cancel existing resume timer before creating new one
+- Must check user silence before resuming (they might have sent another message)
+- Must clear conversation context after resuming
+- Must pick a different worker for resume (not same as interrupted worker)
+- Pattern detection must be at message start, not anywhere in text
+- Must handle case where no conversation context exists (start fresh)
+- Worker name patterns need lowercase comparison
+- Resume timer needs to be async task that can be cancelled
+
+---
