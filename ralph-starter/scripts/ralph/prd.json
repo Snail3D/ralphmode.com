@@ -5997,7 +5997,7 @@
       "files_likely_modified": [
         "ralph_personality.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SP-003",
@@ -7260,20 +7260,6 @@
       "passes": false
     },
     {
-      "id": "MM-011",
-      "category": "MM",
-      "title": "OpenAI Adapter",
-      "description": "GPT models via API",
-      "acceptance_criteria": [
-        "Feature implemented and working",
-        "Integrated with existing systems"
-      ],
-      "files_likely_modified": [
-        "adapters/openai.py"
-      ],
-      "passes": false
-    },
-    {
       "id": "MM-012",
       "category": "MM",
       "title": "Groq Adapter",
@@ -7290,8 +7276,8 @@
     {
       "id": "MM-013",
       "category": "MM",
-      "title": "Generic OpenAI-Compatible Adapter",
-      "description": "Any OpenAI-compatible API",
+      "title": "Generic Chat Completions Adapter",
+      "description": "Support any provider using standard chat completions API format (Groq, local servers, etc.) - NOT OpenAI",
       "acceptance_criteria": [
         "Feature implemented and working",
         "Integrated with existing systems"
@@ -8180,6 +8166,513 @@
       ],
       "files_likely_modified": [
         "image_gen.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-001",
+      "category": "WD",
+      "title": "Character Avatar System",
+      "description": "Visual faces/avatars for Ralph, Stool, Gomer, Mona, Gus, Withers",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/avatars/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-002",
+      "category": "WD",
+      "title": "Individual Character Chat Panels",
+      "description": "Tap on a character to open direct chat with that worker",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/CharacterPanel.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-003",
+      "category": "WD",
+      "title": "Visual Office Layout",
+      "description": "See the whole team at once - like looking into the office",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/Office.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-004",
+      "category": "WD",
+      "title": "Speech Bubble Message Display",
+      "description": "Messages appear in speech bubbles under character faces",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/SpeechBubble.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-005",
+      "category": "WD",
+      "title": "Character State Indicators",
+      "description": "Visual states: working, idle, thinking, celebrating, confused",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/CharacterState.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-006",
+      "category": "WD",
+      "title": "Live Character Animations",
+      "description": "Typing animation, reactions, emotional expressions",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/animations/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-007",
+      "category": "WD",
+      "title": "Character Selection Interface",
+      "description": "Click/tap character to focus on them",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/CharacterSelect.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-008",
+      "category": "WD",
+      "title": "Multi-Character Conversation View",
+      "description": "See multiple characters talking to each other",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/TeamChat.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-009",
+      "category": "WD",
+      "title": "Character Profile Cards",
+      "description": "Pop-up with character bio, skills, current task",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/ProfileCard.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-010",
+      "category": "WD",
+      "title": "Real-time Character Updates",
+      "description": "WebSocket updates for character state changes",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/websocket/characters.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-011",
+      "category": "WD",
+      "title": "Character Mood System",
+      "description": "Characters show mood based on project state",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/state/mood.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-012",
+      "category": "WD",
+      "title": "Office Background Themes",
+      "description": "Different office backgrounds - day/night, seasons, holidays",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/themes/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-013",
+      "category": "WD",
+      "title": "Character Sound Effects",
+      "description": "Optional sounds for typing, celebrations, errors",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/audio/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-014",
+      "category": "WD",
+      "title": "Mobile-Friendly Character Grid",
+      "description": "Responsive layout for phone screens",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/MobileOffice.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-015",
+      "category": "WD",
+      "title": "Character Notification Badges",
+      "description": "Show when a character has something to say",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/Badge.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-016",
+      "category": "WD",
+      "title": "Drag-and-Drop Task Assignment",
+      "description": "Drag task to character to assign work",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/TaskAssign.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-017",
+      "category": "WD",
+      "title": "Character Work Progress Bars",
+      "description": "See how far along each character is on their task",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/components/Progress.tsx"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-018",
+      "category": "WD",
+      "title": "Team Celebration Animation",
+      "description": "All characters celebrate when milestone is hit",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/animations/celebrate.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-019",
+      "category": "WD",
+      "title": "Character Customization",
+      "description": "Users can customize character appearances",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/settings/characters.ts"
+      ],
+      "passes": false
+    },
+    {
+      "id": "WD-020",
+      "category": "WD",
+      "title": "Accessibility Mode",
+      "description": "Screen reader support, high contrast, reduced motion",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "website/accessibility/"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-001",
+      "category": "LF",
+      "title": "Local AI as Default",
+      "description": "Ollama/local model is the DEFAULT choice, cloud is optional",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/local_ai.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-002",
+      "category": "LF",
+      "title": "Ollama Auto-Detection",
+      "description": "Detect if Ollama is running locally on startup",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-003",
+      "category": "LF",
+      "title": "One-Click Ollama Install Guide",
+      "description": "Built-in instructions to install Ollama if not present",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/ollama_setup.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-004",
+      "category": "LF",
+      "title": "Recommended Local Models",
+      "description": "Curated list of models that work well for Ralph personality",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/model_recommendations.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-005",
+      "category": "LF",
+      "title": "Local Model Download Helper",
+      "description": "Help user download recommended models via Ollama",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/model_download.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-006",
+      "category": "LF",
+      "title": "Zero-API-Key Mode",
+      "description": "Full functionality with no cloud API keys required",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-007",
+      "category": "LF",
+      "title": "Offline Mode Detection",
+      "description": "Detect when offline and use local models only",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-008",
+      "category": "LF",
+      "title": "Local vs Cloud Toggle",
+      "description": "Easy switch between local and cloud in settings",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "settings.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-009",
+      "category": "LF",
+      "title": "Performance Comparison",
+      "description": "Show user speed/quality tradeoffs of local vs cloud",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/performance.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-010",
+      "category": "LF",
+      "title": "GPU Detection and Optimization",
+      "description": "Detect GPU and optimize local model settings",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/gpu_detect.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-011",
+      "category": "LF",
+      "title": "Memory-Aware Model Selection",
+      "description": "Recommend models based on available RAM",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/memory_check.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-012",
+      "category": "LF",
+      "title": "Local Model Health Check",
+      "description": "Verify local model is responding correctly",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_tester.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-013",
+      "category": "LF",
+      "title": "Hybrid Mode",
+      "description": "Use local for Ralph personality, cloud for complex coding",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-014",
+      "category": "LF",
+      "title": "Cost Savings Calculator",
+      "description": "Show user how much they save using local vs cloud",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "analytics/cost_calc.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "LF-015",
+      "category": "LF",
+      "title": "Privacy-First Messaging",
+      "description": "Emphasize that local = your data stays local",
+      "acceptance_criteria": [
+        "Feature implemented and working",
+        "Integrated with existing systems"
+      ],
+      "files_likely_modified": [
+        "setup/privacy.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "HR-007",
+      "category": "HR",
+      "title": "Banned AI Provider Registry",
+      "description": "HARDBAN on Grok (xAI) and OpenAI. No integration, no mention, no association. Only allowed: Groq (inference), Local AI, Anthropic.",
+      "acceptance_criteria": [
+        "No OpenAI imports or adapters in codebase",
+        "No Grok/xAI references",
+        "Clear documentation of banned providers",
+        "Groq (inference company) clearly distinguished from Grok (xAI)"
+      ],
+      "files_likely_modified": [
+        "HARDCORE_RULES.md",
+        "model_manager.py"
       ],
       "passes": false
     }

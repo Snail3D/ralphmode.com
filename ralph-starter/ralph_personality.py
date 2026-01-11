@@ -1405,6 +1405,161 @@ class RalphNarrator:
         return RalphNarrator.misspell(random.choice(triggers), chance=0.25)
 
 
+    @staticmethod
+    def ensure_sweetness(message: str, add_warmth: bool = True) -> str:
+        """Ensure any message maintains Ralph's authentic warmth.
+
+        IN-005: Sweetness Consistency - This is the central method that ensures
+        EVERY interaction maintains Ralph's authentic warmth. It adds sweetness
+        while respecting the original message's intent.
+
+        Args:
+            message: The message to ensure sweetness in
+            add_warmth: Whether to add warm prefixes/suffixes (default True)
+
+        Returns:
+            Message with authentic Ralph warmth maintained
+
+        Examples:
+            >>> RalphNarrator.ensure_sweetness("Error: File not found")
+            "Oopsie! Ralph can't find that file! But no worry, me help you look!"
+
+            >>> RalphNarrator.ensure_sweetness("Task completed")
+            "Yay! Task completed! Ralph happy!"
+        """
+        if not message or not message.strip():
+            return message
+
+        # Detect message sentiment/type
+        is_error = any(word in message.lower() for word in ['error', 'fail', 'wrong', 'bad', 'broken'])
+        is_success = any(word in message.lower() for word in ['success', 'complete', 'done', 'finish', 'work'])
+        is_question = message.strip().endswith('?')
+        is_instruction = any(word in message.lower() for word in ['please', 'need', 'should', 'must'])
+
+        # Don't over-sweeten if message is already sweet
+        already_sweet = any(word in message.lower() for word in ['ralph', 'me', 'happy', 'yay', 'good'])
+
+        if not add_warmth or already_sweet:
+            # Just apply misspellings to maintain consistency
+            return RalphNarrator.misspell(message, chance=0.2)
+
+        # Add appropriate warmth based on message type
+        if is_error:
+            warm_prefixes = [
+                "Oopsie! ",
+                "Uh oh! ",
+                "Oh no! ",
+                "Me see problem! ",
+            ]
+            warm_suffixes = [
+                " But Ralph help fix!",
+                " No worry, me got this!",
+                " That okay! Me help!",
+                " Ralph know what to do!",
+            ]
+            prefix = random.choice(warm_prefixes)
+            suffix = random.choice(warm_suffixes)
+            warmed = f"{prefix}{message}{suffix}"
+
+        elif is_success:
+            warm_prefixes = [
+                "Yay! ",
+                "Woohoo! ",
+                "Great! ",
+                "Success! ",
+            ]
+            warm_suffixes = [
+                " Ralph proud!",
+                " Me happy!",
+                " Good job!",
+                " We did it!",
+            ]
+            prefix = random.choice(warm_prefixes)
+            suffix = random.choice(warm_suffixes)
+            warmed = f"{prefix}{message}{suffix}"
+
+        elif is_question:
+            warm_prefixes = [
+                "Ralph wondering: ",
+                "Me curious! ",
+                "Ralph asks: ",
+                "Me wants to know! ",
+            ]
+            prefix = random.choice(warm_prefixes)
+            warmed = f"{prefix}{message}"
+
+        elif is_instruction:
+            warm_prefixes = [
+                "Okay! ",
+                "Ralph on it! ",
+                "Me understand! ",
+                "Got it! ",
+            ]
+            prefix = random.choice(warm_prefixes)
+            warmed = f"{prefix}{message}"
+
+        else:
+            # Neutral message - just add gentle warmth
+            warm_suffixes = [
+                " Ralph here to help!",
+                " Me ready!",
+                " Ralph got you!",
+                "",  # Sometimes no suffix is okay
+            ]
+            suffix = random.choice(warm_suffixes)
+            warmed = f"{message}{suffix}" if suffix else message
+
+        return RalphNarrator.misspell(warmed, chance=0.2)
+
+    @staticmethod
+    def maintain_consistent_tone(messages: list) -> list:
+        """Ensure a series of messages maintains consistent sweetness.
+
+        IN-005: For multi-message interactions, this ensures warmth doesn't
+        drop off over time. Ralph stays sweet from first to last message.
+
+        Args:
+            messages: List of messages to process
+
+        Returns:
+            List of messages with consistent sweetness throughout
+        """
+        if not messages:
+            return messages
+
+        # Process each message while maintaining sweetness level
+        processed = []
+        for i, msg in enumerate(messages):
+            # First and last messages get extra warmth
+            add_extra_warmth = (i == 0 or i == len(messages) - 1)
+            processed.append(RalphNarrator.ensure_sweetness(msg, add_warmth=True))
+
+        return processed
+
+    @staticmethod
+    def get_warm_transition() -> str:
+        """Get a warm transition phrase between tasks/topics.
+
+        IN-005: Maintains sweetness during topic changes or task transitions.
+
+        Returns:
+            A sweet transition phrase from Ralph
+        """
+        transitions = [
+            "Okay! Ralph ready for next thing!",
+            "Me excited! What's next?",
+            "Ralph here! What we doing now?",
+            "Alright! Me ready!",
+            "Yay! Next task please!",
+            "Ralph standing by!",
+            "Me listening! Tell Ralph!",
+            "Okay okay! Ralph ready to help!",
+            "What's next on list? Me eager!",
+            "Ralph's turn! Me ready!",
+        ]
+        return RalphNarrator.misspell(random.choice(transitions), chance=0.2)
+
+
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
 
