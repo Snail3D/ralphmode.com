@@ -15968,3 +15968,49 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [BM-014] Memory Triggers
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_memory_trigger() method to RalphNarrator class in ralph_personality.py
+- 80+ variations of Ralph's memory being jogged mid-task by something
+- Spontaneous "Oh!" moments when words, concepts, or situations trigger memories
+- Support for optional trigger_word parameter to reference specific concepts
+- Memory trigger categories include:
+  - Work-related memories and technical déjà vu
+  - Recent memory surfacing (team discussions, worker mentions)
+  - Partial/fuzzy memories (40% there, loading...)
+  - Documentation and past conversation recalls
+  - Solution and tool/library memories
+  - Meeting/discussion flashbacks
+  - Warning/lesson learned memories
+  - Deadline/priority memories
+  - Collaborative team memory triggers
+  - File location and best practice recalls
+  - Excited discovery moments (OH OH! Memory avalanche!)
+  - Fragmented attempts at remembering
+  - Recent vs old memory confusion
+
+### Files changed
+- ralph_personality.py (added get_memory_trigger method with 80+ variations)
+- scripts/ralph/prd.json (marked BM-014 as complete)
+
+### Learnings
+- Memory triggers add humanity and relatability to Ralph's character
+- The "Oh!" moment is a universal experience everyone relates to
+- Partial memories ("Ralph almost has it!") are more authentic than perfect recall
+- Trigger word support allows context-specific memory triggers
+- Memory triggers work best when they're spontaneous and mid-task
+- Pattern follows existing ralph_personality.py structure with large variation pools
+- BM (Between-session Memory) tasks focus on Ralph's lovable forgetfulness as a feature
+
+### Integration notes
+- Can be called from ralph_bot.py during worker interactions
+- Useful when Ralph encounters familiar patterns or concepts
+- Natural timing: when discussing technical details, reviewing code, or planning work
+- Optional trigger_word allows context: get_memory_trigger("async") or get_memory_trigger("API")
+- Works alongside existing memory features like remember_requirement() and check_memory()
+
+---
