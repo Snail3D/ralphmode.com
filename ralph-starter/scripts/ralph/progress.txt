@@ -11229,3 +11229,36 @@ All functionality tested and verified:
 - All acceptance criteria met: version check, venv creation, requirements install, package verification
 
 ---
+
+## Iteration (Latest) - 2026-01-10
+**Task**: [OB-015] Inline Help Tooltips
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive help_tooltips.py with 23 tooltips covering all key onboarding concepts
+- Tooltips written at 8th grade reading level with clear analogies
+- Each tooltip includes:
+  * Simple explanation of the concept
+  * Concrete analogy/example (💡 section)
+  * Learn-more link to official documentation (📚 section)
+- Topics covered: Git/GitHub, APIs, Python, Node.js, MCP, Claude Code, Ralph Mode, general dev concepts
+- Helper functions for getting tooltips: get_tooltip(), get_tooltip_short(), search_tooltips()
+- Ralph-themed fallback messages for missing tooltips
+- Integrates with existing telegram_utils.py help button infrastructure (create_help_button, handle_help_callback)
+
+### Files changed
+- help_tooltips.py (new)
+- scripts/ralph/prd.json (marked OB-015 complete)
+
+### Learnings
+- The telegram_utils.py already had help button infrastructure from earlier work
+- create_help_button() and handle_help_callback() were already implemented
+- Just needed to create the actual tooltip content database
+- Kid-friendly explanations require:
+  * No jargon
+  * Concrete analogies people can relate to
+  * Examples that connect to everyday experiences
+- 8th grade reading level means: short sentences, familiar words, one concept at a time
+- The existing copy button infrastructure pattern (hash-based storage) works perfectly for tooltips too
+
+---
