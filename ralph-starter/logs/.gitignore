@@ -1,0 +1,4 @@
+# Exclude all log files
+*.log
+*.jsonl
+*.json
