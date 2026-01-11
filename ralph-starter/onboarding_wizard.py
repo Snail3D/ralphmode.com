@@ -151,6 +151,16 @@ class OnboardingWizard:
             self.theme_manager_available = False
             self.logger.warning("Theme manager not available")
 
+        # Import doc generator (OB-050: Onboarding Documentation Generator)
+        try:
+            from doc_generator import get_doc_generator
+            self.doc_generator = get_doc_generator()
+            self.doc_generator_available = True
+        except ImportError:
+            self.doc_generator = None
+            self.doc_generator_available = False
+            self.logger.warning("Documentation generator not available")
+
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
 
@@ -5477,6 +5487,94 @@ Tweet: "I just set up Ralph Mode! AI dev team in Telegram 🤖🎉 #RalphMode"
 Ralph says: "Me proud of you! You did unpossible thing!" 👃
 {goodbye}
 *Ready to start building?*"""
+
+    # ==================== OB-050: ONBOARDING DOCUMENTATION GENERATOR ====================
+
+    def generate_project_documentation(
+        self,
+        state: Dict[str, Any],
+        project_name: str = "Ralph Mode Project",
+        save_to_file: bool = True
+    ) -> Optional[str]:
+        """Generate customized README.md based on user's setup configuration.
+
+        Args:
+            state: Onboarding state dictionary with user's configuration
+            project_name: Name of the user's project
+            save_to_file: If True, save README to file
+
+        Returns:
+            Generated README content, or None if doc generator not available
+        """
+        if not self.doc_generator_available:
+            self.logger.warning("OB-050: Doc generator not available")
+            return None
+
+        try:
+            # Generate README content
+            readme_content = self.doc_generator.generate_readme(state, project_name)
+
+            # Optionally save to file
+            if save_to_file:
+                success = self.doc_generator.save_readme(readme_content, "README.md")
+                if success:
+                    self.logger.info("OB-050: Generated and saved README.md")
+                else:
+                    self.logger.error("OB-050: Failed to save README.md")
+
+            return readme_content
+
+        except Exception as e:
+            self.logger.error(f"OB-050: Error generating documentation: {e}")
+            return None
+
+    def generate_getting_started_guide(self, state: Dict[str, Any]) -> Optional[str]:
+        """Generate a getting started guide for new users.
+
+        Args:
+            state: Onboarding state dictionary
+
+        Returns:
+            Getting started guide content, or None if not available
+        """
+        if not self.doc_generator_available:
+            return None
+
+        try:
+            return self.doc_generator.generate_getting_started_guide(state)
+        except Exception as e:
+            self.logger.error(f"OB-050: Error generating getting started guide: {e}")
+            return None
+
+    def get_documentation_generated_message(self, project_name: str = "Ralph Mode Project") -> str:
+        """Get message confirming documentation was generated.
+
+        Args:
+            project_name: Name of the project
+
+        Returns:
+            Confirmation message
+        """
+        return f"""📚 *Documentation Generated!*
+
+Ralph made you some helpful docs!
+
+**What was created:**
+✅ README.md - Your project overview
+✅ Configuration summary
+✅ Custom commands for your setup
+✅ Getting started guide
+✅ Troubleshooting tips
+
+**Where to find it:**
+Your project folder now has a fresh README.md with:
+• Quick start instructions tailored to YOUR setup
+• All the commands YOU need
+• Troubleshooting for YOUR configuration
+
+Ralph says: "I put the instructions in the README thingy! It knows what you did!" 📝
+
+*Check it out - it's got everything about {project_name}!*"""
 
     # ==================== OB-049: RE-ONBOARDING FLOW ====================
 
