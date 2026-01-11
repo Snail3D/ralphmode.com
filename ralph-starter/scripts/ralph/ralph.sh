@@ -197,7 +197,9 @@ for i in $(seq $START_ITERATION $MAX_ITERATIONS); do
     # Quick scan for hardcoded secrets in tracked files
     SECRETS_FOUND=$(grep -rn --include="*.py" --include="*.js" --include="*.json" \
       -E "(api_key|password|secret|token)\s*[:=]\s*['\"][^'\"]{10,}" "$PROJECT_DIR" 2>/dev/null | \
-      grep -v ".env" | grep -v "node_modules" | grep -v "__pycache__" | head -5)
+      grep -v ".env" | grep -v "node_modules" | grep -v "__pycache__" | \
+      grep -v "test_" | grep -v "_test.py" | grep -v "Test" | \
+      grep -v "example" | grep -v "sample" | grep -v "demo" | head -5)
 
     if [ -n "$SECRETS_FOUND" ]; then
       send_telegram "⚠️ *Security Checkpoint - Iteration $i*

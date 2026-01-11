@@ -238,7 +238,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response)
 
 
-async def transcribe_voice(file_path: str) -> str:
+def transcribe_voice(file_path: str) -> str:
     """Transcribe voice using Groq Whisper."""
     import requests
 

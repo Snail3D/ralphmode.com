@@ -39,13 +39,24 @@ from telegram.ext import (
     filters,
 )
 
-# SS-001 & SS-003: Import scene manager for opening scene generation and time-aware scenes
+# SS-001, SS-003, SS-005: Import scene manager for opening scene generation, time-aware scenes, and scene consistency
 try:
-    from scene_manager import generate_opening_scene, get_worker_arrival, get_time_of_day_context
+    from scene_manager import (
+        generate_opening_scene,
+        get_worker_arrival,
+        get_time_of_day_context,
+        get_scene_state,
+        add_scene_element,
+        get_scene_elements,
+        progress_scene_time,
+        get_weather_context,
+        get_environment_reaction,
+        clear_scene_state
+    )
     SCENE_MANAGER_AVAILABLE = True
 except ImportError:
     SCENE_MANAGER_AVAILABLE = False
-    logging.warning("SS-001: Scene manager not available - using simple opening")
+    logging.warning("SS-001/SS-005: Scene manager not available - using simple opening")
 
 # TL-002 & TL-003: Import translation engine for character translation and scene output
 try:
@@ -2740,7 +2751,8 @@ class RalphBot:
         scene = None
         worker_order = None
         if SCENE_MANAGER_AVAILABLE:
-            scene = generate_opening_scene(project_name, boss_tone=boss_tone)
+            # SS-005: Pass user_id to track scene state
+            scene = generate_opening_scene(project_name, boss_tone=boss_tone, user_id=user_id)
             worker_order = scene["worker_order"]
 
         # Initialize onboarding state
@@ -8145,6 +8157,12 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
         if weather_context:
             system_content += weather_context
 
+        # SS-005: Add scene consistency context
+        if user_id is not None:
+            scene_context = self._get_scene_consistency_context(user_id)
+            if scene_context:
+                system_content += scene_context
+
         # RM-010: Add freshness prompt to avoid repetitive responses
         if user_id is not None:
             freshness_prompt = self.get_freshness_prompt(user_id, "Ralph")
@@ -8164,6 +8182,10 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
         # RM-010: Track this response for freshness
         if user_id is not None:
             self.track_response(user_id, response, "Ralph")
+
+        # SS-005: Track scene elements mentioned in Ralph's response
+        if user_id is not None:
+            self._track_scene_elements(user_id, response)
 
         return response
 
@@ -8297,6 +8319,11 @@ Show professionalism by making their vision work."""
         # SG-004: Add weather awareness
         weather_prompt = self._get_weather_context(worker_name=worker_name)
 
+        # SS-005: Add scene consistency context
+        scene_prompt = ""
+        if user_id is not None:
+            scene_prompt = self._get_scene_consistency_context(user_id)
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -8321,6 +8348,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {lessons_prompt}
 {time_prompt}
 {weather_prompt}
+{scene_prompt}
 
 RM-060: STRICT - Maximum 2 sentences per response. No exceptions.
 Break complex info across multiple messages. Let it breathe. Stay in character."""},
@@ -8336,6 +8364,10 @@ Break complex info across multiple messages. Let it breathe. Stay in character."
         # RM-010: Track this response for freshness
         if user_id is not None:
             self.track_response(user_id, response, worker_name)
+
+        # SS-005: Track scene elements mentioned in worker response
+        if user_id is not None:
+            self._track_scene_elements(user_id, response)
 
         return (worker_name, worker['title'], response, token_count)
 
@@ -9585,6 +9617,117 @@ IMPORTANT: Weather references should be OCCASIONAL and NATURAL, not forced.
             logger.warning(f"SG-004: Error getting weather context: {e}")
             return ""
 
+    def _get_scene_consistency_context(self, user_id: int) -> str:
+        """SS-005: Get scene consistency context for maintaining persistent scene elements.
+
+        This ensures:
+        - Weather stays consistent (unless explicitly progressing)
+        - Time progresses naturally
+        - Scene elements persist (coffee from earlier, pizza boxes, etc.)
+        - Environment reacts to time changes (lights dimming, etc.)
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Scene consistency prompt fragment, or empty string if not available
+        """
+        if not SCENE_MANAGER_AVAILABLE:
+            return ""
+
+        try:
+            scene = get_scene_state(user_id)
+            if not scene:
+                return ""
+
+            context_parts = []
+
+            # Weather consistency
+            weather_desc = get_weather_context(user_id)
+            if weather_desc:
+                context_parts.append(f"WEATHER (CONSISTENT): {weather_desc}")
+
+            # Time of day and progression
+            time_key = scene.get('time', 'morning')
+            energy = scene.get('energy', 'neutral')
+            worker_mood = scene.get('worker_mood', 'working')
+
+            context_parts.append(f"TIME OF DAY: {time_key.replace('_', ' ').title()}")
+            context_parts.append(f"ENERGY LEVEL: {energy}")
+            context_parts.append(f"TEAM MOOD: {worker_mood}")
+
+            # Environment reactions
+            env_reaction = get_environment_reaction(user_id)
+            if env_reaction:
+                context_parts.append(f"ENVIRONMENT: {env_reaction}")
+
+            # Persistent scene elements (coffee cups, pizza boxes, etc.)
+            scene_elements = get_scene_elements(user_id)
+            if scene_elements:
+                elements_str = ", ".join(scene_elements[-3:])  # Last 3 elements
+                context_parts.append(f"SCENE ELEMENTS (can reference): {elements_str}")
+
+            # Build final context
+            if context_parts:
+                full_context = "\n\n**SCENE CONSISTENCY (SS-005)**:\n" + "\n".join([f"- {part}" for part in context_parts])
+                full_context += """
+
+IMPORTANT - Scene Consistency Rules:
+- Weather does NOT change randomly - it stays consistent throughout the session
+- Time progresses naturally (mention if hours have passed)
+- You can reference scene elements from earlier (that coffee, the pizza box, etc.)
+- Environment details should match time of day (late = dimmer lights, tired eyes, etc.)
+- Callbacks to earlier moments are GOLD - use them occasionally for continuity"""
+
+                return full_context
+
+            return ""
+
+        except Exception as e:
+            logger.warning(f"SS-005: Error getting scene consistency context: {e}")
+            return ""
+
+    def _track_scene_elements(self, user_id: int, message: str):
+        """SS-005: Automatically detect and track scene elements mentioned in messages.
+
+        Detects mentions of:
+        - Coffee, drinks (grabbed coffee, got a latte, etc.)
+        - Food (pizza, donuts, lunch, etc.)
+        - Actions (whiteboard drawing, sticky notes, etc.)
+
+        Args:
+            user_id: User session ID
+            message: Message to scan for scene elements
+        """
+        if not SCENE_MANAGER_AVAILABLE:
+            return
+
+        message_lower = message.lower()
+
+        # Patterns to detect scene elements
+        element_patterns = {
+            'coffee': ['coffee', 'latte', 'espresso', 'cappuccino'],
+            'food': ['pizza', 'donut', 'bagel', 'lunch', 'sandwich'],
+            'drink': ['water', 'energy drink', 'soda', 'tea'],
+            'office': ['whiteboard', 'sticky note', 'notebook', 'marker']
+        }
+
+        for category, keywords in element_patterns.items():
+            for keyword in keywords:
+                if keyword in message_lower:
+                    # Extract a natural description
+                    if 'grab' in message_lower or 'get' in message_lower or 'got' in message_lower:
+                        element_desc = f"someone grabbed {keyword}"
+                    elif 'order' in message_lower:
+                        element_desc = f"ordered {keyword}"
+                    else:
+                        element_desc = f"{keyword} on the desk"
+
+                    # Add to scene
+                    add_scene_element(user_id, element_desc)
+                    logger.debug(f"SS-005: Tracked scene element for user {user_id}: {element_desc}")
+                    break  # Only track one element per message to avoid spam
+
     async def _team_comments_on_project_type(self, context, chat_id: int, user_id: int, project_type_info: Dict[str, Any]):
         """RM-041: Team reacts to the project type with appropriate energy.
 
@@ -9990,6 +10133,9 @@ Type your question now!
                 # Clear history too
                 if user_id in self.session_history:
                     del self.session_history[user_id]
+                # SS-005: Clear scene state when session ends
+                if SCENE_MANAGER_AVAILABLE:
+                    clear_scene_state(user_id)
                 # Clear quality metrics
                 if user_id in self.quality_metrics:
                     del self.quality_metrics[user_id]
