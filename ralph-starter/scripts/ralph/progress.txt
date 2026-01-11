@@ -17364,3 +17364,34 @@ All 10 test cases passed:
 - This unlocks user experimentation with different models per role (cost optimization, quality tuning)
 
 ---
+
+---
+
+## Iteration Auto - 2026-01-11
+**Task**: [MM-002] Model Registry
+**Status**: ✅ Complete
+
+### What was implemented
+- Created ModelRegistry class for persistent storage of model configurations
+- Models stored to ~/.ralph/model_registry.json with full metadata
+- Metadata tracking: registration time, last used, usage count, tags, notes
+- Integrated with ModelManager class - all registrations auto-save by default
+- Added methods: register(), get(), list_models(), delete(), update_usage(), get_metadata()
+- Support for filtering models by role, tags, or provider
+- Added load_from_registry() to restore models from disk
+- Enhanced register_model() to optionally save to registry with metadata
+
+### Files changed
+- model_manager.py: Added ModelRegistry class (240 lines), integrated with ModelManager
+- test_model_registry.py: Comprehensive test suite (all 9 tests passing)
+
+### Learnings
+- Persistence layer separates storage concerns from runtime model management
+- Using JSON for registry keeps it simple and human-readable
+- Metadata tracking enables analytics and model performance comparisons
+- Registry enables model configurations to survive restarts and be shared
+- Default registry path ~/.ralph/model_registry.json follows Unix conventions
+- Filter methods make it easy to find models by various criteria
+- Usage tracking in registry enables future auto-optimization features
+
+---

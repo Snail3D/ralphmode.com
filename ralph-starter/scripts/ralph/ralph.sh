@@ -1,12 +1,32 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop for Ralph Mode
 # Based on https://github.com/snarktank/ralph
-# Usage: ./ralph.sh [max_iterations] [start_iteration]
+# Usage: ./ralph.sh [max_iterations] [start_iteration] [--glm]
+#
+# Modes:
+#   Default: Uses Claude Code (requires CLI, permissions)
+#   --glm:   Uses GLM-4.7 (headless, 32x cheaper, runs anywhere)
 
 # NO set -e - we handle errors gracefully
 
-MAX_ITERATIONS=${1:-20}
-START_ITERATION=${2:-1}
+# Parse arguments
+USE_GLM=false
+POSITIONAL_ARGS=()
+
+for arg in "$@"; do
+  case $arg in
+    --glm)
+      USE_GLM=true
+      shift
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$arg")
+      ;;
+  esac
+done
+
+MAX_ITERATIONS=${POSITIONAL_ARGS[0]:-20}
+START_ITERATION=${POSITIONAL_ARGS[1]:-1}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PRD_FILE="$SCRIPT_DIR/prd.json"
@@ -73,6 +93,11 @@ echo "╔═══════════════════════�
 echo "║  Ralph Wiggum - Autonomous AI Agent Loop                  ║"
 echo "║  Project: Ralph Mode Bot                                  ║"
 echo "║  Max Iterations: $MAX_ITERATIONS (starting at $START_ITERATION)                 ║"
+if [ "$USE_GLM" = true ]; then
+echo "║  Model: GLM-4.7 (headless, 32x cheaper)                   ║"
+else
+echo "║  Model: Claude Sonnet (via CLI)                           ║"
+fi
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -83,6 +108,12 @@ if [ "$IS_FRESH_START" = true ]; then
   DONE_TASKS=$(grep -c '"passes": true' "$PRD_FILE" 2>/dev/null || echo "?")
   REMAINING_TASKS=$(grep -c '"passes": false' "$PRD_FILE" 2>/dev/null || echo "?")
 
+  if [ "$USE_GLM" = true ]; then
+    MODEL_NAME="GLM-4.7 (32x cheaper!)"
+  else
+    MODEL_NAME="Claude Sonnet"
+  fi
+
   send_telegram "🏢 *Ralph Mode Build Loop Started*
 
 _The office lights flicker on..._
@@ -91,7 +122,7 @@ _The office lights flicker on..._
 \"Oh boy! Time to build stuff! I have $MAX_ITERATIONS things to do today!\"
 
 📋 PRD: $TOTAL_TASKS tasks ($DONE_TASKS done, $REMAINING_TASKS remaining)
-🤖 Model: Sonnet 4.5
+🤖 Model: $MODEL_NAME
 ⏰ Started: $(date '+%H:%M:%S')"
 fi
 # No message on resume - Telegram will just see completions
@@ -223,9 +254,16 @@ _Mr. Worms says: Move these to .env!_"
   # Save state BEFORE running (so we can resume this iteration if crashed)
   echo "$i" > "$STATE_FILE"
 
-  # Run Claude Code with Sonnet 4.5 (fast, capable), auto-accepting all permissions
-  # No Telegram message here - only notify on COMPLETION to avoid spam on restarts
-  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --model sonnet --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
+  # Run the build - either GLM or Claude Code
+  if [ "$USE_GLM" = true ]; then
+    # GLM-4.7 mode: Headless, cheap, runs anywhere
+    echo "  Running GLM-4.7 builder..."
+    OUTPUT=$(cd "$PROJECT_DIR" && ./venv/bin/python glm_builder.py 2>&1 | tee /dev/stderr) || true
+  else
+    # Claude Code mode: Requires CLI, permissions
+    echo "  Running Claude Code..."
+    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude --model sonnet --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
+  fi
 
   # Extract summary from output (last 500 chars or so)
   SUMMARY=$(echo "$OUTPUT" | tail -c 800 | head -c 500)

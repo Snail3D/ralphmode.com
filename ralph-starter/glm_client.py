@@ -53,7 +53,7 @@ class GLMClient:
             self.base_url,
             headers=headers,
             json=payload,
-            timeout=120
+            timeout=300  # 5 min for thinking model
         )
 
         return response.json()
