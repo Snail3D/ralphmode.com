@@ -12328,3 +12328,51 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Random choice from empty list crashes - always check if transitions list has items
 
 ---
+
+## Iteration 22 - 2026-01-11
+**Task**: [SG-001] Post-Task Reflection That Learns
+**Status**: ✅ Complete
+
+### What was implemented
+- Added session_lessons dict to __init__ (tracks learnings per user)
+- Created post_task_reflection() async method for 2-3 message worker discussion
+- Workers analyze what happened after task: acknowledge mistakes OR build on successes
+- Reflections stored in session_lessons with pacing_modifier (1.2 if mistakes, 1.0 if smooth)
+- session_lessons integrated into call_worker() to influence future behavior
+- Pacing adjustment prompt: "⚠️ SLOW DOWN" if 2+ recent mistakes
+- Momentum prompt: "✅ GOOD MOMENTUM" if no recent mistakes
+- Lessons limited to last 10 per session (prevents bloat)
+- Optional 3rd worker chimes in 30% of the time
+
+### Files changed
+- ralph_bot.py (__init__, post_task_reflection, call_worker)
+
+### Learnings
+- Post-task discussions make workers feel REAL - they actually reflect on their work
+- session_lessons must influence FUTURE calls, not just be logged (that's the key)
+- Mistakes should genuinely slow down next task (pacing_modifier used by callers)
+- Recent lessons (last 3) are most relevant for current task context
+- Workers acknowledge who caught a mistake: builds team dynamic
+- Reflection is 2-3 messages: first worker starts, second responds, optional third adds insight
+- Lessons should be brief (truncate at 200 chars) for prompt efficiency
+
+### Patterns discovered
+- Worker selection for reflection: random.sample(list(DEV_TEAM.keys()), k=min(3, len(DEV_TEAM)))
+- Conditional reflection context: if session_lessons[user_id]: (check before accessing)
+- Recent mistakes detection: [l for l in recent_lessons if l.get("had_mistakes", False)]
+- Pacing modifier stored in lesson: {"pacing_modifier": 1.2 if had_mistakes else 1.0}
+- Lessons prompt in system message: workers SEE recent learnings when making decisions
+- Two-stage reflection: first worker analyzes, second worker responds/builds
+- Optional third message: random.random() < 0.3 for natural variety
+
+### Gotchas to avoid
+- Must initialize session_lessons[user_id] = [] before use (KeyError prevention)
+- Reflection should be called AFTER track_task_completed() (usage pattern documented)
+- Don't pass full lesson text to prompts (truncate to 150 chars in lesson context)
+- had_mistakes and who_caught_it are OPTIONAL parameters (default False and None)
+- Lessons influence behavior through call_worker() - not automatic, must be integrated
+- Keep lesson list bounded (last 10) to prevent token bloat in long sessions
+- Second worker's prompt references first worker's response (creates dialogue)
+- Lessons prompt only added if user_id in session_lessons AND lessons exist
+
+---
