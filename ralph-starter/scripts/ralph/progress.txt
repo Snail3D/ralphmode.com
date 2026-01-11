@@ -13115,3 +13115,35 @@ if should_ship:
 - This is the warm professional goodbye real coworkers give, not a corporate "session terminated" message
 
 ---
+
+## Iteration - 2026-01-11
+**Task**: [SG-011] Stay In Lane - Redirect Off-Topic
+**Status**: ✅ Complete
+
+### What was implemented
+- Created is_off_topic_query() to detect religion, politics, philosophy, and personal advice topics
+- Pattern matching for 30+ keywords across categories (god, religion, politics, philosophy, etc.)
+- Added get_off_topic_redirect() with 13 varied redirect responses
+- Responses from Ralph and all workers (Gus, Stool, Mona, Gomer)
+- Each response stays in character and gently redirects back to code work
+- Integrated check in handle_text() message handler after banned topic check
+- Returns immediately after redirect - no further processing of off-topic message
+
+### Files changed
+- ralph_bot.py (lines 6143-6223, 11994-12003)
+
+### Learnings
+- This is about maintaining focus, not being preachy or dismissive
+- The redirect must be warm ("I just do code") not cold ("that's inappropriate")
+- Each character's redirect fits their personality:
+  * Ralph: Innocent confusion + redirect ("That's above my pay grade!")
+  * Gus: Veteran wisdom ("Big questions are for after work, over a beer")
+  * Stool: Gen-Z casual ("Bruh, that's way too deep")
+  * Mona: Professional boundaries ("Falls outside my domain")
+  * Gomer: Simple pleasures ("Code, donuts, home")
+- Never engage with the content - acknowledge it's a thing, but not our thing
+- Important to END with redirect ("Back to the code?", "Anyway, what were we working on?")
+- Detection happens early in handle_text() flow to prevent off-topic from entering session context
+- This protects both user and bot from uncomfortable territory - clear boundaries are kind
+
+---
