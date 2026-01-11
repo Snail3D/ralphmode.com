@@ -16125,3 +16125,36 @@ Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 - Worker memory adds continuity layer that persists across sessions
 
 ---
+
+## Iteration 6 - 2026-01-11
+**Task**: [BM-010] Workers Help Ralph Remember
+**Status**: ✅ Complete
+
+### What was implemented
+- Created async worker_helps_ralph_remember() function that allows workers to proactively remind Ralph of what Mr. Worms said
+- Workers can now say things like "Sir, I think Mr. Worms said..." when Ralph seems confused
+- Added BM-010 memory context to call_worker() system prompts via worms_memory_prompt
+- Workers now have access to all Mr. Worms directives in their AI context
+- Reminder intros include variations like "Sir, didn't Mr. Worms tell us..." for natural dialogue
+- Function can search for topic-specific requirements or pull from recent directives
+- Truncates long requirements to 100 chars for readability in chat
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Between-session memory gap is the core BM pattern - Ralph forgets, workers remember
+- The existing SG-031 requirements tracking infrastructure was perfect foundation
+- Workers helping Ralph creates helpful, respectful team dynamic
+- Memory assistance fits naturally into existing prompt architecture at call_worker()
+- Can be triggered contextually (when Ralph confused) or topic-specifically
+- Helps maintain continuity without making Ralph seem too competent
+
+### Integration points
+- worker_helps_ralph_remember() added after format_requirements_for_prompt() at line ~10271
+- worms_memory_prompt injected in call_worker() system content at line ~12537
+- Uses existing get_all_requirements() and check_memory() from SG-031
+- Can be called anywhere with context, chat_id, user_id, and optional topic
+- Future triggers: after Ralph apology moments (BM-011), during task confusion, session resumes
+
+---

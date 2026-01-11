@@ -10268,6 +10268,74 @@ Stay in character as {pushback_worker}."""
 
         return "\n".join(lines)
 
+    async def worker_helps_ralph_remember(self, context, chat_id: int, user_id: int, topic: str = None) -> bool:
+        """BM-010: Workers Help Ralph Remember.
+
+        When Ralph seems confused or uncertain about what Mr. Worms wants,
+        a worker steps in to remind him: "Sir, I think Mr. Worms said..."
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User session ID
+            topic: Optional specific topic to recall
+
+        Returns:
+            True if worker provided a reminder, False if no relevant memory found
+        """
+        requirements = self.get_all_requirements(user_id)
+
+        if not requirements:
+            return False
+
+        # Pick a worker to help Ralph remember
+        worker_name = random.choice(list(self.DEV_TEAM.keys()))
+        worker = self.DEV_TEAM[worker_name]
+
+        # If specific topic, try to find relevant requirement
+        relevant_requirement = None
+        if topic:
+            relevant_requirement = self.check_memory(user_id, topic)
+
+        # Otherwise, pick a recent requirement (workers remember recent things)
+        if not relevant_requirement and requirements:
+            # Get the 3 most recent requirements
+            recent_reqs = requirements[-3:]
+            relevant_requirement = random.choice(recent_reqs)
+
+        if not relevant_requirement:
+            return False
+
+        # Worker gently reminds Ralph
+        reminder_intros = [
+            f"Sir, I think Mr. Worms said",
+            f"Ralph, the boss mentioned",
+            f"Sir, didn't Mr. Worms tell us",
+            f"Hey Ralph, remember when Mr. Worms said",
+            f"Sir, I wrote down that Mr. Worms wanted",
+            f"Boss, I think Mr. Worms was pretty clear -",
+            f"Ralph, the boss specifically said",
+            f"Sir, I've got my notes here - Mr. Worms said"
+        ]
+
+        # Format the requirement nicely (truncate if too long)
+        req_text = relevant_requirement
+        if len(req_text) > 100:
+            req_text = req_text[:97] + "..."
+
+        intro = random.choice(reminder_intros)
+        reminder_message = f'{intro} "{req_text}"'
+
+        await self.send_styled_message(
+            context, chat_id, worker_name, worker['title'],
+            reminder_message,
+            topic="memory assistance",
+            with_typing=True
+        )
+
+        logger.info(f"BM-010: {worker_name} helped Ralph remember: {relevant_requirement[:50]}...")
+        return True
+
     def add_session_requirement(self, user_id: int, requirement_text: str) -> bool:
         """SG-030: Add a dynamic requirement during the session with status tracking.
 
@@ -12422,6 +12490,14 @@ Show professionalism by making their vision work."""
             if worker_memory_context:
                 worker_memory_prompt = f"\n\n{worker_memory_context}"
 
+        # BM-010: Add Mr. Worms directives memory context
+        worms_memory_prompt = ""
+        if user_id is not None:
+            requirements = self.get_all_requirements(user_id)
+            if requirements:
+                worms_memory_prompt = f"\n\n{self.format_requirements_for_prompt(user_id)}"
+                worms_memory_prompt += "\n\nIMPORTANT: If Ralph seems confused or uncertain about what Mr. Worms wants, you can help him remember by saying: 'Sir, I think Mr. Worms said...'"
+
         # Build initial system content
         system_content = f"""{WORK_QUALITY_PRIORITY}
 
@@ -12458,6 +12534,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {autonomy_prompt}
 {patience_prompt}
 {worker_memory_prompt}
+{worms_memory_prompt}
 
 SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
 
