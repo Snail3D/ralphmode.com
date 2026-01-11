@@ -5983,7 +5983,7 @@
       "files_likely_modified": [
         "ralph_personality.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "IN-005",
@@ -8743,6 +8743,26 @@
       ],
       "passes": false,
       "priority": "CRITICAL"
+    },
+    {
+      "id": "HR-008",
+      "category": "HR",
+      "title": "README Masterpiece Standard",
+      "description": "HARDCORE RULE: README must ALWAYS use Ralph Wiggum / Simpsons language. Fun, beautiful, functional. Emoji buttons, visual tables, maximum readability. Max 2 pages. Links off must also be beautiful. This is a MASTERPIECE standard - every README update must maintain this quality.",
+      "acceptance_criteria": [
+        "Ralph Wiggum quotes and Simpsons references throughout",
+        "Emoji buttons and visual elements",
+        "Tables for scannability",
+        "Maximum 2 pages / 125 lines",
+        "Fun but functional",
+        "Links to beautiful sub-docs if needed"
+      ],
+      "files_likely_modified": [
+        "README.md",
+        "docs/"
+      ],
+      "passes": true,
+      "priority": "HARDCORE"
     }
   ],
   "priority_order": [
