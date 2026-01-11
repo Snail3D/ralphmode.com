@@ -12898,3 +12898,37 @@ if should_ship:
 - Used self.timing.beat() for comedic pause before delivery
 
 ---
+
+## Iteration [Ralph Agent] - 2026-01-11
+**Task**: SG-026 - You Are Mr. Worms - No Exceptions
+**Status**: ✅ Complete
+
+### What was implemented
+- Updated onboarding wizard to automatically use "Mr. Worms" for Git configuration
+- Changed `get_git_config_name_request_message()` from asking for user input to informational only
+- Hardcoded "Mr. Worms" in `get_git_config_command_message()` to ensure it's always used
+- Added SG-026 comment to database.py schema clarifying first_name/last_name fields are never populated
+- Verified all AI prompts consistently use "Mr. Worms" or "CEO" to refer to the user
+- Confirmed no files inappropriately collect or use the user's real Telegram name
+
+### Files changed
+- onboarding_wizard.py
+- database.py
+
+### Learnings
+- Privacy + fiction go hand-in-hand: Using "Mr. Worms" protects user privacy AND maintains the immersive Ralph Mode experience
+- The codebase was already 95% compliant - CEO_NAME constant and all prompts already used "Mr. Worms"
+- The only issue was the Git config onboarding flow which asked for the user's name
+- Database schema has first_name/last_name columns but they were never populated (good!)
+- Pattern discovered: When a fiction/entertainment product also serves a functional purpose, maintaining the fiction can be a privacy feature, not just entertainment
+
+### Acceptance Criteria Met
+✅ User is ALWAYS referred to as 'Mr. Worms'
+✅ Never ask for or use real name
+✅ Never pull name from Telegram profile
+✅ Workers only know 'Mr. Worms' or 'the boss' or 'CEO'
+✅ Protects privacy - system doesn't need real identity
+✅ Maintains fiction - user is playing the CEO role
+✅ No exceptions - everyone is Mr. Worms
+
+---
