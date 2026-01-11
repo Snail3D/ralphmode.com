@@ -5189,7 +5189,7 @@
         "onboarding_wizard.py",
         "git_safety.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-031",

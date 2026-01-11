@@ -11581,3 +11581,93 @@ According to priority_order, next incomplete task would be in the Voice-Only or 
 - May want to add analytics for other workflows (PRD building, etc.)
 
 ---
+
+## Iteration 213 - 2026-01-10
+**Task**: [OB-051] Security Checkpoint - Secrets Safety Review
+**Status**: ✅ Complete
+
+### What was implemented
+- Created security_checker.py module with comprehensive secret scanning
+- Scans for 15+ types of secrets (API keys, passwords, tokens) using regex patterns
+- Verifies .env file existence and .gitignore configuration
+- Auto-fix functionality to create/update .env and .gitignore files
+- Ralph personality throughout with kid-friendly security education
+- Integration into onboarding_wizard.py with STEP_SECURITY
+- Three new methods: run_security_checkpoint(), security_autofix(), get_security_best_practices_message()
+- Interactive Telegram buttons for user choices
+- Blocks onboarding if critical security issues found
+- Smart filtering to skip test files and false positives
+
+### Files changed
+- security_checker.py (new file, 395 lines)
+- onboarding_wizard.py (added security checkpoint step and methods)
+- scripts/ralph/prd.json (marked OB-051 as passes: true)
+
+### Learnings
+- **Pattern detection works well**: Regex patterns effectively catch common secrets (OpenAI sk-, Groq gsk_, GitHub ghp_, Telegram bot tokens, etc.)
+- **False positives are manageable**: By excluding test files and known safe files (sanitizer.py), false positive rate is low
+- **Ralph's personality shines**: "My cat ate a password once. It was unpossible to fix." - makes security fun and accessible
+- **Auto-fix is essential**: Users need one-click solutions, not just warnings
+- **Kid-friendly explanations work**: Real example of AWS keys leaked → $50k bill is memorable and educational
+- **Green checkmarks matter**: Visual feedback (✅/❌) makes security status clear at a glance
+- **Blocking is important**: Critical security issues must block progress - this is a hard stop by design
+
+### Technical patterns discovered
+- SecurityChecker class follows same pattern as other onboarding modules (get_xxx_manager())
+- Integration uses AVAILABLE flags for graceful degradation
+- async/await required for Telegram bot methods
+- InlineKeyboardMarkup + callback_data pattern for interactive buttons
+- Tuple[bool, str] return pattern for status + message
+
+### Gotchas to avoid
+- Don't scan test files - they contain fake credentials by design
+- Don't scan sanitizer.py - it has regex patterns that look like secrets
+- Use .startswith() for file filtering, not just exact matches
+- Remember to re-scan after auto-fix to verify issues are resolved
+- Parse mode="Markdown" required for formatting in Telegram messages
+
+### Security impact
+This feature prevents the #1 cause of API key leaks: accidental commits to public repos. GitHub bots scan for secrets within minutes of commit. This checkpoint catches issues before they reach GitHub.
+
+---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-052] Git Safety Check
+**Status**: ✅ Complete
+
+### What was implemented
+- Created git_safety.py module for pre-push security scanning
+- Integrated safety check into onboarding wizard's push flow
+- Added callback handlers in ralph_bot.py for safety check interactions
+- Implemented Ralph-style explanations for security concepts
+- Emergency abort functionality when secrets detected
+
+### Files changed
+- git_safety.py (NEW) - Core safety checking logic
+- onboarding_wizard.py - Added safety check methods and messages
+- ralph_bot.py - Added callback handlers for first_commit_push flow
+
+### Learnings
+- Leveraged existing SecurityChecker class for secret detection
+- Used subprocess for git commands (git diff --cached --name-only)
+- Structured checks: secrets > large files > binary files
+- Safety keyboard adapts based on check results (safe vs unsafe)
+- Ralph's personality shines in public repo warnings ("if you not sure if it secret, treat it like secret!")
+
+### Implementation details
+- GitSafetyChecker scans staged files before push
+- Detects secrets using regex patterns from SecurityChecker
+- Warns about files > 1MB to prevent bloating repos
+- Identifies binary files by extension
+- Format file sizes in human-readable format (KB, MB, GB)
+- Emergency brake prevents push if secrets found
+- Helpful guidance on moving secrets to .env
+- Explains git push in Ralph's voice ("send your code to GitHub cloud!")
+
+### Testing approach
+- Verified Python syntax with py_compile
+- All three modified files compile cleanly
+- Integration follows existing callback pattern in handle_setup_callback
+- Uses existing OnboardingWizard methods for consistency
+
+---
