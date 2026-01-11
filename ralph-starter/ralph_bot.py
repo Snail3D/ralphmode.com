@@ -1634,6 +1634,10 @@ class RalphBot:
         self.user_session_count: Dict[int, int] = {}  # Track how many sessions each user has had
         self.last_session_time: Dict[int, datetime] = {}  # Track when user's last session ended
 
+        # SG-019: Citation System - Track good news sources for "where'd you hear that?" questions
+        self.good_news_citations: Dict[int, Dict[str, Any]] = {}  # Track recent good news mentions with sources
+        self.last_good_news_mention: Dict[int, Dict[str, Any]] = {}  # Track the most recent good news mention
+
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
             self.user_manager = get_user_manager(default_tier=UserTier.TIER_4_VIEWER)
@@ -6259,11 +6263,18 @@ Generate ONE brief sympathetic response. Just the response, no quotes or formatt
                         )
 
             # SG-020: Add good news discussion flows (1-2 per long session)
+            # SG-019: Use real good news with citations (80% of the time)
             # 10% chance to trigger a good news conversation during idle chatter
             # These are multi-message flows, not individual quotes
             good_news_flow = None
-            if random.random() < 0.10 and len(self.GOOD_NEWS_FLOWS) > 0:
-                good_news_flow = random.choice(self.GOOD_NEWS_FLOWS)
+            if random.random() < 0.10:
+                # SG-019: 80% chance to use real news with citation, 20% fallback to canned
+                if random.random() < 0.80:
+                    good_news_flow = self.generate_good_news_flow_with_citation(user_id)
+
+                # Fallback to canned good news flows if real news unavailable
+                if not good_news_flow and len(self.GOOD_NEWS_FLOWS) > 0:
+                    good_news_flow = random.choice(self.GOOD_NEWS_FLOWS)
 
             random.shuffle(available_quotes)
 
@@ -10439,6 +10450,133 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
         except Exception as e:
             logger.error(f"SG-018: Error caching good news story: {e}")
 
+    # ==================== SG-019: CITATION SYSTEM ====================
+
+    def generate_good_news_flow_with_citation(self, user_id: int) -> Optional[List[tuple]]:
+        """
+        SG-019: Generate a natural good news conversation flow using real news with citations.
+
+        Creates a multi-message flow where workers discuss actual good news.
+        Stores the citation so workers can show sources when asked.
+
+        Args:
+            user_id: The user session ID
+
+        Returns:
+            List of (speaker, message) tuples for the conversation flow, or None if no news available
+        """
+        try:
+            # Fetch a real good news story
+            news = self.get_local_good_news(user_id)
+            if not news:
+                return None
+
+            # Store citation for this user session
+            if user_id not in self.good_news_citations:
+                self.good_news_citations[user_id] = {}
+
+            citation_key = f"news_{len(self.good_news_citations[user_id])}"
+            self.good_news_citations[user_id][citation_key] = {
+                'title': news['title'],
+                'url': news['url'],
+                'source': news['source'],
+                'timestamp': datetime.now(),
+                'mentioned_by': None  # Will be set when mentioned
+            }
+
+            # Store as the most recent mention
+            self.last_good_news_mention[user_id] = {
+                'title': news['title'],
+                'url': news['url'],
+                'source': news['source'],
+                'citation_key': citation_key
+            }
+
+            # Generate natural conversation flow about this news
+            # Choose a random conversation pattern
+            patterns = [
+                # Pattern 1: Direct share
+                [
+                    ("Stool", f"Yo did you guys see this? {news['title']}"),
+                    ("Gomer", "What? Something good I hope..."),
+                    ("Stool", "Yeah man, actually gives you hope."),
+                    ("Gus", "Nice to hear something positive for once."),
+                ],
+                # Pattern 2: Casual discovery
+                [
+                    ("Mona", f"Actually, I just read about this - {news['title']}"),
+                    ("Stool", "For real?"),
+                    ("Mona", "Yeah. It's nice to see good things happening."),
+                    ("Gus", "World needs more of that."),
+                ],
+                # Pattern 3: Surprised reaction
+                [
+                    ("Gomer", f"D'oh! Check this out - {news['title']}"),
+                    ("Stool", "Yo that's actually dope."),
+                    ("Mona", "The data suggests there's still hope. Evidence-based optimism."),
+                    ("Gus", "Restored my faith a bit."),
+                ],
+                # Pattern 4: Thoughtful discussion
+                [
+                    ("Gus", f"Saw something good today. {news['title']}"),
+                    ("Mona", "That's actually significant."),
+                    ("Stool", "Man, people coming together. You love to see it."),
+                    ("Gomer", "Mmm... gives you the warm fuzzies."),
+                ],
+            ]
+
+            flow = random.choice(patterns)
+
+            # Mark who mentioned it (the first speaker)
+            self.good_news_citations[user_id][citation_key]['mentioned_by'] = flow[0][0]
+
+            logger.info(f"SG-019: Generated good news flow for user {user_id}: {news['title'][:50]}")
+            return flow
+
+        except Exception as e:
+            logger.error(f"SG-019: Error generating good news flow with citation: {e}")
+            return None
+
+    def handle_source_request(self, user_id: int) -> Optional[Dict[str, str]]:
+        """
+        SG-019: Handle "where'd you hear that?" type questions.
+
+        Returns the source citation for the most recent good news mention.
+
+        Args:
+            user_id: The user session ID
+
+        Returns:
+            Dictionary with worker name, source info, and URL, or None if no recent mention
+        """
+        try:
+            if user_id not in self.last_good_news_mention:
+                return None
+
+            mention = self.last_good_news_mention[user_id]
+
+            # Get the worker who mentioned it
+            citation_key = mention.get('citation_key')
+            if citation_key and user_id in self.good_news_citations:
+                citation = self.good_news_citations[user_id].get(citation_key)
+                if citation:
+                    worker = citation.get('mentioned_by', 'Stool')
+                else:
+                    worker = 'Stool'
+            else:
+                worker = 'Stool'
+
+            return {
+                'worker': worker,
+                'title': mention['title'],
+                'source': mention['source'],
+                'url': mention['url']
+            }
+
+        except Exception as e:
+            logger.error(f"SG-019: Error handling source request: {e}")
+            return None
+
     # ==================== SG-010: RALPH'S SIMPLE WISDOM ====================
 
     def should_share_wisdom(self, user_id: int, situation_type: str = None) -> bool:
@@ -14094,6 +14232,31 @@ _Grab some popcorn..._
                 with_typing=True
             )
             return
+
+        # SG-019: Check if user is asking for the source of good news
+        source_keywords = [
+            "where'd you hear", "where did you hear", "source", "link",
+            "where you get that", "where'd that come from", "where you read that",
+            "show me the link", "got a link", "can i see", "prove it"
+        ]
+        if any(keyword in text.lower() for keyword in source_keywords):
+            citation = self.handle_source_request(user_id)
+            if citation:
+                logging.info(f"SG-019: User {telegram_id} requested source for good news")
+
+                worker = citation['worker']
+                worker_data = self.DEV_TEAM.get(worker, {})
+                worker_title = worker_data.get('title', '')
+
+                # Worker responds with the source naturally
+                response = f"Oh here, check it out:\n\n*{citation['title']}*\n\n{citation['url']}\n\nI read it on {citation['source']}. Real deal, not making it up!"
+
+                await self.send_styled_message(
+                    context, chat_id, worker, worker_title,
+                    response,
+                    with_typing=True
+                )
+                return
 
         # SG-008: Check for excessive attachment and give gentle reality check if needed
         if self.should_give_reality_check(user_id, text):
