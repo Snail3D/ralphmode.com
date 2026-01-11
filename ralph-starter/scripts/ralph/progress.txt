@@ -15933,3 +15933,38 @@ The system injects autonomy guidance into AI prompts using get_autonomy_prompt_c
 
 ---
 
+
+## Iteration [Ralph Agent] - 2026-01-11 16:28 UTC
+**Task**: [BM-012] Self-Deprecating Humor
+**Status**: ✅ Complete
+
+### What was implemented
+- Added get_self_deprecating_joke() method - 80 memory jokes across 15 categories
+- Ralph makes light of forgetfulness with sweet, non-bitter humor
+- Categories cover full range of memory humor: goldfish comparisons, tech metaphors,
+  food analogies, work struggles, literal forgetfulness, sweet acceptance
+- Never mean-spirited - always endearing and self-aware
+- Jokes range from quick one-liners to longer observational humor
+- 30% misspelling rate matches other personality methods
+
+### Files changed
+- ralph_personality.py (lines 937-1061)
+
+### Learnings
+- Self-deprecation works when it's playful, not pitiful
+- Ralph's acceptance of his flaws makes him more lovable
+- Tech metaphors (RAM upgrade, cache cleared) fit the coding context
+- Relatable scenarios (looking for phone while holding it) build connection
+- Sweet acceptance jokes ("live in moment!") show growth
+- Timing is everything - these lighten mood without undermining competence
+
+### Integration notes
+- Perfect for breaking tension after mistakes
+- Can be used as filler during work or between tasks
+- Works well paired with get_apology() → get_compensation_enthusiasm() → joke
+- Natural for idle chatter moments
+- Could be triggered randomly during long operations
+- Maintains character consistency throughout conversation
+
+---
+
