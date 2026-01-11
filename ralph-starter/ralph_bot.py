@@ -4562,6 +4562,162 @@ _{ralph_response}_
 
         return quotes
 
+    def _generate_feature_flow_walkthroughs(self, session: Dict[str, Any]) -> List[List[Tuple[str, str]]]:
+        """RM-063: Generate feature flow walkthroughs - workers trace through user flows step-by-step.
+
+        Returns list of flows, where each flow is a list of (speaker, message) tuples.
+        Each flow traces a specific user journey through the code.
+
+        Example flow: Login -> User clicks button -> handler fires -> validates -> creates session -> redirects
+        """
+        flows = []
+        analysis = session.get("analysis", {})
+
+        if not analysis:
+            return flows
+
+        files = analysis.get("files", [])
+
+        # Identify key features from file names and paths
+        has_auth = any('auth' in f['path'].lower() or 'login' in f['path'].lower() for f in files)
+        has_api = any('api' in f['path'].lower() or 'route' in f['path'].lower() or 'endpoint' in f['path'].lower() for f in files)
+        has_payment = any('payment' in f['path'].lower() or 'checkout' in f['path'].lower() or 'stripe' in f['path'].lower() for f in files)
+        has_upload = any('upload' in f['path'].lower() or 'file' in f['path'].lower() for f in files)
+        has_search = any('search' in f['path'].lower() or 'query' in f['path'].lower() for f in files)
+        has_webhook = any('webhook' in f['path'].lower() for f in files)
+        has_middleware = any('middleware' in f['path'].lower() for f in files)
+        has_validation = any('validat' in f['path'].lower() for f in files)
+        has_database = any('db' in f['path'].lower() or 'database' in f['path'].lower() or 'model' in f['path'].lower() for f in files)
+
+        # Flow 1: Authentication/Login Flow
+        if has_auth:
+            flow = [
+                ("Stool", "So user hits the login button..."),
+                ("Gomer", "Mmm, then the request goes to the auth handler."),
+                ("Mona", "Which validates credentials against the database."),
+                ("Gus", "If valid, creates a session token. Classic pattern."),
+                ("Stool", "Then redirects to dashboard. Clean flow."),
+            ]
+            flows.append(flow)
+
+            # Alternative auth flow - signup
+            signup_flow = [
+                ("Gomer", "For signup, user fills the form..."),
+                ("Stool", "Frontend validates email format first."),
+                ("Mona", "Backend checks if email already exists."),
+                ("Gus", "Creates user record, hashes password. Standard stuff."),
+                ("Gomer", "Then auto-login or sends confirmation email."),
+            ]
+            flows.append(signup_flow)
+
+        # Flow 2: API Request Flow
+        if has_api:
+            flow = [
+                ("Stool", "API request hits the endpoint..."),
+                ("Gomer", "Routes to the right handler based on path."),
+                ("Mona", "Middleware runs first - auth, rate limiting, that stuff."),
+                ("Gus", "Handler processes the request, queries database if needed."),
+                ("Stool", "Returns JSON response. HTTP status tells the story."),
+            ]
+            flows.append(flow)
+
+        # Flow 3: Payment/Checkout Flow
+        if has_payment:
+            flow = [
+                ("Stool", "User clicks 'Buy Now' button..."),
+                ("Gomer", "Creates payment intent with Stripe API."),
+                ("Mona", "User enters card details on Stripe's hosted page."),
+                ("Gus", "Webhook comes back with payment confirmation."),
+                ("Stool", "Then we update the order status in the database."),
+                ("Gomer", "Send confirmation email. Done deal."),
+            ]
+            flows.append(flow)
+
+        # Flow 4: File Upload Flow
+        if has_upload:
+            flow = [
+                ("Stool", "User selects file to upload..."),
+                ("Gomer", "Frontend validates file size and type first."),
+                ("Mona", "POST request sends file to upload endpoint."),
+                ("Gus", "Backend validates again - never trust the client."),
+                ("Stool", "Stores file in S3 or wherever, saves URL to database."),
+                ("Gomer", "Returns the file URL to frontend. Upload complete."),
+            ]
+            flows.append(flow)
+
+        # Flow 5: Search/Query Flow
+        if has_search:
+            flow = [
+                ("Stool", "User types in search box..."),
+                ("Gomer", "Debounced input triggers API call after 300ms."),
+                ("Mona", "Backend sanitizes query - SQL injection prevention."),
+                ("Gus", "Runs database query with LIKE or full-text search."),
+                ("Stool", "Returns results sorted by relevance."),
+                ("Gomer", "Frontend renders results list. Instant search feeling."),
+            ]
+            flows.append(flow)
+
+        # Flow 6: Webhook Processing Flow
+        if has_webhook:
+            flow = [
+                ("Gomer", "External service hits our webhook URL..."),
+                ("Mona", "First thing: verify the signature. Security 101."),
+                ("Gus", "Parse the payload - different events, different handling."),
+                ("Stool", "Update database based on event type."),
+                ("Gomer", "Return 200 OK quick - don't make them wait."),
+                ("Mona", "Process heavy stuff async in background job."),
+            ]
+            flows.append(flow)
+
+        # Flow 7: Database Transaction Flow
+        if has_database and has_api:
+            flow = [
+                ("Gus", "Complex update starts a transaction..."),
+                ("Mona", "Multiple tables need updating - all or nothing."),
+                ("Gomer", "First update goes through, second update runs..."),
+                ("Stool", "If anything fails, rollback everything."),
+                ("Gus", "Commit if all succeed. ACID properties for the win."),
+            ]
+            flows.append(flow)
+
+        # Flow 8: Middleware Chain Flow
+        if has_middleware:
+            flow = [
+                ("Stool", "Request comes in, middleware chain starts..."),
+                ("Gomer", "First: logging middleware records the request."),
+                ("Mona", "Next: auth middleware checks token validity."),
+                ("Gus", "Then: rate limiter checks if user exceeded quota."),
+                ("Stool", "Finally reaches the actual route handler."),
+                ("Gomer", "Response goes back through same chain in reverse."),
+            ]
+            flows.append(flow)
+
+        # Flow 9: Validation Flow
+        if has_validation:
+            flow = [
+                ("Mona", "Data comes in, validation layer kicks in..."),
+                ("Stool", "Schema defines what fields are required."),
+                ("Gomer", "Type checking - is this actually a number?"),
+                ("Gus", "Business rules - is age >= 18, that kind of thing."),
+                ("Mona", "Fails fast with clear error messages if invalid."),
+                ("Stool", "Only clean data makes it to the database."),
+            ]
+            flows.append(flow)
+
+        # Generic fallback flows if no specific features detected
+        if not flows:
+            # Generic request-response flow
+            flow = [
+                ("Stool", "User interacts with the app..."),
+                ("Gomer", "Event triggers a handler somewhere."),
+                ("Mona", "Handler processes the request, maybe hits database."),
+                ("Gus", "Returns response to the user."),
+                ("Stool", "UI updates to show the result."),
+            ]
+            flows.append(flow)
+
+        return flows
+
     async def idle_codebase_chatter(self, context, chat_id: int, user_id: int):
         """RM-053: Idle codebase chatter - Workers discuss what they learned during quiet periods.
 
@@ -4570,6 +4726,7 @@ _{ralph_response}_
         Pauses when user sends a message, resumes after 10 seconds of silence.
 
         RM-054: Now includes codebase-specific exploration discussions based on actual analysis.
+        RM-063: Now includes feature flow walkthroughs - workers trace through user flows step-by-step.
         """
         try:
             # Don't start if session not active
@@ -4588,6 +4745,26 @@ _{ralph_response}_
                 # This keeps it educational but varied
                 for _ in range(len(specific_quotes)):
                     available_quotes.insert(random.randint(0, len(available_quotes)), specific_quotes.pop(0))
+
+            # RM-063: Generate feature flow walkthroughs
+            # These are multi-message sequences that trace through user flows
+            feature_flows = self._generate_feature_flow_walkthroughs(session)
+
+            # Flatten all flows into individual messages for mixing
+            flow_messages = []
+            for flow in feature_flows:
+                flow_messages.extend(flow)
+
+            # Mix in flow messages (about 30% flows if available)
+            # Flows are more structured, so less frequent than exploration quotes
+            if flow_messages:
+                num_flow_messages = max(1, len(flow_messages) // 3)
+                for _ in range(num_flow_messages):
+                    if flow_messages:
+                        available_quotes.insert(
+                            random.randint(0, len(available_quotes)),
+                            flow_messages.pop(random.randint(0, len(flow_messages) - 1))
+                        )
 
             random.shuffle(available_quotes)
 
