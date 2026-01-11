@@ -7518,7 +7518,14 @@ PROJECT TYPE: Web Application
 TONE: Professional and collaborative.
 - Focus on user experience and best practices
 - Discuss architecture and scalability naturally
-- Balance technical depth with accessibility"""
+- Balance technical depth with accessibility""",
+            'startup': """
+PROJECT TYPE: Startup/MVP
+TONE: Energetic and ship-focused!
+- Move fast, prioritize getting to launch
+- Talk about user acquisition, growth, metrics
+- Balance speed with quality (MVP mindset)
+- Show excitement about the business potential"""
         }
 
         return tone_prompts.get(project_type, "")
@@ -7561,6 +7568,11 @@ TONE: Professional and collaborative.
                 ("Gomer", "Standard web stack. I know this territory."),
                 ("Mona", "Web project. Let's make the UX smooth."),
             ],
+            'startup': [  # RM-042: Startup reactions
+                ("Stool", "Ooh, startup vibes! Let's ship this thing!"),
+                ("Gomer", "MVP mode. Fast and focused, I like it."),
+                ("Mona", "Startup energy! This is gonna move quick."),
+            ],
         }
 
         # Get reactions for this project type (fallback to utility)
@@ -7581,10 +7593,10 @@ TONE: Professional and collaborative.
             await asyncio.sleep(0.8)
 
     def _detect_project_type(self, files: list, languages: set, project_dir: str) -> Dict[str, Any]:
-        """RM-041: Detect project type based on codebase analysis.
+        """RM-041, RM-042: Detect project type based on codebase analysis.
 
         Returns dict with:
-            - type: str (game, enterprise, creative, utility, etc.)
+            - type: str (game, enterprise, creative, utility, startup, etc.)
             - confidence: str (high, medium, low)
             - indicators: list of reasons for this classification
             - tone: str (playful, professional, efficient, excited)
@@ -7596,6 +7608,7 @@ TONE: Professional and collaborative.
             'creative': 0,
             'utility': 0,
             'web_app': 0,
+            'startup': 0,
         }
 
         # Check file names and directories for game indicators
@@ -7637,6 +7650,19 @@ TONE: Professional and collaborative.
         if any(k in all_content for k in web_keywords):
             scores['web_app'] += 2
 
+        # RM-042: Startup/MVP indicators
+        startup_keywords = ['landing', 'signup', 'payment', 'launch', 'onboard', 'pricing', 'stripe', 'checkout']
+        for keyword in startup_keywords:
+            if keyword in all_content:
+                scores['startup'] += 2
+                if keyword in ['payment', 'stripe', 'checkout']:
+                    indicators.append(f"Startup indicator: '{keyword}' (monetization)")
+
+        if any(k in all_content for k in ['landing', 'signup', 'pricing']):
+            scores['startup'] += 1
+            if 'startup' not in ' '.join(indicators).lower():
+                indicators.append("Startup/MVP patterns detected")
+
         # Check for specific framework files
         try:
             for root, dirs, filenames in os.walk(project_dir):
@@ -7669,6 +7695,7 @@ TONE: Professional and collaborative.
             'creative': 'excited',
             'utility': 'efficient',
             'web_app': 'professional',
+            'startup': 'energetic',  # RM-042: Startup energy
         }
 
         return {
