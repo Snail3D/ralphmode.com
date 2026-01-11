@@ -13369,3 +13369,34 @@ if should_ship:
 Milestone reactions should come BEFORE random Ralph comments or worker high-fives so they don't get buried. This ensures users always see the milestone moment, which is important for the sense of progress.
 
 ---
+
+## Iteration 15 - 2026-01-11
+**Task**: [SG-042] Age-Appropriate Demographics
+**Status**: ✅ Complete
+
+### What was implemented
+- Created AGE_APPROPRIATE_DEMOGRAPHICS constant with comprehensive demographic guidance
+- Added demographics context to all worker system prompts (call_worker, call_specialist)
+- Added demographics context to all Ralph system prompts (call_boss, ralph report, ship it decision)
+- Added demographics context to explanation prompts (explain_like_ralph_is_5, real_actionable_output)
+- Total of 7 system prompt locations updated
+
+### Demographic guidance includes
+- Cultural references: 90s/2000s childhood (Gameboys, dial-up internet, early Google, flip phones)
+- Shared experiences: Millennial/Elder-GenZ tech worker life (remote work, Slack fatigue, meetings)
+- Relatable struggles: Mortgages, student loans, work-life balance, raising digital-native kids
+- Tone guidelines: Peers not mentors, sweet spot of 25-45 developer demographic
+- Example references that land: IE6 debugging, explaining work to kids, coffee budgets, mortgage stress
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Age-appropriate demographics create stronger connection between workers and users
+- Defining the constant once and referencing it ensures consistency across all AI interactions
+- Examples help guide the AI toward natural, relatable cultural references
+- The 25-45 developer demographic has shared experiences (90s/2000s childhood + modern parent/career concerns)
+- Avoiding extremes (too old or too young references) keeps content accessible to full target range
+- Workers are peers grinding through code together, not mentors or kids
+
+---
