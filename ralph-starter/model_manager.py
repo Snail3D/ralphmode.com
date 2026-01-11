@@ -115,6 +115,7 @@ class ModelRegistry:
     - Total usage count
     - Custom tags/notes
     - Performance metrics
+    - MM-008: Validation cache (test results)
     """
 
     def __init__(self, registry_path: Optional[str] = None):
@@ -138,9 +139,15 @@ class ModelRegistry:
         # In-memory cache of registered models
         self._registry: Dict[str, Dict[str, Any]] = {}
 
-        # Load existing registry
+        # MM-008: Validation cache path
+        self.validation_cache_path = self.registry_path.parent / "validation_cache.json"
+        self._validation_cache: Dict[str, Dict[str, Any]] = {}
+
+        # Load existing registry and validation cache
         self._load_registry()
+        self._load_validation_cache()
         logger.info(f"MM-002: Model Registry initialized at {self.registry_path}")
+        logger.info(f"MM-008: Validation cache initialized at {self.validation_cache_path}")
 
     def _load_registry(self):
         """Load the registry from disk"""
@@ -164,6 +171,29 @@ class ModelRegistry:
             logger.debug(f"MM-002: Saved registry with {len(self._registry)} models")
         except Exception as e:
             logger.error(f"MM-002: Failed to save registry: {e}")
+
+    def _load_validation_cache(self):
+        """MM-008: Load validation cache from disk"""
+        if self.validation_cache_path.exists():
+            try:
+                with open(self.validation_cache_path, 'r') as f:
+                    self._validation_cache = json.load(f)
+                logger.info(f"MM-008: Loaded validation cache with {len(self._validation_cache)} models")
+            except Exception as e:
+                logger.error(f"MM-008: Failed to load validation cache: {e}")
+                self._validation_cache = {}
+        else:
+            logger.info("MM-008: No existing validation cache found, starting fresh")
+            self._validation_cache = {}
+
+    def _save_validation_cache(self):
+        """MM-008: Save validation cache to disk"""
+        try:
+            with open(self.validation_cache_path, 'w') as f:
+                json.dump(self._validation_cache, f, indent=2)
+            logger.debug(f"MM-008: Saved validation cache with {len(self._validation_cache)} models")
+        except Exception as e:
+            logger.error(f"MM-008: Failed to save validation cache: {e}")
 
     def register(
         self,
@@ -338,6 +368,191 @@ class ModelRegistry:
             "last_used": entry.get("last_used"),
             "usage_count": entry.get("usage_count", 0)
         }
+
+    def record_test_result(
+        self,
+        name: str,
+        test_name: str,
+        passed: bool,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        """
+        MM-008: Record a test result for a model.
+
+        Args:
+            name: Name of the model
+            test_name: Name of the test (e.g., "basic_generation", "code_quality", "speed")
+            passed: Whether the test passed
+            details: Optional details about the test (error message, metrics, etc.)
+
+        Example:
+            registry.record_test_result(
+                "ralph_groq_llama-3.1-70b",
+                "basic_generation",
+                passed=True,
+                details={"latency_ms": 234, "tokens": 150}
+            )
+        """
+        if name not in self._validation_cache:
+            self._validation_cache[name] = {
+                "tests": {},
+                "last_validated": None,
+                "total_tests": 0,
+                "passed_tests": 0
+            }
+
+        # Record the test
+        test_result = {
+            "passed": passed,
+            "timestamp": datetime.utcnow().isoformat(),
+            "details": details or {}
+        }
+
+        self._validation_cache[name]["tests"][test_name] = test_result
+        self._validation_cache[name]["last_validated"] = datetime.utcnow().isoformat()
+
+        # Update counters
+        self._validation_cache[name]["total_tests"] = len(self._validation_cache[name]["tests"])
+        self._validation_cache[name]["passed_tests"] = sum(
+            1 for t in self._validation_cache[name]["tests"].values() if t["passed"]
+        )
+
+        self._save_validation_cache()
+        logger.info(f"MM-008: Recorded test '{test_name}' for '{name}': {'PASS' if passed else 'FAIL'}")
+
+    def get_test_results(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        MM-008: Get all test results for a model.
+
+        Args:
+            name: Name of the model
+
+        Returns:
+            Dict with test results or None if no tests recorded
+
+        Example:
+            results = registry.get_test_results("ralph_groq_llama-3.1-70b")
+            if results and results["passed_tests"] == results["total_tests"]:
+                print("All tests passed!")
+        """
+        return self._validation_cache.get(name)
+
+    def get_test_result(self, name: str, test_name: str) -> Optional[Dict[str, Any]]:
+        """
+        MM-008: Get a specific test result for a model.
+
+        Args:
+            name: Name of the model
+            test_name: Name of the test
+
+        Returns:
+            Test result dict or None if not found
+
+        Example:
+            result = registry.get_test_result("ralph_groq_llama-3.1-70b", "basic_generation")
+            if result and result["passed"]:
+                print(f"Test passed at {result['timestamp']}")
+        """
+        cache_entry = self._validation_cache.get(name)
+        if not cache_entry:
+            return None
+        return cache_entry["tests"].get(test_name)
+
+    def model_passed_test(self, name: str, test_name: str) -> bool:
+        """
+        MM-008: Quick check if a model passed a specific test.
+
+        Args:
+            name: Name of the model
+            test_name: Name of the test
+
+        Returns:
+            True if the test was recorded and passed, False otherwise
+
+        Example:
+            if registry.model_passed_test("ralph_groq_llama-3.1-70b", "basic_generation"):
+                print("Model is validated for basic generation!")
+        """
+        result = self.get_test_result(name, test_name)
+        return result["passed"] if result else False
+
+    def list_validated_models(
+        self,
+        test_name: Optional[str] = None,
+        all_tests_passed: bool = False
+    ) -> List[str]:
+        """
+        MM-008: List models that passed validation.
+
+        Args:
+            test_name: Filter by specific test name
+            all_tests_passed: If True, only return models that passed ALL tests
+
+        Returns:
+            List of model names
+
+        Example:
+            # Get all models that passed basic_generation
+            models = registry.list_validated_models(test_name="basic_generation")
+
+            # Get all models that passed ALL tests
+            models = registry.list_validated_models(all_tests_passed=True)
+        """
+        validated = []
+
+        for name, cache_entry in self._validation_cache.items():
+            if test_name:
+                # Check specific test
+                test_result = cache_entry["tests"].get(test_name)
+                if test_result and test_result["passed"]:
+                    validated.append(name)
+            elif all_tests_passed:
+                # Check if all tests passed
+                if (cache_entry["total_tests"] > 0 and
+                    cache_entry["passed_tests"] == cache_entry["total_tests"]):
+                    validated.append(name)
+            else:
+                # Return all models with any passed tests
+                if cache_entry["passed_tests"] > 0:
+                    validated.append(name)
+
+        return validated
+
+    def clear_test_results(self, name: str, test_name: Optional[str] = None):
+        """
+        MM-008: Clear test results for a model.
+
+        Args:
+            name: Name of the model
+            test_name: Optional specific test to clear. If None, clears all tests.
+
+        Example:
+            # Clear specific test
+            registry.clear_test_results("my_model", "basic_generation")
+
+            # Clear all tests
+            registry.clear_test_results("my_model")
+        """
+        if name not in self._validation_cache:
+            return
+
+        if test_name:
+            # Clear specific test
+            if test_name in self._validation_cache[name]["tests"]:
+                del self._validation_cache[name]["tests"][test_name]
+                logger.info(f"MM-008: Cleared test '{test_name}' for '{name}'")
+        else:
+            # Clear all tests
+            self._validation_cache[name]["tests"] = {}
+            logger.info(f"MM-008: Cleared all tests for '{name}'")
+
+        # Update counters
+        self._validation_cache[name]["total_tests"] = len(self._validation_cache[name]["tests"])
+        self._validation_cache[name]["passed_tests"] = sum(
+            1 for t in self._validation_cache[name]["tests"].values() if t["passed"]
+        )
+
+        self._save_validation_cache()
 
 
 class ModelManager:
@@ -586,6 +801,70 @@ class ModelManager:
             List of model metadata dicts
         """
         return self.registry.list_models(role=role, tags=tags, provider=provider)
+
+    def record_test(
+        self,
+        model_name: str,
+        test_name: str,
+        passed: bool,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        """
+        MM-008: Record a validation test result for a model.
+
+        Convenience wrapper around registry.record_test_result.
+
+        Args:
+            model_name: Name of the model in registry
+            test_name: Name of the test
+            passed: Whether the test passed
+            details: Optional test details
+
+        Example:
+            manager.record_test("ralph_groq_llama-3.1-70b", "basic_generation", True)
+        """
+        self.registry.record_test_result(model_name, test_name, passed, details)
+
+    def get_validated_models(
+        self,
+        test_name: Optional[str] = None,
+        all_tests_passed: bool = False
+    ) -> List[str]:
+        """
+        MM-008: Get list of models that passed validation.
+
+        Args:
+            test_name: Filter by specific test
+            all_tests_passed: Only return models that passed ALL tests
+
+        Returns:
+            List of validated model names
+
+        Example:
+            # Get models that passed generation test
+            validated = manager.get_validated_models(test_name="basic_generation")
+
+            # Get fully validated models
+            validated = manager.get_validated_models(all_tests_passed=True)
+        """
+        return self.registry.list_validated_models(test_name, all_tests_passed)
+
+    def is_model_validated(self, model_name: str, test_name: str) -> bool:
+        """
+        MM-008: Check if a model passed a specific test.
+
+        Args:
+            model_name: Name of the model
+            test_name: Name of the test
+
+        Returns:
+            True if test passed, False otherwise
+
+        Example:
+            if manager.is_model_validated("my_model", "basic_generation"):
+                print("Model is safe to use!")
+        """
+        return self.registry.model_passed_test(model_name, test_name)
 
     def recommend_models(
         self,
