@@ -12465,3 +12465,28 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Track debate outcomes to improve problem-solving over time
 
 ---
+
+## Iteration [Date: 2026-01-11] - Time-of-Day Awareness
+**Task**: [SG-003] Time-of-Day Awareness
+**Status**: ✅ Complete
+
+### What was implemented
+- Added system-wide time-of-day awareness using scene_manager's get_time_of_day_context()
+- Created _get_time_of_day_prompt_ralph() method with Ralph-specific time behaviors
+- Created _get_time_of_day_prompt_worker() method with worker-specific time behaviors
+- Integrated time-of-day prompts into both call_boss() and call_worker() methods
+- Each time period (early_morning, morning, late_morning, afternoon, late_afternoon, evening, night) has distinct energy levels
+- Worker-specific behaviors: Stool cranky early/exhausted late, Gomer wants donuts/food coma, Mona precise/balanced, Gus grumpy/experienced
+
+### Files changed
+- ralph_bot.py: Added two new helper methods and integrated time awareness into AI prompt generation
+
+### Learnings
+- Time-of-day context enriches character authenticity without being forced or repetitive
+- Each worker's personality should inform how they respond to different times (Stool isn't a morning person, Gus has old dev wisdom about all-nighters)
+- Ralph's simplicity shines through at all hours - from "I thought it was Saturday!" to "Why are we even here?"
+- Natural references beat explicit time mentions - let time inform energy/tone rather than stating it
+- The system already had scene_manager infrastructure, just needed integration into character prompts
+- Time awareness makes late-night sessions feel more real ("burning midnight oil", genuine concern about hours)
+
+---
