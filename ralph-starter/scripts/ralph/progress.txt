@@ -17706,3 +17706,59 @@ GLM-4.7 (Cost-optimized)
 
 ---
 
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-007] Pass/Fail Detection
+**Status**: ✅ Complete
+
+### What was implemented
+- Added character-specific personality validators for all 4 roles
+- validate_ralph_personality(): Checks for friendly, casual, brief, simple traits (3/4 required)
+- validate_worker_personality(): Checks for helpful, clear, technical, professional traits (3/4 required)
+- validate_builder_personality(): Checks for systematic, architectural, actionable, clear traits (3/4 required)
+- validate_design_personality(): Checks for opinionated, aesthetic, reasoned, concise traits (3/4 required)
+- Created validate_character_personality() dispatcher function
+- Integrated MM-007 validation into ModelTester.run_test() method
+- Added ROLE_VALIDATORS mapping for role-to-validator routing
+
+### Files changed
+- model_tester.py (+272 lines, -4 lines)
+
+### Validation approach
+- **Hard fail criteria**: Anti-patterns that immediately disqualify a response
+  - Ralph: Too formal, too long (>200 chars)
+  - Worker: Silly/unprofessional, lacks technical knowledge
+  - Builder: Too vague with short response
+  - Design: Indecisive or non-opinionated
+- **Soft pass criteria**: Trait scoring system (3 out of 4 traits required)
+  - Each validator checks 4 key personality traits
+  - Response passes if it exhibits at least 3 traits
+  - More forgiving than rigid keyword matching
+  - Allows for variety in responses while maintaining character essence
+
+### Testing performed
+- Created test script with 8 test cases (good/bad for each role)
+- All 8 tests passed as expected:
+  ✅ Ralph good response validated
+  ✅ Ralph bad response rejected
+  ✅ Worker good response validated
+  ✅ Worker bad response rejected
+  ✅ Builder good response validated
+  ✅ Builder bad response rejected
+  ✅ Design good response validated
+  ✅ Design bad response rejected
+
+### Learnings
+- Character validation is more about "vibe checking" than strict rules
+- Trait scoring (3/4) balances flexibility with standards
+- Hard fail criteria prevent egregious violations (formal Ralph, silly Worker)
+- Custom validation functions (test.validation_fn) still take precedence when provided
+- Validation enables *intelligent* model selection based on character fit, not just uptime
+- This completes the MM model testing infrastructure: Library → Runner → Validation
+- Future work: Use validation results to auto-recommend models for roles
+
+### README sync
+- Added "Character Detection" feature line to README.md
+- Describes smart validation that checks personality traits
+- Keeps README under 2 pages, succinct
+
+---
