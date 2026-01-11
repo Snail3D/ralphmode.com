@@ -4062,7 +4062,7 @@
       "files_likely_modified": [
         "docs/compliance/*"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SEC-028",
@@ -5146,6 +5146,50 @@
         "onboarding_wizard.py"
       ],
       "passes": false
+    },
+    {
+      "id": "OB-051",
+      "category": "Onboarding Wizard",
+      "title": "Security Checkpoint - Secrets Safety Review",
+      "description": "Ralph walks users through a security review during onboarding. Checks that API keys are in .env, .gitignore is configured, no secrets in code, and explains why this matters.",
+      "acceptance_criteria": [
+        "Scans project for hardcoded secrets (API keys, passwords, tokens)",
+        "Verifies .env file exists and contains secrets",
+        "Verifies .gitignore includes .env and other sensitive files",
+        "Warns if any secrets found in tracked files",
+        "Kid-friendly explanation of why secrets must stay secret",
+        "Ralph personality throughout (e.g., 'My cat ate a password once. It was bad.')",
+        "Offers to auto-fix issues (move secrets to .env, update .gitignore)",
+        "Shows green checkmarks for each security item passed",
+        "Blocks proceeding if critical security issues found",
+        "Links to security best practices documentation"
+      ],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "security_checker.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "OB-052",
+      "category": "Onboarding Wizard",
+      "title": "Git Safety Check",
+      "description": "Before first push, Ralph reviews what will be committed. Prevents accidental secret exposure.",
+      "acceptance_criteria": [
+        "Runs before any git push during onboarding",
+        "Scans staged files for potential secrets",
+        "Shows preview of files to be pushed",
+        "Warns about large files or binary files",
+        "Explains what public repos mean (anyone can see)",
+        "Confirms user wants to proceed",
+        "Ralph explains in simple terms what git push does",
+        "Emergency abort option if secrets detected"
+      ],
+      "files_likely_modified": [
+        "onboarding_wizard.py",
+        "git_safety.py"
+      ],
+      "passes": false
     }
   ],
   "priority_order": [
@@ -5240,6 +5284,8 @@
     "OB-026 - Claude Code CLI Installation Guide",
     "OB-029 - Folder Structure Creator",
     "OB-048 - Onboarding Analytics",
+    "OB-051 - Security Checkpoint - Secrets Safety Review",
+    "OB-052 - Git Safety Check",
     "--- FEEDBACK LOOP (RLHF Self-Building System) ---",
     "FB-001 - Feedback Command Handler",
     "FB-003 - Feedback Types Classification",

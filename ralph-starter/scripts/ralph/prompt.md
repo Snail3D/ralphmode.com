@@ -15,8 +15,9 @@ You are an autonomous coding agent working on **Ralph Mode** - an AI Dev Team Te
 3. **Implement that task** following its acceptance criteria exactly
 4. **Test your implementation** if possible
 5. **Commit your changes** with message format: `feat(ralph): [task title]`
-6. **Update prd.json** - set `"passes": true` for the completed task
-7. **Append to progress.txt** with your learnings
+6. **Push to GitHub** with `git push origin main`
+7. **Update prd.json** - set `"passes": true` for the completed task
+8. **Append to progress.txt** with your learnings
 
 ## Key Files
 

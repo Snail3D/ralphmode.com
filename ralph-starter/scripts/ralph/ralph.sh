@@ -191,6 +191,33 @@ for i in $(seq $START_ITERATION $MAX_ITERATIONS); do
   echo "═══════════════════════════════════════════════════════════"
   echo ""
 
+  # Security checkpoint every 5 iterations (Mr. Worms is particular about security)
+  if [ $((i % 5)) -eq 0 ]; then
+    echo "🔒 Running security checkpoint (iteration $i)..."
+    # Quick scan for hardcoded secrets in tracked files
+    SECRETS_FOUND=$(grep -rn --include="*.py" --include="*.js" --include="*.json" \
+      -E "(api_key|password|secret|token)\s*[:=]\s*['\"][^'\"]{10,}" "$PROJECT_DIR" 2>/dev/null | \
+      grep -v ".env" | grep -v "node_modules" | grep -v "__pycache__" | head -5)
+
+    if [ -n "$SECRETS_FOUND" ]; then
+      send_telegram "⚠️ *Security Checkpoint - Iteration $i*
+
+🔍 Potential hardcoded secrets detected:
+\`\`\`
+$(echo "$SECRETS_FOUND" | head -3)
+\`\`\`
+_Mr. Worms says: Move these to .env!_"
+      echo "  ⚠️  Potential secrets found - check Telegram"
+    else
+      echo "  ✅ Security check passed - no hardcoded secrets"
+    fi
+
+    # Verify .gitignore has .env
+    if ! grep -q "^\.env$" "$PROJECT_DIR/.gitignore" 2>/dev/null; then
+      echo "  ⚠️  Warning: .env not in .gitignore!"
+    fi
+  fi
+
   # Save state BEFORE running (so we can resume this iteration if crashed)
   echo "$i" > "$STATE_FILE"
 
