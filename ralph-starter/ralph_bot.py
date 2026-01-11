@@ -6913,6 +6913,200 @@ Add one brief insight or nod (1 sentence)."""
 
             await self.send_character_message(context, chat_id, name3, response3, title3)
 
+    async def multi_perspective_problem_solving(self, context, chat_id: int, user_id: int, problem: str, problem_context: str = "") -> Dict[str, Any]:
+        """SG-002: Multi-Perspective Problem Solving
+
+        When stuck on a problem, workers deliberate TOGETHER before escalating.
+        Real debate with different perspectives. Synthesis based on who made the most
+        sense for THIS situation, not just majority vote. Proverbs 18:17 in action.
+
+        USAGE:
+            When a worker response indicates a blocker, call this function:
+
+            # Example 1: Explicit call when blocker detected
+            if "not sure" in worker_response or "stuck" in worker_response:
+                result = await self.multi_perspective_problem_solving(
+                    context, chat_id, user_id,
+                    problem="How to handle the authentication flow",
+                    problem_context="User wants OAuth but we also need session management"
+                )
+                # Use result["solution"] to proceed
+
+            # Example 2: Manual trigger by Mr. Worms
+            # User can type "debate this" or "team huddle" to trigger
+            result = await self.multi_perspective_problem_solving(
+                context, chat_id, user_id,
+                problem=user_question,
+                problem_context=session_context
+            )
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            problem: The problem/blocker encountered
+            problem_context: Additional context about the problem
+
+        Returns:
+            Dict with keys: "solution", "reasoning", "participants", "synthesizer"
+        """
+        # Select 2-3 workers with different specialties to debate
+        # Ensure we get diverse perspectives
+        all_workers = list(self.DEV_TEAM.keys())
+        num_debaters = min(3, len(all_workers))
+        debaters = random.sample(all_workers, k=num_debaters)
+
+        # Track perspectives
+        perspectives = []
+
+        # Header message
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="💡 *TEAM HUDDLE*\n_The team is debating how to handle this..._",
+            parse_mode="Markdown"
+        )
+        await asyncio.sleep(self.timing.SHORT_PAUSE)
+
+        # First worker: Presents their perspective
+        first_worker = debaters[0]
+        worker1_data = self.DEV_TEAM[first_worker]
+        specialty1 = worker1_data.get("specialty", "general")
+
+        first_prompt = f"""The team hit a problem: {problem}
+
+Context: {problem_context if problem_context else "General task work"}
+
+Based on your specialty ({specialty1}), what's your perspective on this?
+- Be specific about what you think the issue is
+- Suggest a concrete approach based on your experience
+- Be authentic to your character
+- Keep it conversational (2-3 sentences)
+
+This is the START of a team debate - present your view clearly."""
+
+        name1, title1, response1, tokens1 = self.call_worker(
+            first_prompt,
+            context="multi-perspective debate - first perspective",
+            worker_name=first_worker,
+            user_id=user_id
+        )
+
+        perspectives.append({
+            "worker": name1,
+            "specialty": specialty1,
+            "response": response1
+        })
+
+        await self.send_character_message(context, chat_id, name1, response1, title1)
+        await asyncio.sleep(self.timing.NORMAL_RESPONSE)
+
+        # Second worker: Offers counterpoint or different angle
+        second_worker = debaters[1]
+        worker2_data = self.DEV_TEAM[second_worker]
+        specialty2 = worker2_data.get("specialty", "general")
+
+        second_prompt = f"""The team hit a problem: {problem}
+
+{name1} just said: "{response1}"
+
+From your perspective as a {specialty2} specialist, do you agree or see it differently?
+- Build on or challenge their view
+- Bring your specialty's perspective
+- Be specific and concrete
+- Keep it conversational (2-3 sentences)
+
+This is real debate - first argument seems right until you hear the second."""
+
+        name2, title2, response2, tokens2 = self.call_worker(
+            second_prompt,
+            context="multi-perspective debate - counter perspective",
+            worker_name=second_worker,
+            user_id=user_id
+        )
+
+        perspectives.append({
+            "worker": name2,
+            "specialty": specialty2,
+            "response": response2
+        })
+
+        await self.send_character_message(context, chat_id, name2, response2, title2)
+        await asyncio.sleep(self.timing.NORMAL_RESPONSE)
+
+        # Third worker (if available): Adds final perspective
+        if len(debaters) >= 3:
+            third_worker = debaters[2]
+            worker3_data = self.DEV_TEAM[third_worker]
+            specialty3 = worker3_data.get("specialty", "general")
+
+            third_prompt = f"""The team hit a problem: {problem}
+
+{name1} said: "{response1}"
+{name2} said: "{response2}"
+
+From your {specialty3} perspective, what do you think?
+- Who has a point? What are they missing?
+- Add your angle based on your experience
+- Be specific and concrete
+- Keep it conversational (2-3 sentences)"""
+
+            name3, title3, response3, tokens3 = self.call_worker(
+                third_prompt,
+                context="multi-perspective debate - third perspective",
+                worker_name=third_worker,
+                user_id=user_id
+            )
+
+            perspectives.append({
+                "worker": name3,
+                "specialty": specialty3,
+                "response": response3
+            })
+
+            await self.send_character_message(context, chat_id, name3, response3, title3)
+            await asyncio.sleep(self.timing.NORMAL_RESPONSE)
+
+        # Synthesis: One worker synthesizes based on who made the most sense
+        # Pick the worker who seems most relevant to the problem for synthesis
+        synthesizer = random.choice(debaters)
+
+        # Build summary of all perspectives for synthesis
+        perspectives_summary = "\n".join([
+            f"{p['worker']} ({p['specialty']}): {p['response']}"
+            for p in perspectives
+        ])
+
+        synthesis_prompt = f"""Problem: {problem}
+
+The team just debated:
+{perspectives_summary}
+
+Now synthesize: Based on THIS specific situation, whose approach makes the most sense and why?
+- Not a majority vote - reasoned conclusion
+- Example: "Gus has a point about the coupling. Let's try that."
+- Or: "Mona's right about the data structure, but we also need to consider Stool's UX concern."
+- Be specific about what approach to take
+- Keep it conversational (2-3 sentences)
+
+This is real synthesis - what actually makes sense for THIS problem?"""
+
+        synth_name, synth_title, synthesis, synth_tokens = self.call_worker(
+            synthesis_prompt,
+            context="multi-perspective debate - synthesis",
+            worker_name=synthesizer,
+            user_id=user_id
+        )
+
+        await self.send_character_message(context, chat_id, synth_name, synthesis, synth_title)
+
+        # Return the solution for programmatic use
+        return {
+            "solution": synthesis,
+            "reasoning": perspectives_summary,
+            "participants": [p["worker"] for p in perspectives],
+            "synthesizer": synth_name
+        }
+
     def track_code_provided(self, user_id: int, language: str = "unknown"):
         """Track when a code snippet is provided."""
         if user_id not in self.quality_metrics:

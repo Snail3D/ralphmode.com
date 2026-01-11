@@ -12425,3 +12425,43 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Don't send any response to muted users (not even "you are muted")
 
 ---
+
+## Iteration 228 - 2026-01-11 (SG-002)
+**Task**: [SG-002] Multi-Perspective Problem Solving
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `multi_perspective_problem_solving()` async function in ralph_bot.py
+- Function orchestrates 2-3 workers to debate a problem from their specialty perspectives
+- First worker presents their view based on specialty (frontend, backend, architecture, debugging)
+- Second worker challenges or builds on first worker's perspective
+- Optional third worker adds additional angle
+- One worker synthesizes the debate into a reasoned conclusion
+- Returns solution dict with reasoning, participants, and synthesizer for programmatic use
+- Added comprehensive documentation with usage examples
+
+### Implementation details
+- Located at ralph_bot.py:6916-7108
+- Uses existing `call_worker()` infrastructure
+- Integrates with existing `send_character_message()` and timing system
+- Follows acceptance criteria: workers debate first before escalation, each offers specialty-based perspective, real synthesis (not majority vote)
+- Messages are conversational (2-3 sentences) and character-authentic
+
+### Files changed
+- ralph_bot.py (added multi_perspective_problem_solving function)
+- scripts/ralph/prd.json (marked SG-002 as passes: true)
+
+### Learnings
+- The codebase already has good worker collaboration infrastructure (conflict resolution in RM-038)
+- Worker specialties are well-defined: Stool (frontend), Gomer (backend), Mona (architecture), Gus (debugging)
+- The function is designed to be called when blockers are detected or manually triggered by Mr. Worms
+- Future enhancement: Add automatic blocker detection in worker responses (keywords like "not sure", "stuck", "unclear")
+- The synthesis step is key - it's not about voting but reasoned conclusion based on the specific situation
+- Proverbs 18:17: "The first to speak seems right until someone comes forward and cross-examines"
+
+### Next steps
+- Add automatic blocker detection in message handlers
+- Consider adding a /debate command for Mr. Worms to manually trigger team huddles
+- Track debate outcomes to improve problem-solving over time
+
+---
