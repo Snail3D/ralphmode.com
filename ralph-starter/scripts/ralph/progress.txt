@@ -9436,3 +9436,42 @@ Setup completion flow:
 - Integration points: auto-handled responses (line 7006) and priority questions (line 7085)
 
 ---
+
+## Iteration [OB-036] - 2026-01-10
+**Task**: [OB-036] Telegram Bot Permissions Guide
+**Status**: ✅ Complete
+
+### What was implemented
+- Added comprehensive Telegram bot permissions guide to onboarding_wizard.py
+- Created 6 new methods for complete permissions configuration workflow
+- Explained Privacy Mode (DISABLED for Ralph), Group Mode (ENABLED), and Inline Mode (optional)
+- Provided copy-paste BotFather commands (/mybots, /setprivacy, /setinline)
+- Included step-by-step configuration instructions
+- Added verification checklist to confirm settings are correct
+- Provided troubleshooting help for common permission issues
+- Linked to official Telegram bot documentation
+
+### Files changed
+- onboarding_wizard.py (246 lines added)
+- scripts/ralph/prd.json (marked OB-036 as passes: true)
+
+### Learnings
+- The onboarding_wizard.py follows a clear pattern: guide message + instructions + keyboard + help
+- Each major onboarding step has multiple supporting methods for different interaction states
+- Ralph's personality shines through in the instructions (kid-friendly language, nose-picking emoji 👃)
+- Permission settings are critical for Ralph to work: Privacy Mode MUST be DISABLED
+- BotFather commands are simple but users often need hand-holding through the process
+- Verification step is important to catch misconfigurations early
+
+### Implementation Pattern Discovered
+Standard wizard method structure:
+1. get_[feature]_guide_message() - Overview/intro
+2. get_[feature]_instructions_message() - Step-by-step walkthrough  
+3. get_[feature]_keyboard() - Interactive buttons
+4. get_[feature]_commands_message() - Quick reference (optional)
+5. get_[feature]_help_message() - Troubleshooting
+6. get_[feature]_verification_message() - Confirm success (optional)
+
+This pattern makes the codebase consistent and maintainable!
+
+---
