@@ -8392,10 +8392,12 @@ Stay in character as {pushback_worker}."""
             await self.trigger_team_accountability_moment(context, chat_id, user_id, checklist)
 
     async def trigger_team_accountability_moment(self, context, chat_id: int, user_id: int, checklist: Dict[str, Any]):
-        """SG-032: Team pauses to review if they're actually addressing Mr. Worms' concerns.
+        """SG-032/SG-034: Team pauses to review if they're actually addressing Mr. Worms' concerns.
 
         Ralph or a worker says "Hold on, did we actually do what Mr. Worms asked about X?"
         Workers check themselves and discuss.
+
+        SG-034: If 3+ maybes, Ralph actually asks Mr. Worms for clarification on the unclear items.
 
         Args:
             context: Telegram context
@@ -8458,6 +8460,51 @@ Stay in character as {pushback_worker}."""
             random.choice(responses),
             with_typing=True
         )
+        await asyncio.sleep(self.timing.thinking())
+
+        # SG-034: Ralph actually asks Mr. Worms for clarification on the Maybe items
+        ralph_asks = [
+            f"Boss, I got a few things I'm not sure about...",
+            f"Mr. Worms, can you help me understand something?",
+            f"Hey boss, I need to check - did we do these things right?",
+            f"Um, Mr. Worms... I'm confused about what you wanted for these ones...",
+        ]
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(random.choice(ralph_asks)),
+            with_typing=True
+        )
+        await asyncio.sleep(self.timing.brief_pause())
+
+        # Ralph lists the specific Maybe items as questions
+        questions = []
+        for item in maybe_items[:5]:  # Max 5 to avoid overwhelming
+            req_text = item['requirement']
+            if len(req_text) > 100:
+                req_text = req_text[:97] + "..."
+
+            question_templates = [
+                f"• You wanted '{req_text}' - did we do that right?",
+                f"• For '{req_text}' - is what we did good enough?",
+                f"• We tried '{req_text}' - does it match what you wanted?",
+                f"• '{req_text}' - did we get this one?",
+            ]
+            questions.append(random.choice(question_templates))
+
+        questions_text = "\n".join(questions)
+
+        ralph_questions = f"{questions_text}\n\nLet me know boss - we can fix anything that's not right!"
+
+        await self.send_styled_message(
+            context, chat_id, "Ralph", None,
+            self.ralph_misspell(ralph_questions),
+            with_typing=True
+        )
+
+        # Note: Mr. Worms can now respond naturally. The team will see the response
+        # and continue working. If Mr. Worms says "that's good enough" or provides
+        # clarification, the session continues. If they say "fix X", team addresses it.
 
     async def review_accountability_checklist_before_end(self, context, chat_id: int, user_id: int):
         """SG-032: Review accountability checklist before session ends.
