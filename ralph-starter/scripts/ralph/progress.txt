@@ -16158,3 +16158,61 @@ Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 - Future triggers: after Ralph apology moments (BM-011), during task confusion, session resumes
 
 ---
+
+## Iteration 7 - 2026-01-11
+**Task**: [BM-015] Session Handoff Notes
+**Status**: ✅ Complete
+
+### What was implemented
+- Created async create_session_handoff_notes() function that generates handoff notes for all workers at session end
+- Each worker writes a professional handoff note for themselves using AI (based on their memories, session context, and requirements)
+- get_worker_handoff_note() retrieves and formats handoff notes for inclusion in worker prompts
+- Handoff notes include: what they were working on, current status, next steps, any gotchas
+- Integrated into natural_session_end() - workers silently create notes before session ends
+- Added handoff_note_prompt to call_worker() system content so workers see their notes on session resume
+- Notes are ONLY visible to workers (not Ralph) - maintains the "clueless boss" comedy
+
+### Files changed
+- ralph_bot.py (added BM-015 implementation, 120+ lines)
+- scripts/ralph/prd.json (BM-015 passes: true)
+
+### Learnings
+- **Session Continuity vs Comedy**: Workers need continuity to do quality work, but Ralph forgets for comedy
+  - Worker memories (BM-005) track ongoing observations
+  - Handoff notes (BM-015) provide structured "what's next" context
+  - Ralph still forgets (BM-001), creating the funny contrast
+  
+- **Handoff Note Architecture**:
+  - Generated at session end (SG-036 natural_session_end)
+  - Uses AI to synthesize worker memories + session context + requirements
+  - Stored in self.worker_handoff_notes[user_id][worker_name]
+  - Injected into worker prompts via handoff_note_prompt in call_worker()
+  - Workers see: "HANDOFF NOTE FROM LAST SESSION (your note to yourself, Ralph doesn't see this)"
+  
+- **AI-Generated vs Static Notes**:
+  - Could have used static templates, but AI-generated notes are context-aware
+  - Each worker gets unique note based on THEIR recent work
+  - Uses last 5 worker memories + session context + current requirements
+  - Groq LLaMA 3.3 70B generates professional, concise notes (3-5 sentences)
+  
+- **Integration with Existing BM Pattern**:
+  - BM-001: Ralph forgets what they were working on
+  - BM-005: Workers remember (memories)
+  - BM-010: Workers help Ralph remember
+  - BM-015: Workers have handoff notes (NEW - structured continuity)
+  - Flow: Session ends → handoff notes created → session resumes → workers see notes → workers remind Ralph
+
+### Code locations
+- self.worker_handoff_notes storage: line ~1755
+- create_session_handoff_notes(): lines ~10192-10270
+- get_worker_handoff_note(): lines ~10272-10293
+- Integration in natural_session_end(): line ~13547
+- handoff_note_prompt in call_worker(): lines ~12601-12606, inserted at line 12652
+
+### Future enhancements
+- Could add visual indicator when worker references their handoff note
+- Could allow Mr. Worms to see summary of what workers remember (transparency)
+- Could persist handoff notes to database for true cross-session continuity
+- Could add "handoff note quality" check - did the note help or was it too vague?
+
+---
