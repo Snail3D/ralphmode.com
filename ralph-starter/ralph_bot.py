@@ -155,6 +155,25 @@ except ImportError:
     FEEDBACK_SCORER_AVAILABLE = False
     logging.warning("NT-001: Feedback scorer not available - feedback notifications will be limited")
 
+# BM-001: Import memory manager for between-session memory
+try:
+    from memory_manager import (
+        load_session_history,
+        save_session_summary,
+        get_previous_session_context,
+        extract_session_summary_from_active,
+        get_memory_stats
+    )
+    MEMORY_MANAGER_AVAILABLE = True
+except ImportError:
+    MEMORY_MANAGER_AVAILABLE = False
+    logging.warning("BM-001: Memory manager not available - Ralph will forget previous sessions")
+    def load_session_history(user_id): return []
+    def save_session_summary(user_id, data): pass
+    def get_previous_session_context(user_id, max_sessions=3): return ""
+    def extract_session_summary_from_active(session): return {}
+    def get_memory_stats(user_id): return {}
+
 # OB-012: Import telegram utilities for copy button components
 try:
     from telegram_utils import (
@@ -12389,6 +12408,12 @@ RM-060: STRICT - Maximum 2 sentences. No exceptions. Stay in character as Ralph.
             autonomy_context = self.get_autonomy_prompt_context(user_id)
             system_content += f"\n\n{autonomy_context}"
 
+        # BM-001: Add previous session memory context
+        if user_id is not None and MEMORY_MANAGER_AVAILABLE:
+            previous_context = get_previous_session_context(user_id, max_sessions=3)
+            if previous_context:
+                system_content += f"\n\n{previous_context}"
+
         messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": message}
@@ -13557,6 +13582,23 @@ Format: Just the excuse itself as {worker_name} would say it, no quotes or forma
             logger.info(f"BM-015: Created handoff notes for {len(handoff_notes)} workers")
         except Exception as e:
             logger.error(f"BM-015: Failed to create handoff notes: {e}")
+
+        # BM-001: Save session summary to persistent memory before ending
+        if MEMORY_MANAGER_AVAILABLE:
+            session = self.active_sessions.get(user_id)
+            if session:
+                try:
+                    # Extract metrics from quality_metrics if available
+                    metrics = self.quality_metrics.get(user_id, {})
+                    session['tasks_completed'] = metrics.get('tasks_completed', 0)
+                    session['tasks_total'] = metrics.get('tasks_identified', 0)
+                    session['outcome'] = 'Natural session end - workers left for the day'
+
+                    session_summary = extract_session_summary_from_active(session)
+                    save_session_summary(user_id, session_summary)
+                    logger.info(f"BM-001: Saved session summary for user {user_id} (natural end)")
+                except Exception as e:
+                    logger.error(f"BM-001: Failed to save session summary: {e}")
 
         # SG-038: Mark this session as ended for continuity tracking
         self.mark_session_ended(user_id)
@@ -14988,6 +15030,21 @@ Type your question now!
 
                 # SG-037: Worker handoff message before session ends
                 await self.send_worker_handoff_message(context, chat_id, user_id)
+
+                # BM-001: Save session summary to persistent memory before ending
+                if MEMORY_MANAGER_AVAILABLE:
+                    try:
+                        # Extract metrics from quality_metrics if available
+                        metrics = self.quality_metrics.get(user_id, {})
+                        session['tasks_completed'] = metrics.get('tasks_completed', 0)
+                        session['tasks_total'] = metrics.get('tasks_identified', 0)
+                        session['outcome'] = 'Session ended by user'
+
+                        session_summary = extract_session_summary_from_active(session)
+                        save_session_summary(user_id, session_summary)
+                        logger.info(f"BM-001: Saved session summary for user {user_id}")
+                    except Exception as e:
+                        logger.error(f"BM-001: Failed to save session summary: {e}")
 
                 del self.active_sessions[user_id]
                 # Clear history too

@@ -16216,3 +16216,73 @@ Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 - Could add "handoff note quality" check - did the note help or was it too vague?
 
 ---
+
+## Iteration - 2026-01-11 16:45 PST
+**Task**: [BM-001] Between-Session Memory Gap
+**Status**: ✅ Complete
+
+### What was implemented
+- Created memory_manager.py module for persistent session memory across Ralph sessions
+- Ralph now remembers previous sessions (project names, tasks completed, key decisions, requirements)
+- Workers still remember within-session via existing BM-005 (worker_memories)
+- Session summaries are automatically saved when sessions end (both user-triggered and natural ends)
+- Previous session context is loaded and injected into Ralph's system prompt on new sessions
+- Memory is stored in ralph_memories/{user_id}_sessions.json (separate from withers_memory.py)
+
+### Files changed
+- memory_manager.py (NEW - 200+ lines)
+- ralph_bot.py (BM-001 integration: imports, call_boss context injection, session-end saving)
+- scripts/ralph/prd.json (BM-001 passes: true)
+
+### Learnings
+- **Between-Session vs Within-Session Memory**:
+  - BM-001 (new): Ralph remembers PREVIOUS sessions (cross-session persistence)
+  - BM-005 (existing): Workers remember CURRENT session (within-session memory)
+  - BM-015 (existing): Workers create handoff notes for themselves at session end
+  - Pattern: Ralph has amnesia between sessions (comedy), but workers maintain continuity
+
+- **Memory Manager Architecture**:
+  - Separate from withers_memory.py (which is for the CEO/Mr. Worms)
+  - Stores session summaries (not full transcripts) to stay lean
+  - Includes: project_name, tasks_completed/total, key_decisions, requirements, codebase_insights
+  - Keeps last 20 sessions max to prevent bloat
+  - Returns newest-first for recency bias
+
+- **Integration Points**:
+  - Import at top of ralph_bot.py with fallback functions
+  - call_boss() injects get_previous_session_context() into system prompt
+  - end_session callback saves summary via extract_session_summary_from_active()
+  - natural_session_end() also saves summary (for SG-036 natural endings)
+  - Both integration points extract metrics from quality_metrics before saving
+
+- **Session Summary Format**:
+  - session_id, timestamp, project_name
+  - tasks_completed, tasks_total (from quality_metrics)
+  - key_decisions (top 10 requirements)
+  - requirements (all directives from SG-031)
+  - codebase_insights (from RM-058)
+  - outcome (how session ended)
+  - duration_minutes, workers_involved
+
+- **Context Injection Strategy**:
+  - Shows Ralph up to 3 most recent sessions
+  - Format: "Session 1 (2026-01-10) - Project Name: Completed 5/10 tasks..."
+  - Includes key decisions and requirements for each past session
+  - Added to system prompt AFTER autonomy context, BEFORE messages
+  - Only injected if MEMORY_MANAGER_AVAILABLE and user_id provided
+
+### Code locations
+- memory_manager.py (new file)
+- ralph_bot.py imports: lines ~158-175
+- call_boss() context injection: lines ~12411-12415
+- end_session memory save: lines ~15017-15030
+- natural_session_end memory save: lines ~13586-13601
+
+### Future enhancements
+- Add /memory command to let users view their session history stats
+- Allow Ralph to reference specific past projects ("Last time we worked on X...")
+- Add semantic search over past session summaries (for large history)
+- Export session history to JSON for user download
+- Integrate with BM-010 (workers help Ralph remember) - workers could cite past sessions
+
+---
