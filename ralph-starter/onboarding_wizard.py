@@ -151,6 +151,9 @@ Ralph help you check each one super fast!
             "ssh_key_added_to_github": False,
             "repo_created": False,
             "repo_url": None,
+            "git_configured": False,
+            "git_name": None,
+            "git_email": None,
             "started_at": None,
             "completed_at": None,
         }
@@ -227,6 +230,11 @@ Ralph help you check each one super fast!
             progress.append(f"✅ Repository URL: {state['repo_url']}")
         else:
             progress.append("⬜ Repository URL not configured")
+
+        if state.get("git_configured"):
+            progress.append(f"✅ Git configured ({state.get('git_name', 'Unknown')})")
+        else:
+            progress.append("⬜ Git not configured yet")
 
         return "*Your Progress:*\n\n" + "\n".join(progress)
 
@@ -625,6 +633,332 @@ Ready to keep going?
 🎥 [SSH Troubleshooting Video](https://www.youtube.com/watch?v=H5qNpRGB7Qw)
 
 Try the test command again, or go back and add the key again!
+"""
+
+    # Git Configuration Setup (OB-005)
+
+    def get_git_config_intro_message(self) -> str:
+        """Get introduction message for git configuration.
+
+        Returns:
+            Git configuration introduction
+        """
+        return """*Time to Tell Git Who You Are!* 👤
+
+Okay! Before you start making code, Git needs to know YOUR name!
+
+*What's Git?*
+Git is like a time machine for your code! It remembers every change you make!
+
+But Git is kinda forgetful about WHO made the changes... so we gotta tell it!
+
+Think of it like:
+• Writing your name in your school notebook 📓
+• Putting a name tag on your art project 🎨
+• Signing your homework before you turn it in ✍️
+
+Every time you save code (called a "commit"), Git writes your name on it! That way everyone knows YOU did the awesome work!
+
+*What Ralph needs:*
+• Your name (like "John Smith" or whatever you wanna be called!)
+• Your email (the one you used for GitHub)
+
+This shows up in the history! Other developers see it! Make it good!
+
+*Ready to set it up?*
+"""
+
+    def get_git_config_name_request_message(self) -> str:
+        """Get message asking for user's name.
+
+        Returns:
+            Name request message
+        """
+        return """*What's Your Name?* 📝
+
+Ralph need your name for Git!
+
+This can be:
+• Your real name: "Sarah Johnson"
+• Your nickname: "CodeMaster3000"
+• Your username: "sarahjdev"
+• Whatever you want people to see in commit history!
+
+*Examples of good names:*
+✅ John Smith
+✅ Jane Developer
+✅ CoolCoder99
+✅ j.smith
+
+*Examples of bad names:*
+❌ asdfgh
+❌ user
+❌ me
+
+Remember: This shows up FOREVER in your code history! Choose something you proud of!
+
+*Type your name:*
+"""
+
+    def get_git_config_email_request_message(self) -> str:
+        """Get message asking for user's email.
+
+        Returns:
+            Email request message
+        """
+        return """*What's Your Email?* 📧
+
+Ralph need your email for Git!
+
+**IMPORTANT:** Use the SAME email you used when you signed up for GitHub!
+
+Why? Because GitHub uses the email to link your commits to your account! If you use a different email, your commits won't show up on your profile!
+
+*Where to find your GitHub email:*
+Go to: https://github.com/settings/emails
+Look for your PRIMARY email!
+
+*Type your email:*
+(Don't worry, Ralph only saves it on YOUR computer! Nobody else sees it unless you make your repo public!)
+"""
+
+    def get_git_config_commands(self, name: str, email: str) -> tuple:
+        """Get the git config commands for setting name and email.
+
+        Args:
+            name: User's name
+            email: User's email
+
+        Returns:
+            Tuple of (name_command, email_command)
+        """
+        name_cmd = f'git config --global user.name "{name}"'
+        email_cmd = f'git config --global user.email "{email}"'
+        return name_cmd, email_cmd
+
+    def get_git_config_command_message(self, name: str, email: str) -> str:
+        """Get message with git config commands.
+
+        Args:
+            name: User's name
+            email: User's email
+
+        Returns:
+            Message with copy-paste commands
+        """
+        name_cmd, email_cmd = self.get_git_config_commands(name, email)
+
+        return f"""*Perfect! Let's Save Your Info!* 💾
+
+Okay {name}! Ralph give you TWO magic commands!
+
+**Command 1: Set Your Name**
+```bash
+{name_cmd}
+```
+
+**Command 2: Set Your Email**
+```bash
+{email_cmd}
+```
+
+*What these do:*
+• `git config` - Changes Git settings
+• `--global` - Makes it work for ALL your projects (not just one!)
+• `user.name` - Your name setting
+• `user.email` - Your email setting
+
+*Steps:*
+1. Open Terminal (or Command Prompt)
+2. Copy the FIRST command and press Enter
+3. Copy the SECOND command and press Enter
+4. That's it!
+
+You won't see any output if it works! No news is GOOD news!
+
+*Did you run both commands?*
+"""
+
+    def get_git_config_verify_command(self) -> str:
+        """Get command to verify git configuration.
+
+        Returns:
+            Git config verification command
+        """
+        return "git config --list | grep user"
+
+    def get_git_config_verify_message(self) -> str:
+        """Get message for verifying git configuration.
+
+        Returns:
+            Verification instructions
+        """
+        return """*Let's Check If It Worked!* 🔍
+
+Ralph wanna make sure Git knows who you are!
+
+Run this command to check:
+```bash
+git config --list | grep user
+```
+
+*What you should see:*
+```
+user.name=Your Name
+user.email=your.email@example.com
+```
+
+If you see that, IT WORKED! 🎉
+
+If you see nothing, or wrong info, we can fix it! Just click "Need Help" below!
+
+*What did you see?*
+"""
+
+    def get_git_config_verify_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for git config verification.
+
+        Returns:
+            Keyboard with verification options
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ It Worked!", callback_data="git_config_success")],
+            [InlineKeyboardButton("❌ Didn't Work", callback_data="git_config_error")],
+            [InlineKeyboardButton("📋 Show Commands Again", callback_data="git_show_config_commands")],
+            [InlineKeyboardButton("❓ Need Help", callback_data="git_config_help")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_git_config_success_message(self) -> str:
+        """Get success message after git configuration.
+
+        Returns:
+            Success celebration message
+        """
+        return """*Git Knows Who You Are!* 🎊
+
+Ralph SO PROUD! You configured Git!
+
+Now every time you save your code, Git writes YOUR name on it!
+
+*What this means:*
+✅ Your commits show YOUR name
+✅ GitHub knows it's you
+✅ Your profile shows your contributions
+✅ You're officially a Git user now!
+
+*Fun fact:*
+This is saved FOREVER in commit history! In 10 years, people can see who wrote the code! That's pretty cool!
+
+*What's a commit?*
+A "commit" is like taking a snapshot of your code! Git saves it with:
+• The code changes you made
+• YOUR name (that we just set up!)
+• The date and time
+• A message about what you changed
+
+It's like a diary entry for your code! 📔
+
+*Next up:*
+Ralph can help you make your first commit! Or we keep setting up other stuff!
+
+What you wanna do?
+"""
+
+    def get_git_config_help_message(self) -> str:
+        """Get help message for git configuration issues.
+
+        Returns:
+            Git config troubleshooting help
+        """
+        return """*Ralph Help Fix Git Config!* 🔧
+
+**Common Problems:**
+
+**Problem 1: "git command not found"**
+→ You need to install Git first!
+→ Mac: Download from https://git-scm.com/download/mac
+→ Windows: Download from https://git-scm.com/download/windows
+→ Linux: `sudo apt install git` (Ubuntu) or `sudo yum install git` (Fedora)
+
+**Problem 2: "Nothing shows when I check"**
+→ Commands might have failed silently
+→ Try running them again one at a time
+→ Make sure you using the right Terminal/Command Prompt
+
+**Problem 3: "Shows different name/email"**
+→ You already configured Git before!
+→ Just run the commands again with the NEW info
+→ It will overwrite the old settings!
+
+**Problem 4: "I don't know if it worked"**
+→ Run: `git config user.name` to see your name
+→ Run: `git config user.email` to see your email
+→ If they show up, it worked!
+
+**Problem 5: "I made a typo in my name/email!"**
+→ No problem! Just run the commands again with the CORRECT info!
+→ Git will update it!
+
+*Why --global?*
+The `--global` flag means this works for ALL your projects!
+Without it, you'd have to set it up for EACH project separately!
+Ralph recommend always use --global for your personal computer!
+
+*Still stuck?*
+Tell Ralph exactly what error message you seeing!
+Or what shows when you run `git config --list`
+"""
+
+    def get_git_config_explanation_message(self) -> str:
+        """Get kid-friendly explanation of version control.
+
+        Returns:
+            Version control explanation
+        """
+        return """*What's Version Control? Ralph Explains!* 📚
+
+Okay! Ralph make this SUPER simple!
+
+*Imagine you writing a story...*
+
+**WITHOUT version control:**
+• You write: "The cat sat on the mat"
+• Next day you change it to: "The dog sat on the mat"
+• But now you forget what it was before!
+• If you mess up, you can't go back!
+• You have to save "story_v1.txt", "story_v2.txt", "story_FINAL.txt", "story_FINAL_REAL.txt"... CHAOS!
+
+**WITH version control (Git):**
+• You write: "The cat sat on the mat" → Save it! (commit)
+• Next day: "The dog sat on the mat" → Save it! (commit)
+• Git remembers BOTH versions!
+• You can see what changed!
+• You can go back to "cat" if you want!
+• Only one file! Git handles all the versions!
+
+*For code, it's even better:*
+• You try adding a feature → Commit
+• Feature breaks everything → No problem! Go back!
+• You wanna see what you changed last week → Git shows you!
+• Working with friends → Git merges everyone's code!
+
+Think of Git like:
+• 💾 A save system in a video game (but for code!)
+• 📸 A photo album of your code over time
+• ⏰ A time machine you can use to go back
+• 📖 A history book that never forgets
+
+*Why developers LOVE Git:*
+✅ Never lose code
+✅ Try new things without fear
+✅ Work with other people without chaos
+✅ See who changed what and when
+✅ Go back if something breaks
+
+Ralph uses Git EVERY DAY! All the professionals do!
+
+*Cool right?* Now you know why we set up your name! 🎉
 """
 
     # Repository Creation Wizard (OB-004)

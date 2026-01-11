@@ -4349,7 +4349,7 @@
       "files_likely_modified": [
         "onboarding_wizard.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-006",
@@ -5190,6 +5190,29 @@
         "git_safety.py"
       ],
       "passes": false
+    },
+    {
+      "id": "SEC-031",
+      "category": "Security - Character Drama",
+      "title": "Hacker Character - Security Breach Storyline",
+      "description": "When security vulnerabilities are detected, a Simpsons-style hacker villain appears. Creates dramatic storyline where the office is 'under attack' and a worker heroically goes to fix it.",
+      "acceptance_criteria": [
+        "Hacker character with Simpsons-style villain personality (Snake Jailbird vibe)",
+        "Dramatic 'We've been hacked!' alert message",
+        "Hacker taunts the office with security puns",
+        "Worker volunteers to 'fight off the hacker' by fixing the vulnerability",
+        "Victory celebration when security issue is patched",
+        "Hacker retreats with 'I'll be back!' message",
+        "Kid-friendly (no real hacking, just comedic drama)",
+        "Integrates with security checkpoint system",
+        "Different hacker personas for different vulnerability types",
+        "Ralph's confused reaction adds comedy ('Why is the computer snake talking?')"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "security_drama.py"
+      ],
+      "passes": false
     }
   ],
   "priority_order": [
@@ -5224,6 +5247,7 @@
     "SEC-016 - Secrets Management",
     "SEC-012 - API Input Validation",
     "SEC-019 - GDPR Compliance",
+    "SEC-031 - Hacker Character - Security Breach Storyline",
     "--- TASK CLUSTERING (PRD Organization) ---",
     "TC-001 - Task File Extraction",
     "TC-007 - PRD Reorganization Command",
