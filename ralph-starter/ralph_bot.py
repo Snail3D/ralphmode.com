@@ -4682,6 +4682,113 @@ _{ralph_response}_
 
         return discoveries
 
+    def _store_codebase_insight(self, user_id: int, topic: str, insight: str, worker: str):
+        """RM-058: Store a codebase insight discovered during exploration.
+
+        Args:
+            user_id: User session ID
+            topic: What the insight is about (e.g., "auth", "database", "api")
+            insight: The actual knowledge discovered
+            worker: Which worker discovered it
+        """
+        if user_id not in self.active_sessions:
+            return
+
+        session = self.active_sessions[user_id]
+        codebase_insights = session.get("codebase_insights", {})
+
+        if topic not in codebase_insights:
+            codebase_insights[topic] = []
+
+        codebase_insights[topic].append({
+            "insight": insight,
+            "worker": worker,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        session["codebase_insights"] = codebase_insights
+
+    async def answer_codebase_question(self, context, chat_id: int, user_id: int, question: str):
+        """RM-058: Answer user's question about the codebase based on stored insights.
+
+        Workers check their collective knowledge and either answer or admit they haven't looked at it yet.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID to send response to
+            user_id: User session ID
+            question: User's question about the codebase
+        """
+        if user_id not in self.active_sessions:
+            return
+
+        session = self.active_sessions[user_id]
+        codebase_insights = session.get("codebase_insights", {})
+
+        # Extract topic from question (simple keyword matching)
+        question_lower = question.lower()
+        topics_keywords = {
+            "auth": ["auth", "login", "signin", "signup", "password", "session", "token"],
+            "database": ["database", "db", "sql", "query", "table", "migration", "schema"],
+            "api": ["api", "endpoint", "route", "request", "response"],
+            "frontend": ["frontend", "ui", "component", "react", "vue", "angular", "page"],
+            "backend": ["backend", "server", "service", "handler"],
+            "cache": ["cache", "redis", "memcache"],
+            "queue": ["queue", "worker", "async", "background", "celery"],
+            "webhook": ["webhook", "callback"],
+            "payment": ["payment", "stripe", "checkout", "billing"],
+            "test": ["test", "testing", "spec", "unit test"],
+        }
+
+        # Find matching topic
+        matched_topic = None
+        for topic, keywords in topics_keywords.items():
+            if any(keyword in question_lower for keyword in keywords):
+                if topic in codebase_insights and codebase_insights[topic]:
+                    matched_topic = topic
+                    break
+
+        # Pick appropriate worker to answer
+        workers = ["Stool", "Gomer", "Mona", "Gus"]
+        answering_worker = random.choice(workers)
+
+        if matched_topic and codebase_insights[matched_topic]:
+            # Worker has insights about this topic
+            insights_list = codebase_insights[matched_topic]
+            # Get most recent or random insight
+            insight_data = random.choice(insights_list)
+            original_worker = insight_data["worker"]
+            insight_text = insight_data["insight"]
+
+            # Worker explains based on the stored insight
+            if original_worker == answering_worker:
+                response = f"Yeah, I looked at that. {insight_text}"
+            else:
+                response = f"{original_worker} checked that out. {insight_text}"
+
+        else:
+            # Worker hasn't looked at this yet
+            not_checked_responses = [
+                "Hmm, haven't looked at that yet. Lemme check...",
+                "Good question. Haven't dug into that part yet.",
+                "Not sure actually. Haven't explored that area.",
+                "I haven't gotten to that part of the codebase yet.",
+                "That's a good one to look into. Haven't checked it yet.",
+            ]
+            response = random.choice(not_checked_responses)
+
+        # Send response
+        worker_data = self.DEV_TEAM.get(answering_worker, {})
+        title = worker_data.get('title', '')
+
+        await self.send_styled_message(
+            context, chat_id, answering_worker, title,
+            response,
+            topic="💬 Answer",
+            use_buttons=False,
+            with_typing=True
+        )
+
     def _generate_feature_flow_walkthroughs(self, session: Dict[str, Any]) -> List[List[Tuple[str, str]]]:
         """RM-063: Generate feature flow walkthroughs - workers trace through user flows step-by-step.
 
@@ -4931,6 +5038,28 @@ _{ralph_response}_
                     use_buttons=False,  # No buttons for idle chatter
                     with_typing=True
                 )
+
+                # RM-058: Store insights as workers explore
+                # Detect topic from message and store the insight
+                message_lower = message.lower()
+                insight_topics = {
+                    "auth": ["auth", "login", "signin", "signup", "password", "session", "token"],
+                    "database": ["database", "db", "sql", "query", "table", "migration", "schema"],
+                    "api": ["api", "endpoint", "route", "request", "response"],
+                    "frontend": ["frontend", "ui", "component", "react", "vue", "angular", "page"],
+                    "backend": ["backend", "server", "service", "handler"],
+                    "cache": ["cache", "redis", "memcache", "caching"],
+                    "queue": ["queue", "worker", "async", "background", "celery"],
+                    "webhook": ["webhook", "callback"],
+                    "payment": ["payment", "stripe", "checkout", "billing"],
+                    "test": ["test", "testing", "spec", "unit test"],
+                }
+
+                for topic, keywords in insight_topics.items():
+                    if any(keyword in message_lower for keyword in keywords):
+                        # Store this as an insight
+                        self._store_codebase_insight(user_id, topic, message, speaker)
+                        break  # Only store once per message
 
                 # RM-055: 15% chance Ralph overhears and asks for explanation
                 # Only trigger on technical-sounding messages
@@ -7794,7 +7923,8 @@ _Drop a zip file to get started!_
                 "project_dir": project_dir,
                 "project_name": project_name,
                 "started": datetime.now(),
-                "status": "onboarding"
+                "status": "onboarding",
+                "codebase_insights": {}  # RM-058: Track worker discoveries during exploration
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -8825,6 +8955,19 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
 
             logging.info(f"RM-011: Handled Q&A mode question from user {user_id}")
             return
+
+        # RM-058: Detect if user is asking a question about the codebase
+        # Questions like "How does the login work?" or "What's the API structure?"
+        if session and text.strip().endswith('?'):
+            # Simple question detection: contains "how", "what", "where", "why", etc.
+            question_words = ['how', 'what', 'where', 'why', 'when', 'who', 'does', 'is', 'are', 'can']
+            text_lower = text.lower()
+
+            if any(word in text_lower.split() for word in question_words):
+                # Looks like a codebase question
+                await self.answer_codebase_question(context, chat_id, user_id, text)
+                logging.info(f"RM-058: Answered codebase question from user {user_id}")
+                return
 
         # FB-003: Check if user is in feedback collection mode
         if context.user_data.get('feedback_state') == 'awaiting_content':
