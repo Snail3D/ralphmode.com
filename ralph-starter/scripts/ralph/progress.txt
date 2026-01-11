@@ -12518,3 +12518,36 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Tier change takes effect immediately via user_manager, no restart needed
 
 ---
+
+## Iteration 8 - 2026-01-11
+**Task**: [SG-004] Weather Integration (Optional)
+**Status**: ✅ Complete
+
+### What was implemented
+- Imported weather_service module into ralph_bot.py
+- Created _get_weather_context() method that generates character-specific weather awareness
+- Integrated weather context into Ralph's system prompts (call_ralph_groq)
+- Integrated weather context into worker system prompts (call_worker)
+- Weather service uses OpenWeather API if configured, otherwise generates atmospheric weather
+- Character-specific reactions:
+  - Gus: Feels storms in his knees, mentions old dev aches
+  - Stool: Enjoys rainy coding vibes, coffee weather
+  - Gomer: Weather makes him think about donuts
+  - Mona: Analytical about weather conditions
+  - Ralph: Simple, innocent observations about weather
+- Guidance built-in: weather references occasional (1 in 10 messages), never forced
+- Examples are INSPIRATION only - AI generates fresh responses
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Weather service was already implemented (weather_service.py) - just needed integration
+- The pattern of adding contextual awareness follows the same structure as time-of-day (SG-003)
+- Graceful degradation is key - works with or without API configuration
+- Character-specific flavor makes generic features feel personalized
+- Important to explicitly tell AI: "examples are TONE/VIBE only, not exact words" to avoid repetition
+- Weather adds grounding to the MUD without breaking immersion
+- Occasional references (1 in 10) keep it natural vs. forced
+
+---
