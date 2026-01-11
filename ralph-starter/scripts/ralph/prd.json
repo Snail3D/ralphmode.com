@@ -4489,7 +4489,7 @@
         "onboarding_wizard.py",
         "progress_tracker.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-014",
