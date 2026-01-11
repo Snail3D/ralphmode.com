@@ -11531,3 +11531,53 @@ According to priority_order, next incomplete task would be in the Voice-Only or 
 - May want to add folder structure validation command later
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-048] Onboarding Analytics
+**Status**: ✅ Complete
+
+### What was implemented
+- Created onboarding_analytics.py module with privacy-respecting analytics
+- Tracks time spent on each step, abandonment points, and errors encountered
+- User IDs are hashed (SHA256, first 12 chars) for privacy
+- JSONL file format for analytics data (sessions, events, errors)
+- Analytics summary with completion rates, step statistics, error stats, abandonment points
+- HTML dashboard with visual charts and tables for admin review
+- Integrated analytics into OnboardingWizard class:
+  * Added analytics import to __init__
+  * Start session on init_onboarding_state()
+  * Track step transitions in update_step()
+  * Track session completion in is_onboarding_complete()
+  * Added track_error() helper method
+- Added /analytics command to ralph_bot.py:
+  * Tier 1 (Owner) only access
+  * Sends text summary + HTML dashboard file
+  * Shows completion rates, top abandonment points, error summary
+- Dashboard includes funnel visualization showing drop-off at each step
+
+### Files changed
+- onboarding_analytics.py (NEW)
+- onboarding_wizard.py (added analytics integration)
+- ralph_bot.py (added /analytics command)
+- scripts/ralph/prd.json (marked OB-048 as complete)
+
+### Learnings
+- JSONL (JSON Lines) format is perfect for append-only analytics logs
+- Hashing user IDs provides privacy while allowing session tracking
+- HTML dashboard generation lets admins see data without backend infrastructure
+- Tracking at the wizard level (not bot level) keeps analytics focused on onboarding
+- Testing analytics module standalone with demo data helps verify correctness
+- Funnel visualization shows exactly where users get stuck in onboarding flow
+
+### Data stored
+- data/analytics/onboarding_sessions.jsonl - Session start/end
+- data/analytics/onboarding_events.jsonl - Step transitions, abandonments
+- data/analytics/onboarding_errors.jsonl - Errors with context
+- data/analytics/dashboard.html - Latest generated dashboard
+
+### Next Steps
+- Monitor abandonment points in production to improve onboarding flow
+- Consider adding time-on-step heatmap to dashboard
+- May want to add analytics for other workflows (PRD building, etc.)
+
+---

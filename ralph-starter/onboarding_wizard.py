@@ -187,6 +187,16 @@ class OnboardingWizard:
             self.progress_tracker_available = False
             self.logger.warning("Progress tracker not available")
 
+        # Import onboarding analytics (OB-048: Onboarding Analytics)
+        try:
+            from onboarding_analytics import get_analytics
+            self.analytics = get_analytics()
+            self.analytics_available = True
+        except ImportError:
+            self.analytics = None
+            self.analytics_available = False
+            self.logger.warning("Onboarding analytics not available")
+
         # Import bot tester (OB-039: Bot Testing Walkthrough)
         if BOT_TESTER_AVAILABLE:
             self.bot_tester = get_bot_tester()
@@ -417,7 +427,7 @@ Ralph help you check each one super fast!
         """
         from datetime import datetime
 
-        return {
+        state = {
             "step": self.STEP_WELCOME,
             "setup_type": None,
             "ssh_key_generated": False,
@@ -432,7 +442,18 @@ Ralph help you check each one super fast!
             "bot_tested": False,  # OB-039: Bot Testing Walkthrough
             "started_at": datetime.utcnow().isoformat(),
             "completed_at": None,
+            "analytics_session_id": None,  # OB-048: Onboarding Analytics
         }
+
+        # OB-048: Start analytics session
+        if self.analytics_available:
+            try:
+                session_id = self.analytics.start_session(user_id, setup_type="guided")
+                state["analytics_session_id"] = session_id
+            except Exception as e:
+                self.logger.warning(f"Failed to start analytics session: {e}")
+
+        return state
 
     def update_step(self, state: Dict[str, Any], new_step: str) -> Dict[str, Any]:
         """Update the current step in onboarding state.
@@ -444,6 +465,26 @@ Ralph help you check each one super fast!
         Returns:
             Updated state dictionary
         """
+        old_step = state.get("step")
+
+        # OB-048: Track step completion and new step start
+        if self.analytics_available and state.get("analytics_session_id"):
+            try:
+                # Mark old step as complete
+                if old_step:
+                    self.analytics.track_step_complete(
+                        state["analytics_session_id"],
+                        old_step
+                    )
+
+                # Mark new step as started
+                self.analytics.track_step_start(
+                    state["analytics_session_id"],
+                    new_step
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to track step transition: {e}")
+
         state["step"] = new_step
         return state
 
@@ -460,6 +501,26 @@ Ralph help you check each one super fast!
         state["setup_type"] = setup_type
         return state
 
+    def track_error(self, state: Dict[str, Any], step_name: str, error_type: str, error_message: str):
+        """Track an error in the onboarding process (OB-048).
+
+        Args:
+            state: Current onboarding state
+            step_name: Step where error occurred
+            error_type: Type of error
+            error_message: Error message
+        """
+        if self.analytics_available and state.get("analytics_session_id"):
+            try:
+                self.analytics.track_error(
+                    state["analytics_session_id"],
+                    step_name,
+                    error_type,
+                    error_message
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to track error: {e}")
+
     def is_onboarding_complete(self, state: Dict[str, Any]) -> bool:
         """Check if onboarding is complete.
 
@@ -469,12 +530,21 @@ Ralph help you check each one super fast!
         Returns:
             True if onboarding is complete, False otherwise
         """
-        return (
+        is_complete = (
             state.get("ssh_key_generated", False) and
             state.get("ssh_key_added_to_github", False) and
             state.get("repo_created", False) and
             state.get("repo_url") is not None
         )
+
+        # OB-048: Track session completion
+        if is_complete and self.analytics_available and state.get("analytics_session_id"):
+            try:
+                self.analytics.complete_session(state["analytics_session_id"], success=True)
+            except Exception as e:
+                self.logger.warning(f"Failed to track session completion: {e}")
+
+        return is_complete
 
     def get_progress_message(self, state: Dict[str, Any], current_step: str = None) -> str:
         """Get a progress message showing what's been completed.

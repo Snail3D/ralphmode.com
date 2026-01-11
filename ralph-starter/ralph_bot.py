@@ -10332,6 +10332,120 @@ Use `/version <type>` to switch!
             await initial_msg.edit_text(error_msg, parse_mode="Markdown")
             logger.error(f"TC-007: Clustering error: {e}", exc_info=True)
 
+    async def analytics_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handle /analytics command - OB-048: Onboarding Analytics.
+
+        Show onboarding analytics dashboard. Requires Tier 1 (Owner) permission.
+        """
+        telegram_id = update.effective_user.id
+        chat_id = update.message.chat_id
+
+        # OB-048: Only Tier 1 (Owner) can view analytics
+        if USER_MANAGER_AVAILABLE:
+            try:
+                from user_manager import UserTier
+                user_tier = self.user_manager.get_user_tier(telegram_id)
+
+                if user_tier != UserTier.TIER_1_OWNER:
+                    # Silent rejection for non-Tier-1 users
+                    logger.warning(
+                        f"OB-048: Non-Tier-1 user {telegram_id} ({user_tier.display_name}) "
+                        "attempted /analytics command"
+                    )
+                    return
+            except Exception as e:
+                logger.error(f"OB-048: Error checking user tier: {e}")
+                return
+        else:
+            # No user manager - allow command (local testing mode)
+            logger.warning("OB-048: USER_MANAGER not available, allowing /analytics without tier check")
+
+        logger.info(f"OB-048: Processing /analytics command from Tier 1 user {telegram_id}")
+
+        try:
+            from onboarding_analytics import get_analytics
+            analytics = get_analytics()
+
+            # Get summary for last 30 days
+            summary = analytics.get_analytics_summary(days=30)
+
+            # Generate dashboard HTML
+            dashboard_html = analytics.get_dashboard_html()
+
+            # Save to temporary file
+            import tempfile
+            from pathlib import Path
+
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+                f.write(dashboard_html)
+                html_path = f.name
+
+            # Send text summary
+            summary_text = (
+                f"📊 *Onboarding Analytics (Last 30 Days)*\n\n"
+                f"📈 *Sessions:*\n"
+                f"• Total: {summary['total_sessions']}\n"
+                f"• Completed: {summary['completed_sessions']}\n"
+                f"• Abandoned: {summary['abandoned_sessions']}\n"
+                f"• Completion Rate: {summary['completion_rate']}%\n\n"
+            )
+
+            # Add top abandonment points
+            if summary['abandonment_points']:
+                summary_text += "⚠️ *Top Abandonment Points:*\n"
+                sorted_abandonments = sorted(
+                    summary['abandonment_points'].items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )[:5]
+                for step, count in sorted_abandonments:
+                    step_name = step.replace('_', ' ').title()
+                    summary_text += f"• {step_name}: {count}\n"
+                summary_text += "\n"
+
+            # Add error summary
+            if summary['error_statistics']:
+                summary_text += "🐛 *Error Summary:*\n"
+                error_count = sum(data['count'] for data in summary['error_statistics'].values())
+                summary_text += f"• Total Errors: {error_count}\n"
+                summary_text += f"• Error Types: {len(summary['error_statistics'])}\n\n"
+
+            summary_text += "📄 Full dashboard HTML file sent below!"
+
+            await update.message.reply_text(summary_text, parse_mode="Markdown")
+
+            # Send HTML file
+            with open(html_path, 'rb') as f:
+                await update.message.reply_document(
+                    document=f,
+                    filename="onboarding_analytics_dashboard.html",
+                    caption="Open this file in a browser to see the full analytics dashboard!"
+                )
+
+            # Clean up temp file
+            Path(html_path).unlink(missing_ok=True)
+
+            logger.info(f"OB-048: Successfully sent analytics to user {telegram_id}")
+
+        except ImportError:
+            error_msg = (
+                "❌ *Error: Analytics not available!*\n\n"
+                "The onboarding analytics module is not installed.\n\n"
+                "Make sure onboarding_analytics.py exists."
+            )
+            await update.message.reply_text(error_msg, parse_mode="Markdown")
+            logger.error("OB-048: Analytics module not available")
+
+        except Exception as e:
+            error_msg = (
+                "❌ *Error: Failed to generate analytics!*\n\n"
+                f"Something went wrong while generating the analytics dashboard.\n\n"
+                f"Error: {str(e)}"
+            )
+            await update.message.reply_text(error_msg, parse_mode="Markdown")
+            logger.error(f"OB-048: Analytics generation error: {e}", exc_info=True)
+
     async def setup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /setup command - OB-001: Onboarding Entry Point."""
         telegram_id = update.effective_user.id
@@ -11733,6 +11847,7 @@ To update your Git config:
         app.add_handler(CommandHandler("theme", self.theme_command))  # OB-040
         app.add_handler(CommandHandler("character", self.character_command))  # OB-041
         app.add_handler(CommandHandler("reorganize", self.reorganize_command))  # TC-007
+        app.add_handler(CommandHandler("analytics", self.analytics_command))  # OB-048
         app.add_handler(CommandHandler("setup", self.setup_command))  # OB-001
         app.add_handler(CommandHandler("reconfigure", self.reconfigure_command))  # OB-049
         app.add_handler(CommandHandler("templates", self.templates_command))  # OB-027
