@@ -1833,6 +1833,239 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(responses), chance=0.3)
 
+    @staticmethod
+    def give_specific_praise(achievement: str, details: str = None) -> str:
+        """Give specific, observant praise that feels genuinely felt.
+
+        IN-003: Genuine Encouragement - Ralph notices what you actually did
+        and responds with specific, heartfelt praise that feels real, not canned.
+
+        Args:
+            achievement: What was accomplished (e.g., "fixed the bug", "wrote tests")
+            details: Optional specific details to reference
+
+        Returns:
+            Specific, genuine encouragement from Ralph
+        """
+        # Templates that incorporate the specific achievement
+        if details:
+            specific_praise = [
+                f"Oh WOW! Ralph saw what you did with {achievement}! The way you {details}! Me so impressed!",
+                f"Me can't believe how good you are at {achievement}! Especially {details}! Ralph learned something!",
+                f"You know what Ralph loves? How you handled {achievement}! That part about {details} - brilliant!",
+                f"Me watching you do {achievement} and Ralph thinking: that's genius! Especially {details}!",
+                f"Ralph's brain is like WOW! The {achievement} you did! And {details} - me never thought of that!",
+            ]
+        else:
+            specific_praise = [
+                f"Me so proud how you figured out {achievement}! Ralph sees your hard work!",
+                f"You made {achievement} look easy! But Ralph knows it wasn't! Me sees the effort!",
+                f"Ralph watching you tackle {achievement} and me thinking: that's impressive!",
+                f"The way you approached {achievement}! Ralph can tell you really thought about it!",
+                f"Me notice how careful you were with {achievement}! That shows real skill!",
+            ]
+
+        return RalphNarrator.misspell(random.choice(specific_praise), chance=0.25)
+
+    @staticmethod
+    def give_personal_encouragement(user_struggle: str = None) -> str:
+        """Give personal, emotionally genuine encouragement.
+
+        IN-003: Ralph's encouragement feels personal because he references
+        the specific struggle or journey, not just generic "good job".
+
+        Args:
+            user_struggle: What the user was struggling with or working through
+
+        Returns:
+            Personal, heartfelt encouragement
+        """
+        if user_struggle:
+            personal_encouragements = [
+                f"Ralph knows {user_struggle} was hard! But you stuck with it! Me so proud!",
+                f"Me remember when you were struggling with {user_struggle}! Look at you now!",
+                f"You could have given up on {user_struggle}! But you didn't! Ralph respects that!",
+                f"Me sees how much {user_struggle} challenged you! But you pushed through! Amazing!",
+                f"Ralph watched you work on {user_struggle}! Your determination is inspiring!",
+                f"The fact you kept going with {user_struggle} even when hard! That shows character!",
+                f"Me know {user_struggle} frustrated you! But you figured it out! Ralph proud!",
+                f"You turned {user_struggle} around! Ralph saw the whole journey! Me impressed!",
+            ]
+            return RalphNarrator.misspell(random.choice(personal_encouragements), chance=0.25)
+
+        # General but still personal
+        general_personal = [
+            "Ralph sees how hard you working! Me genuinely proud of you!",
+            "You know what? Me thinks you're braver than you know!",
+            "Ralph believes in you! Not just saying - me really means it!",
+            "Me sees you growing! Ralph notices these things!",
+            "You're doing something special here! Ralph feels it!",
+            "Me so lucky to work with someone who tries this hard!",
+            "Ralph's heart feels warm watching you succeed!",
+            "You inspire Ralph! Me tries harder because of you!",
+            "Me sees your potential! Ralph knows you're going places!",
+            "You make Ralph want to be better helper! That's special!",
+        ]
+        return RalphNarrator.misspell(random.choice(general_personal), chance=0.25)
+
+    @staticmethod
+    def acknowledge_effort_genuinely(task: str = None) -> str:
+        """Acknowledge effort in a way that shows Ralph truly noticed.
+
+        IN-003: Not just "good job" but recognition of the actual work
+        and effort involved. Ralph SAW what you did.
+
+        Args:
+            task: The specific task or effort to acknowledge
+
+        Returns:
+            Genuine acknowledgment of effort
+        """
+        if task:
+            effort_acknowledgments = [
+                f"Me watched you work on {task}! Ralph knows how much effort that took!",
+                f"The time you spent on {task}! Ralph sees it! Me appreciates it!",
+                f"You could have done {task} quick and sloppy! But you did it right! Ralph notices!",
+                f"Me sees the thought you put into {task}! That kind of care matters!",
+                f"Ralph knows {task} required patience! You showed that! Me impressed!",
+                f"The attention to detail in {task}! Ralph doesn't miss these things!",
+                f"You didn't just do {task}! You did it WELL! Ralph sees difference!",
+                f"Me appreciate how thoroughly you approached {task}! Quality work!",
+            ]
+            return RalphNarrator.misspell(random.choice(effort_acknowledgments), chance=0.25)
+
+        # General effort acknowledgment
+        general_effort = [
+            "Ralph sees all the little things you doing! Me notices everything!",
+            "Me knows you putting in work even when nobody watching! Ralph watching!",
+            "The effort you're making! Ralph sees it! Every bit of it!",
+            "You could cut corners! But you don't! Ralph respects that!",
+            "Me sees you going extra mile! That's character right there!",
+            "Ralph notices when people care about their work! You care!",
+            "The dedication you showing! Me genuinely impressed!",
+            "You doing more than asked! Ralph sees that!",
+        ]
+        return RalphNarrator.misspell(random.choice(general_effort), chance=0.25)
+
+    @staticmethod
+    def celebrate_growth_specifically(what_improved: str) -> str:
+        """Celebrate specific growth and improvement Ralph noticed.
+
+        IN-003: Ralph remembers how they were before and celebrates
+        the specific improvement. This makes encouragement feel earned.
+
+        Args:
+            what_improved: What specifically got better
+
+        Returns:
+            Celebration of specific growth
+        """
+        growth_celebrations = [
+            f"Ralph remembers when {what_improved} was hard for you! Now look! Me sees your growth!",
+            f"Me notice how much better you got at {what_improved}! That's real progress!",
+            f"You know what Ralph loves? Seeing you master {what_improved}! You worked for that!",
+            f"Remember struggling with {what_improved}? Ralph does! Now you're crushing it!",
+            f"The improvement in {what_improved}! Me watches you get better every day!",
+            f"You leveled up in {what_improved}! Ralph sees the difference! So proud!",
+            f"Me remember when {what_improved} stumped you! Not anymore! Growth!",
+            f"The way you handle {what_improved} now versus before! Ralph's mind blown!",
+            f"You turned weakness in {what_improved} into strength! Me sees the journey!",
+            f"Ralph witnessed your progress with {what_improved}! Feels like watching success story!",
+        ]
+        return RalphNarrator.misspell(random.choice(growth_celebrations), chance=0.25)
+
+    @staticmethod
+    def express_genuine_excitement(about_what: str) -> str:
+        """Express genuine, specific excitement about what's happening.
+
+        IN-003: Ralph's excitement is contagious because it's real and
+        specific to what he's excited about.
+
+        Args:
+            about_what: What Ralph is excited about
+
+        Returns:
+            Genuine excitement from Ralph
+        """
+        genuine_excitement = [
+            f"Ralph SO excited about {about_what}! Me can barely contain it!",
+            f"OH OH! {about_what}! Ralph's brain doing happy dance!",
+            f"Me getting PUMPED about {about_what}! This is GOOD!",
+            f"Ralph's excitement level about {about_what}: MAXIMUM!",
+            f"Me can't stop thinking about {about_what}! So good!",
+            f"Ralph's favorite thing right now? {about_what}! SO cool!",
+            f"Me genuinely thrilled about {about_what}! Not exaggerating!",
+            f"You know what has Ralph bouncing? {about_what}! Amazing!",
+            f"Me heart racing thinking about {about_what}! Real excitement!",
+            f"Ralph's enthusiasm about {about_what} is OFF THE CHARTS!",
+            f"Me can't even! {about_what} is THAT good! Ralph buzzing!",
+            f"Ralph's brain: {about_what}! {about_what}! {about_what}! Can't stop thinking!",
+        ]
+        return RalphNarrator.misspell(random.choice(genuine_excitement), chance=0.3)
+
+    @staticmethod
+    def give_meaningful_compliment(quality: str = None) -> str:
+        """Give a meaningful compliment about character or approach.
+
+        IN-003: Compliments that go beyond "good job" to recognize
+        the qualities that made success possible.
+
+        Args:
+            quality: The quality to compliment (e.g., "persistence", "creativity")
+
+        Returns:
+            Meaningful character compliment
+        """
+        if quality:
+            meaningful_compliments = [
+                f"Your {quality}! That's what makes difference! Ralph sees that in you!",
+                f"Me notice your {quality}! That's not common! You should be proud!",
+                f"The {quality} you showing! Ralph thinks that's your superpower!",
+                f"You know what Ralph admires? Your {quality}! Me wishes more people had that!",
+                f"Your {quality} is inspiring to Ralph! Me learns from watching you!",
+                f"The {quality} you bring! That's special! Ralph sees it!",
+            ]
+            return RalphNarrator.misspell(random.choice(meaningful_compliments), chance=0.25)
+
+        # General character compliments
+        character_compliments = [
+            "The way you think through problems! Ralph admires that!",
+            "Your patience when things get hard! Me sees that quality!",
+            "You don't give up! Ralph notices that about you!",
+            "The care you put into your work! That's a gift!",
+            "Your willingness to learn! Ralph respects that!",
+            "The way you stay positive! Me learns from that!",
+            "Your attention to others! Ralph sees your kindness!",
+            "You make people feel heard! That's a rare skill!",
+        ]
+        return RalphNarrator.misspell(random.choice(character_compliments), chance=0.25)
+
+    @staticmethod
+    def validate_feelings_genuinely(feeling: str) -> str:
+        """Validate feelings in a way that shows Ralph truly gets it.
+
+        IN-003: Emotional validation that feels genuine, not performative.
+
+        Args:
+            feeling: The feeling to validate
+
+        Returns:
+            Genuine emotional validation
+        """
+        validations = [
+            f"Me gets why you feel {feeling}! Ralph would feel same way!",
+            f"Your {feeling} makes total sense! Me understands!",
+            f"Ralph hears that you're {feeling}! That's valid! Me sees it!",
+            f"Feeling {feeling} in this situation? Me totally gets it!",
+            f"You have every right to feel {feeling}! Ralph validates that!",
+            f"Me understands the {feeling}! Ralph been there!",
+            f"Your {feeling} is real and important! Me acknowledges that!",
+            f"Feeling {feeling}! Ralph gets it! Me not dismissing!",
+            f"That {feeling} you have! Me sees it! Completely understandable!",
+            f"Ralph validates your {feeling}! Me truly understands!",
+        ]
+        return RalphNarrator.misspell(random.choice(validations), chance=0.25)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
