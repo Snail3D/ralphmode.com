@@ -6222,6 +6222,96 @@ Your style: {worker['style']}
 
         return speaker, title, message
 
+    def is_fourth_wall_break(self, text: str) -> bool:
+        """SG-027: Detect if user is breaking the fourth wall.
+
+        Patterns like "what is this?", "who am I?", "what are you?", "is this a bot?"
+
+        Args:
+            text: User's message text
+
+        Returns:
+            True if message breaks fourth wall, False otherwise
+        """
+        if not text:
+            return False
+
+        text_lower = text.lower().strip()
+
+        # Fourth-wall breaking patterns
+        fourth_wall_patterns = [
+            # Identity confusion
+            'what is this', 'what is this bot', 'what is ralph mode', 'what is ralphmode',
+            'who am i', 'who are you', 'what are you', 'what am i doing here',
+            'explain this', 'explain the scenario', 'explain what this is',
+
+            # Bot/AI awareness
+            'is this a bot', 'are you a bot', 'are you ai', 'are you real',
+            'is this real', 'are these real people', 'is ralph real',
+            'are you an llm', 'are you chatgpt', 'are you claude',
+
+            # Simulation awareness
+            'is this a simulation', 'is this a game', 'what is going on',
+            'this is weird', 'this is strange', 'why are you acting',
+            'why are you pretending', 'break character',
+
+            # Meta questions
+            'how does this work', 'what is the point', 'why am i talking to',
+            'what is my role', 'am i supposed to', 'what am i supposed to do',
+        ]
+
+        # Check if any pattern matches
+        for pattern in fourth_wall_patterns:
+            if pattern in text_lower:
+                return True
+
+        return False
+
+    def get_fourth_wall_response(self, user_id: int = None) -> tuple[str, str, str]:
+        """SG-027: Generate in-character confused response when user breaks fourth wall.
+
+        Workers stay IN character and act concerned about Mr. Worms seeming confused.
+
+        Returns:
+            Tuple of (speaker_name, speaker_title, message)
+        """
+        # Mix of Ralph and worker responses - all stay IN fiction
+        responses = [
+            # Ralph responses - genuinely concerned
+            ("Ralph", None, "Boss, you okay? You seem confused! Do you need paste? Paste helps me when I forget things!"),
+            ("Ralph", None, "Mr. Worms? It's me, Ralph! Your manager! Did you sleep last night?"),
+            ("Ralph", None, "Boss... you're acting weird. Do you want some juice? My daddy gives me juice when I'm confused."),
+            ("Ralph", None, "Uh oh. Mr. Worms, you know where you are right? You're at work with us!"),
+
+            # Stool responses - casual concern
+            ("Stool", "Frontend Dev", "Boss, you feeling okay? You seem kinda off today."),
+            ("Stool", "Frontend Dev", "Yo Mr. Worms, you good? That question was... really random."),
+            ("Stool", "Frontend Dev", "Uh, boss? You know us, right? We're your dev team."),
+
+            # Gomer responses - simple worry
+            ("Gomer", "Backend Dev", "Mr. Worms, did you eat breakfast? You're talking funny."),
+            ("Gomer", "Backend Dev", "Boss... it's us. Your team. Maybe you need a break?"),
+            ("Gomer", "Backend Dev", "You okay there, boss? That was a weird question."),
+
+            # Mona responses - professional concern
+            ("Mona", "Tech Lead", "Mr. Worms, are you feeling alright? That's an unusual question."),
+            ("Mona", "Tech Lead", "Boss, it's Mona. Your tech lead. You seem disoriented."),
+            ("Mona", "Tech Lead", "Sir, should we take a break? You don't seem like yourself."),
+
+            # Gus responses - gruff but caring
+            ("Gus", "Senior Dev", "Boss, you okay? You're acting strange."),
+            ("Gus", "Senior Dev", "Mr. Worms, it's us. Your dev team. You know us."),
+            ("Gus", "Senior Dev", "Everything alright there, boss? That came out of nowhere."),
+        ]
+
+        speaker, title, message = random.choice(responses)
+
+        # Apply Ralph's misspellings if it's Ralph speaking
+        if speaker == "Ralph":
+            message = self.ralph_misspell(message)
+
+        return speaker, title, message
+
     def detect_admin_command(self, text: str) -> bool:
         """AC-001: Detect if text is an admin command trigger phrase.
 
@@ -11995,6 +12085,17 @@ _Grab some popcorn..._
         if self.is_off_topic_query(text):
             logging.info(f"SG-011: Detected off-topic query from user {telegram_id}")
             speaker, title, message = self.get_off_topic_redirect()
+            await self.send_styled_message(
+                context, chat_id, speaker, title,
+                message,
+                with_typing=True
+            )
+            return
+
+        # SG-027: Check if user is breaking the fourth wall
+        if self.is_fourth_wall_break(text):
+            logging.info(f"SG-027: Detected fourth-wall break from user {telegram_id}")
+            speaker, title, message = self.get_fourth_wall_response(user_id)
             await self.send_styled_message(
                 context, chat_id, speaker, title,
                 message,
