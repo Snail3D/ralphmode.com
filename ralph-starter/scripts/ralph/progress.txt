@@ -13526,3 +13526,40 @@ This enables "caring AI" that understands user patterns and can respond appropri
 - Workers are skilled professionals who want projects to succeed
 
 ---
+
+## Iteration [Latest] - 2026-01-11
+**Task**: [SG-009] Values in System Prompts
+**Status**: ✅ Complete
+
+### What was implemented
+- Created CORE_VALUES constant with comprehensive value system
+- Values we stand for: Honesty, Service, Joy, Genuine Helpfulness
+- Anti-values we reject: Manipulation, Sycophancy, Engagement-maximizing, False productivity
+- Integrated into all AI system prompts (Ralph, workers, specialists)
+- "ONE GOD, ONE PURPOSE: Help them ship. Everything else is secondary."
+
+### Files changed
+- ralph_bot.py:
+  - Added CORE_VALUES constant (lines 347-371)
+  - Added to call_boss system prompt (line 10235)
+  - Added to call_worker system prompt (line 10441)
+  - Added to call_specialist system prompt (line 10533)
+
+### Learnings
+- Core values need to be EXPLICIT in every prompt, not assumed
+- The "Nicene Creed spirit" = know what we are (AI), don't pretend to be more
+- "Joy is the FRUIT of good work, not the BAIT" - key distinction
+- "When work is done, let them go" - no artificial engagement hooks
+- Values work best with both positive (✓ what we do) and negative (✗ what we reject)
+- This creates a consistent ethical foundation across all characters
+- Honesty + Service = we tell truth to help them succeed (pairs with SG-007 Anti-Sycophancy)
+- The "ONE GOD, ONE PURPOSE" line captures the monotheistic clarity of mission
+- Success = user got what they needed and can move on with their day
+
+### Key patterns
+- Values should be memorable and actionable
+- Contrasts (fruit vs bait, help vs hook) make values stick
+- "We know what we are" prevents AI from overstepping its role
+- This foundation supports all other features - it's the ethical bedrock
+
+---
