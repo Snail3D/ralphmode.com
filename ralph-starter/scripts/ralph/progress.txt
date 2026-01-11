@@ -14134,3 +14134,30 @@ GOOD_NEWS_SOURCES = {
 - Consider adding user preferences for news categories
 
 ---
+
+## Iteration [SG-020] - 2026-01-11
+**Task**: SG-020 - Workers Discuss Good News Naturally
+**Status**: ✅ Complete
+
+### What was implemented
+- Created GOOD_NEWS_FLOWS with 12 pre-written conversation flows
+- Each flow is 3-4 messages of natural conversation about positive news
+- Topics include: community centers, local business, environmental wins, education, healthcare, heroes, animal rescue, infrastructure, youth achievement, food security, tech for good, mental health
+- Includes exact acceptance criteria example (community center downtown)
+- Integrated into idle_codebase_chatter with 10% trigger chance
+- Flows play out at natural conversation pace using rapid_banter timing
+- Natural integration - happens organically during idle chatter periods
+- Light in the darkness during the grind
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Good news flows are multi-message conversations, not single quotes
+- They need to trigger less frequently than other chatter (10% vs continuous)
+- The format matches existing flow patterns (feature walkthroughs)
+- Natural pacing is critical - rapid_banter() between messages
+- Acceptance criteria included specific example dialogue to match exactly
+- Workers discuss good stuff happening in the world - gives hope during work sessions
+
+---
