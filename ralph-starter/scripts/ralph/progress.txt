@@ -8956,3 +8956,46 @@ This verification suite can be called:
 According to priority_order, next incomplete task is OB-008: Environment File Creator
 
 ---
+
+## Iteration [Auto] - 2026-01-10
+**Task**: [OB-046] Setup Troubleshooting Guide
+**Status**: ✅ Complete
+
+### What was implemented
+- Created troubleshooting.py with TroubleshootingGuide class
+- 10 comprehensive troubleshooting issues with solutions:
+  * SSH key problems (already exists, permission denied)
+  * Git and Python installation issues
+  * Telegram bot token validation errors
+  * Groq API key and rate limiting problems
+  * Repository name conflicts
+  * .env file configuration issues
+  * Port conflicts (address already in use)
+  * Python module import errors
+- Integrated into onboarding_wizard.py with "Need Help?" buttons
+- Search functionality for finding relevant issues by keywords
+- Links to external resources and support channels
+- Feedback mechanism (helpful/stuck) to track issue resolution
+- Submit new issue option with GitHub integration
+
+### Files changed
+- troubleshooting.py (new file, 970 lines)
+- onboarding_wizard.py (added troubleshooting integration)
+- ralph_bot.py (added callback handler for troubleshooting)
+
+### Learnings
+- Troubleshooting guide follows Ralph's personality (simple, encouraging)
+- Search uses keyword matching with scoring for relevance
+- Integration uses same callback pattern as existing onboarding flows
+- Singleton pattern ensures one instance of troubleshooting guide
+- All 10 issues tested with search functionality - works perfectly!
+
+### Technical details
+- Acceptance criteria met:
+  ✅ Lists common setup issues (10 issues covering major pain points)
+  ✅ Step-by-step solutions (detailed solutions with code examples)
+  ✅ Search functionality (keyword-based search with relevance scoring)
+  ✅ Links to support channels (GitHub, documentation links)
+  ✅ Submit new issue option (links to GitHub issues page)
+
+---
