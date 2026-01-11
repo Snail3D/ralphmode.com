@@ -1082,6 +1082,7 @@ class RalphBot:
         self.recent_responses: Dict[int, List[str]] = {}  # RM-010: Track last 10 responses per user for freshness
         self.last_user_message_time: Dict[int, datetime] = {}  # RM-053: Track when user last sent message
         self.idle_chatter_task: Dict[int, asyncio.Task] = {}  # RM-053: Track idle chatter background task
+        self.worker_pushback_count: Dict[int, Dict[str, Dict[str, int]]] = {}  # RM-037: Track worker pushback counts per issue
 
         # MU-001: Initialize user manager for tier system
         if USER_MANAGER_AVAILABLE:
@@ -1179,6 +1180,79 @@ class RalphBot:
                 "guidance": "Exhausted! Very short responses, frequent sighs, clear fatigue. Team needs a break.",
                 "tone": "drained"
             }
+
+    # ==================== RM-037: WORKER PUSHBACK SYSTEM ====================
+
+    def get_pushback_count(self, user_id: int, worker_name: str, issue_context: str = "general") -> int:
+        """Get the current pushback count for a worker on a specific issue.
+
+        Workers can push back 1-2 times on decisions before they must comply.
+        Tracking is per-issue to allow workers to voice concerns on different topics.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+            issue_context: Context/topic of the disagreement (default: "general")
+
+        Returns:
+            Current pushback count (0, 1, or 2+)
+        """
+        if user_id not in self.worker_pushback_count:
+            self.worker_pushback_count[user_id] = {}
+        if worker_name not in self.worker_pushback_count[user_id]:
+            self.worker_pushback_count[user_id][worker_name] = {}
+
+        return self.worker_pushback_count[user_id][worker_name].get(issue_context, 0)
+
+    def increment_pushback(self, user_id: int, worker_name: str, issue_context: str = "general") -> int:
+        """Increment pushback count for a worker on a specific issue.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+            issue_context: Context/topic of the disagreement
+
+        Returns:
+            New pushback count
+        """
+        if user_id not in self.worker_pushback_count:
+            self.worker_pushback_count[user_id] = {}
+        if worker_name not in self.worker_pushback_count[user_id]:
+            self.worker_pushback_count[user_id][worker_name] = {}
+
+        current = self.worker_pushback_count[user_id][worker_name].get(issue_context, 0)
+        new_count = current + 1
+        self.worker_pushback_count[user_id][worker_name][issue_context] = new_count
+
+        logger.info(f"RM-037: {worker_name} pushback on '{issue_context}' for user {user_id}: {current} -> {new_count}")
+        return new_count
+
+    def reset_pushback(self, user_id: int, worker_name: str = None, issue_context: str = None):
+        """Reset pushback counts.
+
+        Args:
+            user_id: User session ID
+            worker_name: Specific worker to reset (None = all workers)
+            issue_context: Specific issue to reset (None = all issues for worker)
+        """
+        if user_id not in self.worker_pushback_count:
+            return
+
+        if worker_name is None:
+            # Reset all workers for this user
+            self.worker_pushback_count[user_id] = {}
+            logger.info(f"RM-037: Reset all pushback counts for user {user_id}")
+        elif issue_context is None:
+            # Reset all issues for this worker
+            if worker_name in self.worker_pushback_count[user_id]:
+                self.worker_pushback_count[user_id][worker_name] = {}
+                logger.info(f"RM-037: Reset all issues for {worker_name}, user {user_id}")
+        else:
+            # Reset specific issue for this worker
+            if worker_name in self.worker_pushback_count[user_id]:
+                if issue_context in self.worker_pushback_count[user_id][worker_name]:
+                    del self.worker_pushback_count[user_id][worker_name][issue_context]
+                    logger.info(f"RM-037: Reset '{issue_context}' for {worker_name}, user {user_id}")
 
     # ==================== STYLED BUTTON MESSAGES ====================
 
@@ -5499,11 +5573,13 @@ Ask ONE question. Give verdicts (APPROVED/NEEDS WORK) with total confidence.
 
         return response
 
-    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None) -> tuple:
+    def call_worker(self, message: str, context: str = "", worker_name: str = None, efficiency_mode: bool = False, task_type: str = "general", user_id: int = None, issue_context: str = "general", is_pushback: bool = False) -> tuple:
         """Get response from a specific team member. Returns (name, title, response, tokens).
 
         task_type can be: "general", "code", "analysis", "review" - affects quality emphasis
         user_id: Optional user ID for response freshness tracking (RM-010)
+        issue_context: Context for tracking pushback on specific issues (RM-037)
+        is_pushback: If True, increment pushback counter for this worker (RM-037)
         """
         # Pick a random team member if none specified
         if worker_name is None:
@@ -5557,6 +5633,36 @@ CURRENT TEAM MOOD: {mood_modifier['level'].upper()} {mood_modifier['emoji']} ({s
 {mood_modifier['guidance']}
 Your response tone should be: {mood_modifier['tone']}"""
 
+        # RM-037: Get pushback guidance based on current count
+        pushback_prompt = ""
+        if user_id is not None:
+            pushback_count = self.get_pushback_count(user_id, worker_name, issue_context=issue_context)
+            if pushback_count == 0:
+                # First interaction or fresh topic - can push back if needed
+                pushback_prompt = """
+PUSHBACK POLICY - FIRST VOICE:
+If you disagree with a direction or decision, you CAN and SHOULD push back professionally.
+Voice your concerns with clear reasoning: "Boss, I'm not sure that's the best approach because..."
+Explain the risks or better alternatives. Be respectful but honest.
+This is your FIRST pushback opportunity - use it wisely if you see a real issue."""
+            elif pushback_count == 1:
+                # Second pushback - stronger but still respectful
+                pushback_prompt = """
+PUSHBACK POLICY - SECOND VOICE:
+You already voiced concerns once. If you STILL disagree, you can push back ONE MORE TIME.
+Make it count - be clear and firm: "Boss, I really think we should reconsider because..."
+Explain the consequences clearly. This is your LAST chance to advocate.
+After this, you must execute the boss's decision even if you disagree."""
+            else:
+                # Already pushed back twice - must comply now
+                pushback_prompt = """
+PUSHBACK POLICY - TIME TO COMPLY:
+You've already voiced your concerns multiple times. The boss has made their decision.
+It's time to execute: "Alright boss, you're the boss. We'll do it your way."
+Still do the work RIGHT - quality doesn't suffer from disagreement.
+Implement their decision to the best of your ability, even if you had doubts.
+Show professionalism by making their vision work."""
+
         messages = [
             {"role": "system", "content": f"""{WORK_QUALITY_PRIORITY}
 
@@ -5567,7 +5673,6 @@ He's sweet but clueless. You genuinely like him despite everything.
 Sometimes you accidentally call him "Ralphie" then correct yourself: "I mean, sir"
 Explain technical things simply - Ralph won't understand jargon.
 Focus on customer value. Be patient with his weird questions.
-You can push back once if you disagree, but ultimately respect his verdict.
 
 REMEMBER: Your personality is the WRAPPER. Your competence is the PRODUCT.
 You are genuinely skilled at your job. Your quirks don't make you less capable.
@@ -5576,11 +5681,16 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {efficiency_note}
 {freshness_prompt}
 {mood_prompt}
+{pushback_prompt}
 2-3 sentences max. Stay in character."""},
             {"role": "user", "content": message}
         ]
         response = self.call_groq(WORKER_MODEL, messages, max_tokens=200 if not efficiency_mode else 100)
         token_count = len(response.split())  # Rough word count as proxy
+
+        # RM-037: Increment pushback counter if this was a pushback
+        if is_pushback and user_id is not None:
+            self.increment_pushback(user_id, worker_name, issue_context)
 
         # RM-010: Track this response for freshness
         if user_id is not None:
