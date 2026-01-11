@@ -12793,3 +12793,64 @@ def format_feature_for_prompt(user_id):
 ```
 
 ---
+## Iteration [Latest] - 2026-01-11
+**Task**: [SG-035] Ralph Knows When To Ship - Good Enough Instinct
+**Status**: ✅ Complete
+
+### What was implemented
+- Added check_ship_it_threshold() method to evaluate shipping readiness
+- Evaluates completion %, remaining task priorities (high/medium/low), and token costs
+- Added maybe_call_ship_it() method that Ralph calls after each task completion
+- Ralph proactively decides "good enough, time to ship" when major items done
+- Workers can push back once (60% chance), but Ralph makes final call
+- Integrated into show_task_completion() flow for automatic evaluation
+- Ralph's decision triggers deliver_ralph_report() to wrap up session
+
+### Files changed
+- ralph_bot.py
+- scripts/ralph/prd.json
+
+### Learnings
+- Shipping threshold should consider multiple factors: completion %, task priorities, token costs
+- Case 1: 80%+ done with no high-priority items = ship it
+- Case 2: All high-priority done, ≤1 medium-priority left = ship it
+- Case 3: 60%+ done, high tokens, no high-priority = ship it (pragmatic)
+- Case 4: 90%+ done = always ship (perfect is enemy of done)
+- Active blockers always prevent shipping - need resolution first
+- Worker pushback adds authenticity (team dynamics) but boss decides
+- Don't check too early - need at least 3 tasks completed for meaningful evaluation
+- Prevent multiple "ship it" calls with session["ship_it_called"] flag
+- Skip if already in Q&A mode to avoid disrupting existing wrap-up flow
+
+### Pattern for pragmatic completion decisions
+```python
+# 1. Track completion metrics
+m = self.quality_metrics[user_id]
+completion_pct = (m["tasks_completed"] / m["tasks_identified"]) * 100
+
+# 2. Analyze remaining work by priority
+remaining = [item for item in actionable_items if item["status"] != "completed"]
+high_priority_remaining = [t for t in remaining if t["priority"] == "high"]
+
+# 3. Check resource usage (tokens/time)
+high_cost = m["total_groq_tokens"] > threshold
+
+# 4. Multi-factor decision
+if completion_pct >= threshold and len(high_priority_remaining) == 0:
+    return {"should_ship": True, "reason": "...", "confidence": "high"}
+
+# 5. Trigger wrap-up when threshold met
+if should_ship:
+    await self.deliver_ralph_report(context, chat_id, user_id)
+```
+
+### Boss instinct philosophy
+- Token costs are real - efficiency matters
+- Perfect is enemy of done
+- Major items done + only minor polish remaining = time to ship
+- Sometimes an all-nighter is needed, sometimes you just ship
+- Ralph's call - that's what bosses are for
+- Balance thoroughness vs pragmatism (the "good enough" instinct)
+
+---
+
