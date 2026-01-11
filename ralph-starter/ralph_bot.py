@@ -1748,6 +1748,9 @@ class RalphBot:
         # SG-001: Post-Task Reflection That Learns - Track lessons learned during session
         self.session_lessons: Dict[int, List[Dict[str, Any]]] = {}  # Track learnings that influence future behavior
 
+        # BM-005: Memory Persistence for Workers - Workers remember context even when Ralph forgets
+        self.worker_memories: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}  # Track per-worker memories across sessions
+
         # SG-010: Ralph's Simple Wisdom - Track when last wisdom was shared
         self.last_wisdom_moment: Dict[int, datetime] = {}  # Track when last wisdom was dropped
         self.wisdom_cooldown = 1800  # 30 minutes between wisdom moments (not constant)
@@ -10107,6 +10110,80 @@ Stay in character as {pushback_worker}."""
 
         return "\n".join(context_lines[-50:])  # Last 50 events for context
 
+    # ==================== BM-005: WORKER MEMORY PERSISTENCE ====================
+
+    def store_worker_memory(self, user_id: int, worker_name: str, memory_type: str, content: str, context: str = None):
+        """BM-005: Store a memory for a specific worker.
+
+        Workers remember things even when Ralph forgets between sessions.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker (Stool, Gomer, Mona, Gus)
+            memory_type: Type of memory ("observation", "issue", "suggestion", "learning", "ceo_feedback")
+            content: The actual memory content
+            context: Optional context about the situation
+        """
+        if user_id not in self.worker_memories:
+            self.worker_memories[user_id] = {}
+
+        if worker_name not in self.worker_memories[user_id]:
+            self.worker_memories[user_id][worker_name] = []
+
+        memory = {
+            "timestamp": datetime.now().isoformat(),
+            "type": memory_type,
+            "content": content,
+            "context": context or ""
+        }
+
+        self.worker_memories[user_id][worker_name].append(memory)
+
+        # Keep last 20 memories per worker (enough for continuity, not too bloated)
+        self.worker_memories[user_id][worker_name] = self.worker_memories[user_id][worker_name][-20:]
+
+        logger.debug(f"BM-005: {worker_name} stored memory ({memory_type}): {content[:50]}")
+
+    def get_worker_memory_context(self, user_id: int, worker_name: str, limit: int = 8) -> str:
+        """BM-005: Get formatted memory context for a worker's prompt.
+
+        Returns recent memories so worker can maintain continuity even when Ralph doesn't.
+
+        Args:
+            user_id: User session ID
+            worker_name: Name of the worker
+            limit: Maximum number of memories to include (default 8)
+
+        Returns:
+            Formatted string of worker's memories
+        """
+        if user_id not in self.worker_memories:
+            return ""
+
+        if worker_name not in self.worker_memories[user_id]:
+            return ""
+
+        memories = self.worker_memories[user_id][worker_name]
+
+        if not memories:
+            return ""
+
+        # Get most recent memories
+        recent_memories = memories[-limit:]
+
+        lines = ["WHAT YOU REMEMBER (even if Ralph doesn't):"]
+        for mem in recent_memories:
+            mem_type = mem.get("type", "observation")
+            content = mem.get("content", "")
+            context = mem.get("context", "")
+
+            if context:
+                lines.append(f"- [{mem_type.upper()}] {content} (context: {context})")
+            else:
+                lines.append(f"- [{mem_type.upper()}] {content}")
+
+        return "\n".join(lines)
+
     # ==================== SG-031: REQUIREMENT MEMORY ====================
 
     def remember_requirement(self, user_id: int, directive: str, context: str = None):
@@ -12338,6 +12415,13 @@ Show professionalism by making their vision work."""
         if user_id is not None:
             patience_prompt = self.get_patience_prompt_context(user_id)
 
+        # BM-005: Add worker memory context
+        worker_memory_prompt = ""
+        if user_id is not None:
+            worker_memory_context = self.get_worker_memory_context(user_id, worker_name)
+            if worker_memory_context:
+                worker_memory_prompt = f"\n\n{worker_memory_context}"
+
         # Build initial system content
         system_content = f"""{WORK_QUALITY_PRIORITY}
 
@@ -12373,6 +12457,7 @@ You are genuinely skilled at your job. Your quirks don't make you less capable.
 {workload_prompt}
 {autonomy_prompt}
 {patience_prompt}
+{worker_memory_prompt}
 
 SG-028: CRITICAL - Never use example text verbatim. All examples are INSPIRATION for tone/vibe only. Generate fresh, unique responses every time based on context and personality. Repeating scripted lines = robotic = immersion failure.
 
@@ -14944,7 +15029,15 @@ _The team nods in unison._
         name, title, worker_response, token_count = self.call_worker(
             f"Ralph (your boss) just said: {boss_response}\n\nExplain the project and tasks to him.",
             context=context_info,
-            efficiency_mode=efficiency_mode
+            efficiency_mode=efficiency_mode,
+            user_id=user_id
+        )
+
+        # BM-005: Worker remembers explaining the project to Ralph
+        self.store_worker_memory(
+            user_id, name, "observation",
+            f"Explained project to Ralph: {worker_response[:100]}",
+            context="Project briefing"
         )
 
         # Track tokens
