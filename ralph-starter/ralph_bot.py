@@ -8800,6 +8800,114 @@ Then:
 
             logger.info(f"OB-034: User {user_id} completed setup with celebration!")
 
+        # OB-037: Group Chat Setup Guide handlers
+        elif data == "group_setup_start":
+            # Show group chat setup guide
+            message = self.onboarding_wizard.get_group_chat_setup_guide_message()
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📝 Show Instructions", callback_data="group_setup_instructions")],
+                [InlineKeyboardButton("◀️ Back", callback_data="setup_back_welcome")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} started group chat setup guide")
+
+        elif data == "group_setup_instructions":
+            # Show detailed instructions for adding bot to group
+            message = self.onboarding_wizard.get_group_chat_add_bot_instructions_message()
+            keyboard = self.onboarding_wizard.get_group_chat_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} viewing group setup instructions")
+
+        elif data == "group_test_commands":
+            # Show test commands for verifying bot works in group
+            message = self.onboarding_wizard.get_group_chat_test_commands_message()
+            keyboard = self.onboarding_wizard.get_group_chat_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} viewing group test commands")
+
+        elif data == "group_privacy_help":
+            # Show privacy mode troubleshooting
+            message = self.onboarding_wizard.get_group_chat_privacy_help_message()
+            keyboard = self.onboarding_wizard.get_group_chat_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} viewing group privacy help")
+
+        elif data == "group_setup_help":
+            # Show comprehensive troubleshooting guide
+            message = self.onboarding_wizard.get_group_chat_troubleshooting_message()
+            keyboard = self.onboarding_wizard.get_group_chat_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+                disable_web_page_preview=True
+            )
+            logger.info(f"OB-037: User {user_id} viewing group setup troubleshooting")
+
+        elif data == "group_setup_done":
+            # User confirmed bot works in group - show success message
+            message = self.onboarding_wizard.get_group_chat_success_message()
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("ℹ️ Why Admin Rights?", callback_data="group_admin_rights_info")],
+                [InlineKeyboardButton("✅ Continue Setup", callback_data="setup_continue")],
+                [InlineKeyboardButton("◀️ Back", callback_data="setup_back_welcome")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} completed group chat setup!")
+
+        elif data == "group_admin_rights_info":
+            # Show explanation of why admin rights are needed
+            message = self.onboarding_wizard.get_group_chat_admin_rights_explainer_message()
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("◀️ Back", callback_data="group_setup_done")]
+            ])
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+                disable_web_page_preview=True
+            )
+            logger.info(f"OB-037: User {user_id} viewing admin rights explanation")
+
+        elif data == "setup_back_group":
+            # Go back to group setup instructions from sub-pages
+            message = self.onboarding_wizard.get_group_chat_add_bot_instructions_message()
+            keyboard = self.onboarding_wizard.get_group_chat_keyboard()
+
+            await query.edit_message_text(
+                message,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            logger.info(f"OB-037: User {user_id} returned to group setup instructions")
+
         elif data == "setup_back_welcome":
             # User clicked back button - go back to welcome screen
             state = self.onboarding_wizard.update_step(state, self.onboarding_wizard.STEP_WELCOME)

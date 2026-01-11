@@ -5545,6 +5545,393 @@ Ralph says: "I did it! I changed the thingy without breaking everything!" 🎉
 
 *Everything's working great!*"""
 
+    # OB-037: Group Chat Setup Guide
+
+    def get_group_chat_setup_guide_message(self) -> str:
+        """Get comprehensive guide for adding bot to group chats.
+
+        Returns:
+            Group chat setup guide with explanations
+        """
+        return """*Adding Ralph to Group Chats!* 👥
+
+Ralph can work with your whole team in groups!
+
+*Why use groups?*
+• Work on projects together with friends
+• Everyone can see Ralph's progress
+• Great for team collaboration!
+• More fun with more people watching! 🎉
+
+**What you'll need:**
+✅ Your bot must be created (from BotFather)
+✅ Privacy mode should be DISABLED
+✅ Groups should be ENABLED in bot settings
+
+**What we'll do:**
+1. Add your bot to a group
+2. Make it an admin (gives it permission to work)
+3. Test if it can read and write messages
+4. Fix any privacy mode issues
+
+*Ready to add Ralph to a group?*"""
+
+    def get_group_chat_add_bot_instructions_message(self) -> str:
+        """Get step-by-step instructions for adding bot to group.
+
+        Returns:
+            Detailed instructions for adding bot to group
+        """
+        return """*How to Add Bot to Group - Step by Step!* 📝
+
+**Step 1: Create or Open Group** 👥
+• Open Telegram and go to an existing group
+• OR create new group: Menu → "New Group"
+• Name it something fun like "Ralph's Workshop" 🛠️
+
+**Step 2: Add Your Bot to Group** 🤖
+1. In group chat, tap the group name at top
+2. Tap "Add Members" or "Add Participants"
+3. Search for your bot by username
+   (Example: `@your_bot_name`)
+4. Select your bot from results
+5. Tap "Add" or checkmark ✓
+
+✅ Success: You'll see message "[Bot Name] joined the group"
+
+**Step 3: Make Bot an Admin** 👑
+
+*Why admin?*
+Ralph needs admin rights to:
+• See all messages in the group
+• Send messages and media
+• Manage work sessions properly
+
+*How to make admin:*
+1. Tap group name at top
+2. Tap "Administrators" or "Edit"
+3. Tap "Add Admin"
+4. Select your bot
+5. Choose these permissions:
+   ✓ Delete Messages
+   ✓ Ban Users (optional)
+   ✓ Pin Messages (optional)
+   ✓ Manage Topics (if group has topics)
+6. Tap "Done" or checkmark ✓
+
+✅ Success: Bot shows up in Administrators list!
+
+*Ralph says:*
+"Now I'm the boss! Well, still under Mr. Worms tho..." 👃
+
+Click below when you've added your bot!"""
+
+    def get_group_chat_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for group chat setup guide.
+
+        Returns:
+            Keyboard with helpful links and action buttons
+        """
+        keyboard = [
+            [InlineKeyboardButton("📋 Show Test Commands", callback_data="group_test_commands")],
+            [InlineKeyboardButton("🔧 Fix Privacy Mode", callback_data="group_privacy_help")],
+            [InlineKeyboardButton("✅ Bot Works in Group!", callback_data="group_setup_done")],
+            [InlineKeyboardButton("❓ Troubleshooting", callback_data="group_setup_help")],
+            [InlineKeyboardButton("◀️ Back", callback_data="setup_back_group")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_group_chat_test_commands_message(self) -> str:
+        """Get test commands to verify bot works in group.
+
+        Returns:
+            Test commands with expected results
+        """
+        return """*Testing Your Bot in Group!* 🧪
+
+Go to your group and try these tests!
+
+**Test 1: Basic Command** ⚡
+Send in group:
+```
+/start
+```
+
+✅ **Expected:** Bot responds with welcome message
+❌ **If nothing:** Bot isn't seeing messages (check privacy mode!)
+
+**Test 2: Chat Message** 💬
+Send regular message (no slash):
+```
+Hello Ralph!
+```
+
+✅ **Expected:** Bot can see it and might respond
+❌ **If ignored:** Privacy mode is ON (need to disable!)
+
+**Test 3: Check Bot Status** 📊
+Send in group:
+```
+/status
+```
+
+✅ **Expected:** Bot shows current configuration
+❌ **If nothing:** Bot not running or can't see commands
+
+**If all tests pass:**
+🎉 Your bot is working perfectly in groups!
+
+**If tests fail:**
+Click "Troubleshooting" below for help!
+
+*Ralph says:*
+"Try the tests! If I don't answer, something's wrong!" 👃"""
+
+    def get_group_chat_privacy_help_message(self) -> str:
+        """Get help for fixing privacy mode issues in groups.
+
+        Returns:
+            Privacy mode troubleshooting guide
+        """
+        return """*Fixing Privacy Mode for Groups!* 🔒
+
+**The Problem:**
+If privacy mode is ENABLED, your bot can't see regular messages in groups!
+
+**How to check current setting:**
+1. Go to @BotFather
+2. Send `/mybots`
+3. Select your bot
+4. Tap "Bot Settings"
+5. Look at "Group Privacy"
+
+**What it should say:**
+✅ "Privacy mode is **DISABLED**" = Good! Bot sees everything
+❌ "Privacy mode is **ENABLED**" = Bad! Bot only sees commands
+
+**How to disable privacy mode:**
+
+**Step 1:** Open @BotFather
+**Step 2:** Send this command:
+```
+/setprivacy
+```
+
+**Step 3:** BotFather asks "Enable privacy mode?"
+Choose: `Disable`
+
+**Step 4:** BotFather confirms:
+"Privacy mode is disabled for [your bot]"
+
+**Step 5:** IMPORTANT - Refresh the group!
+• Remove bot from group
+• Add bot back to group
+• Make it admin again
+
+*Why refresh?*
+Privacy changes only apply when bot joins!
+Old session keeps old settings!
+
+**After refreshing:**
+Test again with regular message in group!
+
+*Ralph says:*
+"Privacy mode is like wearing earplugs! Turn it OFF so I can hear you!" 👂"""
+
+    def get_group_chat_troubleshooting_message(self) -> str:
+        """Get comprehensive troubleshooting for group chat issues.
+
+        Returns:
+            Common problems and solutions
+        """
+        return """*Group Chat Troubleshooting!* 🆘
+
+**Problem 1: "Bot doesn't respond in group"**
+
+Possible causes:
+→ Privacy mode is ENABLED (disable it!)
+→ Bot isn't admin (make it admin!)
+→ Bot isn't running (check your server!)
+→ Wrong bot token in .env file
+
+*How to fix:*
+1. Check privacy mode in BotFather
+2. Make bot admin with all permissions
+3. Remove and re-add bot to group
+4. Restart your bot application
+
+**Problem 2: "Bot only responds to commands (/start) but not regular messages"**
+
+*This is privacy mode!*
+→ Privacy mode: ENABLED (wrong!)
+→ Need: DISABLED
+
+*How to fix:*
+1. Go to @BotFather
+2. `/setprivacy` → Disable
+3. Remove bot from group
+4. Add bot back
+5. Make admin again
+
+**Problem 3: "Can't make bot admin"**
+
+→ You must be group admin yourself!
+→ Group owner needs to make you admin first
+→ Or ask group owner to make bot admin
+
+*How to fix:*
+1. Ask group owner for admin rights
+2. Then you can make bot admin
+3. Or have owner make bot admin directly
+
+**Problem 4: "Bot joined but disappeared from members"**
+
+→ Bot was kicked automatically
+→ Group has bot restrictions
+→ Anti-spam settings kicked it
+
+*How to fix:*
+1. Check group settings for bot restrictions
+2. Disable anti-bot features temporarily
+3. Add bot again as admin immediately
+
+**Problem 5: "Error: 'Bot was blocked by user'"**
+
+→ Someone blocked the bot in private chat
+→ This doesn't affect group functionality!
+
+*How to fix:*
+Nothing! Bot still works in group!
+That person just can't use bot privately!
+
+**Problem 6: "Bot responds twice"**
+
+→ Bot is in group AND privacy chat
+→ Sees message in both places
+
+*How to fix:*
+Check your code - should handle group vs private logic!
+
+*Still stuck?*
+Check these:
+1. Bot token is correct in .env
+2. Bot is running (check logs)
+3. Privacy mode = DISABLED
+4. Bot is admin in group
+5. Try creating new test group
+
+*Ralph says:*
+"Groups are tricky! But we'll figure it out!" 🧩
+
+[Telegram Groups Documentation](https://core.telegram.org/bots/features#group-privacy)"""
+
+    def get_group_chat_success_message(self) -> str:
+        """Get success message after bot is working in group.
+
+        Returns:
+            Success celebration message
+        """
+        return """*🎉 Bot Works in Groups!*
+
+Awesome! Your bot is all set up for group chats!
+
+**What you can do now:**
+✅ Work on projects with your team
+✅ Everyone can watch Ralph work
+✅ Collaborate in real-time
+✅ Share the coding fun! 🚀
+
+**Admin Permissions Verified:**
+Your bot can:
+• See all messages in group
+• Send messages and updates
+• Manage work sessions
+• Be the star of the show! ⭐
+
+**Next Steps:**
+• Add more team members to group
+• Start a coding session with /start
+• Try some commands together
+• Watch Ralph impress everyone!
+
+*Ralph says:*
+"Look at me! I'm working with the WHOLE TEAM now! This is so cool!" 👃✨
+
+**Pro Tips:**
+💡 Pin important messages Ralph sends
+💡 Use /status to check what's happening
+💡 Each team member can give Ralph instructions
+💡 Great for pair programming and code reviews!
+
+*Your bot is ready for teamwork!* 👥🤖"""
+
+    def get_group_chat_admin_rights_explainer_message(self) -> str:
+        """Get detailed explanation of why admin rights are needed.
+
+        Returns:
+            Admin rights explanation
+        """
+        return """*Why Does Bot Need Admin Rights?* 👑
+
+Good question! Let Ralph explain!
+
+**What Ralph Needs to Do:**
+1. **See ALL messages** 📬
+   → Not just commands
+   → Regular chat messages too
+   → Understand context of conversation
+
+2. **Send messages freely** 💬
+   → Update you on progress
+   → Ask questions when stuck
+   → Celebrate when features ship!
+
+3. **Send media and files** 📎
+   → Code screenshots
+   → GIFs for entertainment
+   → Progress bars and visuals
+
+4. **Delete old messages** (optional) 🗑️
+   → Clean up clutter
+   → Remove outdated status messages
+   → Keep chat organized
+
+**Permissions Breakdown:**
+
+*Delete Messages:*
+✅ Recommended - keeps chat clean
+❌ Optional - but helpful!
+
+*Ban Users:*
+❌ Not needed for Ralph
+⚠️ Ralph won't ban anyone! (He's too nice!)
+
+*Pin Messages:*
+✅ Useful - can pin important updates
+❌ Optional - your choice!
+
+*Invite Users:*
+❌ Not needed for Ralph
+⚠️ You control who joins!
+
+*Manage Topics:*
+✅ Needed if group has topics/forums
+❌ Not needed for simple groups
+
+**Minimum Required:**
+Just admin status itself!
+The extra permissions make Ralph more useful!
+
+**Security:**
+Your bot only does what you coded it to do!
+Admin rights don't change bot behavior!
+You're still in control! 🔐
+
+*Ralph says:*
+"I'm admin but I promise not to go crazy with power!" 😊
+
+[More about Bot Permissions](https://core.telegram.org/bots/features#group-admin-bots)"""
+
 
 def get_onboarding_wizard() -> OnboardingWizard:
     """Get the onboarding wizard instance.
