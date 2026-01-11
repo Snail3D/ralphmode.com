@@ -11302,6 +11302,105 @@ I'm not that smart, but I remember ALL of it!
         else:
             return "a while back"
 
+    def update_session_health_tracking(self, user_id: int):
+        """SG-005: Update session health tracking metrics.
+
+        Tracks message count, frequency, session duration, and time of day.
+        Updates health_concern_level based on multiple factors.
+
+        Args:
+            user_id: User session ID
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return
+
+        now = datetime.now()
+
+        # Update message count
+        session["message_count"] = session.get("message_count", 0) + 1
+
+        # Track messages in last minute for rate calculation
+        messages_in_last_minute = session.get("messages_in_last_minute", [])
+        # Remove timestamps older than 1 minute
+        messages_in_last_minute = [ts for ts in messages_in_last_minute if (now - ts).total_seconds() < 60]
+        # Add current timestamp
+        messages_in_last_minute.append(now)
+        session["messages_in_last_minute"] = messages_in_last_minute
+
+        # Update last message time
+        session["last_message_time"] = now
+
+        # Calculate total session hours
+        start_time = session.get("start_time", now)
+        session["total_session_hours"] = (now - start_time).total_seconds() / 3600
+
+        # Calculate messages per minute (average over last minute)
+        session["messages_per_minute"] = len(messages_in_last_minute)
+
+        # Update health concern level
+        session["health_concern_level"] = self.calculate_health_concern_level(user_id)
+
+    def calculate_health_concern_level(self, user_id: int) -> str:
+        """SG-005: Calculate health concern level based on session metrics.
+
+        Flags concerns at:
+        - 4+ hours continuous session
+        - Rapid-fire messages (>5 per minute sustained)
+        - Late night sessions (2am+)
+
+        Returns:
+            Concern level: "none", "mild", "moderate", or "high"
+        """
+        session = self.active_sessions.get(user_id)
+        if not session:
+            return "none"
+
+        flags = []
+        now = datetime.now()
+
+        # Check 1: Session duration
+        session_hours = session.get("total_session_hours", 0)
+        if session_hours >= 6:
+            flags.append("very_long_session")
+        elif session_hours >= 4:
+            flags.append("long_session")
+
+        # Check 2: Rapid-fire messages
+        messages_per_minute = session.get("messages_per_minute", 0)
+        if messages_per_minute > 10:
+            flags.append("very_rapid_messages")
+        elif messages_per_minute > 5:
+            flags.append("rapid_messages")
+
+        # Check 3: Late night sessions (2am - 6am)
+        current_hour = now.hour
+        if 2 <= current_hour < 6:
+            flags.append("late_night")
+
+        # Determine concern level based on flags
+        if not flags:
+            return "none"
+
+        # Count severity of flags
+        severe_flags = ["very_long_session", "very_rapid_messages"]
+        moderate_flags = ["long_session", "rapid_messages", "late_night"]
+
+        severe_count = sum(1 for f in flags if f in severe_flags)
+        moderate_count = sum(1 for f in flags if f in moderate_flags)
+
+        # High concern: 2+ severe flags OR 1 severe + 2 moderate
+        if severe_count >= 2 or (severe_count >= 1 and moderate_count >= 2):
+            return "high"
+        # Moderate concern: 1 severe flag OR 3+ moderate flags
+        elif severe_count >= 1 or moderate_count >= 3:
+            return "moderate"
+        # Mild concern: 1-2 moderate flags
+        elif moderate_count >= 1:
+            return "mild"
+        else:
+            return "none"
+
     def should_trigger_natural_session_end(self, user_id: int) -> bool:
         """SG-036: Determine if a natural session end should trigger.
 
@@ -11674,7 +11773,14 @@ _Drop a zip file to get started!_
                 "status": "onboarding",
                 "codebase_insights": {},  # RM-058: Track worker discoveries during exploration
                 "requirements": [],  # SG-031: Track all Mr. Worms directives - Ralph never forgets
-                "session_requirements": []  # SG-030: Dynamic requirements with status tracking
+                "session_requirements": [],  # SG-030: Dynamic requirements with status tracking
+                # SG-005: Session Health Tracking
+                "start_time": datetime.now(),
+                "message_count": 0,
+                "last_message_time": datetime.now(),
+                "messages_in_last_minute": [],  # Track timestamps for rate calculation
+                "total_session_hours": 0,
+                "health_concern_level": "none"  # none, mild, moderate, high
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -12895,6 +13001,10 @@ _Grab some popcorn..._
         telegram_id = update.effective_user.id
         chat_id = update.effective_chat.id
         text = update.message.text
+
+        # SG-005: Update session health tracking for every message
+        if user_id in self.active_sessions:
+            self.update_session_health_tracking(user_id)
 
         # AC-006: Check if user is muted - completely ignore their messages
         if USER_MANAGER_AVAILABLE and self.user_manager:
