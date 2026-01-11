@@ -11001,3 +11001,47 @@ All functionality tested and verified:
 ✅ All methods callable and functional
 
 ---
+
+## Iteration [AUTO] - 2026-01-10
+**Task**: [RM-041] Team Adapts to Project Type
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `_detect_project_type()` function that analyzes codebase to classify project type
+  - Detects: game, enterprise, creative, utility, web_app
+  - Uses keyword analysis on file paths and framework detection
+  - Returns type, confidence level, indicators, and recommended tone
+- Created `_get_project_type_tone_prompt()` to generate tone adjustment prompts
+  - Different prompts for each project type (playful for games, professional for enterprise, etc.)
+  - Integrated into worker AI system prompts
+- Created `_team_comments_on_project_type()` for natural worker reactions
+  - Workers comment on the project type: "Ooh, a game! This is gonna be fun!"
+  - 1-2 workers randomly selected to react based on project type
+  - Different reactions per type (excited for games, professional for enterprise)
+- Modified `_analyze_codebase()` to call detection and include in analysis results
+- Project type automatically stored in session data via analysis results
+- Integrated tone prompts into `call_worker()` system messages
+
+### Files changed
+- ralph_bot.py (+233 lines, -4 lines)
+
+### Learnings
+- **Project type affects team energy**: The acceptance criteria "mood adjusts naturally, not forced" meant subtle tone shifts in AI prompts, not dramatic personality changes
+- **Detection strategy**: Keyword-based detection works well - checking file paths for game/auth/creative keywords gives reliable classification
+- **Integration points**: 
+  - Detection happens during codebase analysis (already async)
+  - Results flow through session data to AI calls
+  - Team reactions happen after analysis completion for natural timing
+- **Tone granularity**: Each project type gets specific guidance (games = "show enthusiasm", enterprise = "more measured responses, less casual banter")
+- **Worker consistency**: Personality stays the same, only energy/formality adjusts - Stool is still Stool, just more playful on games or more professional on enterprise work
+- **Natural reactions**: Random selection of 1-2 workers to comment prevents robotic "everyone speaks" pattern
+- **Framework detection**: Checking for package.json, .unity files, requirements.txt helps confirm project type beyond just keywords
+
+### Code patterns established
+- Helper functions prefixed with `_` for internal use
+- Project type info stored in analysis dict with structure: {type, confidence, indicators, tone, scores}
+- Tone prompts follow format: "PROJECT TYPE: X\nTONE: Y\n- Bullet guidance"
+- Integration via optional prompt fragments that concatenate into system messages
+- Worker reactions use existing `send_styled_message()` infrastructure
+
+---
