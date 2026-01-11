@@ -9728,7 +9728,11 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
     # ==================== GIF SUPPORT ====================
 
     def get_gif(self, mood: str = "happy", speaker: str = "ralph") -> Optional[str]:
-        """Get a random GIF URL from Tenor. Ralph gets Simpsons, workers get office memes."""
+        """Get a random GIF URL from Tenor. Ralph gets Simpsons, workers get office memes.
+
+        SG-024: Prioritizes trending/popular GIFs to stay current and relevant.
+        Falls back to quality classics if trending unavailable.
+        """
         try:
             if speaker == "ralph":
                 gif_dict = self.RALPH_GIFS
@@ -9740,19 +9744,62 @@ Keep it to 1-2 sentences. Be funny and authentic to Ralph's character. DO NOT us
             search_terms = gif_dict.get(mood, gif_dict.get(default_mood, ["funny gif"]))
             query = random.choice(search_terms)
 
+            # SG-024: Try trending/featured endpoint first (80% of the time)
+            # This keeps GIFs fresh and relevant - not stale 2015 content
+            use_trending = random.random() < 0.8
+
+            if use_trending:
+                try:
+                    # Tenor's featured endpoint returns trending GIFs
+                    # We still filter by search query to stay on-brand
+                    response = requests.get(
+                        "https://tenor.googleapis.com/v2/featured",
+                        params={
+                            "q": query,
+                            "key": TENOR_API_KEY,
+                            "limit": 20,  # More results for better variety
+                            "media_filter": "gif",
+                            "contentfilter": "medium"  # Keep it workplace appropriate
+                        },
+                        timeout=5
+                    )
+
+                    if response.status_code == 200:
+                        results = response.json().get("results", [])
+                        if results:
+                            # Prefer top trending GIFs (weighted random - top 5 are 2x more likely)
+                            if len(results) > 5:
+                                # Top 5 get added twice for higher probability
+                                weighted_pool = results[:5] + results[:5] + results[5:]
+                                gif = random.choice(weighted_pool)
+                            else:
+                                gif = random.choice(results)
+                            return gif.get("media_formats", {}).get("gif", {}).get("url")
+                except Exception as e:
+                    logger.debug(f"Trending GIF fetch failed, falling back to search: {e}")
+                    # Fall through to regular search
+
+            # Fallback: Regular search endpoint (quality classics)
             response = requests.get(
                 "https://tenor.googleapis.com/v2/search",
                 params={
                     "q": query,
                     "key": TENOR_API_KEY,
-                    "limit": 10,
-                    "media_filter": "gif"
+                    "limit": 15,  # Increased from 10 for more variety
+                    "media_filter": "gif",
+                    "contentfilter": "medium"
                 },
                 timeout=5
             )
             results = response.json().get("results", [])
             if results:
-                gif = random.choice(results)
+                # Even in fallback, prefer top results (they're sorted by relevance/popularity)
+                if len(results) > 3:
+                    # Weight top 3 results higher
+                    weighted_pool = results[:3] + results[:3] + results[3:]
+                    gif = random.choice(weighted_pool)
+                else:
+                    gif = random.choice(results)
                 return gif.get("media_formats", {}).get("gif", {}).get("url")
         except Exception as e:
             logger.error(f"GIF fetch error: {e}")

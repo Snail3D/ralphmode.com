@@ -13952,3 +13952,43 @@ Conducted comprehensive research on model steering techniques for Groq and OpenA
 - This pattern used in both SG-040 (life chatter) and SG-044 (exit excuses)
 
 ---
+
+## Iteration 8 - 2026-01-11
+**Task**: [SG-024] Trending GIFs - Stay Current
+**Status**: ✅ Complete
+
+### What was implemented
+- Enhanced get_gif() to use Tenor's /featured endpoint for trending GIFs (80% of the time)
+- Added weighted random selection - top 5 trending GIFs are 2x more likely to be selected
+- Increased result limits (20 for trending, 15 for fallback) for better variety
+- Added contentfilter='medium' for workplace-appropriate GIFs
+- Graceful fallback to regular search if trending endpoint fails
+- Even fallback uses weighted selection to prefer top results
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Tenor API v2 has /featured endpoint that returns trending/popular GIFs
+- Featured endpoint accepts search query (q param) to filter trending by topic
+- Weighted random selection keeps GIFs fresh while maintaining relevance
+- 80/20 split (80% trending, 20% classic search) balances freshness with reliability
+- Top results in any list are better - they're sorted by relevance/popularity
+- Increased limits give more variety without overwhelming the selection pool
+
+### Pattern discovered
+- Trending content pattern:
+  1. Try trending/featured source first (80% of the time)
+  2. Use weighted random to prefer top results (2x probability for top 5)
+  3. Fallback to reliable classic source if trending fails
+  4. Apply same weighting logic to fallback for consistent quality
+- This ensures fresh, relevant content while maintaining reliability
+
+### Why this matters
+- Users see current, popular GIFs that people are actually sharing now
+- Avoids stale 2015 GIFs that feel dated
+- Ralph and workers stay culturally relevant
+- Entertainment value increases when GIFs are timely
+- Fallback ensures bot never fails to deliver GIFs
+
+---
