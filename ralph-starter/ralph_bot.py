@@ -162,7 +162,9 @@ try:
         save_session_summary,
         get_previous_session_context,
         extract_session_summary_from_active,
-        get_memory_stats
+        get_memory_stats,
+        extract_context_from_user_reminder,  # BM-003
+        format_extracted_context_for_ralph  # BM-003
     )
     MEMORY_MANAGER_AVAILABLE = True
 except ImportError:
@@ -173,6 +175,20 @@ except ImportError:
     def get_previous_session_context(user_id, max_sessions=3): return ""
     def extract_session_summary_from_active(session): return {}
     def get_memory_stats(user_id): return {}
+    def extract_context_from_user_reminder(text): return {}  # BM-003
+    def format_extracted_context_for_ralph(context): return ""  # BM-003
+
+# BM-002: Import Ralph personality for embarrassed memory prompts
+try:
+    from ralph_personality import RalphNarrator
+    RALPH_PERSONALITY_AVAILABLE = True
+except ImportError:
+    RALPH_PERSONALITY_AVAILABLE = False
+    logging.warning("BM-002: Ralph personality module not available - using simple prompts")
+    class RalphNarrator:
+        @staticmethod
+        def get_embarrassed_memory_prompt():
+            return "Uh... what were we working on again?"
 
 # OB-012: Import telegram utilities for copy button components
 try:
@@ -4305,14 +4321,33 @@ Mr. Worms expects normal professional pace.
         await asyncio.sleep(1.0)
 
         # SG-038: Different greeting for returning users
+        # BM-002/BM-003: If returning user but Ralph doesn't remember previous work, ask embarrassed question
         if self.is_returning_user(user_id):
-            ralph_greetings = [
-                f"Mr. Worms! You came back! I'm so happy! Let's do more work stuff together!",
-                f"Hi Mr. Worms! I was hoping you'd come back! We can keep working on things!",
-                f"Mr. Worms! You're here again! I missed you! My cat missed you too! Let's work!",
-                f"Yay! Mr. Worms is back! We can finsh... finish what we started!",
-            ]
-            ralph_greeting = self.ralph_misspell(random.choice(ralph_greetings))
+            # Check if we have previous session history
+            previous_history = load_session_history(user_id) if MEMORY_MANAGER_AVAILABLE else []
+
+            # If we have history but Ralph doesn't have it in active memory, ask embarrassed question
+            if previous_history and not state.get('user_reminder_context'):
+                # BM-002: Use embarrassed memory prompt
+                if RALPH_PERSONALITY_AVAILABLE:
+                    ralph_greeting = RalphNarrator.get_embarrassed_memory_prompt()
+                else:
+                    ralph_greeting = self.ralph_misspell("Uh... what were we working on again? Ralph forgot!")
+
+                # BM-003: Set flag to indicate Ralph is waiting for a reminder
+                session = self.active_sessions.get(user_id, {})
+                session['waiting_for_reminder'] = True
+
+                logging.info(f"BM-002/BM-003: Ralph asking embarrassed question to returning user {user_id}")
+            else:
+                # Normal returning user greeting
+                ralph_greetings = [
+                    f"Mr. Worms! You came back! I'm so happy! Let's do more work stuff together!",
+                    f"Hi Mr. Worms! I was hoping you'd come back! We can keep working on things!",
+                    f"Mr. Worms! You're here again! I missed you! My cat missed you too! Let's work!",
+                    f"Yay! Mr. Worms is back! We can finsh... finish what we started!",
+                ]
+                ralph_greeting = self.ralph_misspell(random.choice(ralph_greetings))
         else:
             ralph_greeting = self.ralph_misspell(
                 f"Hi everyone! I'm the boss now! Mr. Worms sent us a new projeck called '{state.get('project_name', 'something')}'. "
@@ -15475,6 +15510,30 @@ _Grab some popcorn..._
         if self.should_give_reality_check(user_id, text):
             await self.gentle_reality_check(context, chat_id, user_id)
             # Don't return - let message continue to be processed normally after reality check
+
+        # BM-003: Context Extraction from User Reminder
+        # When Ralph asks "what were we doing?" and user responds, extract context
+        if MEMORY_MANAGER_AVAILABLE and user_id in self.active_sessions:
+            session = self.active_sessions[user_id]
+
+            # Check if Ralph is waiting for a reminder (flag set when Ralph asks embarrassed question)
+            if session.get('waiting_for_reminder', False):
+                # Extract context from user's reminder
+                extracted_context = extract_context_from_user_reminder(text)
+
+                # Store the extracted context in the session
+                session['user_reminder_context'] = extracted_context
+                session['waiting_for_reminder'] = False  # Clear the flag
+
+                # Add formatted context to the session for Ralph to use
+                formatted_context = format_extracted_context_for_ralph(extracted_context)
+                if formatted_context:
+                    session['reminder_context_formatted'] = formatted_context
+                    logging.info(f"BM-003: Extracted context from user reminder - Project: {extracted_context.get('project_name', 'Unknown')}")
+
+                    # BM-004: Ralph's "Oh I Remember!" moment happens here
+                    # Ralph processes the reminder and has his eureka moment
+                    # (This is handled by BM-004 which is already complete)
 
         # OB-039: Handle bot test walkthrough - acknowledge user's test message
         if user_id in self.onboarding_state:

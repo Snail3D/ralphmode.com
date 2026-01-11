@@ -231,3 +231,194 @@ def get_memory_stats(user_id: int) -> Dict[str, Any]:
         'projects_worked_on': len(projects),
         'most_worked_project': most_worked,
     }
+
+
+def extract_context_from_user_reminder(user_text: str) -> Dict[str, Any]:
+    """BM-003: Extract context from what user tells Ralph about previous work.
+
+    When Ralph forgets and asks "what were we doing?", the user responds with
+    a reminder. This function parses that reminder to extract key information
+    that Ralph can use to restore context.
+
+    Args:
+        user_text: The user's response reminding Ralph about previous work
+
+    Returns:
+        Dict containing extracted context:
+        {
+            'project_name': str or None,
+            'tasks_mentioned': List[str],
+            'requirements': List[str],
+            'technologies': List[str],
+            'current_status': str or None,
+            'next_steps': List[str],
+            'raw_reminder': str  # Original text
+        }
+    """
+    # Normalize text
+    text_lower = user_text.lower()
+
+    context = {
+        'project_name': None,
+        'tasks_mentioned': [],
+        'requirements': [],
+        'technologies': [],
+        'current_status': None,
+        'next_steps': [],
+        'raw_reminder': user_text
+    }
+
+    # Extract project name patterns
+    project_patterns = [
+        'working on ',
+        'building ',
+        'project called ',
+        'project named ',
+        'developing ',
+        'creating ',
+        'making ',
+    ]
+
+    for pattern in project_patterns:
+        if pattern in text_lower:
+            idx = text_lower.index(pattern) + len(pattern)
+            # Extract next few words as potential project name
+            rest = user_text[idx:].split()
+            if rest:
+                # Take up to 4 words as project name
+                potential_name = ' '.join(rest[:4]).rstrip('.,!?;:')
+                if len(potential_name) > 2:
+                    context['project_name'] = potential_name
+                    break
+
+    # Extract task mentions (action verbs + objects)
+    task_patterns = [
+        ('add', 'adding'),
+        ('build', 'building'),
+        ('create', 'creating'),
+        ('implement', 'implementing'),
+        ('fix', 'fixing'),
+        ('update', 'updating'),
+        ('improve', 'improving'),
+        ('refactor', 'refactoring'),
+        ('deploy', 'deploying'),
+        ('test', 'testing'),
+        ('integrate', 'integrating'),
+        ('optimize', 'optimizing'),
+    ]
+
+    for base, gerund in task_patterns:
+        if base in text_lower or gerund in text_lower:
+            # Find the phrase around this verb
+            for word in [base, gerund]:
+                if word in text_lower:
+                    idx = text_lower.index(word)
+                    # Get 5 words after the verb
+                    after_verb = user_text[idx:].split()[:6]
+                    task = ' '.join(after_verb).rstrip('.,!?;:')
+                    if len(task) > 3 and task not in context['tasks_mentioned']:
+                        context['tasks_mentioned'].append(task)
+
+    # Extract technology/framework mentions
+    tech_keywords = [
+        'python', 'javascript', 'typescript', 'react', 'vue', 'angular',
+        'node', 'express', 'django', 'flask', 'fastapi',
+        'postgres', 'mysql', 'mongodb', 'redis',
+        'docker', 'kubernetes', 'aws', 'azure', 'gcp',
+        'api', 'rest', 'graphql', 'websocket',
+        'telegram', 'bot', 'cli', 'frontend', 'backend',
+        'database', 'authentication', 'auth',
+    ]
+
+    for tech in tech_keywords:
+        if tech in text_lower:
+            context['technologies'].append(tech)
+
+    # Extract requirement phrases (should/need/want/must + verb)
+    requirement_indicators = [
+        'need to ', 'needs to ', 'should ', 'must ', 'have to ',
+        'want to ', 'wanted to ', 'trying to ', 'supposed to ',
+        'going to ', 'planning to ',
+    ]
+
+    for indicator in requirement_indicators:
+        if indicator in text_lower:
+            idx = text_lower.index(indicator)
+            # Get the requirement phrase
+            after_indicator = user_text[idx:].split()[:8]
+            requirement = ' '.join(after_indicator).rstrip('.,!?;:')
+            if len(requirement) > 5 and requirement not in context['requirements']:
+                context['requirements'].append(requirement)
+
+    # Extract status mentions
+    status_keywords = [
+        ('almost done', 'Almost done'),
+        ('half done', 'Half way done'),
+        ('just started', 'Just started'),
+        ('in progress', 'In progress'),
+        ('working on', 'Currently working on'),
+        ('stuck on', 'Stuck on'),
+        ('finished', 'Finished'),
+        ('completed', 'Completed'),
+    ]
+
+    for keyword, status_label in status_keywords:
+        if keyword in text_lower:
+            context['current_status'] = status_label
+            break
+
+    # Extract next steps (then/next/after)
+    next_step_indicators = [
+        'then ', 'next ', 'after that ', 'after this ',
+        'then we ', 'next we ', 'afterwards ',
+    ]
+
+    for indicator in next_step_indicators:
+        if indicator in text_lower:
+            idx = text_lower.index(indicator)
+            after_indicator = user_text[idx:].split()[:8]
+            next_step = ' '.join(after_indicator).rstrip('.,!?;:')
+            if len(next_step) > 5 and next_step not in context['next_steps']:
+                context['next_steps'].append(next_step)
+
+    return context
+
+
+def format_extracted_context_for_ralph(context: Dict[str, Any]) -> str:
+    """Format extracted context into a readable summary for Ralph's AI prompt.
+
+    Args:
+        context: Context dict from extract_context_from_user_reminder
+
+    Returns:
+        Formatted string that can be included in Ralph's system prompt
+    """
+    if not context or context.get('raw_reminder', '') == '':
+        return ""
+
+    parts = ["--- User Reminder About Previous Work ---"]
+    parts.append(f"User said: \"{context['raw_reminder']}\"")
+    parts.append("")
+
+    if context.get('project_name'):
+        parts.append(f"Project: {context['project_name']}")
+
+    if context.get('tasks_mentioned'):
+        parts.append(f"Tasks mentioned: {', '.join(context['tasks_mentioned'][:3])}")
+
+    if context.get('requirements'):
+        parts.append(f"Requirements: {', '.join(context['requirements'][:3])}")
+
+    if context.get('technologies'):
+        parts.append(f"Technologies: {', '.join(context['technologies'][:5])}")
+
+    if context.get('current_status'):
+        parts.append(f"Status: {context['current_status']}")
+
+    if context.get('next_steps'):
+        parts.append(f"Next steps: {', '.join(context['next_steps'][:2])}")
+
+    parts.append("--- End User Reminder ---")
+    parts.append("")
+
+    return "\n".join(parts)

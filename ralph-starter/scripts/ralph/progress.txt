@@ -16286,3 +16286,38 @@ Ralph: "Ralph work EXTRA hard now to make up for it!"  [compensation]
 - Integrate with BM-010 (workers help Ralph remember) - workers could cite past sessions
 
 ---
+
+## Iteration 299 - 2026-01-11
+**Task**: [BM-003] Context Extraction from User Reminder
+**Status**: ✅ Complete
+
+### What was implemented
+- Added extract_context_from_user_reminder() to memory_manager.py
+  - Parses user's reminder text to extract project name, tasks, requirements, technologies
+  - Uses pattern matching for common phrases ("working on", "need to", "building", etc.)
+  - Detects task action verbs (adding, fixing, implementing, etc.)
+  - Identifies technology keywords (python, telegram, api, database, etc.)
+  - Extracts status indicators (almost done, in progress, stuck on, etc.)
+  - Captures next steps mentioned by user
+- Added format_extracted_context_for_ralph() to format context for AI prompts
+- Integrated with ralph_bot.py:
+  - Added imports for new memory_manager functions
+  - Added BM-003 flag 'waiting_for_reminder' in handle_text
+  - Modified start_interactive_onboarding to ask embarrassed question for returning users
+  - Context extraction triggers when user responds to Ralph's embarrassed asking
+  - Extracted context stored in session['user_reminder_context']
+- Imported ralph_personality.RalphNarrator for embarrassed memory prompts (BM-002)
+
+### Files changed
+- memory_manager.py (added 2 new functions)
+- ralph_bot.py (imports, BM-003 integration in handle_text and start_interactive_onboarding)
+
+### Learnings
+- Context extraction works by pattern matching common phrases users say when reminding
+- Extracted context includes: project name, tasks, requirements, techs, status, next steps
+- The flow: Ralph asks embarrassed question → sets waiting_for_reminder flag → user responds → extract context → store in session → BM-004 can use it for "Oh I Remember!" moment
+- Pattern matching approach works well for natural language like "we were working on X" or "need to add Y"
+- Technology keyword detection helps Ralph understand the stack without deep parsing
+- Combining multiple extraction strategies (verb patterns, tech keywords, status phrases) gives rich context from simple user responses
+
+---
