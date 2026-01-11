@@ -3900,7 +3900,15 @@ If asked about something you didn't observe, honestly say you don't know."""},
         return random.choice(self.BRIBE_JOKES)
 
     async def worker_bribes_ralph(self, context, chat_id: int, worker_name: str = None):
-        """Worker softens up Ralph before bad news with a joke."""
+        """Worker softens up Ralph before bad news with a joke.
+
+        Polished timing for natural comedy flow:
+        - Worker nervously offers joke
+        - Ralph responds excitedly (in character)
+        - Worker delivers joke with proper pause
+        - Ralph laughs genuinely (AI-generated, fresh)
+        - Bad news follows after laugh settles
+        """
         joke = self.get_bribe_joke()
 
         # Pick who's delivering the bad news
@@ -3908,28 +3916,35 @@ If asked about something you didn't observe, honestly say you don't know."""},
             worker_name = random.choice(list(self.DEV_TEAM.keys()))
         worker = self.DEV_TEAM[worker_name]
 
-        # Worker offers the joke
-        await self.send_with_typing(
+        # Worker nervously offers the joke
+        await self.rapid_banter_send(
             context, chat_id,
-            self.format_character_message(worker_name, worker['title'], "Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?")
-        )
-        await asyncio.sleep(1)
-
-        # Ralph loves jokes
-        ralph_response = self.call_boss("Someone wants to tell you a joke! You LOVE jokes. Respond excitedly.")
-        await self.send_with_typing(
-            context, chat_id,
-            self.format_character_message("Ralph", message=ralph_response)
-        )
-        await asyncio.sleep(0.5)
-
-        # Worker tells the joke
-        await self.send_with_typing(
-            context, chat_id,
-            self.format_character_message(worker_name, message=f"Okay here goes... {joke}")
+            worker_name, worker['title'],
+            "Hey Ralphie-- I mean, sir... before I tell you something, you like jokes right?"
         )
 
-        # Chuck Norris or programming meme GIF
+        # Ralph loves jokes - use normal response timing for natural feel
+        await asyncio.sleep(self.timing.normal_response())
+        ralph_response = self.call_boss(
+            "Someone wants to tell you a joke! You LOVE jokes. Respond excitedly in character.",
+            apply_misspellings=True
+        )
+        await self.rapid_banter_send(
+            context, chat_id,
+            "Ralph", "Manager",
+            ralph_response
+        )
+
+        # Worker delivers the joke - quick follow-up
+        await asyncio.sleep(self.timing.rapid_banter())
+        await self.send_styled_message(
+            context, chat_id,
+            worker_name, worker['title'],
+            f"Okay here goes... {joke}",
+            with_typing=True
+        )
+
+        # GIF enhances the moment
         if "chuck norris" in joke.lower():
             gif_url = self.get_gif("bribe", speaker="worker")
         else:
@@ -3940,22 +3955,34 @@ If asked about something you didn't observe, honestly say you don't know."""},
             except:
                 pass
 
-        await asyncio.sleep(2)
+        # Pause before Ralph reacts - let the joke land
+        await asyncio.sleep(self.timing.punchline_setup())
 
-        # Ralph laughs
-        await self.send_with_typing(
+        # Ralph laughs genuinely - AI makes it fresh every time
+        laugh_prompt = f"You just heard this joke: '{joke}'. React with genuine laughter in your Ralph Wiggum style. Be specific about what you found funny (even if you misunderstand it). 1-2 sentences max."
+        ralph_laugh = self.call_boss(laugh_prompt, apply_misspellings=True)
+
+        await self.rapid_banter_send(
             context, chat_id,
-            self.format_character_message("Ralph", message=self.ralph_misspell("Hahaha! That's a good one! My tummy feels like laughing!"))
+            "Ralph", "Manager",
+            ralph_laugh
         )
+
+        # GIF after the laugh
         if self.should_send_gif():
             await self.send_ralph_gif(context, chat_id, "laughing")
 
-        await asyncio.sleep(0.5)
+        # Let the laugh settle before asking what's up
+        await asyncio.sleep(self.timing.normal_response())
 
-        # Ralph asks what's up
-        await self.send_with_typing(
+        # Ralph transitions back, ready for the news
+        transition_prompt = "You just finished laughing at a joke. Now ask what they wanted to tell you. Stay cheerful and friendly. 1 sentence."
+        ralph_transition = self.call_boss(transition_prompt, apply_misspellings=True)
+
+        await self.rapid_banter_send(
             context, chat_id,
-            self.format_character_message("Ralph", message="Okay, what did you want to tell me?")
+            "Ralph", "Manager",
+            ralph_transition
         )
 
     # ==================== AI CALLS ====================
