@@ -5057,7 +5057,7 @@
         "mcp_manager.py",
         "notion_mcp_setup.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "OB-046",
