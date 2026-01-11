@@ -10074,3 +10074,47 @@ All tests passed! The progress tracker displays correctly:
 - All 5 characters available: Ralph, Stool, Gomer, Mona, Gus
 
 ---
+
+## Iteration [OB-027] - 2026-01-10
+**Task**: [OB-027] Project Template Selector
+**Status**: ✅ Complete
+
+### What was implemented
+- Created comprehensive template management system with 6 starter templates
+- /templates command to browse and preview available templates
+- Interactive template selection with inline keyboard buttons
+- One-click project scaffolding to downloadable zip files
+- Template categories: AI-Powered, Bot, Web, Backend, Tool, Fullstack
+- Automatic PRD generation for each template
+
+### Template Collection
+1. **Ralph Pattern Starter** - Autonomous coding loop pattern
+2. **Telegram Bot** - Full-featured bot with AI integration
+3. **Web App** - React frontend + FastAPI backend
+4. **REST API** - FastAPI with CRUD operations
+5. **CLI Tool** - Python command-line tool with rich output
+6. **Full-Stack App** - Complete app with Docker compose
+
+### Files changed
+- template_manager.py (NEW) - Template definitions and scaffolding logic
+- ralph_bot.py - Added template command, import, and callback handlers
+
+### Learnings
+- Template system makes onboarding much faster for new users
+- Dataclass pattern works well for structured template definitions
+- Inline keyboard callbacks provide smooth UX for template browsing
+- Scaffolding to temp directory + zip is safer than direct file creation
+- Each template includes customization options (project_name, etc.)
+- Template files use placeholder syntax {{variable}} for easy substitution
+
+### Technical Details
+- Template Manager loads 6 templates on initialization
+- Supports categorization and tag-based filtering
+- Each template includes: files dict, PRD tasks, customization options
+- Scaffolding creates complete project structure in one operation
+- Generated PRD.json includes all template tasks ready for Ralph
+
+### Next Steps
+This unlocks OB-028 (PRD Template Generator) which can build on this foundation.
+
+---
