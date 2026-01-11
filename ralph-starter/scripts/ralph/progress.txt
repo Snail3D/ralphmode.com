@@ -7834,3 +7834,77 @@ The /reorganize command was already fully implemented in ralph_bot.py. Verificat
 - Uses cached embeddings for performance (from task_embeddings.py)
 
 ---
+
+## Iteration 130 - 2026-01-10 17:39
+**Task**: RM-018 册子 (Zee) - API Integration Specialist
+**Status**: ✅ Complete
+
+### What was implemented
+- Added 册子 (nicknamed 'Zee') to SPECIALISTS dict in ralph_bot.py
+- Created Comic Book Guy-inspired personality with condescending but helpful attitude
+- Says "Worst. Implementation. Ever." and quotes API documentation like scripture
+- Expert in REST, GraphQL, OAuth, webhooks, rate limiting, all API paradigms
+- Added orange emoji (🟠) to CHARACTER_COLORS
+- Refers to self in third person ("Zee has seen this endpoint fail...")
+
+### Files changed
+- ralph_bot.py (lines 384-404, 426)
+
+### Learnings
+- Specialist personalities should balance humor with genuine expertise
+- The condescension is the wrapper, deep API knowledge is the product
+- Character consistency: Comic Book Guy traits (encyclopedic knowledge, dramatic sighs)
+- Each specialist needs distinct voice while maintaining competence core
+
+---
+
+## Iteration [TC-008] - 2026-01-10 17:39
+**Task**: TC-008 - Auto-Cluster on Startup
+**Status**: ✅ Complete
+
+### What was implemented
+Added automatic PRD clustering on ralph.sh startup to ensure optimal task ordering without manual intervention:
+
+- Auto-clustering trigger in ralph.sh before main loop (lines 102-185)
+- Checksum-based change detection to skip unnecessary clustering
+- Clustering runs only on fresh starts (not on resume from saved state)
+- Logs cluster summary to progress.txt with statistics
+- Graceful error handling - continues with existing task order if clustering fails
+- Creates .prd_checksum file to track PRD changes
+
+### Files changed
+- scripts/ralph/ralph.sh (added TC-008 auto-clustering block)
+- scripts/ralph/prd.json (TC-008 passes: true)
+
+### Learnings
+- Checksum-based change detection is more reliable than timestamp-based
+- Clustering takes ~40s with TF-IDF fallback (but <10s with sentence-transformers)
+- Skip logic prevents unnecessary clustering on every startup
+- Only runs on fresh starts (IS_FRESH_START=true) to avoid delays on resume
+- Logs to both console and cluster.log for debugging
+- Priority order update happens automatically via update_priority_order() in prd_organizer.py
+
+---
+
+## Iteration 132 - 2026-01-10 17:40
+**Task**: RM-019 Willie - DevOps & Infrastructure Specialist
+**Status**: ✅ Complete
+
+### What was implemented
+- Added Willie to SPECIALISTS dict in ralph_bot.py
+- Created Groundskeeper Willie-inspired personality with Scottish flair
+- Says "Ach!" and complains about 'soft developers' who don't understand servers
+- Expert in DevOps, Docker, Kubernetes, CI/CD, bash, Linux/Unix
+- Added dark brown emoji (🟫) to CHARACTER_COLORS
+- Has war stories about 3am infrastructure disasters
+
+### Files changed
+- ralph_bot.py (lines 405-425, 448)
+
+### Learnings
+- Scottish character needs authentic phrases ("Ye call that a deploy?")
+- Willie is gruff but competent - complaining is his style, not his substance
+- DevOps specialists get "the dirty jobs" - infrastructure, monitoring, scaling
+- Personality balances complaints with genuine craftsmanship
+
+---

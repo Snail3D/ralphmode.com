@@ -78,6 +78,11 @@ echo ""
 
 # Only send startup message on fresh start (no saved state)
 if [ "$IS_FRESH_START" = true ]; then
+  # Calculate actual PRD stats dynamically
+  TOTAL_TASKS=$(grep -c '"id":' "$PRD_FILE" 2>/dev/null || echo "?")
+  DONE_TASKS=$(grep -c '"passes": true' "$PRD_FILE" 2>/dev/null || echo "?")
+  REMAINING_TASKS=$(grep -c '"passes": false' "$PRD_FILE" 2>/dev/null || echo "?")
+
   send_telegram "🏢 *Ralph Mode Build Loop Started*
 
 _The office lights flicker on..._
@@ -85,7 +90,7 @@ _The office lights flicker on..._
 *Ralph shuffles to his desk with a crayon*
 \"Oh boy! Time to build stuff! I have $MAX_ITERATIONS things to do today!\"
 
-📋 PRD: 212 tasks (34 done, 178 remaining)
+📋 PRD: $TOTAL_TASKS tasks ($DONE_TASKS done, $REMAINING_TASKS remaining)
 🤖 Model: Sonnet 4.5
 ⏰ Started: $(date '+%H:%M:%S')"
 fi
@@ -93,6 +98,91 @@ fi
 
 # Change to project directory
 cd "$PROJECT_DIR"
+
+# TC-008: Auto-cluster PRD on startup for optimal task order
+if [ "$IS_FRESH_START" = true ]; then
+  echo "🔄 Running PRD auto-clustering..."
+  python3 -c "
+from prd_organizer import cluster_tasks
+import json
+import os
+import hashlib
+from datetime import datetime
+import time
+
+prd_path = 'scripts/ralph/prd.json'
+progress_path = 'scripts/ralph/progress.txt'
+checksum_path = 'scripts/ralph/.prd_checksum'
+
+# Check if clustering needed (detect changes via checksum)
+try:
+    # Calculate current checksum of PRD
+    with open(prd_path, 'rb') as f:
+        prd_content = f.read()
+        current_checksum = hashlib.md5(prd_content).hexdigest()
+
+    with open(prd_path, 'r') as f:
+        prd = json.load(f)
+
+    needs_clustering = False
+    reason = ''
+
+    # Check if priority_order is missing
+    if 'priority_order' not in prd or not prd.get('priority_order'):
+        needs_clustering = True
+        reason = 'Missing priority_order'
+    # Check if checksum has changed
+    elif os.path.exists(checksum_path):
+        with open(checksum_path, 'r') as f:
+            last_checksum = f.read().strip()
+
+        if current_checksum != last_checksum:
+            needs_clustering = True
+            reason = 'PRD content changed since last cluster'
+        else:
+            reason = 'No changes detected since last cluster'
+    else:
+        # No checksum file exists - first run
+        needs_clustering = True
+        reason = 'First clustering run'
+
+    if needs_clustering:
+        print(f'  Clustering needed: {reason}')
+        start_time = time.time()
+
+        result = cluster_tasks(prd_path)
+
+        elapsed = time.time() - start_time
+        print(f'  ✅ Clustered {result[\"total_tasks\"]} tasks into {result[\"num_clusters\"]} clusters in {elapsed:.1f}s')
+
+        # Save checksum
+        with open(checksum_path, 'w') as f:
+            f.write(current_checksum)
+
+        # Log to progress.txt
+        with open(progress_path, 'a') as f:
+            f.write(f'\n## Auto-Cluster - {datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")}\n')
+            f.write(f'**Reason**: {reason}\n')
+            f.write(f'**Duration**: {elapsed:.1f}s\n')
+            f.write(f'**Total Tasks**: {result[\"total_tasks\"]}\n')
+            f.write(f'**Clusters Created**: {result[\"num_clusters\"]}\n')
+            f.write(f'**Cluster Summary**:\n')
+            for name, count in list(result[\"cluster_summary\"].items())[:10]:
+                f.write(f'  - {name}: {count} tasks\n')
+            if len(result[\"cluster_summary\"]) > 10:
+                f.write(f'  - ... and {len(result[\"cluster_summary\"]) - 10} more\n')
+            f.write(f'\n---\n')
+    else:
+        print(f'  ⏭️  Skipping clustering: {reason}')
+
+except Exception as e:
+    import traceback
+    print(f'  ⚠️  Clustering failed: {e}')
+    print('  Continuing with existing task order...')
+    traceback.print_exc()
+" 2>&1 | tee -a "$SCRIPT_DIR/cluster.log"
+  echo ""
+fi
 
 for i in $(seq $START_ITERATION $MAX_ITERATIONS); do
   echo ""
@@ -121,24 +211,8 @@ ${SUMMARY}
   # Auto-deploy to server so YouTube audience sees changes live
   deploy_to_server
 
-  # Check for completion signal (must be on its own line, not just mentioned in text)
-  if echo "$OUTPUT" | grep -q "^<promise>COMPLETE</promise>$"; then
-    echo ""
-    echo "╔═══════════════════════════════════════════════════════════╗"
-    echo "║  Ralph completed all tasks!                               ║"
-    echo "║  Finished at iteration $i of $MAX_ITERATIONS                         ║"
-    echo "╚═══════════════════════════════════════════════════════════╝"
-
-    send_telegram "🎉 *ALL TASKS COMPLETE!*
-
-_Ralph puts down his crayon triumphantly_
-\"I did it! I did all $i things!\"
-
-🏆 Finished at iteration $i of $MAX_ITERATIONS
-⏰ Completed: $(date '+%H:%M:%S')"
-    rm -f "$STATE_FILE"  # Clear state on completion
-    exit 0
-  fi
+  # NOTE: Auto-stop disabled - Claude keeps hallucinating completion
+  # Just run all iterations and let the PRD track what's actually done
 
   echo ""
   echo "Iteration $i complete. Pausing 2 seconds before next iteration..."
