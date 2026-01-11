@@ -15350,3 +15350,43 @@ Category Scores:
 ```
 
 ---
+
+## Iteration [New] - 2026-01-11
+**Task**: [AU-001] Autonomy Level State & [AU-004] Mid-Session Adjustment
+**Status**: ✅ Complete
+
+### What was implemented
+- Added autonomy_level and autonomy_changed_at fields to session state
+- Implemented three autonomy levels: autonomous, collaborative (default), supervised
+- Created get_autonomy_level() and set_autonomy_level() for state management
+- Built detect_autonomy_adjustment() to parse natural language commands
+- Added acknowledge_autonomy_change() for Ralph to respond naturally
+- Created get_autonomy_prompt_context() to guide AI workers based on autonomy level
+- Integrated detection into message handler (runs after CEO tone detection)
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Autonomy system complements existing mood/tone systems without conflicts
+- Natural language patterns cover common supervision preferences
+- Ralph's acknowledgments use characteristic misspellings (independantly, ottonomous, stucked)
+- Session initialization is the right place for default state
+- Autonomy prompt context can guide worker behavior dynamically
+- AU-001 was listed AFTER AU-004 in priority order, but AU-001 is the foundation
+- Implemented both together as AU-004 depends on AU-001 state
+
+### Design decisions
+- Default to "collaborative" (medium supervision) - balanced for most users
+- Detect autonomy changes from natural language, not explicit commands
+- Store autonomy_changed_at timestamp for potential future analytics
+- Keep autonomy detection separate from tone detection (different concerns)
+- Ralph responds to changes (entertainment layer) but state change happens first
+
+### Patterns discovered
+- Session state lives in self.active_sessions[user_id]
+- Message handlers check `if user_id in self.active_sessions` before processing
+- Multiple detection systems can run in sequence on same message (tone, mood, autonomy)
+- State changes should be logged with logger.info for debugging
+
+---
