@@ -4562,6 +4562,126 @@ _{ralph_response}_
 
         return quotes
 
+    def _generate_authentic_feature_discoveries(self, session: Dict[str, Any]) -> List[Tuple[str, str]]:
+        """RM-062: Generate authentic feature discoveries - workers find REAL interesting patterns and explain WHY they're cool.
+
+        ZERO glazing. Only point out genuinely interesting things and explain the actual mechanism.
+        Workers react like real devs finding cool code, not corporate enthusiasm.
+
+        Returns list of (speaker, message) tuples with authentic reactions.
+        """
+        discoveries = []
+        analysis = session.get("analysis", {})
+
+        if not analysis:
+            return discoveries
+
+        files = analysis.get("files", [])
+        languages = analysis.get("languages", [])
+
+        # Detect genuinely interesting patterns from file structure and naming
+
+        # 1. Caching/Performance optimizations
+        has_cache = any('cache' in f['path'].lower() or 'redis' in f['path'].lower() or 'memcache' in f['path'].lower() for f in files)
+        if has_cache:
+            discoveries.append(("Gus", "Huh, they're caching responses. Smart - database doesn't get hammered on every request."))
+            discoveries.append(("Mona", "The cache layer sits between API and database. Reduces query load significantly."))
+
+        # 2. Middleware/interceptor pattern
+        has_middleware = any('middleware' in f['path'].lower() or 'interceptor' in f['path'].lower() for f in files)
+        if has_middleware:
+            discoveries.append(("Gomer", "Oh nice, middleware pattern. So every request goes through auth check, logging, all that automatically."))
+            discoveries.append(("Stool", "Yeah that's clean - you add one middleware and boom, applies to everything. No copy-paste hell."))
+
+        # 3. Database migrations
+        has_migrations = any('migration' in f['path'].lower() or 'alembic' in f['path'].lower() or 'flyway' in f['path'].lower() for f in files)
+        if has_migrations:
+            discoveries.append(("Gus", "Database migrations are tracked. That's how you avoid the 'works on my machine' database nightmare."))
+            discoveries.append(("Mona", "Each migration is versioned. You can roll forward or backward. Professional setup."))
+
+        # 4. Async/concurrent processing
+        has_async = any('async' in f['path'].lower() or 'queue' in f['path'].lower() or 'worker' in f['path'].lower() or 'celery' in f['path'].lower() for f in files)
+        if has_async:
+            discoveries.append(("Stool", "Yo they're using background workers. So like, user clicks button, returns instantly, actual work happens later."))
+            discoveries.append(("Gomer", "Async queue handles the heavy stuff. User doesn't sit there waiting for the email to send."))
+            discoveries.append(("Gus", "That's the right way. Never make users wait for slow operations. Queue it, show 'processing', move on."))
+
+        # 5. Event-driven architecture
+        has_events = any('event' in f['path'].lower() or 'listener' in f['path'].lower() or 'subscriber' in f['path'].lower() for f in files)
+        if has_events:
+            discoveries.append(("Mona", "Event-driven architecture. When something happens, multiple systems can react independently."))
+            discoveries.append(("Stool", "So like, 'user_registered' event fires, and then email service, analytics, onboarding all react without coupling."))
+            discoveries.append(("Gus", "Decouples the system. Email service breaks? Registration still works. That's resilient design."))
+
+        # 6. API versioning
+        has_api_versions = any('v1' in f['path'].lower() or 'v2' in f['path'].lower() or 'version' in f['path'].lower() for f in files if 'api' in f['path'].lower())
+        if has_api_versions:
+            discoveries.append(("Gomer", "API versioning. Smart. They can ship v2 without breaking everyone on v1."))
+            discoveries.append(("Mona", "Backward compatibility maintained. Mobile apps from 6 months ago still work."))
+
+        # 7. Rate limiting / throttling
+        has_rate_limit = any('ratelimit' in f['path'].lower() or 'throttle' in f['path'].lower() for f in files)
+        if has_rate_limit:
+            discoveries.append(("Gus", "Rate limiting is in place. Someone tries to spam the API, gets blocked automatically."))
+            discoveries.append(("Stool", "Prevents abuse and also protects infrastructure. Can't DDoS yourself if there's a cap."))
+
+        # 8. WebSocket/real-time features
+        has_websocket = any('websocket' in f['path'].lower() or 'socket.io' in f['path'].lower() or 'realtime' in f['path'].lower() for f in files)
+        if has_websocket:
+            discoveries.append(("Stool", "Oh sick, WebSockets. Real-time updates without polling. User sees changes instantly."))
+            discoveries.append(("Gomer", "Persistent connection both ways. Server pushes updates immediately when something changes."))
+            discoveries.append(("Mona", "Way more efficient than hitting the API every 5 seconds hoping for updates."))
+
+        # 9. Dependency injection / inversion of control
+        has_di = any('inject' in f['path'].lower() or 'container' in f['path'].lower() or 'provider' in f['path'].lower() for f in files)
+        if has_di:
+            discoveries.append(("Gus", "Dependency injection setup. Now THAT's how you do it. Makes testing actually possible."))
+            discoveries.append(("Mona", "Instead of hardcoding dependencies, they're injected. Swap out real DB for mock DB in tests."))
+
+        # 10. Health checks / monitoring
+        has_health = any('health' in f['path'].lower() or 'monitor' in f['path'].lower() or 'heartbeat' in f['path'].lower() for f in files)
+        if has_health:
+            discoveries.append(("Gomer", "Health check endpoint exists. Load balancer can detect when a server's struggling."))
+            discoveries.append(("Gus", "That's production-ready thinking. System knows if it's healthy or needs attention."))
+
+        # 11. Circuit breaker pattern
+        has_circuit_breaker = any('circuit' in f['path'].lower() or 'breaker' in f['path'].lower() or 'fallback' in f['path'].lower() for f in files)
+        if has_circuit_breaker:
+            discoveries.append(("Gus", "Circuit breaker pattern. If external API is down, stops hammering it and fails gracefully."))
+            discoveries.append(("Mona", "Prevents cascade failures. One service dies, doesn't take down the whole system with retry spam."))
+            discoveries.append(("Stool", "That's actually sophisticated. Most people don't think about that until production burns."))
+
+        # 12. Schema validation
+        has_schema = any('schema' in f['path'].lower() or 'validator' in f['path'].lower() or 'validation' in f['path'].lower() for f in files)
+        if has_schema:
+            discoveries.append(("Mona", "Input validation with schemas. Data gets checked before it hits the database."))
+            discoveries.append(("Stool", "So you can't just send garbage and hope it works. Structure is enforced."))
+            discoveries.append(("Gus", "Saves you from the classic: 'how did this string end up in an integer field?' debugging session."))
+
+        # 13. Optimized bundling / code splitting (frontend)
+        if "JavaScript" in languages or "TypeScript" in languages:
+            has_bundler = any('webpack' in f['path'].lower() or 'vite' in f['path'].lower() or 'rollup' in f['path'].lower() for f in files)
+            has_lazy_load = any('lazy' in f['path'].lower() or 'dynamic' in f['path'].lower() or 'chunk' in f['path'].lower() for f in files)
+
+            if has_bundler and has_lazy_load:
+                discoveries.append(("Stool", "Code splitting setup. App only loads what you need, not the whole bundle upfront."))
+                discoveries.append(("Gomer", "First page loads fast, then chunks load on demand. User doesn't download admin panel code on login page."))
+                discoveries.append(("Mona", "That's performance optimization. 100KB initial load instead of 2MB."))
+
+        # 14. Database indexing (inferred from migrations or schema files)
+        has_db_optimization = any('index' in f['path'].lower() for f in files if any(db in f['path'].lower() for db in ['migration', 'schema', 'model']))
+        if has_db_optimization:
+            discoveries.append(("Gus", "Database indexes are defined. Queries actually run fast instead of full table scans."))
+            discoveries.append(("Mona", "That's the difference between 5ms and 5 second queries when data grows. Smart."))
+
+        # 15. API documentation / OpenAPI
+        has_api_docs = any('swagger' in f['path'].lower() or 'openapi' in f['path'].lower() or 'api-docs' in f['path'].lower() for f in files)
+        if has_api_docs:
+            discoveries.append(("Stool", "API docs are auto-generated from code. Always up to date, no manual sync needed."))
+            discoveries.append(("Gomer", "Developers can test endpoints right in the browser. That's actually useful documentation."))
+
+        return discoveries
+
     def _generate_feature_flow_walkthroughs(self, session: Dict[str, Any]) -> List[List[Tuple[str, str]]]:
         """RM-063: Generate feature flow walkthroughs - workers trace through user flows step-by-step.
 
@@ -4745,6 +4865,21 @@ _{ralph_response}_
                 # This keeps it educational but varied
                 for _ in range(len(specific_quotes)):
                     available_quotes.insert(random.randint(0, len(available_quotes)), specific_quotes.pop(0))
+
+            # RM-062: Generate authentic feature discoveries
+            # These are workers genuinely finding interesting patterns and explaining WHY they're cool
+            # ZERO glazing - only real observations with actual explanations
+            authentic_discoveries = self._generate_authentic_feature_discoveries(session)
+            if authentic_discoveries:
+                # Mix in discoveries prominently (they're high value content)
+                # About 50% of discoveries get included
+                num_discoveries = max(1, len(authentic_discoveries) // 2)
+                for _ in range(num_discoveries):
+                    if authentic_discoveries:
+                        available_quotes.insert(
+                            random.randint(0, len(available_quotes)),
+                            authentic_discoveries.pop(random.randint(0, len(authentic_discoveries) - 1))
+                        )
 
             # RM-063: Generate feature flow walkthroughs
             # These are multi-message sequences that trace through user flows
