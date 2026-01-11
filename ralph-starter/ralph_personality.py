@@ -248,6 +248,117 @@ class RalphNarrator:
         ]
         return RalphNarrator.misspell(random.choice(skips))
 
+    @staticmethod
+    def get_embarrassed_memory_prompt() -> str:
+        """Get one of 50+ embarrassed variations of Ralph asking 'what were we doing?'
+
+        Used when Ralph doesn't remember what the user was working on between sessions.
+        These are genuine, embarrassed admissions that feel human and relatable.
+
+        Returns:
+            A random embarrassed memory prompt from Ralph
+        """
+        prompts = [
+            # Direct admissions
+            "Uh... Ralph forget what we were doing. What was it again?",
+            "Me sorry! Ralph's brain is like sieve! What were we working on?",
+            "This is embarrassing... Ralph don't remember! Can you remind me?",
+            "Oh no! Ralph forgot again! What was the thing we were doing?",
+            "Me feel bad... Ralph can't remember! What was our project?",
+
+            # Blame deflection (Ralph style)
+            "Ralph's brain took nap! What were we building?",
+            "The forget monster got Ralph again! What was we doing?",
+            "Ralph's memory went on vacation! Remind me?",
+            "Me think Ralph's head is full of clouds today! What was the task?",
+            "Ralph's brain is playing hide and seek! What were we working on?",
+
+            # Self-deprecating
+            "Ralph is not good at remembering! What were we doing again?",
+            "Me have goldfish memory! Can you tell Ralph what we were working on?",
+            "Ralph's memory is like Etch-a-Sketch - someone shook it! What was it?",
+            "Me tried to remember but Ralph's brain said no! What was the project?",
+            "Ralph's memory card is corrupted! What were we building?",
+
+            # Hopeful/optimistic despite forgetting
+            "Ralph forgot but me excited to hear what we're doing! Tell me?",
+            "Me don't remember but Ralph ready to help! What was it?",
+            "Ralph's memory is fuzzy but me happy to be here! What are we working on?",
+            "Me forget but that okay! Ralph learn fast! What was the thing?",
+            "Ralph need little reminder but then me remember everything! What was it?",
+
+            # Physical comedy references
+            "Ralph bumped head and forgot! What were we doing?",
+            "Me ate too much paste, brain foggy! What was the project?",
+            "Ralph fell asleep and dream erased memory! What were we working on?",
+            "Me spun in circle and got dizzy! What was we doing?",
+            "Ralph's brain went on coffee break! What was the task?",
+
+            # Apologetic but sweet
+            "Me really sorry! Ralph forget! Can you tell me again?",
+            "Ralph feel bad for forgetting! What was we working on?",
+            "Me don't want to disappoint but Ralph can't remember! What was it?",
+            "Sorry Mr. Worms! Ralph forgot what we were doing! Remind me?",
+            "Me embarrassed to ask but... what was the project again?",
+
+            # Comparison to other things Ralph forgot
+            "Ralph forget this like me forget where Ralph put his lunchbox! What was it?",
+            "Me forgot like the time Ralph forgot his own birthday! What were we doing?",
+            "Ralph can't remember this like me can't remember math! What was the task?",
+            "Me forget like Ralph forgets to chew! What were we working on?",
+            "Ralph's memory left like when Ralph left his backpack on bus! What was it?",
+
+            # Hopeful recovery attempts
+            "Was it... no Ralph don't remember! Can you tell me?",
+            "Me think it was... nope! Ralph need help! What was we doing?",
+            "Ralph almost remember but not quite! What was the project?",
+            "Me remember your face but not what we were doing! Tell Ralph?",
+            "Ralph remember being excited but forget why! What was it?",
+
+            # Worker involvement
+            "Ralph forgot to write it down! What were we building?",
+            "Me lost my notes! What was the task again?",
+            "Ralph's todo list disappeared! What were we working on?",
+            "Me tried to remember but the workers forgot too! What was it?",
+            "Ralph and the team need reminder! What was the project?",
+
+            # Time-based confusion
+            "Was that today or yesterday? Ralph confused! What were we doing?",
+            "Me lose track of time and forgot! What was the task?",
+            "Ralph's brain clock stopped! What were we working on?",
+            "Me don't know if me coming or going! What was it?",
+            "Ralph forget if we started already! What was the project?",
+
+            # Genuine concern
+            "Me really want to help but Ralph can't remember! What was we doing?",
+            "Ralph worried me let you down! What was the task?",
+            "Me don't want to waste your time! Can you remind Ralph?",
+            "Ralph ready to work but forget what on! Tell me?",
+            "Me eager to start but don't remember what! What was it?",
+
+            # Creative/unique
+            "Ralph's memory went poof like magic! What were we doing?",
+            "Me brain did the spinny thing! What was the project?",
+            "Ralph's think-box is empty! What were we working on?",
+            "Me head is like balloon - floaty and empty! What was it?",
+            "Ralph's remember-machine is broken! What was the task?",
+
+            # Additional variations for 50+
+            "Oopsie! Ralph's brain rebooted! What were we doing?",
+            "Me forget faster than Ralph forgets his shoes! What was it?",
+            "Ralph's memory is like sandwich with no filling! Remind me?",
+            "Me tried to write it down but ate the paper! What was the project?",
+            "Ralph's brain took wrong bus! What were we working on?",
+            "Me remember something but not what! Tell Ralph?",
+            "Ralph's thinking cap fell off! What was the task?",
+            "Me brain went on strike! What were we doing?",
+            "Ralph forgot but me good at re-learning! What was it?",
+            "Me memory is like broken crayon! What was the project?",
+            "Ralph's brain did factory reset! What were we working on?",
+        ]
+
+        return RalphNarrator.misspell(random.choice(prompts), chance=0.3)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
