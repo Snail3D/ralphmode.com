@@ -8,14 +8,20 @@ This abstraction allows Ralph to:
 - Support multiple models in parallel (Ralph uses one, workers use another)
 - Gracefully fallback when a model is unavailable
 - Track costs and usage across all providers
+
+MM-002: Model Registry
+Persistent storage for model configurations with metadata
 """
 
 import os
+import json
 import logging
 from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
+from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -96,33 +102,308 @@ class ModelAdapter(ABC):
         pass
 
 
+class ModelRegistry:
+    """
+    MM-002: Model Registry
+
+    Persistent storage for model configurations with metadata.
+    Stores models to disk so they can be loaded across sessions.
+
+    Metadata includes:
+    - Registration timestamp
+    - Last used timestamp
+    - Total usage count
+    - Custom tags/notes
+    - Performance metrics
+    """
+
+    def __init__(self, registry_path: Optional[str] = None):
+        """
+        Initialize the model registry.
+
+        Args:
+            registry_path: Path to the registry JSON file.
+                          Defaults to ~/.ralph/model_registry.json
+        """
+        if registry_path is None:
+            registry_path = os.path.join(
+                os.path.expanduser("~"),
+                ".ralph",
+                "model_registry.json"
+            )
+
+        self.registry_path = Path(registry_path)
+        self.registry_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # In-memory cache of registered models
+        self._registry: Dict[str, Dict[str, Any]] = {}
+
+        # Load existing registry
+        self._load_registry()
+        logger.info(f"MM-002: Model Registry initialized at {self.registry_path}")
+
+    def _load_registry(self):
+        """Load the registry from disk"""
+        if self.registry_path.exists():
+            try:
+                with open(self.registry_path, 'r') as f:
+                    self._registry = json.load(f)
+                logger.info(f"MM-002: Loaded {len(self._registry)} models from registry")
+            except Exception as e:
+                logger.error(f"MM-002: Failed to load registry: {e}")
+                self._registry = {}
+        else:
+            logger.info("MM-002: No existing registry found, starting fresh")
+            self._registry = {}
+
+    def _save_registry(self):
+        """Save the registry to disk"""
+        try:
+            with open(self.registry_path, 'w') as f:
+                json.dump(self._registry, f, indent=2)
+            logger.debug(f"MM-002: Saved registry with {len(self._registry)} models")
+        except Exception as e:
+            logger.error(f"MM-002: Failed to save registry: {e}")
+
+    def register(
+        self,
+        name: str,
+        config: ModelConfig,
+        role: Optional[ModelRole] = None,
+        tags: Optional[List[str]] = None,
+        notes: Optional[str] = None
+    ):
+        """
+        Register a model configuration with metadata.
+
+        Args:
+            name: Unique name for this model configuration
+            config: ModelConfig object
+            role: Optional role this model is intended for
+            tags: Optional list of tags (e.g., ["fast", "cheap", "local"])
+            notes: Optional notes about this model
+        """
+        # Convert config to dict
+        config_dict = {
+            "provider": config.provider.value,
+            "model_id": config.model_id,
+            "api_key": config.api_key,
+            "base_url": config.base_url,
+            "max_tokens": config.max_tokens,
+            "temperature": config.temperature,
+            "timeout": config.timeout,
+            "metadata": config.metadata
+        }
+
+        # Build metadata
+        now = datetime.utcnow().isoformat()
+
+        # Preserve existing metadata if updating
+        existing = self._registry.get(name, {})
+
+        model_entry = {
+            "config": config_dict,
+            "role": role.value if role else existing.get("role"),
+            "tags": tags or existing.get("tags", []),
+            "notes": notes or existing.get("notes", ""),
+            "registered_at": existing.get("registered_at", now),
+            "updated_at": now,
+            "last_used": existing.get("last_used"),
+            "usage_count": existing.get("usage_count", 0)
+        }
+
+        self._registry[name] = model_entry
+        self._save_registry()
+
+        logger.info(f"MM-002: Registered model '{name}' ({config.provider.value}/{config.model_id})")
+
+    def get(self, name: str) -> Optional[ModelConfig]:
+        """
+        Get a model configuration by name.
+
+        Args:
+            name: Name of the registered model
+
+        Returns:
+            ModelConfig object or None if not found
+        """
+        entry = self._registry.get(name)
+        if not entry:
+            return None
+
+        config_dict = entry["config"]
+
+        # Reconstruct ModelConfig
+        config = ModelConfig(
+            provider=ModelProvider(config_dict["provider"]),
+            model_id=config_dict["model_id"],
+            api_key=config_dict.get("api_key"),
+            base_url=config_dict.get("base_url"),
+            max_tokens=config_dict.get("max_tokens", 4096),
+            temperature=config_dict.get("temperature", 0.7),
+            timeout=config_dict.get("timeout", 60),
+            metadata=config_dict.get("metadata", {})
+        )
+
+        return config
+
+    def update_usage(self, name: str):
+        """
+        Update usage statistics for a model.
+
+        Args:
+            name: Name of the model
+        """
+        if name in self._registry:
+            self._registry[name]["last_used"] = datetime.utcnow().isoformat()
+            self._registry[name]["usage_count"] = self._registry[name].get("usage_count", 0) + 1
+            self._save_registry()
+
+    def list_models(
+        self,
+        role: Optional[ModelRole] = None,
+        tags: Optional[List[str]] = None,
+        provider: Optional[ModelProvider] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        List registered models with optional filters.
+
+        Args:
+            role: Filter by role
+            tags: Filter by tags (must have ALL specified tags)
+            provider: Filter by provider
+
+        Returns:
+            List of model entries with metadata
+        """
+        results = []
+
+        for name, entry in self._registry.items():
+            # Apply filters
+            if role and entry.get("role") != role.value:
+                continue
+
+            if tags and not all(tag in entry.get("tags", []) for tag in tags):
+                continue
+
+            if provider and entry["config"]["provider"] != provider.value:
+                continue
+
+            # Add name to entry for convenience
+            result = {"name": name, **entry}
+            results.append(result)
+
+        return results
+
+    def delete(self, name: str) -> bool:
+        """
+        Delete a model from the registry.
+
+        Args:
+            name: Name of the model to delete
+
+        Returns:
+            True if deleted, False if not found
+        """
+        if name in self._registry:
+            del self._registry[name]
+            self._save_registry()
+            logger.info(f"MM-002: Deleted model '{name}' from registry")
+            return True
+        return False
+
+    def get_metadata(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get metadata for a model without the full config.
+
+        Args:
+            name: Name of the model
+
+        Returns:
+            Metadata dict or None if not found
+        """
+        entry = self._registry.get(name)
+        if not entry:
+            return None
+
+        return {
+            "name": name,
+            "provider": entry["config"]["provider"],
+            "model_id": entry["config"]["model_id"],
+            "role": entry.get("role"),
+            "tags": entry.get("tags", []),
+            "notes": entry.get("notes", ""),
+            "registered_at": entry.get("registered_at"),
+            "updated_at": entry.get("updated_at"),
+            "last_used": entry.get("last_used"),
+            "usage_count": entry.get("usage_count", 0)
+        }
+
+
 class ModelManager:
     """
     MM-001: Central model management system
+    MM-002: Integrated with ModelRegistry for persistent storage
 
     Responsibilities:
     - Store configured models by role
     - Route requests to appropriate model
     - Handle fallbacks when models are unavailable
     - Track usage and costs
+    - Persist model configurations
     """
 
-    def __init__(self):
+    def __init__(self, registry_path: Optional[str] = None):
         self._models: Dict[ModelRole, ModelAdapter] = {}
         self._usage_stats: Dict[str, Dict[str, int]] = {}
         self._cost_tracking: List[Dict[str, Any]] = []
-        logger.info("MM-001: Model Manager initialized")
 
-    def register_model(self, role: ModelRole, adapter: ModelAdapter):
+        # MM-002: Initialize model registry for persistence
+        self.registry = ModelRegistry(registry_path)
+
+        logger.info("MM-001: Model Manager initialized")
+        logger.info(f"MM-002: Connected to registry with {len(self.registry._registry)} stored models")
+
+    def register_model(
+        self,
+        role: ModelRole,
+        adapter: ModelAdapter,
+        save_to_registry: bool = True,
+        registry_name: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        notes: Optional[str] = None
+    ):
         """
         Register a model for a specific role.
 
+        Args:
+            role: The role to assign this model to
+            adapter: The model adapter instance
+            save_to_registry: Whether to persist to registry (default: True)
+            registry_name: Name to save in registry (default: "{role}_{provider}_{model_id}")
+            tags: Optional tags for registry
+            notes: Optional notes for registry
+
         Example:
             manager.register_model(ModelRole.RALPH, groq_adapter)
-            manager.register_model(ModelRole.BUILDER, anthropic_adapter)
+            manager.register_model(ModelRole.BUILDER, anthropic_adapter, tags=["primary"])
         """
         self._models[role] = adapter
         logger.info(f"MM-001: Registered {adapter.provider.value} for {role.value}")
+
+        # MM-002: Optionally save to persistent registry
+        if save_to_registry:
+            if registry_name is None:
+                # Generate a default name
+                registry_name = f"{role.value}_{adapter.provider.value}_{adapter.config.model_id}"
+
+            self.registry.register(
+                name=registry_name,
+                config=adapter.config,
+                role=role,
+                tags=tags,
+                notes=notes
+            )
 
     def get_model(self, role: ModelRole) -> Optional[ModelAdapter]:
         """Get the configured model for a role"""
@@ -238,6 +519,73 @@ class ModelManager:
             "ollama": os.environ.get("OLLAMA_ENABLED", "false").lower() == "true",
         }
         return providers
+
+    def load_from_registry(self, registry_name: str) -> Optional[ModelAdapter]:
+        """
+        MM-002: Load a model configuration from the registry and create an adapter.
+
+        Args:
+            registry_name: Name of the model in the registry
+
+        Returns:
+            ModelAdapter instance or None if not found/failed
+
+        Example:
+            adapter = manager.load_from_registry("ralph_groq_llama-3.1-70b")
+            if adapter:
+                manager.register_model(ModelRole.RALPH, adapter, save_to_registry=False)
+        """
+        config = self.registry.get(registry_name)
+        if not config:
+            logger.warning(f"MM-002: Model '{registry_name}' not found in registry")
+            return None
+
+        try:
+            # Import the appropriate adapter based on provider
+            if config.provider == ModelProvider.GROQ:
+                from adapters.groq_adapter import GroqAdapter
+                adapter = GroqAdapter(config)
+            elif config.provider == ModelProvider.ANTHROPIC:
+                from adapters.anthropic_adapter import AnthropicAdapter
+                adapter = AnthropicAdapter(config)
+            elif config.provider == ModelProvider.GLM:
+                from adapters.glm_adapter import GLMAdapter
+                adapter = GLMAdapter(config)
+            elif config.provider == ModelProvider.OLLAMA:
+                from adapters.ollama_adapter import OllamaAdapter
+                adapter = OllamaAdapter(config)
+            else:
+                logger.error(f"MM-002: Unsupported provider {config.provider}")
+                return None
+
+            # Update usage stats in registry
+            self.registry.update_usage(registry_name)
+
+            logger.info(f"MM-002: Loaded model '{registry_name}' from registry")
+            return adapter
+
+        except Exception as e:
+            logger.error(f"MM-002: Failed to load model '{registry_name}': {e}")
+            return None
+
+    def list_registry_models(
+        self,
+        role: Optional[ModelRole] = None,
+        tags: Optional[List[str]] = None,
+        provider: Optional[ModelProvider] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        MM-002: List models in the registry with optional filters.
+
+        Args:
+            role: Filter by role
+            tags: Filter by tags
+            provider: Filter by provider
+
+        Returns:
+            List of model metadata dicts
+        """
+        return self.registry.list_models(role=role, tags=tags, provider=provider)
 
 
 # Global singleton instance
