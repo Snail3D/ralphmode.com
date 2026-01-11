@@ -13220,3 +13220,56 @@ if should_ship:
 - This pattern could extend to other life moments (birthdays, anniversaries, etc.)
 
 ---
+
+## Iteration 44 - 2026-01-11
+**Task**: [SG-038] Pick It Up Tomorrow - Session Continuity Fiction
+**Status**: ✅ Complete
+
+### What was implemented
+- Added session tracking infrastructure:
+  - user_session_count dict to track total sessions per user
+  - last_session_time dict to track when each user's last session ended
+- Created mark_session_ended(user_id) method:
+  - Increments session count
+  - Records timestamp of session end
+  - Called automatically at end of natural_session_end()
+- Created is_returning_user(user_id) method:
+  - Returns True if user has had at least one previous session
+  - Used to trigger special "welcome back" behavior
+- Created get_time_since_last_session(user_id) method:
+  - Returns human-readable time strings
+  - "just a bit ago" (<1 hour), "a couple hours ago", "earlier today", "yesterday", "X days ago", "a while back"
+  - Makes temporal references feel natural and contextual
+- Enhanced _workers_arrive() with returning user greetings:
+  - Each worker has 3 welcome-back variations
+  - All reference time since last session
+  - Stool: "Ready to pick up where we left off {time_since}?"
+  - Gomer: "I was hoping we'd get to finish what we started {time_since}."
+  - Mona: "I've been thinking about our work from {time_since}."
+  - Gus: "{time_since.capitalize()} we left off on something. Ready to finish it?"
+- Enhanced _ralph_enters_onboarding() with returning user greetings:
+  - "Mr. Worms! You came back! I'm so happy!"
+  - "I missed you! My cat missed you too!"
+  - "We can finish what we started!"
+  - Reinforces Ralph's innocent enthusiasm
+- SG-036 already had continuity language built in:
+  - "We'll pick it up tomorrow"
+  - "See you in the morning, boss"
+  - "Talk to you tomorrow, Mr. Worms"
+
+### Files changed
+- ralph_bot.py
+
+### Learnings
+- Session continuity creates powerful loyalty fiction
+- Workers "remembering" users makes the relationship feel real
+- Time-since-last-session adds specificity that enhances believability
+- Human-readable time formatting is critical ("yesterday" > "23 hours ago")
+- Returning user greetings should be warm but not overdone
+- Ralph's "I missed you!" is endearing and on-brand
+- This pattern builds on SG-036's natural endings perfectly
+- Combined, SG-036 + SG-038 create complete relationship arc: natural departure + remembered return
+- Users feel like they have an actual ongoing team, not a disposable service
+- The fiction of persistence encourages repeated use
+
+---
