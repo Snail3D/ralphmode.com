@@ -7,7 +7,7 @@ Makes the technical stuff fun and accessible.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
@@ -40,6 +40,16 @@ class OnboardingWizard:
             self.state_manager = None
             self.state_persistence_available = False
             self.logger.warning("Setup state persistence not available")
+
+        # Import rollback manager
+        try:
+            from rollback_manager import get_rollback_manager
+            self.rollback_manager = get_rollback_manager()
+            self.rollback_available = True
+        except ImportError:
+            self.rollback_manager = None
+            self.rollback_available = False
+            self.logger.warning("Rollback functionality not available")
 
     def get_welcome_message(self) -> str:
         """Get Ralph's welcoming onboarding message.
@@ -1797,6 +1807,349 @@ But if you wanna try resuming anyway, Ralph won't stop you! Maybe you almost don
         keyboard = [
             [InlineKeyboardButton("🔄 Start Fresh (Recommended)", callback_data="setup_restart")],
             [InlineKeyboardButton("▶️ Try to Resume Anyway", callback_data="setup_resume")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    # Rollback Functionality (OB-031)
+
+    def track_change(
+        self,
+        user_id: int,
+        step_name: str,
+        change_type: str,
+        details: Dict[str, Any]
+    ) -> Optional[str]:
+        """Track a setup change for potential rollback.
+
+        Args:
+            user_id: User ID
+            step_name: Setup step name
+            change_type: Type of change
+            details: Change details
+
+        Returns:
+            Change ID or None
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return None
+
+        return self.rollback_manager.track_change(
+            user_id=user_id,
+            step_name=step_name,
+            change_type=change_type,
+            details=details
+        )
+
+    def track_env_update(
+        self,
+        user_id: int,
+        step_name: str,
+        variable_name: str,
+        old_value: Optional[str] = None
+    ) -> Optional[str]:
+        """Track an environment variable update.
+
+        Args:
+            user_id: User ID
+            step_name: Setup step name
+            variable_name: Environment variable name
+            old_value: Previous value (None if new)
+
+        Returns:
+            Change ID or None
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return None
+
+        return self.rollback_manager.track_env_variable(
+            user_id=user_id,
+            step_name=step_name,
+            variable_name=variable_name,
+            old_value=old_value
+        )
+
+    def track_file_change(
+        self,
+        user_id: int,
+        step_name: str,
+        file_path: str,
+        is_new: bool = True,
+        backup_content: Optional[str] = None
+    ) -> Optional[str]:
+        """Track a file creation or modification.
+
+        Args:
+            user_id: User ID
+            step_name: Setup step name
+            file_path: Path to the file
+            is_new: True if file is newly created
+            backup_content: Original content if modified
+
+        Returns:
+            Change ID or None
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return None
+
+        if is_new:
+            return self.rollback_manager.track_file_creation(
+                user_id=user_id,
+                step_name=step_name,
+                file_path=file_path
+            )
+        else:
+            return self.rollback_manager.track_file_modification(
+                user_id=user_id,
+                step_name=step_name,
+                file_path=file_path,
+                backup_content=backup_content
+            )
+
+    def get_recent_changes(
+        self,
+        user_id: int,
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Get recent setup changes for undo.
+
+        Args:
+            user_id: User ID
+            limit: Max changes to return
+
+        Returns:
+            List of recent changes
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return []
+
+        return self.rollback_manager.get_recent_changes(user_id, limit)
+
+    def get_rollback_ui_message(self, user_id: int) -> str:
+        """Get the rollback UI message showing recent changes.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Formatted message with recent changes
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return "*Undo Not Available* 😔\n\nRalph can't undo changes right now!"
+
+        return self.rollback_manager.get_rollback_summary(user_id)
+
+    def get_rollback_keyboard(self, user_id: int) -> InlineKeyboardMarkup:
+        """Get keyboard with undo options.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Keyboard with undo buttons
+        """
+        changes = self.get_recent_changes(user_id, limit=5)
+
+        keyboard = []
+
+        # Add undo buttons for each recent change
+        for i, change in enumerate(changes[:3], 1):  # Show top 3
+            step = change["step_name"].replace("_", " ").title()
+            button_text = f"↩️ Undo: {step}"
+            callback_data = f"undo_{change['change_id']}"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+
+        # Add "View All Changes" option if there are more
+        if len(changes) > 3:
+            keyboard.append([
+                InlineKeyboardButton("📋 View All Changes", callback_data="rollback_view_all")
+            ])
+
+        # Add back button
+        keyboard.append([
+            InlineKeyboardButton("◀️ Back to Setup", callback_data="setup_continue")
+        ])
+
+        return InlineKeyboardMarkup(keyboard)
+
+    def rollback_change(
+        self,
+        change_id: str
+    ) -> tuple[bool, str]:
+        """Rollback a specific change.
+
+        Args:
+            change_id: ID of the change to undo
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return False, "Rollback not available"
+
+        return self.rollback_manager.rollback_change(change_id)
+
+    def rollback_step(
+        self,
+        user_id: int,
+        step_name: str
+    ) -> tuple[bool, str, List[str]]:
+        """Rollback all changes from a specific step.
+
+        Args:
+            user_id: User ID
+            step_name: Name of the step to rollback
+
+        Returns:
+            Tuple of (success, summary, details)
+        """
+        if not self.rollback_available or not self.rollback_manager:
+            return False, "Rollback not available", []
+
+        return self.rollback_manager.rollback_step(user_id, step_name)
+
+    def get_undo_success_message(self, details: str) -> str:
+        """Get success message after undoing a change.
+
+        Args:
+            details: Details of what was undone
+
+        Returns:
+            Success message with Ralph's personality
+        """
+        return f"""*Change Undone!* ↩️✅
+
+Ralph rolled back the change!
+
+*What was undone:*
+{details}
+
+Your setup is now like before! Ralph kept everything safe!
+
+If something still looks wrong, you can:
+• Undo more changes
+• Start the step over
+• Tell Ralph what's wrong!
+
+*What you wanna do next?*
+"""
+
+    def get_undo_failed_message(self, error: str) -> str:
+        """Get error message when undo fails.
+
+        Args:
+            error: Error details
+
+        Returns:
+            Error message with Ralph's personality
+        """
+        return f"""*Undo Failed!* ❌😔
+
+Ralph tried to undo the change but something went wrong!
+
+*Error:*
+{error}
+
+*Why this might happen:*
+• File was already changed or deleted
+• Backup file is missing
+• Permission issues
+
+*What you can do:*
+• Try undoing a different change
+• Manually fix the issue
+• Start fresh with /setup
+
+Ralph sorry this didn't work! 😔
+"""
+
+    def get_rollback_explanation_message(self) -> str:
+        """Get explanation of rollback functionality.
+
+        Returns:
+            Educational message about rollback
+        """
+        return """*What's Rollback?* ↩️
+
+Ralph tracks every change during setup! If something goes wrong, you can UNDO it!
+
+*What Ralph tracks:*
+📄 Files created (like .env, config files)
+🔧 Settings changed (git config, environment variables)
+🗂️ Folders created for your project
+
+*How it works:*
+1. Ralph saves a copy before changing stuff
+2. If something breaks, click "Undo"
+3. Ralph restores everything!
+4. Try the step again!
+
+*Why this is helpful:*
+✅ No fear of messing up!
+✅ Easy to fix mistakes
+✅ Can restart individual steps
+✅ Your computer stays clean
+
+Think of it like:
+• Ctrl+Z for your entire setup! ⌨️
+• A time machine for configuration! ⏰
+• A safety net for beginners! 🎪
+
+Ralph got your back! Never worry about breaking stuff!
+"""
+
+    def get_rollback_help_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for rollback help screen.
+
+        Returns:
+            Keyboard with rollback action options
+        """
+        keyboard = [
+            [InlineKeyboardButton("📋 View Recent Changes", callback_data="rollback_view_recent")],
+            [InlineKeyboardButton("📚 Learn About Rollback", callback_data="rollback_explain")],
+            [InlineKeyboardButton("◀️ Back to Setup", callback_data="setup_continue")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_rollback_step_message(self, step_name: str) -> str:
+        """Get message for rolling back an entire step.
+
+        Args:
+            step_name: Name of the step to rollback
+
+        Returns:
+            Confirmation message
+        """
+        step_display = step_name.replace("_", " ").title()
+
+        return f"""*Undo Entire Step?* 🔄
+
+You want to undo ALL changes from: **{step_display}**
+
+**Warning:** This will reverse EVERYTHING Ralph did in this step!
+
+*What will happen:*
+• All files created in this step will be removed
+• All settings will be restored to before
+• You'll start this step fresh
+
+This is helpful if the step went wrong and you wanna try again!
+
+*Are you sure?*
+"""
+
+    def get_rollback_step_keyboard(self, step_name: str) -> InlineKeyboardMarkup:
+        """Get keyboard for step rollback confirmation.
+
+        Args:
+            step_name: Name of the step
+
+        Returns:
+            Confirmation keyboard
+        """
+        keyboard = [
+            [InlineKeyboardButton("✅ Yes, Undo This Step", callback_data=f"rollback_step_confirm_{step_name}")],
+            [InlineKeyboardButton("❌ No, Keep Changes", callback_data="rollback_cancel")],
+            [InlineKeyboardButton("📋 Show What Will Be Undone", callback_data=f"rollback_preview_{step_name}")],
         ]
         return InlineKeyboardMarkup(keyboard)
 

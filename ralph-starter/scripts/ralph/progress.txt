@@ -8809,3 +8809,38 @@ Check priority_order for exact sequence.
 - Could add villain comeback appearances for recurring issues
 
 ---
+
+## Iteration [Next] - 2026-01-10 02:04 UTC
+**Task**: [OB-031] Rollback Functionality
+**Status**: ✅ Complete
+
+### What was implemented
+- Created rollback_manager.py module with comprehensive rollback tracking
+- Tracks file creations, file modifications, and environment variable changes
+- Maintains rollback history with timestamps and change details
+- Integrated rollback functionality into onboarding_wizard.py
+- Added UI methods for displaying recent changes and undo options
+- Implemented backup/restore functionality for file modifications
+- Added Ralph-personality messages for rollback success/failure/explanation
+
+### Files changed
+- rollback_manager.py (NEW) - Core rollback tracking and restoration logic
+- onboarding_wizard.py - Integrated rollback manager, added tracking methods and UI
+
+### Learnings
+- Rollback pattern: Track changes proactively, allow selective undo
+- Backup strategy: Store file backups before modifications in dedicated .ralph_backups dir
+- Change types: file_created, file_modified, env_variable each need different rollback logic
+- User experience: Show recent changes in UI, allow undo by change or by entire step
+- Safety net: Rollback gives users confidence to try setup steps without fear
+- Testing: Created comprehensive test to verify tracking, retrieval, and UI generation
+
+### Key Features
+- Tracks each setup change with unique ID, timestamp, and details
+- Allows undo of individual changes or entire setup steps
+- Creates backups before file modifications
+- Provides Ralph-style educational messages explaining rollback
+- Integrates seamlessly with existing onboarding wizard flow
+- Stores history in .ralph_backups/rollback_history.json
+
+---
