@@ -934,6 +934,132 @@ class RalphNarrator:
 
         return RalphNarrator.misspell(random.choice(clarifications), chance=0.25)
 
+    @staticmethod
+    def get_self_deprecating_joke() -> str:
+        """Get Ralph's self-deprecating humor about his memory.
+
+        Ralph makes light of his own forgetfulness with gentle, sweet humor.
+        Never mean or bitter - always endearing and self-aware.
+
+        Returns:
+            A self-deprecating joke from Ralph about his memory
+        """
+        jokes = [
+            # Classic Ralph memory jokes
+            "Ralph's memory like goldfish! But goldfish at least remember water!",
+            "Me forget so much, Ralph forget what Ralph forgot!",
+            "Ralph's brain like sieve! Everything falls through holes!",
+            "Me memory worse than computor with no hard drive!",
+            "Ralph remember yesterday like it was... when was yesterday again?",
+
+            # Comparisons to objects
+            "Me brain like Etch-a-Sketch after earthquake!",
+            "Ralph's memory like smoke! Poof! Gone!",
+            "Me remember things like snow in summer! Briefly!",
+            "Ralph's brain like browser with too many tabs! All froze!",
+            "Me memory like whiteboard someone kept erasing!",
+
+            # Tech-related
+            "Ralph need RAM upgrade! More RAM! All the RAM!",
+            "Me brain storage full! Need delete old files but forget which!",
+            "Ralph's memory got cache cleared! Daily!",
+            "Me like computor that keeps crashing! Losing data!",
+            "Ralph's brain needs defrag! Too fragmented!",
+
+            # Food metaphors
+            "Me brain like Swiss cheese! Full of holes!",
+            "Ralph's memory melted like ice cream on hot day!",
+            "Me remember like spaghetti in strainer! It all gone!",
+            "Ralph's brain like cookie jar! Empty before Ralph knows it!",
+            "Me memory like leftovers Ralph forgot in fridge! Expired!",
+
+            # Self-aware admissions
+            "Ralph professionally forget things! It's talent!",
+            "Me could forget own name! ...what was Ralph's name again?",
+            "Ralph expert at forgetting! Years of practice!",
+            "Me so good at forgetting, Ralph forget Ralph's good at it!",
+            "Ralph's superpower is forgetting! Not useful but impressive!",
+
+            # Timing jokes
+            "Me forget things before Ralph even remember them!",
+            "Ralph set record for fastest forgetting! Personal best!",
+            "Me forget so quick, by time Ralph finish sentence... what was Ralph saying?",
+            "Ralph forget before you even finish telling me! Speed record!",
+            "Me memory has half-life of 3 seconds! Tick tock! Gone!",
+
+            # Comparative jokes
+            "Ralph make other people with bad memory look good!",
+            "Me forget more before breakfast than most people forget all day!",
+            "Ralph's memory worse than dial-up internet! Slow and unreliable!",
+            "Me forget stuff elephants remember! And elephants never forget!",
+            "Ralph like amnesia patient but without accident! Just natural!",
+
+            # Writing it down
+            "Me write things down to remember! Then forget where Ralph wrote!",
+            "Ralph make notes! Then lose notes! Then forget made notes!",
+            "Me tried sticky notes! Now have sticky notes everywhere! All blank!",
+            "Ralph's notebook full of things Ralph can't read!",
+            "Me write reminder! To write reminder! About original thing! Forget all three!",
+
+            # Calendar/reminder jokes
+            "Ralph set alarm to remember! Then forget what alarm for!",
+            "Me put in calendar! Then forget to check calendar!",
+            "Ralph's phone full of reminders! All mysterious!",
+            "Me set 10 alarms! Still forget! Need 11th alarm!",
+            "Ralph's calendar says 'Remember thing'! ...what thing?",
+
+            # Sweet acceptance
+            "Me okay with bad memory! Ralph lives in present! Forced present!",
+            "Ralph see bright side! Every day is new adventure! Because forget yesterday!",
+            "Me lucky! Can watch same movie many times! Always new!",
+            "Ralph appreciate now! Because won't remember later!",
+            "Me live in moment! Not by choice but still counts!",
+
+            # Work-related
+            "Ralph forget what working on! Often! Mid-sentence!",
+            "Me start task! Forget task! Start new task! Infinite loop!",
+            "Ralph's work history? Ralph not remember work history!",
+            "Me complete things! Then forget completed! Do again!",
+            "Ralph's productivity: 50% work, 50% remembering what work!",
+
+            # Literal forgetfulness
+            "Me literally forget where Ralph is sometimes!",
+            "Ralph walk into room! Forget why! Classic!",
+            "Me hold thing in hand! Ask where thing is! While holding thing!",
+            "Ralph look for glasses! While wearing glasses!",
+            "Me search for phone! Using phone! To search for phone!",
+
+            # Memory vs intelligence
+            "Ralph not dumb! Just... temporarily unavailable upstairs!",
+            "Me smart! Just can't access smart when need it!",
+            "Ralph has knowledge! Somewhere! Filing system broken!",
+            "Me know things! Past tense know! Currently unknown!",
+            "Ralph's brain full of info! But password protected! Lost password!",
+
+            # Seasonal/time jokes
+            "Me remember summer in winter! Winter in summer! Never current season!",
+            "Ralph celebrate New Year! In March! Late celebration!",
+            "Me remember birthdays! The day after! Consistent!",
+            "Ralph know what day it is! Yesterday's day! Close enough!",
+            "Me on different timezone! Brain timezone! Always behind!",
+
+            # Endearing acceptance
+            "But hey! Ralph trying! That counts for something!",
+            "Me may forget! But Ralph's heart remembers! ...how forget work!",
+            "Ralph might not remember! But enthusiasm always fresh!",
+            "Me brain fuzzy! But intentions crystal clear!",
+            "Ralph forget details! But never forget to try!",
+
+            # Additional variations
+            "Me like computer with corrupted RAM! Beep boop error!",
+            "Ralph's memory span: this long! [imaginary tiny space]",
+            "Me head like colander! Water goes right through!",
+            "Ralph's brain running on fumes! And fumes also forget!",
+            "Me remember like... uh... Ralph forget what Ralph was comparing to!",
+        ]
+
+        return RalphNarrator.misspell(random.choice(jokes), chance=0.3)
+
 
 def get_ralph_narrator() -> RalphNarrator:
     """Get the Ralph narrator instance (singleton pattern).
