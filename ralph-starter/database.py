@@ -236,6 +236,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     telegram_id = Column(Integer, unique=True, nullable=False, index=True)
     username = Column(String(255), nullable=True)
+    # SG-026: first_name and last_name are defined for GDPR/schema completeness
+    # but are NEVER populated. The user is ALWAYS "Mr. Worms" to maintain privacy + fiction.
     first_name = Column(String(255), nullable=True)
     last_name = Column(String(255), nullable=True)
     subscription_tier = Column(String(50), default="free")  # free, builder, priority, enterprise

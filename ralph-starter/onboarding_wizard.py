@@ -1173,33 +1173,24 @@ This shows up in the history! Other developers see it! Make it good!
     def get_git_config_name_request_message(self) -> str:
         """Get message asking for user's name.
 
+        SG-026: We automatically use 'Mr. Worms' for Git config.
+        This protects privacy AND maintains the fiction.
+
         Returns:
-            Name request message
+            Name request message (now informational only)
         """
-        return """*What's Your Name?* 📝
+        return """*Setting Up Your Git Identity* 📝
 
-Ralph need your name for Git!
+Ralph will set your Git name to **"Mr. Worms"** - that's you, boss!
 
-This can be:
-• Your real name: "Sarah Johnson"
-• Your nickname: "CodeMaster3000"
-• Your username: "sarahjdev"
-• Whatever you want people to see in commit history!
+Why?
+• Privacy: No real name needed
+• Fiction: You're the CEO, Mr. Worms
+• Simple: One less thing to configure
 
-*Examples of good names:*
-✅ John Smith
-✅ Jane Developer
-✅ CoolCoder99
-✅ j.smith
+This shows up in your commit history. Everyone in the team knows you as Mr. Worms anyway!
 
-*Examples of bad names:*
-❌ asdfgh
-❌ user
-❌ me
-
-Remember: This shows up FOREVER in your code history! Choose something you proud of!
-
-*Type your name:*
+*Next up: Your email address for Git...*
 """
 
     def get_git_config_email_request_message(self) -> str:
@@ -1242,17 +1233,19 @@ Look for your PRIMARY email!
         """Get message with git config commands.
 
         Args:
-            name: User's name
+            name: User's name (SG-026: Should always be "Mr. Worms")
             email: User's email
 
         Returns:
             Message with copy-paste commands
         """
+        # SG-026: Always use "Mr. Worms" for git config
+        name = "Mr. Worms"
         name_cmd, email_cmd = self.get_git_config_commands(name, email)
 
         return f"""*Perfect! Let's Save Your Info!* 💾
 
-Okay {name}! Ralph give you TWO magic commands!
+Okay Mr. Worms! Ralph give you TWO magic commands!
 
 **Command 1: Set Your Name**
 ```bash
