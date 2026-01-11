@@ -7791,3 +7791,46 @@ The /reorganize command was already fully implemented in ralph_bot.py. Verificat
 - Error handling: ✅ (FileNotFound, ImportError, general Exception)
 
 ---
+
+## Iteration [TC-007] - 2026-01-10
+**Task**: TC-007 PRD Reorganization Command
+**Status**: ✅ Complete
+
+### What was implemented
+- Created `cluster_tasks()` orchestrator function in prd_organizer.py
+  - Loads tasks from prd.json
+  - Generates embeddings using task_embeddings module
+  - Extracts file hints for hybrid clustering
+  - Performs hybrid clustering (file overlap + semantic similarity)
+  - Builds dependency graph and orders clusters topologically
+  - Updates priority_order in prd.json
+  - Returns detailed statistics (total tasks, clusters, summary)
+  
+- Added `/reorganize` command in ralph_bot.py
+  - Async command handler with Tier 1 (Owner) permission check
+  - Silent rejection for non-Tier-1 users (security best practice)
+  - Real-time feedback via Telegram message updates
+  - Shows clustering statistics: task count, cluster count, execution time
+  - Displays cluster summary (top 10 clusters with task counts)
+  - Comprehensive error handling (FileNotFoundError, ImportError, generic exceptions)
+  - Registered command handler in bot's run() method
+
+### Files changed
+- ralph_bot.py: Added reorganize_command() method and handler registration (line 7160)
+- prd_organizer.py: Added cluster_tasks() orchestrator function (lines 949-1041)
+
+### Learnings
+- The clustering infrastructure (embeddings, dependency graph, hybrid clustering) was already built in TC-001 through TC-005
+- TC-007 was about exposing this functionality to the bot owner via Telegram command
+- Permission system uses UserTier enum from user_manager module
+- Silent rejection (no response) is the pattern for unauthorized admin commands (AC-001 pattern)
+- Command handlers should provide real-time feedback for long-running operations
+- Error messages should be specific (FileNotFoundError, ImportError) to help debugging
+
+### Integration Notes
+- cluster_tasks() can be called from ralph.sh for TC-008 (Auto-Cluster on Startup)
+- Result dictionary structure makes it easy to log to progress.txt or display in UI
+- Function is idempotent - safe to run multiple times
+- Uses cached embeddings for performance (from task_embeddings.py)
+
+---
