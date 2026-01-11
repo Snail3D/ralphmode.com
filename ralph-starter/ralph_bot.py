@@ -2224,6 +2224,197 @@ IMPORTANT:
             )
             await asyncio.sleep(self.timing.rapid_banter())
 
+    # ==================== AU-001 & AU-004: AUTONOMY SYSTEM ====================
+
+    def get_autonomy_level(self, user_id: int) -> str:
+        """AU-001: Get the current autonomy level for a session.
+
+        Autonomy levels control how much supervision Mr. Worms wants:
+        - "autonomous": Workers make decisions independently, only check in with blockers
+        - "collaborative": Workers propose solutions and get approval (default)
+        - "supervised": Workers check before every significant decision
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Autonomy level: "autonomous", "collaborative", or "supervised"
+        """
+        session = self.active_sessions.get(user_id, {})
+        return session.get('autonomy_level', 'collaborative')
+
+    def set_autonomy_level(self, user_id: int, level: str, reason: str = None) -> bool:
+        """AU-001: Set the autonomy level for a session.
+
+        Args:
+            user_id: User session ID
+            level: New autonomy level ("autonomous", "collaborative", or "supervised")
+            reason: Optional reason for logging
+
+        Returns:
+            True if successfully set, False if session doesn't exist or invalid level
+        """
+        valid_levels = ["autonomous", "collaborative", "supervised"]
+        if level not in valid_levels:
+            logger.warning(f"AU-001: Invalid autonomy level '{level}' for user {user_id}")
+            return False
+
+        session = self.active_sessions.get(user_id)
+        if not session:
+            logger.warning(f"AU-001: No active session for user {user_id}")
+            return False
+
+        old_level = session.get('autonomy_level', 'collaborative')
+        session['autonomy_level'] = level
+        session['autonomy_changed_at'] = datetime.now()
+
+        log_msg = f"AU-001: Autonomy level changed from '{old_level}' to '{level}' for user {user_id}"
+        if reason:
+            log_msg += f": {reason}"
+        logger.info(log_msg)
+
+        return True
+
+    def detect_autonomy_adjustment(self, message: str, user_id: int) -> Optional[str]:
+        """AU-004: Detect natural language commands to change autonomy level mid-session.
+
+        Detects phrases like:
+        - "be more autonomous" / "work independently" -> autonomous
+        - "check with me" / "run by me first" -> supervised
+        - "let's collaborate" / "work together" -> collaborative
+
+        Args:
+            message: The CEO's message to analyze
+            user_id: User session ID
+
+        Returns:
+            New autonomy level if detected, None otherwise
+        """
+        message_lower = message.lower().strip()
+
+        # Autonomous indicators (low supervision)
+        autonomous_patterns = [
+            "be more autonomous", "work independently", "don't wait for me",
+            "just go for it", "make the call", "trust your judgment",
+            "you decide", "handle it", "no need to check", "run with it",
+            "take initiative", "less supervision", "more autonomy"
+        ]
+
+        # Supervised indicators (high supervision)
+        supervised_patterns = [
+            "check with me", "run by me", "ask first", "get approval",
+            "wait for me", "don't decide without me", "check before",
+            "more supervision", "keep me in the loop", "run it past me",
+            "double check", "let me know before", "ask permission"
+        ]
+
+        # Collaborative indicators (medium supervision)
+        collaborative_patterns = [
+            "let's collaborate", "work together", "team up",
+            "balance", "normal supervision", "standard mode",
+            "default mode", "collaborative approach"
+        ]
+
+        # Check for patterns
+        for pattern in autonomous_patterns:
+            if pattern in message_lower:
+                logger.info(f"AU-004: Detected autonomous command from user {user_id}: '{message[:50]}'")
+                return "autonomous"
+
+        for pattern in supervised_patterns:
+            if pattern in message_lower:
+                logger.info(f"AU-004: Detected supervised command from user {user_id}: '{message[:50]}'")
+                return "supervised"
+
+        for pattern in collaborative_patterns:
+            if pattern in message_lower:
+                logger.info(f"AU-004: Detected collaborative command from user {user_id}: '{message[:50]}'")
+                return "collaborative"
+
+        return None
+
+    async def acknowledge_autonomy_change(self, context, chat_id: int, user_id: int, new_level: str):
+        """AU-004: Ralph acknowledges the autonomy level change naturally.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID for sending messages
+            user_id: User session ID
+            new_level: The new autonomy level
+        """
+        acknowledgments = {
+            "autonomous": [
+                "Okay Mr. Worms! We'll work more independantly and just check in if we get stucked!",
+                "Got it boss! The team can handle stuff on their own and come to you for the big stuff!",
+                "You got it! We'll be more ottonomous and make decisions ourselves!",
+                "Alright! We'll stop bothering you so much and just do our jobs!"
+            ],
+            "supervised": [
+                "Okay Mr. Worms! We'll check with you before we do stuff!",
+                "Got it! We'll run everything by you first from now on!",
+                "You got it boss! No decisions without your say-so!",
+                "Alright! We'll make sure you approve everything before we do it!"
+            ],
+            "collaborative": [
+                "Okay Mr. Worms! We'll work together like a real team!",
+                "Got it! We'll propose ideas and you tell us if they're good!",
+                "You got it boss! Teamwork makes the dream work!",
+                "Alright! We'll bounce ideas off you and then do the work!"
+            ]
+        }
+
+        response = random.choice(acknowledgments.get(new_level, acknowledgments["collaborative"]))
+
+        await self.send_styled_message(
+            context, chat_id,
+            "Ralph", "Boss",
+            response,
+            topic="autonomy adjustment",
+            with_typing=True
+        )
+
+    def get_autonomy_prompt_context(self, user_id: int) -> str:
+        """AU-001: Get prompt context explaining current autonomy level to AI.
+
+        Returns a prompt fragment that explains the current supervision level.
+
+        Args:
+            user_id: User session ID
+
+        Returns:
+            Formatted autonomy context string
+        """
+        level = self.get_autonomy_level(user_id)
+
+        context_map = {
+            "autonomous": """
+🤖 AUTONOMY LEVEL: AUTONOMOUS (Low Supervision)
+Mr. Worms trusts the team to work independently.
+- Make decisions on your own
+- Only escalate blockers or major architectural choices
+- Be confident and proactive
+- Mention "I figured..." or "I went ahead and..." when reporting what you did
+""",
+            "supervised": """
+🤖 AUTONOMY LEVEL: SUPERVISED (High Supervision)
+Mr. Worms wants to be involved in decisions.
+- Propose solutions and wait for approval before implementing
+- Ask "Should I...?" or "Want me to...?" frequently
+- Check in before any significant code changes
+- Be more cautious and ask permission
+""",
+            "collaborative": """
+🤖 AUTONOMY LEVEL: COLLABORATIVE (Medium Supervision) - DEFAULT
+Mr. Worms wants to work together with the team.
+- Propose solutions and get feedback
+- Make small decisions independently, check on bigger ones
+- Balance between asking permission and taking initiative
+- Natural back-and-forth collaboration
+"""
+        }
+
+        return context_map.get(level, context_map["collaborative"])
+
     # ==================== RM-057: MUD-STYLE PRESENCE SYSTEM ====================
 
     def initialize_worker_statuses(self, user_id: int):
@@ -13193,7 +13384,10 @@ _Drop a zip file to get started!_
                 "last_message_time": datetime.now(),
                 "messages_in_last_minute": [],  # Track timestamps for rate calculation
                 "total_session_hours": 0,
-                "health_concern_level": "none"  # none, mild, moderate, high
+                "health_concern_level": "none",  # none, mild, moderate, high
+                # AU-001: Autonomy Level State
+                "autonomy_level": "collaborative",  # autonomous, collaborative, supervised
+                "autonomy_changed_at": None  # Track when level was last changed
             }
 
             # RM-033: Initialize Ralph's daily mood for this session
@@ -14801,6 +14995,13 @@ Be specific about the TYPE but don't include actual details. 1-2 sentences max."
 
             # RM-039: Update CEO mood tracking from message
             self.update_ceo_mood(text, user_id)
+
+            # AU-004: Detect autonomy level adjustments from natural language
+            new_autonomy = self.detect_autonomy_adjustment(text, user_id)
+            if new_autonomy:
+                success = self.set_autonomy_level(user_id, new_autonomy, reason="Natural language command from CEO")
+                if success:
+                    await self.acknowledge_autonomy_change(context, chat_id, user_id, new_autonomy)
 
         # RM-011: Handle Q&A mode - Ralph answers questions about the session
         session = self.active_sessions.get(user_id)
