@@ -8870,3 +8870,43 @@ Check priority_order for exact sequence.
 - Following established patterns makes integration seamless and maintainable
 
 ---
+
+## Iteration [New] - 2026-01-10
+**Task**: [OB-047] Setup Verification Suite
+**Status**: ✅ Complete
+
+### What was implemented
+- Created setup_verifier.py with comprehensive verification system
+- Checks required configurations: Python version, Git installation, Git config, SSH keys, .env file, Telegram token, Groq API key, admin ID, project structure
+- Checks optional configurations: Anthropic API key, GitHub CLI, Docker, Node.js
+- Visual status dashboard with colored emoji indicators (✅❌⚠️ℹ️)
+- Fix suggestions for every failed or warning check
+- Export configuration report to text file
+- Integrated verifier into OnboardingWizard class
+- Added 8 new methods to OnboardingWizard for verification flow
+- All messages written in Ralph's personality
+
+### Files changed
+- setup_verifier.py (new file, 770 lines)
+- onboarding_wizard.py (added 310 lines of verification methods)
+
+### Learnings
+- CheckResult dataclass pattern makes verification results clean and structured
+- Using CheckStatus enum with emoji values gives instant visual feedback
+- Subprocess timeout=5 prevents hanging on network checks (especially SSH to GitHub)
+- GitHub SSH test returns exit code 1 even on success, need to check stderr for "successfully authenticated"
+- Grouping results by category makes dashboard easier to read
+- Export to file functionality is crucial for debugging user setup issues
+- Ralph's encouraging messages make technical setup less intimidating
+- Optional checks should use INFO status, not FAIL, to avoid scaring users
+- .env file validation should check for placeholder values like "your_token_here"
+- Git config check needs both name AND email to be complete
+
+### Next Steps
+This verification suite can be called:
+1. At the end of onboarding wizard (to validate setup before finishing)
+2. From a /verify command (for troubleshooting)
+3. By ralph.sh before starting build loop (to prevent failed builds)
+4. In ralph_bot.py health check endpoint
+
+---
