@@ -12241,3 +12241,47 @@ Mona: "Hmm, haven't looked at that yet. Lemme check..."
 - Summary should be italicized to differentiate from scene action
 
 ---
+
+## Iteration 20 - 2026-01-11
+**Task**: [VO-005] Document/File Attachment Translation
+**Status**: ✅ Complete
+
+### What was implemented
+- Modified handle_document() to accept non-zip files when session is active
+- Created comprehensive file-to-object mapping (PDFs→folders, images→photos, code→specs, etc.)
+- Added 8 varied scene actions: drops, slaps, slides, throws, hands, places, tosses, sets
+- File content downloaded and stored in session['context_documents'] for worker reference
+- Worker acknowledgment after file received (random from 5 options)
+- Scene format: action + file name (e.g., "*Mr. Worms slaps a folder on the table*\n_\"requirements.pdf\"_")
+
+### Files changed
+- ralph_bot.py (handle_document method, lines 8504-8650)
+
+### Learnings
+- Physical object mapping enhances immersion: technical files→blueprints, images→printouts
+- Scene action variety critical for freshness: 8 different physical actions prevent repetition
+- File types: 30+ extensions mapped to thematic objects (PDF=folder, PNG=screenshot, PY=code spec)
+- Pattern: Only allow attachments during active session (prevents random file uploads)
+- File processing: Download to temp dir, store metadata, acknowledge receipt
+- Scene structure: Physical action (italicized) + quoted filename for clarity
+- Backend processing continues normally (file stored for worker access)
+- Worker response should be brief acknowledgment, not analysis (keeps pace snappy)
+
+### Patterns discovered
+- File type detection: os.path.splitext(file_name)[1].lower()
+- Random object selection: random.choice(file_type_objects.get(ext, default_list))
+- Scene action templates with f-strings for dynamic object insertion
+- Session context extension: append to session['context_documents'] list
+- Temp file storage: PROJECTS_DIR/temp_{user_id}/ for non-project files
+- Async file download: await file_obj.download_to_drive(file_path)
+
+### Gotchas to avoid
+- Must check active session exists before accepting non-zip files
+- Initialize context_documents list if not exists
+- Create temp directory with os.makedirs(temp_dir, exist_ok=True)
+- Use await for async Telegram file operations
+- Return early after processing to prevent double-handling
+- Log file type and object used for debugging (VO-005 prefix)
+- Random worker selection keeps it fresh (don't always pick same person)
+
+---

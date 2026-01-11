@@ -8501,12 +8501,152 @@ _Drop a zip file to get started!_
             except Exception as e:
                 logging.error(f"MU-004: Error checking tier for document: {e}")
 
-        # Check if it's a zip file
+        # VO-005: Handle non-zip files with scene descriptions
         if not doc.file_name.endswith('.zip'):
-            await update.message.reply_text(
-                "Please upload a `.zip` file of your codebase.",
+            # Only allow non-zip files if there's an active session
+            if user_id not in self.active_sessions:
+                await update.message.reply_text(
+                    "Please upload a `.zip` file of your codebase to start a project.",
+                    parse_mode="Markdown"
+                )
+                return
+
+            # Translate file attachment to scene action
+            file_name = doc.file_name
+            file_ext = os.path.splitext(file_name)[1].lower()
+
+            # Map file types to physical objects
+            file_type_objects = {
+                # Documents
+                '.pdf': ['thick folder', 'binder', 'stack of papers', 'document'],
+                '.doc': ['folder', 'paperwork', 'document'],
+                '.docx': ['folder', 'paperwork', 'document'],
+                '.txt': ['paper', 'note', 'memo'],
+                '.md': ['technical spec', 'documentation', 'notes'],
+                '.rtf': ['document', 'paper'],
+
+                # Images
+                '.png': ['screenshot', 'printout', 'photo'],
+                '.jpg': ['photo', 'image', 'printout'],
+                '.jpeg': ['photo', 'image', 'printout'],
+                '.gif': ['screenshot', 'image'],
+                '.svg': ['diagram', 'blueprint', 'technical drawing'],
+                '.webp': ['image', 'printout'],
+
+                # Archives
+                '.tar': ['box', 'package', 'crate'],
+                '.gz': ['package', 'box'],
+                '.rar': ['box', 'package'],
+                '.7z': ['package', 'container'],
+
+                # Code/Technical
+                '.py': ['code spec', 'technical blueprint', 'script'],
+                '.js': ['code spec', 'technical document', 'script'],
+                '.ts': ['code spec', 'technical document'],
+                '.java': ['code spec', 'technical blueprint'],
+                '.cpp': ['code spec', 'technical blueprint'],
+                '.c': ['code spec', 'technical blueprint'],
+                '.go': ['code spec', 'technical blueprint'],
+                '.rs': ['code spec', 'technical blueprint'],
+                '.rb': ['code spec', 'script'],
+                '.php': ['code spec', 'script'],
+                '.html': ['web spec', 'page template'],
+                '.css': ['style spec', 'design document'],
+                '.json': ['config file', 'data spec', 'technical document'],
+                '.xml': ['config file', 'data spec'],
+                '.yaml': ['config file', 'spec'],
+                '.yml': ['config file', 'spec'],
+                '.sql': ['database spec', 'schema document'],
+
+                # Spreadsheets/Data
+                '.csv': ['data sheet', 'spreadsheet', 'table'],
+                '.xls': ['spreadsheet', 'data file'],
+                '.xlsx': ['spreadsheet', 'data file'],
+
+                # Other
+                '.log': ['log file', 'report', 'printout'],
+            }
+
+            # Get object name (or default)
+            object_options = file_type_objects.get(file_ext, ['file', 'document', 'paperwork'])
+            object_name = random.choice(object_options)
+
+            # Vary the scene actions
+            scene_actions = [
+                f"*Mr. Worms drops a {object_name} on Ralph's desk*",
+                f"*Mr. Worms slaps a {object_name} on the table*",
+                f"*Mr. Worms slides over a {object_name}*",
+                f"*Mr. Worms throws a {object_name} gently onto the desk*",
+                f"*Mr. Worms hands over a {object_name}*",
+                f"*Mr. Worms places a {object_name} in front of Ralph*",
+                f"*Mr. Worms tosses a {object_name} across the desk*",
+                f"*Mr. Worms sets down a {object_name}*",
+            ]
+
+            scene_desc = random.choice(scene_actions)
+
+            # Add file name for context
+            scene_message = f"{scene_desc}\n\n_\"{file_name}\"_"
+
+            # Send scene description
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=scene_message,
                 parse_mode="Markdown"
             )
+
+            # Download and process the file content in background
+            try:
+                session = self.active_sessions[user_id]
+
+                # Download file
+                file_obj = await context.bot.get_file(doc.file_id)
+
+                # Create temp directory for this file
+                temp_dir = os.path.join(PROJECTS_DIR, f"temp_{user_id}")
+                os.makedirs(temp_dir, exist_ok=True)
+
+                file_path = os.path.join(temp_dir, file_name)
+                await file_obj.download_to_drive(file_path)
+
+                # Store file reference in session context
+                if 'context_documents' not in session:
+                    session['context_documents'] = []
+
+                doc_id = len(session['context_documents']) + 1
+                session['context_documents'].append({
+                    'id': doc_id,
+                    'file_name': file_name,
+                    'file_path': file_path,
+                    'file_type': file_ext,
+                    'provided_at': datetime.now()
+                })
+
+                # Worker acknowledges receipt
+                await asyncio.sleep(self.timing.rapid_banter())
+
+                worker_name = random.choice(list(self.DEV_TEAM.keys()))
+                acknowledgments = [
+                    "Got it, checking this out",
+                    "On it",
+                    "Taking a look",
+                    "Alright, reviewing now",
+                    "Cool, I'll check it",
+                ]
+
+                await self.send_styled_message(
+                    context, chat_id, worker_name, self.DEV_TEAM[worker_name]["title"],
+                    random.choice(acknowledgments),
+                    use_buttons=False,
+                    with_typing=True
+                )
+
+                logger.info(f"VO-005: Processed {file_ext} file as scene object: {object_name}")
+
+            except Exception as e:
+                logger.error(f"VO-005: Error processing document attachment: {e}")
+                await update.message.reply_text(f"Error processing file: {e}")
+
             return
 
         await update.message.reply_text("📦 Got it! Let me get the team together...")

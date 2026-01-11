@@ -2360,7 +2360,7 @@
         "ralph_bot.py",
         "translation_engine.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "VO-006",
