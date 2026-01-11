@@ -42,6 +42,14 @@ except ImportError:
     DEPENDENCY_CHECKER_AVAILABLE = False
     logging.warning("Dependency checker not available")
 
+# Import venv setup for OB-024
+try:
+    from setup_venv import get_venv_setup, SetupStatus
+    VENV_SETUP_AVAILABLE = True
+except ImportError:
+    VENV_SETUP_AVAILABLE = False
+    logging.warning("Virtual environment setup not available")
+
 
 class OnboardingWizard:
     """Handles the onboarding flow for new users."""
@@ -52,6 +60,7 @@ class OnboardingWizard:
     STEP_SSH_KEY = "ssh_key"
     STEP_GITHUB = "github"
     STEP_REPO = "repo"
+    STEP_PYTHON_ENV = "python_env"  # OB-024: Python environment setup
     STEP_CHARACTER = "character"  # OB-041: Character avatar selection
     STEP_THEME = "theme"  # OB-040: Visual theme selection
     STEP_BOT_TEST = "bot_test"  # OB-039: Bot testing walkthrough
@@ -173,6 +182,13 @@ class OnboardingWizard:
         else:
             self.dependency_checker = None
             self.logger.warning("Dependency checker not available")
+
+        # Import venv setup (OB-024: Python Environment Setup)
+        if VENV_SETUP_AVAILABLE:
+            self.venv_setup = get_venv_setup()
+        else:
+            self.venv_setup = None
+            self.logger.warning("Virtual environment setup not available")
 
         # Import theme manager (OB-040: Visual Theme Selector)
         try:
@@ -3520,6 +3536,378 @@ This is SO EXCITING! You basically a GitHub expert now!
 *Still stuck?*
 Tell Ralph what error you seeing!
 """
+
+    # Python Environment Setup (OB-024)
+
+    def get_python_env_intro_message(self) -> str:
+        """Get introduction message for Python environment setup.
+
+        Returns:
+            Python environment setup introduction
+        """
+        return """*Time to Set Up Python!* 🐍
+
+Ralph gonna help you set up a clean Python environment!
+
+**What's a Virtual Environment?**
+Think of it like a separate room for each project!
+• Keeps your packages organized
+• No conflicts between projects
+• Easy to share with others
+
+**What we'll do:**
+1. ✅ Check your Python version (need 3.9+)
+2. 📦 Create a virtual environment
+3. 🔧 Install all the packages you need
+4. ✅ Make sure everything works!
+
+Ralph promises to make it SUPER easy!
+
+*Ready to start?*
+"""
+
+    def get_python_env_keyboard(self) -> InlineKeyboardMarkup:
+        """Get keyboard for Python environment setup.
+
+        Returns:
+            Keyboard with setup options
+        """
+        keyboard = [
+            [InlineKeyboardButton("🐍 Start Python Setup", callback_data="python_env_start")],
+            [InlineKeyboardButton("❓ What's a Virtual Environment?", callback_data="python_env_help")],
+            [InlineKeyboardButton("⏭️ Skip (I Already Have One)", callback_data="python_env_skip")],
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    def get_python_version_check_message(self, status: 'SetupStatus', message: str, version: Optional[Tuple[int, int, int]]) -> str:
+        """Get message about Python version check.
+
+        Args:
+            status: Setup status from version check
+            message: Status message
+            version: Python version tuple if detected
+
+        Returns:
+            Formatted version check message
+        """
+        if status.value == "success":
+            return f"""*Python Version Check* ✅
+
+{message}
+
+Perfect! Your Python is new enough for Ralph Mode!
+
+*Next step:*
+Ralph will create a virtual environment for your project.
+This keeps everything neat and organized!
+"""
+        elif status.value == "python_too_old":
+            version_str = '.'.join(map(str, version)) if version else "unknown"
+            return f"""*Uh Oh - Python Too Old!* 😬
+
+You have Python {version_str}, but Ralph needs 3.9 or newer.
+
+**How to Update Python:**
+
+**Option 1: Official Download** (Easiest)
+→ Visit: https://www.python.org/downloads/
+→ Download Python 3.11 or 3.12
+→ Run the installer
+
+**Option 2: Using pyenv** (For Developers)
+```bash
+# Install pyenv
+curl https://pyenv.run | bash
+
+# Install Python 3.11
+pyenv install 3.11.0
+pyenv global 3.11.0
+```
+
+**Option 3: System Package Manager**
+```bash
+# macOS with Homebrew
+brew install python@3.11
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install python3.11
+```
+
+After updating, come back and Ralph will check again!
+"""
+        else:
+            return f"""*Python Check Failed* ❌
+
+{message}
+
+**Troubleshooting:**
+• Make sure Python is installed
+• Try running: `python3 --version` in your terminal
+• On Windows, make sure Python is in your PATH
+
+*Need help?* Tell Ralph what error you're seeing!
+"""
+
+    def get_venv_creation_message(self, venv_path: str = "venv") -> str:
+        """Get message about creating virtual environment.
+
+        Args:
+            venv_path: Path where venv will be created
+
+        Returns:
+            Venv creation message
+        """
+        return f"""*Creating Virtual Environment...* 🏗️
+
+Ralph is making a special Python room for your project!
+
+**Location:** `{venv_path}/`
+
+This might take a few seconds...
+
+Ralph will tell you when it's done! ⏳
+"""
+
+    def get_venv_success_message(self, venv_path: str = "venv") -> str:
+        """Get success message after venv creation.
+
+        Args:
+            venv_path: Path where venv was created
+
+        Returns:
+            Success message
+        """
+        if self.venv_setup:
+            activation_cmd = self.venv_setup.get_activation_command(venv_path)
+        else:
+            activation_cmd = f"source {venv_path}/bin/activate"
+
+        return f"""*Virtual Environment Created!* 🎉
+
+Ralph made you a virtual environment at `{venv_path}/`!
+
+**How to use it:**
+When you work on this project, activate it first:
+```bash
+{activation_cmd}
+```
+
+You'll see `({venv_path})` in your terminal - that means it's active!
+
+**To leave it later:**
+```bash
+deactivate
+```
+
+*Next:* Ralph will install all the packages you need!
+"""
+
+    def get_requirements_install_message(self, requirements_path: str) -> str:
+        """Get message about installing requirements.
+
+        Args:
+            requirements_path: Path to requirements.txt
+
+        Returns:
+            Installation start message
+        """
+        return f"""*Installing Python Packages...* 📦
+
+Ralph is reading `{requirements_path}` and installing everything!
+
+This can take a minute or two...
+
+Ralph will show you what's happening! 👀
+"""
+
+    def get_requirements_success_message(self, package_count: int) -> str:
+        """Get success message after requirements installation.
+
+        Args:
+            package_count: Number of packages installed
+
+        Returns:
+            Success message
+        """
+        return f"""*All Packages Installed!* ✅
+
+Ralph installed {package_count} packages successfully!
+
+**What this means:**
+Your project now has all the code libraries it needs to run!
+
+Think of it like Ralph bought all the LEGO pieces you need!
+
+*Next Steps:*
+Ralph can help you:
+• Test that everything works
+• Set up your project configuration
+• Make your first commit!
+
+You're doing GREAT! 🌟
+"""
+
+    def get_venv_error_message(self, error: str) -> str:
+        """Get error message for venv creation failure.
+
+        Args:
+            error: Error message
+
+        Returns:
+            Formatted error message
+        """
+        return f"""*Uh Oh - Virtual Environment Failed!* 😬
+
+Ralph tried to make the virtual environment but something went wrong.
+
+**Error:**
+```
+{error}
+```
+
+**Common Fixes:**
+• Make sure Python is installed correctly
+• Try running: `python3 -m venv test_venv` to test
+• Check that you have write permissions in this folder
+• On Ubuntu, you might need: `sudo apt install python3-venv`
+
+*Need help?* Tell Ralph what happened and we'll figure it out!
+"""
+
+    def get_requirements_error_message(self, error: str) -> str:
+        """Get error message for requirements installation failure.
+
+        Args:
+            error: Error message
+
+        Returns:
+            Formatted error message
+        """
+        return f"""*Package Installation Failed!* 😬
+
+Ralph tried to install the packages but hit a problem.
+
+**Error:**
+```
+{error}
+```
+
+**Common Fixes:**
+• Make sure you're connected to the internet
+• Try running: `pip install --upgrade pip` first
+• Some packages need system libraries (Ralph can help with this)
+• Check that `requirements.txt` exists and is readable
+
+*Want to try again?*
+Or tell Ralph what error you're seeing!
+"""
+
+    async def setup_python_environment(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        venv_path: str = "venv",
+        requirements_path: str = "requirements.txt"
+    ) -> Tuple[bool, str]:
+        """Set up Python virtual environment and install dependencies.
+
+        Args:
+            update: Telegram update object
+            context: Callback context
+            venv_path: Path for virtual environment
+            requirements_path: Path to requirements.txt
+
+        Returns:
+            Tuple of (success, message)
+        """
+        if not self.venv_setup:
+            return False, "Virtual environment setup not available"
+
+        try:
+            # Check Python version
+            status, msg, version = self.venv_setup.check_python_version()
+
+            if status.value != "success":
+                version_msg = self.get_python_version_check_message(status, msg, version)
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(version_msg, parse_mode='Markdown')
+                return False, msg
+
+            # Check if venv exists
+            if self.venv_setup.check_venv_exists(venv_path):
+                return True, f"Virtual environment already exists at {venv_path}"
+
+            # Create venv
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    self.get_venv_creation_message(venv_path),
+                    parse_mode='Markdown'
+                )
+
+            status, msg = self.venv_setup.create_venv(venv_path)
+
+            if status.value != "success":
+                error_msg = self.get_venv_error_message(msg)
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(error_msg, parse_mode='Markdown')
+                return False, msg
+
+            # Send success message
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    self.get_venv_success_message(venv_path),
+                    parse_mode='Markdown'
+                )
+
+            # Install requirements if file exists
+            import os
+            if os.path.exists(requirements_path):
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(
+                        self.get_requirements_install_message(requirements_path),
+                        parse_mode='Markdown'
+                    )
+
+                # Create progress callback
+                async def progress_callback(progress_msg: str):
+                    try:
+                        if update.callback_query:
+                            await update.callback_query.message.reply_text(f"📦 {progress_msg}")
+                    except Exception as e:
+                        self.logger.warning(f"Progress callback error: {e}")
+
+                # Install requirements
+                install_status, install_msg, error = self.venv_setup.install_requirements(
+                    requirements_path,
+                    venv_path,
+                    lambda msg: asyncio.create_task(progress_callback(msg))
+                )
+
+                if install_status.value != "success":
+                    error_msg = self.get_requirements_error_message(error or install_msg)
+                    if update.callback_query:
+                        await update.callback_query.message.reply_text(error_msg, parse_mode='Markdown')
+                    return False, install_msg
+
+                # Verify packages
+                all_installed, verify_msg, package_status = self.venv_setup.verify_packages(
+                    requirements_path,
+                    venv_path
+                )
+
+                package_count = len([p for p, installed in package_status.items() if installed])
+
+                if update.callback_query:
+                    await update.callback_query.message.reply_text(
+                        self.get_requirements_success_message(package_count),
+                        parse_mode='Markdown'
+                    )
+
+            return True, "Python environment setup complete!"
+
+        except Exception as e:
+            self.logger.error(f"Python environment setup error: {e}")
+            return False, f"Setup error: {str(e)}"
 
     # Setup Resume Functionality (OB-035)
 
