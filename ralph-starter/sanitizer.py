@@ -694,6 +694,358 @@ class Sanitizer:
                 'detection': detection
             }
 
+    # =========================================================================
+    # IN-001: Intent Detection Over Words
+    # =========================================================================
+
+    def detect_intent(self, text: str) -> Dict[str, any]:
+        """
+        IN-001: Detect the user's underlying intent, not just literal words.
+
+        This helps Ralph understand what the user really means, even if they're
+        vague, using slang, or being indirect. Focuses on the "why" behind
+        the message, not just the "what".
+
+        Args:
+            text: The user's message
+
+        Returns:
+            Dict with detected intent, confidence, and metadata
+        """
+        if not text:
+            return {
+                'primary_intent': 'unknown',
+                'confidence': 0.0,
+                'intents': [],
+                'needs_clarification': False,
+                'clarification_question': None
+            }
+
+        text_lower = text.lower().strip()
+        detected_intents = []
+        confidence_scores = {}
+
+        # Question Intent - User wants information
+        question_patterns = [
+            (r'\b(what|when|where|who|why|how)\b', 0.9),
+            (r'\?$', 0.7),
+            (r'\b(can you|could you|would you)\b', 0.8),
+            (r'\b(tell me|show me|explain)\b', 0.85),
+            (r'\b(is there|are there|do you|does it)\b', 0.75),
+        ]
+        for pattern, score in question_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('question')
+                confidence_scores['question'] = max(confidence_scores.get('question', 0), score)
+                break
+
+        # Command/Request Intent - User wants action
+        command_patterns = [
+            (r'\b(do|make|create|build|add|fix|update|change|remove|delete)\b', 0.85),
+            (r'\b(need|want|require)\s+(you\s+to|to)\b', 0.9),
+            (r'\b(please|pls)\s+\w+', 0.8),
+            (r'^(start|stop|run|deploy|test|check)\b', 0.9),
+        ]
+        for pattern, score in command_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('command')
+                confidence_scores['command'] = max(confidence_scores.get('command', 0), score)
+                break
+
+        # Help/Support Intent - User is stuck or confused
+        help_patterns = [
+            (r'\b(help|stuck|confused|lost|don\'?t know|unsure)\b', 0.9),
+            (r'\b(how do i|how can i|what should i)\b', 0.85),
+            (r'\b(issue|problem|error|bug|broken|not working)\b', 0.8),
+            (r'\b(can\'?t|cannot|unable to|doesn\'?t work)\b', 0.85),
+        ]
+        for pattern, score in help_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('help')
+                confidence_scores['help'] = max(confidence_scores.get('help', 0), score)
+                break
+
+        # Feedback Intent - User expressing opinion/sentiment
+        feedback_patterns = [
+            (r'\b(like|love|hate|good|bad|great|terrible|awesome|sucks)\b', 0.8),
+            (r'\b(think|feel|believe|seems|appears)\b', 0.7),
+            (r'\b(should|shouldn\'?t|better|worse)\b', 0.75),
+            (r'\b(thanks|thank you|appreciate|grateful)\b', 0.9),
+        ]
+        for pattern, score in feedback_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('feedback')
+                confidence_scores['feedback'] = max(confidence_scores.get('feedback', 0), score)
+                break
+
+        # Exploration Intent - User is browsing, checking things out
+        exploration_patterns = [
+            (r'\b(look|check|see|view|browse|explore)\b', 0.8),
+            (r'\b(status|progress|what\'?s|how\'?s)\b', 0.75),
+            (r'\b(any|anything|something)\b.*\?', 0.7),
+        ]
+        for pattern, score in exploration_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('exploration')
+                confidence_scores['exploration'] = max(confidence_scores.get('exploration', 0), score)
+                break
+
+        # Greeting Intent - Social pleasantries
+        greeting_patterns = [
+            (r'^\s*(hi|hello|hey|yo|sup|greetings)\b', 0.95),
+            (r'\b(good morning|good afternoon|good evening)\b', 0.95),
+            (r'\b(how are you|how\'?s it going|what\'?s up)\b', 0.9),
+        ]
+        for pattern, score in greeting_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('greeting')
+                confidence_scores['greeting'] = max(confidence_scores.get('greeting', 0), score)
+                break
+
+        # Confirmation Intent - User agreeing/confirming
+        confirmation_patterns = [
+            (r'^\s*(yes|yeah|yep|yup|sure|okay|ok|fine|alright|k)\s*$', 0.95),
+            (r'\b(sounds good|looks good|go ahead|proceed)\b', 0.85),
+            (r'\b(agree|approved|confirm)\b', 0.9),
+        ]
+        for pattern, score in confirmation_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('confirmation')
+                confidence_scores['confirmation'] = max(confidence_scores.get('confirmation', 0), score)
+                break
+
+        # Negation Intent - User declining/rejecting
+        negation_patterns = [
+            (r'^\s*(no|nope|nah|not|never)\s*$', 0.95),
+            (r'\b(don\'?t want|don\'?t need|no thanks|not interested)\b', 0.9),
+            (r'\b(cancel|stop|abort|skip)\b', 0.85),
+        ]
+        for pattern, score in negation_patterns:
+            if re.search(pattern, text_lower):
+                detected_intents.append('negation')
+                confidence_scores['negation'] = max(confidence_scores.get('negation', 0), score)
+                break
+
+        # Vague Intent - User being unclear (needs clarification)
+        vague_patterns = [
+            (r'^\s*(this|that|it|stuff|thing|something)\s*$', 0.9),
+            (r'^\s*(idk|dunno|not sure|maybe|kinda)\s*$', 0.85),
+            (r'^.{1,10}$', 0.5),  # Very short messages often vague
+        ]
+        is_vague = False
+        for pattern, score in vague_patterns:
+            if re.search(pattern, text_lower):
+                is_vague = True
+                break
+
+        # Determine primary intent
+        if not detected_intents:
+            primary_intent = 'statement'  # Default - user is just saying something
+            confidence = 0.5
+        else:
+            # Highest confidence intent wins
+            primary_intent = max(confidence_scores, key=confidence_scores.get)
+            confidence = confidence_scores[primary_intent]
+
+        # Check if clarification needed
+        needs_clarification = is_vague or confidence < 0.6
+        clarification_question = None
+        if needs_clarification:
+            clarification_question = self._get_clarification_question(text, primary_intent)
+
+        return {
+            'primary_intent': primary_intent,
+            'confidence': confidence,
+            'intents': detected_intents,
+            'needs_clarification': needs_clarification,
+            'clarification_question': clarification_question,
+            'is_vague': is_vague
+        }
+
+    def _get_clarification_question(self, text: str, intent: str) -> Optional[str]:
+        """
+        IN-001: Generate a clarification question based on vague input.
+
+        Args:
+            text: The vague input
+            intent: The detected intent
+
+        Returns:
+            A clarification question, or None if not needed
+        """
+        # Map intents to clarification templates
+        clarification_templates = {
+            'command': "What would you like me to do exactly?",
+            'question': "What would you like to know more about?",
+            'help': "What specific issue are you having?",
+            'statement': "Can you tell me more about that?",
+            'exploration': "What would you like to explore?",
+        }
+
+        # For very short/vague messages
+        if len(text.strip()) < 15:
+            return "Could you give me a bit more detail?"
+
+        return clarification_templates.get(intent, "Could you clarify what you mean?")
+
+    def extract_actionable_items(self, text: str, intent_data: Dict[str, any]) -> List[Dict[str, str]]:
+        """
+        IN-001: Extract actionable items from user's intent.
+
+        Given the detected intent, extract concrete actions, targets, and context.
+
+        Args:
+            text: The user's message
+            intent_data: Intent detection result from detect_intent()
+
+        Returns:
+            List of actionable items with type, target, action
+        """
+        actionable_items = []
+        text_lower = text.lower()
+
+        if intent_data['primary_intent'] == 'command':
+            # Extract verbs (actions)
+            action_verbs = re.findall(
+                r'\b(create|build|add|make|fix|update|change|delete|remove|start|stop|deploy|test|run|check)\b',
+                text_lower
+            )
+
+            # Extract targets (what to act on)
+            # Look for quoted items, capitalized items, or common targets
+            targets = re.findall(r'"([^"]+)"|\'([^\']+)\'', text)
+            targets = [t[0] or t[1] for t in targets]  # Flatten tuples
+
+            if action_verbs:
+                for verb in action_verbs:
+                    actionable_items.append({
+                        'type': 'command',
+                        'action': verb,
+                        'target': targets[0] if targets else None,
+                        'full_text': text
+                    })
+
+        elif intent_data['primary_intent'] == 'question':
+            # Extract what they're asking about
+            topics = []
+            # Common question subjects
+            subjects = re.findall(
+                r'\b(status|progress|error|issue|feature|bug|deploy|test|code|function|file)\w*\b',
+                text_lower
+            )
+            topics.extend(subjects)
+
+            if topics:
+                actionable_items.append({
+                    'type': 'question',
+                    'action': 'explain',
+                    'target': topics[0] if topics else None,
+                    'full_text': text
+                })
+
+        elif intent_data['primary_intent'] == 'help':
+            # User needs assistance - extract what they're stuck on
+            problem_area = re.search(
+                r'with\s+(\w+)|about\s+(\w+)|on\s+(\w+)',
+                text_lower
+            )
+            if problem_area:
+                area = problem_area.group(1) or problem_area.group(2) or problem_area.group(3)
+                actionable_items.append({
+                    'type': 'help',
+                    'action': 'assist',
+                    'target': area,
+                    'full_text': text
+                })
+
+        return actionable_items
+
+    def understand_user_message(self, text: str, context: Optional[Dict[str, any]] = None) -> Dict[str, any]:
+        """
+        IN-001: Complete intent understanding pipeline.
+
+        This is the main entry point for intent detection. It combines
+        intent detection, actionable extraction, and context awareness.
+
+        Args:
+            text: User's message
+            context: Optional context (previous messages, session state, etc.)
+
+        Returns:
+            Complete understanding with intent, actions, and suggestions
+        """
+        if not text:
+            return {
+                'text': text,
+                'intent': {'primary_intent': 'unknown', 'confidence': 0.0},
+                'actions': [],
+                'needs_clarification': False,
+                'suggested_response': None
+            }
+
+        # Step 1: Detect intent
+        intent_data = self.detect_intent(text)
+
+        # Step 2: Extract actionable items
+        actions = self.extract_actionable_items(text, intent_data)
+
+        # Step 3: Determine suggested response type
+        suggested_response = self._suggest_response_type(intent_data, actions, context)
+
+        # Step 4: Log the understanding
+        logger.info(f"IN-001: Understood message - Intent: {intent_data['primary_intent']} "
+                   f"(confidence: {intent_data['confidence']:.2f}), "
+                   f"Actions: {len(actions)}, "
+                   f"Needs clarification: {intent_data['needs_clarification']}")
+
+        return {
+            'text': text,
+            'intent': intent_data,
+            'actions': actions,
+            'needs_clarification': intent_data['needs_clarification'],
+            'clarification_question': intent_data.get('clarification_question'),
+            'suggested_response': suggested_response
+        }
+
+    def _suggest_response_type(
+        self,
+        intent_data: Dict[str, any],
+        actions: List[Dict[str, str]],
+        context: Optional[Dict[str, any]]
+    ) -> str:
+        """
+        IN-001: Suggest what type of response would be appropriate.
+
+        Args:
+            intent_data: Detected intent
+            actions: Extracted actions
+            context: Conversational context
+
+        Returns:
+            Suggested response type
+        """
+        intent = intent_data['primary_intent']
+        confidence = intent_data['confidence']
+
+        # Low confidence = ask for clarification
+        if confidence < 0.6:
+            return 'ask_clarification'
+
+        # Map intents to response types
+        response_map = {
+            'question': 'provide_information',
+            'command': 'execute_action' if actions else 'confirm_action',
+            'help': 'provide_assistance',
+            'greeting': 'social_response',
+            'feedback': 'acknowledge_feedback',
+            'confirmation': 'proceed_with_action',
+            'negation': 'cancel_action',
+            'exploration': 'show_options',
+            'statement': 'acknowledge'
+        }
+
+        return response_map.get(intent, 'general_response')
+
 
 # Global sanitizer instance
 _sanitizer: Optional[Sanitizer] = None
@@ -759,6 +1111,22 @@ def reframe_for_ralph(text: str, log_reframing: bool = True) -> Dict[str, any]:
     return get_sanitizer().reframe_for_ralph(text, log_reframing)
 
 
+# IN-001: Intent Detection convenience functions
+def detect_intent(text: str) -> Dict[str, any]:
+    """Convenience function to detect user intent."""
+    return get_sanitizer().detect_intent(text)
+
+
+def extract_actionable_items(text: str, intent_data: Dict[str, any]) -> List[Dict[str, str]]:
+    """Convenience function to extract actionable items."""
+    return get_sanitizer().extract_actionable_items(text, intent_data)
+
+
+def understand_user_message(text: str, context: Optional[Dict[str, any]] = None) -> Dict[str, any]:
+    """Convenience function for complete intent understanding."""
+    return get_sanitizer().understand_user_message(text, context)
+
+
 # =============================================================================
 # TESTING
 # =============================================================================
@@ -817,3 +1185,32 @@ if __name__ == "__main__":
     print(f"Full Sanitized: {full_sanitized}")
     print(f"Original safe: secrets={s.is_safe(combined_test)}, xss={s.is_xss_safe(combined_test)}")
     print(f"Sanitized safe: secrets={s.is_safe(full_sanitized)}, xss={s.is_xss_safe(full_sanitized)}")
+
+    # IN-001: Intent Detection test strings
+    print("\n" + "=" * 60)
+    print("IN-001: INTENT DETECTION TEST")
+    print("=" * 60)
+
+    intent_test_strings = [
+        "What's the status of the project?",
+        "Build a new feature for user authentication",
+        "I'm stuck with this bug",
+        "this",
+        "Thanks for the help!",
+        "ok",
+        "no",
+        "hey there",
+        "fix the broken deployment script please",
+        "how do I run tests?",
+    ]
+
+    for test in intent_test_strings:
+        print(f"\nInput: '{test}'")
+        understanding = s.understand_user_message(test)
+        print(f"  Intent: {understanding['intent']['primary_intent']} "
+              f"(confidence: {understanding['intent']['confidence']:.2f})")
+        print(f"  Suggested Response: {understanding['suggested_response']}")
+        if understanding['needs_clarification']:
+            print(f"  Needs Clarification: {understanding['clarification_question']}")
+        if understanding['actions']:
+            print(f"  Actions: {understanding['actions']}")

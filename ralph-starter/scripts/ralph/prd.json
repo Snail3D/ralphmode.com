@@ -5941,7 +5941,7 @@
       "files_likely_modified": [
         "sanitizer.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "IN-002",
@@ -8763,6 +8763,250 @@
       ],
       "passes": true,
       "priority": "HARDCORE"
+    },
+    {
+      "id": "DA-001",
+      "category": "DA",
+      "title": "GLM Design Agent Integration",
+      "description": "Integrate Z.AI GLM API (https://api.z.ai/api/anthropic) as dedicated design agent for all aesthetic choices. GLM-4.7 for design decisions.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "design_agent.py",
+        "model_manager.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-002",
+      "category": "DA",
+      "title": "Design Agent Role Definition",
+      "description": "GLM agent handles: color choices, layout decisions, UI/UX aesthetics, visual hierarchy, typography suggestions. NOT coding - pure design.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "design_agent.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-003",
+      "category": "DA",
+      "title": "GLM API Configuration",
+      "description": "Add GLM API support with ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic, model mapping GLM-4.7 for design tasks.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "adapters/glm.py",
+        ".env.example"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-004",
+      "category": "DA",
+      "title": "Design Review Workflow",
+      "description": "Before any visual output, route through GLM design agent for aesthetic approval/suggestions.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "design_agent.py",
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-005",
+      "category": "DA",
+      "title": "Design Agent Character - Frinky Enhanced",
+      "description": "Frinky (existing UI specialist) now powered by GLM for design decisions. 'Frinky thinks this would look GLAVEN!'",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "worker_agents.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-006",
+      "category": "DA",
+      "title": "Aesthetic Consistency Checker",
+      "description": "GLM agent reviews all visual outputs for Simpsons-style consistency, Ralph Mode branding.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "design_agent.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-007",
+      "category": "DA",
+      "title": "README Design Reviews",
+      "description": "GLM design agent approves README formatting, emoji choices, visual layout before commits.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "design_agent.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-008",
+      "category": "DA",
+      "title": "Website Design Agent",
+      "description": "GLM powers all website aesthetic decisions - colors, layouts, character illustrations guidance.",
+      "acceptance_criteria": [
+        "Feature implemented",
+        "GLM API integrated",
+        "Design decisions routed correctly"
+      ],
+      "files_likely_modified": [
+        "website/design.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-001",
+      "category": "CO",
+      "title": "Intelligent Model Router",
+      "description": "Route tasks to cheapest capable model: Local\u2192GLM\u2192Groq\u2192Claude. Only escalate when needed.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "model_router.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-002",
+      "category": "CO",
+      "title": "Task Complexity Analyzer",
+      "description": "Analyze incoming task complexity. Simple=Local, Medium=GLM, Complex=Claude.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "model_router.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-003",
+      "category": "CO",
+      "title": "GLM Build Loop Integration",
+      "description": "Enable ralph.sh to use GLM (via Z.AI API) for build iterations. Test quality vs Claude.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "scripts/ralph/ralph.sh",
+        "model_router.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-004",
+      "category": "CO",
+      "title": "Cost Tracking Dashboard",
+      "description": "Track API costs per provider. Show savings from routing to cheaper models.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "analytics/cost_tracker.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-005",
+      "category": "CO",
+      "title": "Quality Gate for GLM",
+      "description": "If GLM output fails quality check, automatically re-route to Claude. No quality loss.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "model_router.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-006",
+      "category": "CO",
+      "title": "Model Performance Benchmarks",
+      "description": "Run same tasks on GLM vs Claude. Document which tasks GLM handles well.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "benchmarks/model_comparison.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-007",
+      "category": "CO",
+      "title": "Dynamic Model Selection",
+      "description": "Based on task type, auto-select: Design\u2192GLM, Coding\u2192GLM/Claude, Security\u2192Claude only.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "model_router.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CO-008",
+      "category": "CO",
+      "title": "GLM as Default for Build Loop",
+      "description": "Test running full build loop on GLM-4.7. Fall back to Claude only when GLM fails.",
+      "acceptance_criteria": [
+        "Cost savings measured",
+        "Quality maintained",
+        "Routing working"
+      ],
+      "files_likely_modified": [
+        "scripts/ralph/ralph.sh"
+      ],
+      "passes": false
     }
   ],
   "priority_order": [

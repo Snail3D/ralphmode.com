@@ -52,6 +52,7 @@ python ralph_bot.py
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
 | 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. |
+| 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |
@@ -78,6 +79,7 @@ python ralph_bot.py
 | 🏠 **Local AI (Ollama)** | ✅ **Preferred** | Free. Private. Your data stays home. |
 | ⚡ **Groq** | ✅ Allowed | Fast! Free tier! Not Grok! |
 | 🤖 **Anthropic** | ✅ Allowed | Claude is our friend. |
+| 🎨 **GLM (Z.AI)** | ✅ **Design Agent** | Frinky's brain! All aesthetic decisions. |
 | ❌ Grok (xAI) | **BANNED** | *"That's a bad word!"* |
 | ❌ OpenAI | **BANNED** | *"Stranger danger!"* |
 
@@ -88,7 +90,7 @@ python ralph_bot.py
 ```
 ████████████████████░░░░░░░░  58% Complete
 
-524 Tasks Total | 306 Done | 218 To Go
+524 Tasks Total | 307 Done | 217 To Go
 ```
 
 Building autonomously. Ralph never sleeps. *(He tried once. It was unpossible.)*
