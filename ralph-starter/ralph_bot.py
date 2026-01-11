@@ -11041,6 +11041,160 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                 text=f"❌ Error processing mute command: {str(e)}"
             )
 
+    async def handle_admin_tier_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, command_text: str, admin_user_id: int, chat_id: int):
+        """AC-007: Parse and execute tier promotion/demotion commands from voice input.
+
+        Examples:
+            "promote user 123456789 to power user"
+            "demote user 123456789 to viewer"
+            "make user 123456789 chatter"
+
+        Args:
+            update: Telegram update
+            context: Callback context
+            command_text: The command text (after admin trigger phrase)
+            admin_user_id: The admin's user ID
+            chat_id: The chat ID where command was issued
+        """
+        import re
+
+        if not USER_MANAGER_AVAILABLE or not self.user_manager:
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text="❌ User manager not available - tier commands disabled"
+            )
+            return
+
+        try:
+            from user_manager import UserTier
+
+            command_lower = command_text.lower().strip()
+
+            # AC-007: Parse user ID from command
+            user_id_match = re.search(r'(?:user|@)\s*(\d+)', command_lower)
+
+            if not user_id_match:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Could not parse user ID.\n\n"
+                         "Examples:\n"
+                         "• 'promote @user 123456789 to power user'\n"
+                         "• 'demote user 123456789 to viewer'\n"
+                         "• 'make user 123456789 chatter'"
+                )
+                logging.warning(f"AC-007: Could not parse user ID from command: {command_text}")
+                return
+
+            target_user_id = int(user_id_match.group(1))
+
+            # AC-007: Cannot demote self or other Tier 1 users
+            current_tier = self.user_manager.get_user_tier(target_user_id)
+            if current_tier == UserTier.TIER_1_OWNER:
+                # Check if trying to demote owner
+                if target_user_id == admin_user_id:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text="❌ You cannot demote yourself!"
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=admin_user_id,
+                        text="❌ You cannot demote other Tier 1 (Owner) users!"
+                    )
+                logging.warning(f"AC-007: Admin {admin_user_id} attempted to demote Tier 1 user {target_user_id}")
+                return
+
+            # AC-007: Determine target tier based on command keywords
+            new_tier = None
+            tier_name = ""
+
+            if 'power user' in command_lower or 'tier 2' in command_lower or ('promote' in command_lower and 'power' in command_lower):
+                new_tier = UserTier.TIER_2_POWER
+                tier_name = "Power User"
+            elif 'chatter' in command_lower or 'tier 3' in command_lower or 'chat' in command_lower:
+                new_tier = UserTier.TIER_3_CHATTER
+                tier_name = "Chatter"
+            elif 'viewer' in command_lower or 'tier 4' in command_lower or 'view' in command_lower:
+                new_tier = UserTier.TIER_4_VIEWER
+                tier_name = "Viewer"
+
+            if not new_tier:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text="❌ Could not determine target tier.\n\n"
+                         "Valid tiers:\n"
+                         "• Power User (Tier 2)\n"
+                         "• Chatter (Tier 3)\n"
+                         "• Viewer (Tier 4)"
+                )
+                logging.warning(f"AC-007: Could not determine tier from command: {command_text}")
+                return
+
+            # AC-007: Set the new tier
+            success = self.user_manager.set_user_tier(target_user_id, new_tier)
+
+            if success:
+                # Send confirmation to admin
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text=f"✅ **Tier Changed**\n\n"
+                         f"User `{target_user_id}` is now: **{tier_name}**\n"
+                         f"Changes take effect immediately.",
+                    parse_mode='Markdown'
+                )
+                logging.info(f"AC-007: Admin {admin_user_id} changed user {target_user_id} to {tier_name}")
+
+                # AC-007: Notify target user with in-character message
+                try:
+                    # Create in-character notification based on tier
+                    if new_tier == UserTier.TIER_2_POWER:
+                        notification = self.ralph_misspell(
+                            "Hey! Mr. Worms just made you a Power User! "
+                            "That means you can tell me what to build now! "
+                            "Welcome to the team!"
+                        )
+                    elif new_tier == UserTier.TIER_3_CHATTER:
+                        notification = self.ralph_misspell(
+                            "Hi! Mr. Worms says you're a Chatter now. "
+                            "You can talk to me and the team, but only the boss and Power Users can tell me what to build. "
+                            "That's okay though, I like chatting!"
+                        )
+                    elif new_tier == UserTier.TIER_4_VIEWER:
+                        notification = self.ralph_misspell(
+                            "Um... Mr. Worms says you're in Viewer mode now. "
+                            "That means you can watch us work but you can't send messages yet. "
+                            "Use /password if you want to become a Power User!"
+                        )
+                    else:
+                        notification = f"Your access tier has been changed to {tier_name}."
+
+                    # Send notification to group chat (if different from admin's DM)
+                    await self.send_styled_message(
+                        context, chat_id, "Ralph", None, notification,
+                        topic="tier change notification",
+                        with_typing=True
+                    )
+                    logging.info(f"AC-007: Sent tier change notification to chat {chat_id}")
+
+                except Exception as e:
+                    logging.error(f"AC-007: Failed to send tier change notification: {e}")
+                    # Continue even if notification fails
+
+            else:
+                await context.bot.send_message(
+                    chat_id=admin_user_id,
+                    text=f"❌ Failed to change tier for user `{target_user_id}`.",
+                    parse_mode='Markdown'
+                )
+                logging.error(f"AC-007: Failed to change tier for user {target_user_id}")
+
+        except Exception as e:
+            logging.error(f"AC-007: Error handling tier command: {e}", exc_info=True)
+            await context.bot.send_message(
+                chat_id=admin_user_id,
+                text=f"❌ Error processing tier command: {str(e)}"
+            )
+
     async def process_admin_voice_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, transcription: str):
         """AC-001/AC-002: Process admin voice commands (never shown in chat).
 
@@ -11124,6 +11278,9 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
         # AC-006: Parse mute/unmute commands
         elif 'mute' in command_lower or 'unmute' in command_lower or 'list muted' in command_lower:
             await self.handle_admin_mute_command(update, context, command_text, user_id)
+        # AC-007: Parse tier change commands (promote/demote/make)
+        elif 'promote' in command_lower or 'demote' in command_lower or 'make' in command_lower and ('power user' in command_lower or 'chatter' in command_lower or 'viewer' in command_lower or 'tier' in command_lower):
+            await self.handle_admin_tier_command(update, context, command_text, user_id, chat_id)
         else:
             # Log other commands for future implementation
             logging.info(f"AC-001: Admin voice command processed silently (no handler): {command_text[:100]}")
