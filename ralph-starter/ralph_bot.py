@@ -4418,6 +4418,238 @@ _{ralph_response}_
         # Default to neutral
         return 'neutral'
 
+    # ==================== RM-031: CEO CAN DEFEND WORKERS ====================
+
+    def detect_ceo_management_directive(self, text: str) -> Optional[str]:
+        """
+        RM-031: Detect if CEO is defending workers or telling Ralph to push harder.
+
+        Args:
+            text: CEO's message text
+
+        Returns:
+            'defend_workers', 'push_harder', or None
+        """
+        text_lower = text.lower()
+
+        # Patterns for defending workers
+        defend_patterns = [
+            "ease up", "take it easy", "go easy", "lighten up", "relax",
+            "don't be so hard", "be nicer", "give them a break", "let them breathe",
+            "back off", "chill out", "too harsh", "soften up"
+        ]
+
+        # Patterns for pushing harder
+        push_patterns = [
+            "push harder", "work harder", "pick it up", "step it up", "hustle",
+            "move faster", "speed up", "more effort", "get serious", "no slacking",
+            "crack the whip", "tighten up", "be harder on them"
+        ]
+
+        # Check for defend patterns
+        if any(pattern in text_lower for pattern in defend_patterns):
+            return "defend_workers"
+
+        # Check for push patterns
+        if any(pattern in text_lower for pattern in push_patterns):
+            return "push_harder"
+
+        return None
+
+    async def handle_ceo_management_directive(
+        self,
+        context,
+        chat_id: int,
+        user_id: int,
+        directive_type: str,
+        original_order: str
+    ):
+        """
+        RM-031: Handle CEO defending workers or telling Ralph to push harder.
+
+        Args:
+            context: Telegram context
+            chat_id: Chat ID
+            user_id: User ID
+            directive_type: 'defend_workers' or 'push_harder'
+            original_order: The CEO's original message
+        """
+        session = self.active_sessions.get(user_id, {})
+
+        if directive_type == "defend_workers":
+            # Ralph immediately softens
+            ralph_responses = [
+                "Yes Mr. Worms! Sorry everyone! I didn't mean to be so tough!",
+                "Oh! Okay boss! You're right, I'll be nicer! Sorry team!",
+                "You got it Mr. Worms! I was being too pushy! My bad everyone!",
+                "Yes sir! I'll ease up! Sorry guys, the boss says I was too mean!",
+                "Okay okay! I'll be gentler! Thanks for sticking up for them, Mr. Worms!"
+            ]
+
+            ralph_message = self.ralph_misspell(random.choice(ralph_responses))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_message,
+                topic="management_directive",
+                with_typing=True
+            )
+
+            # Workers react with relief/excitement
+            await asyncio.sleep(self.timing.natural_pause())
+
+            # Pick a random worker to respond
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+            worker_data = self.DEV_TEAM[worker_name]
+
+            worker_relief_responses = {
+                "Stool": [
+                    "Oh thank god! Thanks Mr. Worms! You're a lifesaver!",
+                    "Yo, appreciate that Mr. Worms! Ralph was getting intense!",
+                    "Mr. Worms with the save! Much appreciated, boss!"
+                ],
+                "Gomer": [
+                    "Thank you Mr. Worms! We'll keep working hard, just... yeah, thanks!",
+                    "Oh man, thanks boss! We got this, just needed a breather!",
+                    "Appreciate it Mr. Worms! We're on it!"
+                ],
+                "Mona": [
+                    "Thank you, Mr. Worms. We're doing our best work under sustainable conditions.",
+                    "Much appreciated, Mr. Worms. Pressure doesn't always equal productivity.",
+                    "Thanks Mr. Worms. We'll deliver quality work with this breathing room."
+                ],
+                "Gus": [
+                    "Thanks boss. Been through worse, but I appreciate the consideration.",
+                    "Good call, Mr. Worms. Seen too many teams burn out from this kind of pressure.",
+                    "Appreciate that, Mr. Worms. We'll get it done right."
+                ]
+            }
+
+            worker_message = random.choice(worker_relief_responses.get(worker_name, [
+                f"Thanks Mr. Worms! You're the best!",
+                f"Oh wow, thank you boss! Really appreciate that!",
+                f"Mr. Worms to the rescue! Thanks!"
+            ]))
+
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker_data['title'],
+                worker_message,
+                topic="relief",
+                with_typing=True
+            )
+
+            # Ralph might correct them about chain of command
+            if random.random() < 0.4:  # 40% chance
+                await asyncio.sleep(self.timing.quick_reaction())
+
+                ralph_corrections = [
+                    "Hey! Remember the chain of command! You talk to ME, I talk to Mr. Worms!",
+                    "Whoa whoa! Let's not forget - I'm still the manager here! Through me, everyone!",
+                    "Hold on! You should thank Mr. Worms THROUGH me! That's how it works!",
+                    "Wait! The chain goes: You → Me → Mr. Worms! Don't skip me!"
+                ]
+
+                ralph_correction = self.ralph_misspell(random.choice(ralph_corrections))
+
+                await self.send_styled_message(
+                    context, chat_id, "Ralph", None,
+                    ralph_correction,
+                    topic="chain_of_command",
+                    with_typing=True
+                )
+
+        elif directive_type == "push_harder":
+            # Ralph gets more demanding
+            ralph_responses = [
+                "You heard Mr. Worms! Pick it up everyone! Time to get serious!",
+                "Yes sir! Team, we gotta move faster! The boss wants results!",
+                "Okay! Mr. Worms says hustle! Let's go go go!",
+                "Roger that boss! Everyone, no more messin' around! Mr. Worms wants speed!",
+                "Got it! Team, Mr. Worms says we're not working hard enough! Let's show him!"
+            ]
+
+            ralph_message = self.ralph_misspell(random.choice(ralph_responses))
+
+            await self.send_styled_message(
+                context, chat_id, "Ralph", None,
+                ralph_message,
+                topic="push_harder",
+                with_typing=True
+            )
+
+            # Workers react with determination (but slightly stressed)
+            await asyncio.sleep(self.timing.natural_pause())
+
+            worker_name = random.choice(list(self.DEV_TEAM.keys()))
+            worker_data = self.DEV_TEAM[worker_name]
+
+            worker_hustle_responses = {
+                "Stool": [
+                    "Alright alright, I'm on it! Let's crank this out!",
+                    "Okay boss, switching to turbo mode!",
+                    "Got it! Coffee's kicking in, let's do this!"
+                ],
+                "Gomer": [
+                    "Yes sir! I'll get it done faster!",
+                    "On it! Moving to the fast lane!",
+                    "Got it boss! Full speed ahead!"
+                ],
+                "Mona": [
+                    "Understood. Optimizing my workflow now.",
+                    "Acknowledged. Increasing velocity without sacrificing quality.",
+                    "On it. I'll prioritize the critical path."
+                ],
+                "Gus": [
+                    "Yeah yeah, I'm moving. Seen tighter deadlines than this.",
+                    "Alright, I'm on it. Not my first rodeo.",
+                    "Got it. Let me put my head down and knock this out."
+                ]
+            }
+
+            worker_message = random.choice(worker_hustle_responses.get(worker_name, [
+                "Yes sir! We're on it!",
+                "Got it! Moving faster now!",
+                "On it boss! Full throttle!"
+            ]))
+
+            await self.send_styled_message(
+                context, chat_id, worker_name, worker_data['title'],
+                worker_message,
+                topic="hustle",
+                with_typing=True
+            )
+
+        logging.info(f"RM-031: Handled CEO management directive '{directive_type}' for user {user_id}")
+
+        # Check for urgent indicators (highest priority)
+        urgent_indicators = [
+            'asap', 'urgent', 'immediately', 'now', 'right now', 'drop everything',
+            'critical', 'emergency', 'need this', '!!!', 'hurry'
+        ]
+        if any(indicator in text_lower for indicator in urgent_indicators):
+            return 'urgent'
+
+        # Check for upset/angry sentiment
+        upset_indicators = [
+            'not happy', 'disappointed', 'unacceptable', 'terrible', 'awful',
+            'what the hell', 'wtf', 'seriously', 'this is bad', 'not good enough',
+            'frustrated', 'annoyed', 'upset', 'angry', 'fix this', 'broken'
+        ]
+        if any(indicator in text_lower for indicator in upset_indicators):
+            return 'upset'
+
+        # Check for happy/pleased sentiment
+        happy_indicators = [
+            'great job', 'good work', 'excellent', 'perfect', 'love it', 'awesome',
+            'fantastic', 'well done', 'nice', 'impressed', 'happy', 'pleased',
+            'thank you', 'thanks', 'appreciate', 'good', 'looking good'
+        ]
+        if any(indicator in text_lower for indicator in happy_indicators):
+            return 'happy'
+
+        # Default to neutral
+        return 'neutral'
+
     def get_ralph_response_for_ceo_sentiment(self, sentiment: str, order: str) -> str:
         """
         RM-030: Get Ralph's response based on CEO sentiment.
@@ -7074,6 +7306,15 @@ Remember: Be accurate with facts but stay 100% in Ralph's enthusiastic, simple v
                     self.ralph_misspell("You said my name but didn't say anything! My cat does that too!"),
                     with_typing=True
                 )
+                return
+
+            # RM-031: Check if CEO is defending workers or pushing harder
+            management_directive = self.detect_ceo_management_directive(order)
+            if management_directive:
+                await self.handle_ceo_management_directive(
+                    context, chat_id, user_id, management_directive, order
+                )
+                logging.info(f"RM-031: Handled management directive: {management_directive}")
                 return
 
             # RM-030: Analyze CEO sentiment to adjust Ralph's tone
