@@ -1131,6 +1131,72 @@ class RalphBot:
         else:
             self.onboarding_wizard = None
 
+    # ==================== OB-012: COPY BUTTON HANDLERS ====================
+
+    async def handle_copy_button(self, query, context):
+        """
+        OB-012: Handle copy button press.
+
+        Shows the text to copy in an alert popup since Telegram doesn't support
+        true clipboard API. User can then tap-and-hold to manually copy.
+
+        Args:
+            query: Callback query from button press
+            context: Telegram context
+        """
+        if not TELEGRAM_UTILS_AVAILABLE:
+            await query.answer("❌ Copy feature not available", show_alert=True)
+            return
+
+        success, text_to_copy, message = handle_copy_callback(query.data)
+
+        if success:
+            # Use Ralph-themed confirmation message
+            ralph_message = get_ralph_copy_message()
+
+            # Show the text in a popup (Telegram limitation - can't truly copy to clipboard)
+            # User will need to tap and hold to copy manually
+            display_text = f"{ralph_message}\n\n{text_to_copy}"
+
+            await query.answer(display_text, show_alert=True)
+
+            # Also acknowledge in the chat
+            try:
+                await query.message.reply_text(
+                    f"✅ Ready to copy! (Check the popup above)",
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                logging.warning(f"OB-012: Could not send copy confirmation: {e}")
+        else:
+            await query.answer(message, show_alert=True)
+
+        # Periodically clean up old copy data to prevent memory bloat
+        cleanup_old_copy_data()
+
+    async def handle_help_button(self, query, context):
+        """
+        OB-015: Handle help/tooltip button press.
+
+        Shows explanation in a popup.
+
+        Args:
+            query: Callback query from button press
+            context: Telegram context
+        """
+        if not TELEGRAM_UTILS_AVAILABLE:
+            await query.answer("❌ Help feature not available", show_alert=True)
+            return
+
+        success, tooltip_text = handle_help_callback(query.data)
+
+        if success:
+            # Show tooltip in popup with Ralph's personality
+            display_text = f"❓ Ralph explains:\n\n{tooltip_text}"
+            await query.answer(display_text, show_alert=True)
+        else:
+            await query.answer(tooltip_text, show_alert=True)
+
     # ==================== RM-029: DYNAMIC MOOD SYSTEM ====================
 
     def get_team_mood(self, user_id: int) -> int:
@@ -7453,6 +7519,16 @@ _Drop a zip file to get started!_
         query = update.callback_query
         user_id = query.from_user.id
         data = query.data
+
+        # OB-012: Handle copy button callbacks
+        if data.startswith("copy_") and TELEGRAM_UTILS_AVAILABLE:
+            await self.handle_copy_button(query, context)
+            return
+
+        # OB-015: Handle help/tooltip button callbacks
+        if data.startswith("help_") and TELEGRAM_UTILS_AVAILABLE:
+            await self.handle_help_button(query, context)
+            return
 
         # AN-001: Handle satisfaction feedback (thumbs up/down)
         if data.startswith("sat_"):
