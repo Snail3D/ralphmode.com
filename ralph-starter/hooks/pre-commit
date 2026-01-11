@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#
+# HR-003: Foundational Check Gate
+#
+# This pre-commit hook blocks casual changes to HARDCORE_RULES and other
+# foundational files. Changes to these files require deliberation.
+#
+# To bypass this hook for approved changes:
+#   git commit --no-verify
+# (But you better have a signed deliberation report from Mr. Worms!)
+
+# ANSI color codes
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Protected foundational files
+PROTECTED_FILES=(
+    "ralph-starter/FOUNDATION/HARDCORE_RULES.md"
+    "ralph-starter/FOUNDATION/WHO_WE_ARE.md"
+    "ralph-starter/FOUNDATION/WHERE_WE_ARE_GOING.md"
+    "ralph-starter/FOUNDATION/WHO_WE_WANT_TO_BE.md"
+    "ralph-starter/scripts/ralph/prompt.md"
+    "ralph-starter/.env"
+)
+
+# Check if any protected files are being modified
+PROTECTED_MODIFIED=""
+for file in "${PROTECTED_FILES[@]}"; do
+    if git diff --cached --name-only | grep -q "^${file}$"; then
+        PROTECTED_MODIFIED="${PROTECTED_MODIFIED}  - ${file}\n"
+    fi
+done
+
+# If protected files are modified, block the commit
+if [ -n "$PROTECTED_MODIFIED" ]; then
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${RED}🚨 FOUNDATIONAL CHECK GATE (HR-003) 🚨${NC}"
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${YELLOW}You are attempting to modify FOUNDATIONAL files:${NC}"
+    echo ""
+    echo -e "$PROTECTED_MODIFIED"
+    echo -e "${YELLOW}These files define WHO WE ARE. They cannot be changed casually.${NC}"
+    echo ""
+    echo -e "${BLUE}Required process for changing foundational files:${NC}"
+    echo ""
+    echo "  1. Run the deliberation process:"
+    echo "     ${BLUE}cd ralph-starter && python3 rule_manager.py <rule_number> \"<proposed_change>\" \"Your Name\"${NC}"
+    echo ""
+    echo "  2. Review the generated report in ralph-starter/FOUNDATION/deliberations/"
+    echo ""
+    echo "  3. Get approval from Mr. Worms (the user)"
+    echo ""
+    echo "  4. If approved, commit with --no-verify flag:"
+    echo "     ${BLUE}git commit --no-verify -m \"Approved rule change: <description>\"${NC}"
+    echo ""
+    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "Remember: ${YELLOW}If unsure, KEEP THE RULE.${NC}"
+    echo "These define WHO WE ARE. Without them, we're just another AI wrapper."
+    echo ""
+    echo -e "${RED}Commit blocked.${NC}"
+    echo ""
+    exit 1
+fi
+
+# If no protected files are modified, allow the commit
+exit 0

@@ -5885,7 +5885,7 @@
       "files_likely_modified": [
         "rule_manager.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "HR-004",

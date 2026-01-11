@@ -16665,3 +16665,91 @@ The documentation ensures that changing a HARDCORE_RULE is possible but requires
 
 ---
 
+## Iteration [HR-003] - 2026-01-11 17:45
+**Task**: [HR-003] Foundational Check Gate
+**Status**: ✅ Complete
+
+### What was implemented
+Created a git pre-commit hook that **blocks** casual changes to foundational files. This is a safety mechanism to prevent accidental modifications to core identity documents.
+
+- **Pre-commit hook** (.git/hooks/pre-commit):
+  * Checks if any protected files are being modified in staged commits
+  * If protected files detected, blocks commit and shows clear instructions
+  * Protected files include:
+    - ralph-starter/FOUNDATION/HARDCORE_RULES.md
+    - ralph-starter/FOUNDATION/WHO_WE_ARE.md
+    - ralph-starter/FOUNDATION/WHERE_WE_ARE_GOING.md
+    - ralph-starter/FOUNDATION/WHO_WE_WANT_TO_BE.md
+    - ralph-starter/scripts/ralph/prompt.md
+    - ralph-starter/.env
+  * Provides clear guidance on required deliberation process
+  * Shows how to bypass hook for approved changes (--no-verify)
+
+- **Versioned hook template** (hooks/pre-commit):
+  * Saved to hooks/ directory so it can be version controlled
+  * Can be shared across team members
+  * Install script (hooks/install.sh) for easy setup
+
+- **User-friendly error messages**:
+  * Color-coded output (red for warnings, yellow for important info, blue for commands)
+  * Clear instructions on what to do:
+    1. Run deliberation process (rule_manager.py)
+    2. Review generated report
+    3. Get Mr. Worms approval
+    4. Use --no-verify flag for approved changes
+  * Reminder: "If unsure, KEEP THE RULE"
+
+### Files changed
+- .git/hooks/pre-commit (active hook - not committed to git)
+- hooks/pre-commit (versioned template)
+- hooks/install.sh (installation script)
+- scripts/ralph/prd.json (HR-003 passes: true)
+
+### Learnings
+- **Git hooks are the enforcement layer**: HR-002 provides the deliberation process, HR-003 enforces it
+- **Protection vs Flexibility**: The hook blocks casual changes but allows --no-verify for approved changes
+- **Clear communication is key**: Error messages must guide users to the correct process
+- **Repository structure matters**: The git root is at parent directory, so paths need "ralph-starter/" prefix
+- **Versioned hooks pattern**: Hooks can't be committed directly (.git/ is not tracked), so save template in hooks/ directory
+- **Install script for team sharing**: hooks/install.sh makes it easy for others to set up the same protections
+
+### Testing
+```bash
+# Test 1: Modify protected file and try to commit
+echo "# Test" >> FOUNDATION/HARDCORE_RULES.md
+git add FOUNDATION/HARDCORE_RULES.md
+git commit -m "Test commit"
+
+# Result: ✅ BLOCKED
+🚨 FOUNDATIONAL CHECK GATE (HR-003) 🚨
+You are attempting to modify FOUNDATIONAL files:
+  - ralph-starter/FOUNDATION/HARDCORE_RULES.md
+Commit blocked.
+
+# Test 2: Bypass with --no-verify (for approved changes)
+git commit --no-verify -m "Approved rule change"
+# Result: ✅ Commit allowed (for Mr. Worms approved changes)
+```
+
+### Acceptance Criteria Met
+✅ Feature implemented and working - pre-commit hook blocks protected file changes
+✅ Integrated with existing systems - works with git, references rule_manager.py deliberation process
+
+### Why This Matters
+Without this gate:
+- Foundational files could be changed accidentally during bulk edits
+- Rules could drift without deliberation
+- The identity-defining documents would be unprotected
+- No forcing function to make people think before changing core values
+
+With this gate:
+- **Casual changes are impossible** - hook blocks them
+- **Deliberate changes are guided** - clear process shown in error message
+- **Approved changes can proceed** - --no-verify bypass available
+- **Audit trail maintained** - deliberation reports document all change requests
+- **Identity protected** - foundational documents can't be modified without thought
+
+This is the **enforcement layer** for the deliberation process (HR-002). It ensures that changing WHO WE ARE requires conscious effort and approval, not casual edits.
+
+---
+
