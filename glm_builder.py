@@ -137,7 +137,7 @@ class GLMBuilder:
         print(f"  [WRITE] {filepath}")
         # Chatter about file writes (but not too often)
         if random.random() < 0.3:  # 30% chance
-            self.quick_chatter("writing_file", filepath)
+            self.office_chatter("writing", filepath)
         return True
 
     def run_command(self, command: str) -> tuple[int, str]:
@@ -306,50 +306,75 @@ Update the README to reflect current progress. Keep it fresh and useful."""
         except Exception as e:
             print(f"  [README] Refinement failed: {e}")
 
-    def quick_chatter(self, message_type: str, context: str = ""):
-        """Send quick character chatter to Telegram - keeps the feed alive!"""
-        chatters = {
+    def office_chatter(self, situation: str, task_title: str = ""):
+        """Generate natural office conversation - no formal notifications!"""
+
+        # Simplify task title for conversation
+        simple_task = task_title.lower().replace("_", " ").replace("-", " ")
+
+        convos = {
             "task_start": [
-                f"*Ralph squints at screen* \"Ooh! New thingy to build!\"",
-                f"*Stool cracks knuckles* \"Alright, let's see what we got...\"",
-                f"*Gomer bounces in chair* \"Golly, another task! What is it?\"",
-                f"*Ralph picks nose* \"I'm gonna build the BEST thing ever!\"",
-                f"*Stool sighs* \"Here we go again...\"",
+                f"*Ralph squints at monitor* \"Ooh what's this one?\"\n*Stool glances over* \"Looks like we're working on {simple_task}.\"\n*Ralph* \"Sounds importent!\"",
+                f"*Gomer* \"Hey guys, what are we doing now?\"\n*Stool* \"Something about {simple_task}.\"\n*Ralph picks nose* \"I'm helping!\"",
+                f"*Ralph* \"Stool! STOOL! What's happening?\"\n*Stool sighs* \"We're building {simple_task}, Ralph.\"\n*Ralph* \"Oh boy oh boy!\"",
+                f"*Stool stretches* \"Alright, next up...\"\n*Gomer* \"What is it?\"\n*Stool* \"{simple_task}.\"\n*Ralph* \"That's my favrite!\"",
+                f"*Ralph spins in chair* \"Wheee! What are we making?\"\n*Stool* \"Focus, Ralph. {simple_task}.\"\n*Gomer* \"Sounds neat!\"",
             ],
             "thinking": [
-                f"*Ralph stares intensely* \"The compooter is thinking...\"",
-                f"*Stool taps desk impatiently* \"Any day now, GLM...\"",
-                f"*Gomer whispers* \"Shh, it's doing the smart stuff!\"",
-                f"*Ralph picks nose while waiting* \"I wonder if code tastes like chicken...\"",
+                f"*Ralph stares at screen* \"Why is it just... sitting there?\"\n*Stool* \"It's thinking, Ralph.\"\n*Ralph* \"Compooters can THINK?!\"",
+                f"*Gomer* \"Is it broken?\"\n*Stool* \"No, it's processing.\"\n*Ralph* \"I process stuff too! Like chicken nuggets!\"",
+                f"*Ralph pokes monitor* \"Hello? Helloooo?\"\n*Stool* \"Don't touch that.\"\n*Ralph* \"But it's being slow...\"",
+                f"*Gomer whispers* \"Should we do something?\"\n*Stool* \"Just wait.\"\n*Ralph* \"Waiting is my second best skill!\"",
+                f"*Ralph* \"Maybe it fell asleep?\"\n*Stool* \"Computers don't sleep, Ralph.\"\n*Ralph* \"That's sad. Everyone needs sleepy time.\"",
             ],
-            "writing_file": [
-                f"*Stool types furiously* \"Writing code... this is the fun part.\"",
-                f"*Gomer watches amazed* \"Golly, look at all those letters!\"",
-                f"*Ralph claps* \"The magic typing ghost is back!\"",
-            ],
-            "running_cmd": [
-                f"*Stool hits enter dramatically* \"Here goes nothing...\"",
-                f"*Ralph covers eyes* \"I'm too scared to look!\"",
-                f"*Gomer holds breath* \"Please work please work please work...\"",
+            "writing": [
+                f"*Stool types* \"And... there we go.\"\n*Ralph watches amazed* \"So many letters!\"\n*Gomer* \"Golly, that's a lot of code!\"",
+                f"*Ralph* \"Are those words?\"\n*Stool* \"It's code.\"\n*Ralph* \"Code words! Like spies use!\"",
+                f"*Gomer* \"Wow, look at it go!\"\n*Ralph claps* \"The typing ghost is back!\"\n*Stool* \"That's... that's me typing, Ralph.\"",
+                f"*Ralph* \"Can I type something?\"\n*Stool* \"No.\"\n*Ralph* \"Please?\"\n*Stool* \"...no.\"",
             ],
             "git_push": [
-                f"*Ralph salutes* \"Mr. Worms! The GitHu was updated succesfully!\"",
-                f"*Ralph beams proudly* \"I pushed it to the GitHubb, boss!\"",
-                f"*Ralph picks nose* \"The internets have our code now, Mr. Worms!\"",
-                f"*Gomer whispers excitedly* \"We did it! GitHuub is updated!\"",
-                f"*Ralph waves at screen* \"Bye bye code! Go to the GitHup!\"",
-                f"*Stool nods* \"GitHub updated.\" *Ralph adds* \"I helped!\"",
-                f"*Ralph claps* \"Mr. Worms! Mr. Worms! The GidHub thingy worked!\"",
+                f"*Ralph jumps up* \"Mr. Worms! MR. WORMS! The GitHu thingy worked!\"\n*Stool* \"Yes, it's uploaded.\"\n*Ralph* \"I did it!\"",
+                f"*Ralph salutes* \"Reporting for duty! The code went to the internets!\"\n*Gomer* \"We're on GitHubb now!\"\n*Ralph* \"Hi internet people!\"",
+                f"*Stool* \"Pushed.\"\n*Ralph* \"Did someone fall?\"\n*Stool* \"No, I pushed the code to GitHub.\"\n*Ralph* \"Oh! I knew that.\"",
+                f"*Gomer* \"Did it work?\"\n*Stool* \"Yep, it's live.\"\n*Ralph waves at screen* \"Bye bye code! Say hi to the GitHup for me!\"",
+                f"*Ralph* \"Stool! The GidHub ate our code!\"\n*Stool* \"That's... that's what it's supposed to do.\"\n*Ralph* \"Oh good! I was worried.\"",
+            ],
+            "success": [
+                f"*Gomer* \"Hey, it worked!\"\n*Ralph* \"YAYYY!\"\n*Stool* \"Don't get too excited, there's more to do.\"\n*Ralph* \"Too late! Already excited!\"",
+                f"*Ralph does a little dance* \"We did it we did it!\"\n*Stool* \"Calm down.\"\n*Gomer* \"Let him have this one, Stool.\"",
+                f"*Stool leans back* \"Another one done.\"\n*Ralph* \"Can we have a pizza party?\"\n*Stool* \"No.\"\n*Ralph* \"...cake party?\"",
+                f"*Gomer high-fives Ralph* \"Nice work team!\"\n*Ralph misses the high-five* \"Ow my face!\"\n*Stool sighs*",
+            ],
+            "random": [
+                f"*Ralph* \"Hey Stool, guess what?\"\n*Stool* \"What?\"\n*Ralph* \"...I forgot.\"",
+                f"*Gomer* \"Anyone want coffee?\"\n*Stool* \"Sure.\"\n*Ralph* \"I want chocolate milk!\"\n*Gomer* \"We don't have that.\"\n*Ralph* \"Aw...\"",
+                f"*Ralph* \"My chair squeaks.\"\n*Stool* \"So?\"\n*Ralph* \"It's singing to me.\"\n*Stool* \"Please focus.\"",
+                f"*Ralph stares at ceiling* \"Do you think clouds have feelings?\"\n*Stool* \"Ralph. Work.\"\n*Ralph* \"But what if they're SAD clouds?\"",
+                f"*Gomer* \"How much longer?\"\n*Stool* \"A while.\"\n*Ralph* \"A while is my favorite time!\"",
+                f"*Ralph* \"I'm hungry.\"\n*Stool* \"You just ate.\"\n*Ralph* \"That was FOREVER ago!\"\n*Gomer* \"It was ten minutes.\"",
+                f"*Ralph picks nose* \"Found something!\"\n*Stool* \"Please don't share.\"\n*Ralph* \"It's green!\"\n*Gomer* \"RALPH!\"",
+                f"*Ralph spins in chair* \"Wheeeee!\"\n*Stool* \"Stop that.\"\n*Ralph spins faster*",
+                f"*Gomer* \"What's that smell?\"\n*Stool* \"Ralph, did you bring tuna again?\"\n*Ralph* \"It's my emotional support fish!\"",
+                f"*Ralph* \"I made a new friend!\"\n*Stool* \"Who?\"\n*Ralph points at plant* \"Gerald.\"\n*Stool* \"That's a fern.\"",
+                f"*Ralph waves at monitor* \"Hi computer!\"\n*Gomer* \"It can't hear you.\"\n*Ralph* \"You don't know that.\"",
+                f"*Stool stretches* \"My back is killing me.\"\n*Ralph* \"I can fix it!\"\n*Stool* \"Please don't.\"",
+            ],
+            "error": [
+                f"*Ralph* \"Uh oh.\"\n*Stool* \"What now?\"\n*Ralph* \"The screen is angry...\"\n*Gomer* \"That's just an error message.\"",
+                f"*Ralph panics* \"STOOL! THE COMPUTER IS YELLING!\"\n*Stool* \"Calm down, it's just a bug.\"\n*Ralph* \"A BUG?! WHERE?!\"",
+                f"*Gomer* \"Something broke.\"\n*Stool sighs* \"Of course it did.\"\n*Ralph* \"Was it me? Please say it wasn't me.\"",
             ],
         }
 
-        lines = chatters.get(message_type, [f"*Ralph blinks* \"What's happening?\""])
+        lines = convos.get(situation, convos["random"])
         msg = random.choice(lines)
-
-        if context:
-            msg = f"{msg}\n\n📋 _{context}_"
-
         send_telegram(msg)
+
+    def maybe_random_chatter(self):
+        """40% chance to send random office chatter - keeps feed alive!"""
+        if random.random() < 0.4:
+            self.office_chatter("random")
 
     def build_task(self, task: dict) -> bool:
         """
@@ -360,8 +385,8 @@ Update the README to reflect current progress. Keep it fresh and useful."""
         print(f"Building: [{task['id']}] {task.get('title', 'Unknown')}")
         print(f"{'='*60}")
 
-        # Send task start chatter
-        self.quick_chatter("task_start", f"[{task['id']}] {task.get('title', '')}")
+        # Office conversation about starting new task
+        self.office_chatter("task_start", task.get('title', 'something'))
 
         # Read relevant context
         prompt_content = self.read_file("scripts/ralph/prompt.md")
@@ -386,12 +411,12 @@ Output Python code for this feature. Be concise."""
 
         # Call GLM-4.7
         print("  [GLM] Generating implementation...")
-        self.quick_chatter("thinking")
+        self.office_chatter("thinking")
         try:
             response = self.client.build(user_prompt, system_prompt, max_tokens=8000)
         except Exception as e:
             print(f"  [ERROR] GLM call failed: {e}")
-            send_telegram(f"*Ralph panics* \"THE COMPUTER BROKE! IT SAYS: {str(e)[:100]}\"")
+            self.office_chatter("error")
             return False
 
         if not response:
@@ -407,20 +432,25 @@ Output Python code for this feature. Be concise."""
             self.mark_task_complete(task['id'])
             self.log_progress(task, f"Implemented by GLM-4.7")
 
-            # Count tasks for progress
-            prd = self.load_prd()
-            total = len(prd.get("tasks", []))
-            done = sum(1 for t in prd.get("tasks", []) if t.get("passes", False))
+            # Office celebrates completion - no formal notifications!
+            self.office_chatter("success", task.get('title', ''))
 
-            # Generate theatrical scene and send to Telegram (uses FREE model)
-            self.generate_office_scene(task, done, total)
+            # Maybe some random chatter too
+            self.maybe_random_chatter()
 
             # Refine README on every iteration
             self.refine_readme(task)
+
+            # More chatter while working
+            self.maybe_random_chatter()
+
             # Commit README changes and push
             self.run_command('git add -A && git commit -m "docs: Update README progress" --no-verify || true')
             self.run_command('git push origin main || true')
-            self.quick_chatter("git_push")
+            self.office_chatter("git_push")
+
+            # Maybe one more chatter at the end
+            self.maybe_random_chatter()
 
         return success
 
@@ -471,10 +501,14 @@ Output Python code for this feature. Be concise."""
 
     def run_iteration(self) -> bool:
         """Run one iteration of the build loop."""
+        # Random office chatter as iteration starts
+        self.maybe_random_chatter()
+
         task = self.get_next_task()
 
         if not task:
             print("No incomplete tasks found!")
+            send_telegram("*Ralph looks around* \"Are we... done?\"\n*Stool* \"Looks like it.\"\n*Ralph* \"YAY! Pizza time?\"")
             return False
 
         return self.build_task(task)
