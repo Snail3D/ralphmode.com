@@ -2,143 +2,85 @@ import os
 import json
 from typing import Dict, List, Optional
 import anthropic
-from dataclasses import dataclass
-
-@dataclass
-class Requirement:
-    """Represents an extracted requirement."""
-    id: str
-    description: str
-    priority: str
-    category: str
-    source_text: str
 
 class ClaudeQuestionAnalyzer:
-    """Extracts requirements from user answers using Claude."""
+    """Extracts requirements from user answers using Claude AI."""
     
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if not self.api_key:
+            raise ValueError("Anthropic API key required")
         self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.model = "claude-3-opus-20240229"
-        
-    def analyze_answer(self, user_answer: str, context: Optional[Dict] = None) -> List[Requirement]:
-        """Analyze user answer and extract requirements."""
-        prompt = self._build_prompt(user_answer, context)
+    
+    def extract_requirements(
+        self, 
+        question: str, 
+        user_answer: str,
+        context: Optional[Dict] = None
+    ) -> Dict:
+        """Extract requirements from user's answer to a question."""
+        prompt = self._build_prompt(question, user_answer, context)
         
         try:
             response = self.client.messages.create(
-                model=self.model,
-                max_tokens=2000,
+                model="claude-3-opus-20240229",
+                max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}]
             )
-            
-            return self._parse_requirements(response.content[0].text)
+            result = self._parse_response(response.content[0].text)
+            result["success"] = True
+            return result
         except Exception as e:
-            print(f"Error analyzing answer: {e}")
-            return []
+            return {"success": False, "error": str(e), "requirements": [], "metadata": {}}
     
-    def _build_prompt(self, user_answer: str, context: Optional[Dict]) -> str:
-        """Build the prompt for Claude."""
-        base_prompt = """Analyze the following user answer and extract all requirements.
-        For each requirement, provide:
-        - A clear description
-        - Priority (high/medium/low)
-        - Category (functional/non-functional/technical)
-        - The exact text from the answer that generated this requirement
-        
-        Format your response as JSON with this structure:
-        {
-            "requirements": [
-                {
-                    "description": "...",
-                    "priority": "...",
-                    "category": "...",
-                    "source_text": "..."
-                }
-            ]
-        }
-        
-        User Answer:
-        """
-        
+    def _build_prompt(self, question: str, user_answer: str, context: Optional[Dict] = None) -> str:
+        prompt = f"""Analyze the following user answer and extract requirements.
+
+Question: {question}
+User Answer: {user_answer}
+"""
         if context:
-            base_prompt += f"\nContext: {json.dumps(context)}\n"
+            prompt += f"\nContext:\n{json.dumps(context, indent=2)}\n"
         
-        return base_prompt + user_answer
+        prompt += """Return JSON with this structure:
+{
+  "requirements": [
+    {"id": "unique_id", "description": "description", "priority": "high|medium|low", "category": "functional|non-functional|constraint"}
+  ],
+  "summary": "brief summary",
+  "ambiguities": ["list of ambiguities"]
+}"""
+        return prompt
     
-    def _parse_requirements(self, response_text: str) -> List[Requirement]:
-        """Parse Claude's response into Requirement objects."""
+    def _parse_response(self, response_text: str) -> Dict:
         try:
-            data = json.loads(response_text)
-            requirements = []
-            
-            for i, req_data in enumerate(data.get("requirements", [])):
-                req = Requirement(
-                    id=f"req-{i+1}",
-                    description=req_data.get("description", ""),
-                    priority=req_data.get("priority", "medium"),
-                    category=req_data.get("category", "functional"),
-                    source_text=req_data.get("source_text", "")
-                )
-                requirements.append(req)
-            
-            return requirements
+            start_idx = response_text.find("{")
+            end_idx = response_text.rfind("}") + 1
+            if start_idx != -1 and end_idx > start_idx:
+                return json.loads(response_text[start_idx:end_idx])
         except json.JSONDecodeError:
-            print("Failed to parse Claude response as JSON")
-            return []
+            pass
+        return {"requirements": [], "summary": response_text, "ambiguities": [], "metadata": {"raw_response": response_text}}
+    
+    def batch_extract_requirements(self, qa_pairs: List[Dict[str, str]], context: Optional[Dict] = None) -> List[Dict]:
+        """Extract requirements from multiple question-answer pairs."""
+        return [self.extract_requirements(qa.get("question", ""), qa.get("answer", ""), context) for qa in qa_pairs]
 
-class RequirementManager:
-    """Manages requirements in the system."""
-    
-    def __init__(self, analyzer: ClaudeQuestionAnalyzer):
-        self.analyzer = analyzer
-        self.requirements: Dict[str, Requirement] = {}
-    
-    def process_user_answer(self, answer: str, context: Optional[Dict] = None) -> List[Requirement]:
-        """Process a user answer and store extracted requirements."""
-        extracted = self.analyzer.analyze_answer(answer, context)
-        
-        for req in extracted:
-            self.requirements[req.id] = req
-        
-        return extracted
-    
-    def get_all_requirements(self) -> List[Requirement]:
-        """Get all stored requirements."""
-        return list(self.requirements.values())
-    
-    def get_requirement_by_id(self, req_id: str) -> Optional[Requirement]:
-        """Get a specific requirement by ID."""
-        return self.requirements.get(req_id)
-    
-    def export_to_json(self) -> str:
-        """Export all requirements to JSON format."""
-        reqs_data = [
-            {
-                "id": req.id,
-                "description": req.description,
-                "priority": req.priority,
-                "category": req.category,
-                "source_text": req.source_text
-            }
-            for req in self.requirements.values()
-        ]
-        return json.dumps({"requirements": reqs_data}, indent=2)
 
-# Example usage
+def integrate_with_system(system_config: Dict) -> ClaudeQuestionAnalyzer:
+    """Factory function to integrate ClaudeQuestionAnalyzer with existing systems."""
+    analyzer = ClaudeQuestionAnalyzer(api_key=system_config.get("anthropic_api_key"))
+    
+    if "custom_prompt_template" in system_config:
+        analyzer._build_prompt = lambda q, a, c=None: system_config["custom_prompt_template"].format(
+            question=q, answer=a, context=json.dumps(c) if c else ""
+        )
+    return analyzer
+
+
 if __name__ == "__main__":
     analyzer = ClaudeQuestionAnalyzer()
-    manager = RequirementManager(analyzer)
-    
-    user_answer = """
-    We need a system that can handle at least 10,000 concurrent users.
-    The response time should be under 200ms for API calls.
-    It should support OAuth2 authentication.
-    The UI needs to be responsive and work on mobile devices.
-    """
-    
-    requirements = manager.process_user_answer(user_answer)
-    
-    print(f"Extracted {len(requirements)} requirements:")
-    for req in requirements:
-        print(f"- [{req.priority}] {req.description} ({req.category})")
+    question = "What features should our project management tool have?"
+    answer = "We need task creation, assignment, deadlines, Slack integration, mobile-friendly UI, and data encryption."
+    result = analyzer.extract_requirements(question, answer)
+    print(json.dumps(result, indent=2))
