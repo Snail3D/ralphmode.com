@@ -5297,7 +5297,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-007",
@@ -5311,7 +5311,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-008",
@@ -5325,7 +5325,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-009",
@@ -5339,7 +5339,7 @@
       "files_likely_modified": [
         "prd_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-010",
@@ -5353,7 +5353,7 @@
       "files_likely_modified": [
         "prd_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-011",
@@ -5367,7 +5367,7 @@
       "files_likely_modified": [
         "prd_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-012",
@@ -5381,7 +5381,7 @@
       "files_likely_modified": [
         "ralph_bot.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-013",
@@ -5395,7 +5395,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-014",
@@ -5409,7 +5409,7 @@
       "files_likely_modified": [
         "ralph_bot.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-015",
@@ -5423,7 +5423,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-016",
@@ -5437,7 +5437,7 @@
       "files_likely_modified": [
         "personality_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-017",
@@ -5451,7 +5451,7 @@
       "files_likely_modified": [
         "personality_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-018",
@@ -5465,7 +5465,7 @@
       "files_likely_modified": [
         "personality_manager.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-019",
@@ -9005,6 +9005,216 @@
       ],
       "files_likely_modified": [
         "scripts/ralph/ralph.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-001",
+      "category": "Distribution",
+      "title": "Dockerfile Creation",
+      "description": "Create a production-ready Dockerfile that packages Ralph Mode for easy deployment. Include all dependencies, proper Python version, and health checks.",
+      "acceptance_criteria": [
+        "Dockerfile exists and builds successfully",
+        "Multi-stage build for smaller image size",
+        "Non-root user for security",
+        "Health check endpoint configured",
+        "Proper .dockerignore file"
+      ],
+      "files_likely_modified": [
+        "Dockerfile",
+        ".dockerignore"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-002",
+      "category": "Distribution",
+      "title": "Docker Compose Setup",
+      "description": "Create docker-compose.yml for one-command deployment with all services (bot, database if needed, etc.).",
+      "acceptance_criteria": [
+        "docker-compose.yml exists",
+        "Single command startup: docker-compose up",
+        "Environment variables via .env file",
+        "Volume mounts for persistence",
+        "Network configuration for services"
+      ],
+      "files_likely_modified": [
+        "docker-compose.yml"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-003",
+      "category": "Distribution",
+      "title": "Cross-Platform Install Script",
+      "description": "Create setup.sh that works on macOS, Linux, and WSL. Auto-detects OS and installs appropriate dependencies.",
+      "acceptance_criteria": [
+        "setup.sh detects OS (macOS/Linux/WSL)",
+        "Installs Python 3.10+ if missing",
+        "Creates virtual environment",
+        "Installs all pip dependencies",
+        "Prompts for .env configuration",
+        "Works on fresh system"
+      ],
+      "files_likely_modified": [
+        "setup.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-004",
+      "category": "Distribution",
+      "title": "One-Liner Install Command",
+      "description": "Create a curl-based one-liner that downloads and runs setup: curl -sSL ralphmode.com/install | bash",
+      "acceptance_criteria": [
+        "Install script hosted or embeddable",
+        "One-liner works: curl ... | bash",
+        "Shows progress during install",
+        "Handles errors gracefully",
+        "Works on macOS and Linux"
+      ],
+      "files_likely_modified": [
+        "install.sh",
+        "scripts/install-ralph.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-005",
+      "category": "Distribution",
+      "title": "GitHub Release Automation",
+      "description": "Create GitHub Action to auto-create releases with changelog, version bumps, and downloadable assets.",
+      "acceptance_criteria": [
+        "GitHub Action workflow for releases",
+        "Auto-generates changelog from commits",
+        "Creates downloadable zip/tar.gz",
+        "Tags version properly",
+        "Attaches Docker image to release"
+      ],
+      "files_likely_modified": [
+        ".github/workflows/release.yml"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-006",
+      "category": "Distribution",
+      "title": "Windows Support Guide",
+      "description": "Document and test Ralph Mode on Windows via WSL2. Create clear instructions for Windows users.",
+      "acceptance_criteria": [
+        "WSL2 installation guide in docs",
+        "Tested on Windows 10/11 with WSL2",
+        "Troubleshooting section for common issues",
+        "PowerShell helper script if applicable"
+      ],
+      "files_likely_modified": [
+        "docs/WINDOWS.md"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-007",
+      "category": "Distribution",
+      "title": "Quick Start Validation",
+      "description": "Test the README quick start guide on a FRESH machine. Fix any missing steps or unclear instructions.",
+      "acceptance_criteria": [
+        "Quick start works on fresh Ubuntu 22.04",
+        "Quick start works on fresh macOS",
+        "All dependencies listed accurately",
+        "Time estimate accurate (60 seconds claim)",
+        "No assumed prerequisites"
+      ],
+      "files_likely_modified": [
+        "README.md"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-008",
+      "category": "Distribution",
+      "title": "Connection Testing Suite",
+      "description": "Create test_connections.py that verifies all external connections: Telegram API, Groq API, GitHub, etc.",
+      "acceptance_criteria": [
+        "test_connections.py exists",
+        "Tests Telegram bot token validity",
+        "Tests Groq API key",
+        "Tests GitHub access if configured",
+        "Clear pass/fail output",
+        "Helpful error messages on failure"
+      ],
+      "files_likely_modified": [
+        "test_connections.py",
+        "tests/test_connections.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-009",
+      "category": "Distribution",
+      "title": "Environment Validator",
+      "description": "Create check_env.py that validates .env file has all required variables with correct formats.",
+      "acceptance_criteria": [
+        "check_env.py exists",
+        "Validates all required env vars present",
+        "Checks format of API keys/tokens",
+        "Suggests fixes for common issues",
+        "Runs automatically on startup"
+      ],
+      "files_likely_modified": [
+        "check_env.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-010",
+      "category": "Distribution",
+      "title": "Pre-flight Checklist Command",
+      "description": "Add /preflight command that runs all checks: env vars, API connections, disk space, Python version, etc.",
+      "acceptance_criteria": [
+        "/preflight command exists",
+        "Checks Python version",
+        "Checks all env vars",
+        "Tests all API connections",
+        "Reports disk space",
+        "Shows clear pass/fail for each"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-011",
+      "category": "Distribution",
+      "title": "Dependency Pinning",
+      "description": "Pin all dependencies in requirements.txt to specific versions that are tested to work together.",
+      "acceptance_criteria": [
+        "All dependencies have version pins",
+        "requirements.txt tested on fresh install",
+        "No conflicting versions",
+        "requirements-dev.txt for dev dependencies"
+      ],
+      "files_likely_modified": [
+        "requirements.txt",
+        "requirements-dev.txt"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-012",
+      "category": "Distribution",
+      "title": "Demo Mode",
+      "description": "Create demo mode that works without any API keys - uses mock responses to show the experience.",
+      "acceptance_criteria": [
+        "DEMO_MODE env var enables demo",
+        "Mock responses feel realistic",
+        "Shows full Ralph experience",
+        "Clear indication it is demo mode",
+        "Easy upgrade path to real mode"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "demo_mode.py"
       ],
       "passes": false
     }

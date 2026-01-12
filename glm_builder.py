@@ -11,10 +11,12 @@ import sys
 import json
 import re
 import subprocess
+import requests
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 from dotenv import load_dotenv
+import random
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -28,6 +30,54 @@ PROJECT_DIR = Path(__file__).parent
 PRD_FILE = PROJECT_DIR / "scripts/ralph/prd.json"
 PROMPT_FILE = PROJECT_DIR / "scripts/ralph/prompt.md"
 PROGRESS_FILE = PROJECT_DIR / "scripts/ralph/progress.txt"
+
+# Telegram config
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", os.getenv("TELEGRAM_ADMIN_ID", ""))
+
+# Ralph Wiggum quotes for random insertion
+RALPH_QUOTES = [
+    "I'm a unitard!",
+    "Me fail English? That's unpossible!",
+    "Hi, Super Nintendo Chalmers!",
+    "I bent my Wookie.",
+    "My cat's breath smells like cat food.",
+    "I'm learnding!",
+    "When I grow up, I want to be a principal or a caterpillar.",
+    "That's where I saw the leprechaun. He tells me to burn things.",
+    "I ate the purple berries... they taste like burning.",
+    "My daddy's gonna be so proud of me!",
+    "Look Big Daddy, it's Regular Daddy!",
+    "I found a moonrock in my nose!",
+    "What's a diorama?",
+    "Mrs. Krabappel and Principal Skinner were in the closet making babies...",
+    "Can you open my milk, Mommy?",
+    "I choo-choo-choose you!",
+    "The doctor said I wouldn't have so many nose bleeds if I kept my finger outta there.",
+    "Even my boogers are spicy!",
+    "I'm helping! I'm a helper!",
+    "My parents won't let me use scissors.",
+]
+
+
+def send_telegram(message: str) -> bool:
+    """Send message to Telegram."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("  [TELEGRAM] Not configured, skipping")
+        return False
+
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "Markdown"
+        }
+        response = requests.post(url, data=data, timeout=10)
+        return response.json().get("ok", False)
+    except Exception as e:
+        print(f"  [TELEGRAM] Error: {e}")
+        return False
 
 
 class GLMBuilder:
@@ -128,6 +178,66 @@ GLM-4.7 (Cost-optimized)
 """
         with open(PROGRESS_FILE, 'a') as f:
             f.write(entry)
+
+    def generate_office_scene(self, task: dict, done_count: int, total_count: int):
+        """Generate theatrical office scene using GLM-4.5-Flash (FREE) and send to Telegram."""
+        try:
+            # Build the scene prompt
+            scene_prompt = f"""Generate a SHORT (3-5 lines) comedic office scene about completing this task:
+
+Task: [{task['id']}] {task.get('title', '')}
+Progress: {done_count}/{total_count} tasks done ({int(done_count/total_count*100)}%)
+
+Characters:
+- Ralph (boss): Lovably confused, misspells words, says "unpossible", picks nose
+- Stool (senior dev): Competent but cynical, sighs a lot
+- Gomer (junior): Eager, asks questions, says "Golly!"
+
+Write a quick scene where they react to finishing this task. Include:
+- One character announcing completion
+- Another character's reaction
+- A Ralph Wiggum-style non-sequitur or quote
+- Keep it under 5 lines total
+
+Format each line as: *character action* "dialogue"
+Example:
+*Stool sighs, pushing back from keyboard* "Well, that's done."
+*Ralph picks nose* "My code has sparkles in it!"
+*Gomer bounces excitedly* "Golly, we're really building something!"
+"""
+
+            response = self.client.personality(scene_prompt, "ralph")
+
+            if response:
+                # Build the full message
+                message = f"""🎬 *Scene {done_count}*
+
+{response}
+
+━━━━━━━━━━━━━
+✅ *[{task['id']}]* {task.get('title', '')}
+📊 {done_count}/{total_count} complete
+━━━━━━━━━━━━━
+
+_{random.choice(RALPH_QUOTES)}_"""
+
+                send_telegram(message)
+                print("  [SCENE] Sent theatrical update to Telegram")
+            else:
+                # Fallback simple message
+                message = f"""✅ *Task Complete!*
+
+*[{task['id']}]* {task.get('title', '')}
+
+📊 Progress: {done_count}/{total_count}
+
+_"{random.choice(RALPH_QUOTES)}"_ - Ralph"""
+                send_telegram(message)
+
+        except Exception as e:
+            print(f"  [SCENE] Error generating scene: {e}")
+            # Send basic update on error
+            send_telegram(f"✅ *[{task['id']}]* {task.get('title', '')} complete!\n📊 {done_count}/{total_count}")
 
     def refine_readme(self, task: dict):
         """Refine README.md after each task - keep it current and useful."""
@@ -244,6 +354,15 @@ Output Python code for this feature. Be concise."""
         if success:
             self.mark_task_complete(task['id'])
             self.log_progress(task, f"Implemented by GLM-4.7")
+
+            # Count tasks for progress
+            prd = self.load_prd()
+            total = len(prd.get("tasks", []))
+            done = sum(1 for t in prd.get("tasks", []) if t.get("passes", False))
+
+            # Generate theatrical scene and send to Telegram (uses FREE model)
+            self.generate_office_scene(task, done, total)
+
             # Refine README on every iteration
             self.refine_readme(task)
             # Commit README changes and push
