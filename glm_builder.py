@@ -129,6 +129,71 @@ GLM-4.7 (Cost-optimized)
         with open(PROGRESS_FILE, 'a') as f:
             f.write(entry)
 
+    def refine_readme(self, task: dict):
+        """Refine README.md after each task - keep it current and useful."""
+        readme_path = self.project_dir / "README.md"
+
+        if not readme_path.exists():
+            print("  [README] No README.md found, skipping refinement")
+            return
+
+        current_readme = readme_path.read_text()
+
+        # Count completed tasks for progress bar
+        prd = self.load_prd()
+        total = len(prd.get("tasks", []))
+        done = sum(1 for t in prd.get("tasks", []) if t.get("passes", False))
+        percent = int((done / total) * 100) if total > 0 else 0
+
+        # Ask GLM to refine the README
+        system_prompt = """You are a README refinement expert. Your job is to keep the README current and useful.
+
+Rules:
+1. Keep it to ~2 pages max (concise, not bloated)
+2. Update the progress bar/stats with accurate numbers
+3. Add any NEW features from the task that users would care about
+4. Remove anything outdated or no longer relevant
+5. Keep the playful Ralph Mode tone
+6. Output the ENTIRE updated README.md content
+
+Output format:
+===FILE: README.md===
+[full updated README content]
+===END FILE==="""
+
+        user_prompt = f"""Task just completed: [{task['id']}] {task.get('title', '')}
+Description: {task.get('description', '')}
+
+Current stats: {done}/{total} tasks complete ({percent}%)
+
+Current README:
+```
+{current_readme[:3000]}
+```
+
+Update the README to reflect current progress. Keep it fresh and useful."""
+
+        print("  [README] Refining README.md...")
+        try:
+            response = self.client.build(user_prompt, system_prompt, max_tokens=4000)
+            if response:
+                # Extract the README content
+                file_pattern = r'===FILE:\s*README\.md===\s*(.*?)\s*===END FILE==='
+                match = re.search(file_pattern, response, re.DOTALL)
+                if match:
+                    new_readme = match.group(1).strip()
+                    # Remove markdown code blocks if present
+                    if new_readme.startswith('```'):
+                        lines = new_readme.split('\n')
+                        new_readme = '\n'.join(lines[1:-1] if lines[-1].strip() == '```' else lines[1:])
+
+                    readme_path.write_text(new_readme)
+                    print("  [README] Updated README.md")
+                else:
+                    print("  [README] Could not parse response, skipping")
+        except Exception as e:
+            print(f"  [README] Refinement failed: {e}")
+
     def build_task(self, task: dict) -> bool:
         """
         Build a single PRD task using GLM-4.7.
@@ -179,6 +244,8 @@ Output Python code for this feature. Be concise."""
         if success:
             self.mark_task_complete(task['id'])
             self.log_progress(task, f"Implemented by GLM-4.7")
+            # Refine README on every iteration
+            self.refine_readme(task)
 
         return success
 
