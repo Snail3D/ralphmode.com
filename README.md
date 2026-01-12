@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**342/541 Tasks Complete (63%)**
+**343/541 Tasks Complete (63%)**
 
 ---
 
@@ -57,11 +57,11 @@ python ralph_bot.py
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
 | 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. **New:** Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
+| 🧩 **Complexity Awareness** | Big project? Ralph knows. He encourages the team to talk it out before coding starts. Less spaghetti, more strategy. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
 | 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your use case, budget, and hardware. |
 | 🔍 **Local Model Discovery** | Auto-detects Ollama, LM Studio, and llama.cpp servers. Zero-config local AI! |
 | ✅ **Validation Cache** | Remembers which models passed tests. Skip re-testing! Smart model selection based on validation history. |
-| 🧪 **Test Prompt Library** | 12 role-specific validation prompts. Test Ralph's personality, worker coding skills, builder planning, and design decisions. |
-| 🏃 **Test Runner** | Execute validation tests to ensure models are working before the team starts coding. |
+| 🧪 **Test Prompt Library** | 12 role-specific validation prompts to ensure models know their stuff. |

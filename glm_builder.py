@@ -246,6 +246,9 @@ Output Python code for this feature. Be concise."""
             self.log_progress(task, f"Implemented by GLM-4.7")
             # Refine README on every iteration
             self.refine_readme(task)
+            # Commit README changes and push
+            self.run_command('git add -A && git commit -m "docs: Update README progress" --no-verify || true')
+            self.run_command('git push origin main || true')
 
         return success
 
