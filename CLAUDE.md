@@ -149,4 +149,56 @@ npm run dev  # or python -m http.server
 
 ---
 
+## 💰 BUSINESS MODEL (PROTECTED - DO NOT MODIFY)
+
+### The Golden Rule: Fixes FREE, Features PAID
+
+**FREE FOREVER:**
+- ✅ Bug fixes - something broken? We fix it free
+- ✅ Security patches - your safety is not for sale
+- ✅ Performance fixes - if we broke it, we fix it
+- ✅ Documentation fixes - typos, clarifications
+
+**PAID (New Value = New Price):**
+- 💰 New features - adding capabilities
+- 💰 Enhancements - making good things better
+- 💰 Integrations - connecting to new services
+- 💰 Custom builds - your specific requirements
+
+### Branch Strategy
+
+```
+main (stable release)
+  │
+  ├── hotfix/* ─────────────► FAST TRACK TO MAIN (FREE)
+  │   • Critical bug fixes, security patches
+  │   • Merges to main IMMEDIATELY
+  │
+  ├── mr-worms-edition ────► Owner's direct work
+  │   • Mr. Worms' personal builds
+  │
+  └── user-suggestions/* ──► Community features (PAID)
+      └── [nickname]/[task]
+```
+
+### Pricing (Features Only)
+
+| Type | Price |
+|------|-------|
+| 🟢 Simple | $5-15 |
+| 🟡 Medium | $25-75 |
+| 🟠 Complex | $100-300 |
+| 🔴 Enterprise | Custom |
+| 🆓 **Fixes** | **FREE** |
+
+---
+
+## ☕ Support
+
+<!-- PROTECTED - DO NOT REMOVE -->
+[Buy Me a Coffee](https://buymeacoffee.com/snail3d)
+<!-- END PROTECTED -->
+
+---
+
 *Let's make Ralph accessible to everyone!*
