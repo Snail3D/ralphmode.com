@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**345/541 Tasks Complete (63%)**
+**346/541 Tasks Complete (63%)**
 
 ---
 
@@ -38,12 +38,12 @@ python ralph_bot.py
 
 | | Character | What They Do |
 |---|-----------|--------------|
-| 🧠 | **Ralph** *(Boss)* | *"Me fail English? That's unpossible!"* Lovably confused. Genuinely innocent. Runs the show. **(New!)** Constantly worried about the economy and getting fired. |
+| 🧠 | **Ralph** *(Boss)* | *"Me fail English? That's unpossible!"* Lovably confused. Genuinely innocent. Runs the show. Constantly worried about the economy and getting fired. |
 | 💼 | **Stool** *(Senior Dev)* | Gets things done. Slightly cynical. The one who actually knows stuff. |
 | 🌟 | **Gomer** *(Junior Dev)* | Eager beaver! Asks good questions. Learning every day. |
 | 🔍 | **Mona** *(QA Lead)* | Catches every edge case. Nothing escapes her. |
 | 🔧 | **Gus** *(DevOps)* | *"The server room is my happy place."* Infrastructure wizard. |
-| 👔 | **Mr. Worms** *(You!)* | The CEO. Your voice becomes theatrical dialogue. You're the boss. |
+| 👔 | **Mr. Worms** *(You!)* | The CEO. Your voice becomes theatrical dialogue. You're the boss. **(New!)** The team follows the Obedience Protocol: they defer to you instantly and adjust tone on command. |
 
 **Specialists on Call:** Frinky (UI), Willie (DevOps), Doc (Debugging)
 
@@ -57,9 +57,9 @@ python ralph_bot.py
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
-| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. **New:** Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
+| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
 | 🧩 **Complexity Awareness** | Big project? Ralph knows. He encourages the team to talk it out before coding starts. Less spaghetti, more strategy. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
-| 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your use case, budget, and hardware. |
+| 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your project needs. |
