@@ -61,6 +61,7 @@ python ralph_bot.py
 | 🧪 **Test Prompt Library** | 12 role-specific validation prompts. Test Ralph's personality, worker coding skills, builder planning, and design decisions. |
 | 🏃 **Test Runner** | Execute validation tests against any model. Score results, measure latency, record to registry. CLI + integration ready! |
 | 🎯 **Character Detection** | Smart validation checks if models truly "get" each character. Ralph friendly? Worker professional? Tests personality traits, not just responses! |
+| 🔌 **Connection Testing** | Quick reachability checks before running full tests. Diagnose config issues fast! Two-stage validation: availability + minimal inference test. |
 | 🔒 **Broadcast-Safe** | Secrets filtered. Swears become *\*jaw clenches\**. Stream it live! |
 | 👥 **Multi-User** | Owner, Power Users, Viewers - everyone has a role. |
 | 🛡️ **Enterprise Security** | OWASP Top 10 covered. We take this seriously. |

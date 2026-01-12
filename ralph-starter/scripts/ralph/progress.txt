@@ -17762,3 +17762,55 @@ GLM-4.7 (Cost-optimized)
 - Keeps README under 2 pages, succinct
 
 ---
+## Iteration [Auto] - 2026-01-11
+**Task**: [MM-022] Connection Testing
+**Status**: ✅ Complete
+
+### What was implemented
+- Added test_connection() function for model reachability verification
+- ConnectionTestResult dataclass with role, provider, model_id, is_reachable, latency_ms, error fields
+- Two-stage connection testing approach:
+  1. Check adapter.is_available() (fast, basic check)
+  2. Send minimal test prompt ("Hi" with max_tokens=10) to verify actual inference
+- ModelTester.test_connection_for_role() for testing individual role connections
+- ModelTester.test_all_connections() for batch testing all configured models
+- print_connection_results() for user-friendly CLI output
+- CLI flag support: python model_tester.py --test-connections
+
+### Files changed
+- model_tester.py (+195 lines)
+
+### Implementation approach
+- Lightweight checks before running full test suites
+- Two-stage validation ensures both availability AND actual inference capability
+- Minimal token usage (10 tokens) for fast testing
+- Graceful error handling with informative error messages
+- Results include latency metrics for performance diagnostics
+
+### Testing performed
+- Verified module imports correctly
+- Confirmed all new exports available (test_connection, ConnectionTestResult)
+- Validated ModelTester class has all new methods
+- All methods accessible and callable
+
+### Use cases
+1. **Pre-flight checks**: Run before test suites to catch config errors early
+2. **Model onboarding**: Verify new model is reachable before adding to production
+3. **Debugging**: Quick diagnostics when models start failing
+4. **Monitoring**: Periodic health checks on configured models
+5. **CI/CD**: Validate model availability in deployment pipelines
+
+### Learnings
+- Connection testing is crucial for early error detection
+- Two-stage approach catches both network issues and inference problems
+- Minimal token usage keeps tests fast and cheap
+- Clear error messages help users diagnose issues without diving into logs
+- This completes the testing infrastructure: Library → Runner → Validation → Connection
+- Connection tests can save significant time by failing fast on unreachable models
+
+### README sync
+- Added "Connection Testing" feature line to README.md
+- Describes quick reachability checks and two-stage validation
+- README remains succinct, under 2 pages
+
+---
