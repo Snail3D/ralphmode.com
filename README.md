@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**344/541 Tasks Complete (63%)**
+**345/541 Tasks Complete (63%)**
 
 ---
 
@@ -38,7 +38,7 @@ python ralph_bot.py
 
 | | Character | What They Do |
 |---|-----------|--------------|
-| 🧠 | **Ralph** *(Boss)* | *"Me fail English? That's unpossible!"* Lovably confused. Genuinely innocent. Runs the show. |
+| 🧠 | **Ralph** *(Boss)* | *"Me fail English? That's unpossible!"* Lovably confused. Genuinely innocent. Runs the show. **(New!)** Constantly worried about the economy and getting fired. |
 | 💼 | **Stool** *(Senior Dev)* | Gets things done. Slightly cynical. The one who actually knows stuff. |
 | 🌟 | **Gomer** *(Junior Dev)* | Eager beaver! Asks good questions. Learning every day. |
 | 🔍 | **Mona** *(QA Lead)* | Catches every edge case. Nothing escapes her. |
@@ -63,5 +63,3 @@ python ralph_bot.py
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
 | 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your use case, budget, and hardware. |
-| 🔍 **Local Model Discovery** | Auto-detects Ollama, LM Studio, and llama.cpp servers. Zero-config local AI! |
-| ✅ **Validation Cache** | Remembers past checks to save time and tokens. |

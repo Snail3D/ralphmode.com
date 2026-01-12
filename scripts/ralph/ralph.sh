@@ -277,15 +277,31 @@ _Mr. Worms says: Move these to .env!_"
   # Extract summary from output (last 500 chars or so)
   SUMMARY=$(echo "$OUTPUT" | tail -c 800 | head -c 500)
 
+  # Get latest task info for better notification
+  LATEST_TASK=$(grep -o '"id": "[^"]*"' "$PRD_FILE" | head -1 | cut -d'"' -f4)
+  DONE_COUNT=$(grep -c '"passes": true' "$PRD_FILE" 2>/dev/null || echo "?")
+  TOTAL_COUNT=$(grep -c '"id":' "$PRD_FILE" 2>/dev/null || echo "?")
+
+  # Determine model name for notification
+  if [ "$USE_GLM" = true ]; then
+    MODEL_DISPLAY="GLM-4.7"
+  else
+    MODEL_DISPLAY="Claude"
+  fi
+
   # Send iteration complete to Telegram
   send_telegram "✅ *Iteration $i Complete*
+📊 Progress: $DONE_COUNT/$TOTAL_COUNT tasks done
+🔧 Model: $MODEL_DISPLAY
 
 \`\`\`
-${SUMMARY}
+${SUMMARY:0:400}
 \`\`\`"
 
-  # Auto-deploy to server so YouTube audience sees changes live
-  deploy_to_server
+  # Auto-deploy only if NOT on server (GLM mode runs on server already)
+  if [ "$USE_GLM" != true ]; then
+    deploy_to_server
+  fi
 
   # NOTE: Auto-stop disabled - Claude keeps hallucinating completion
   # Just run all iterations and let the PRD track what's actually done
