@@ -5297,7 +5297,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "PD-007",
@@ -9229,7 +9229,9 @@
         "Never more than 30 seconds of silence",
         "Each message is unique and entertaining"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9242,7 +9244,9 @@
         "Uses analogies and everyday language",
         "Non-coders can follow along"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9255,7 +9259,9 @@
         "Reactions match character personality",
         "Random selection prevents repetition"
       ],
-      "files_likely_modified": ["chatter_library.py"],
+      "files_likely_modified": [
+        "chatter_library.py"
+      ],
       "passes": false
     },
     {
@@ -9268,7 +9274,9 @@
         "Quotes appear naturally",
         "Context-appropriate selection"
       ],
-      "files_likely_modified": ["ralph_quotes.py"],
+      "files_likely_modified": [
+        "ralph_quotes.py"
+      ],
       "passes": false
     },
     {
@@ -9282,7 +9290,9 @@
         "Uses FREE personality model",
         "Entertaining and informative"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9295,7 +9305,9 @@
         "Mini celebration every 10 tasks",
         "Special finale at 100%"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9308,7 +9320,9 @@
         "Ralph confused by error messages",
         "Error explanation in layman terms"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9321,7 +9335,9 @@
         "Break time references",
         "'Been working X hours' comments"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9334,7 +9350,9 @@
         "Topics: weather, lunch, weekend",
         "Fills dead air naturally"
       ],
-      "files_likely_modified": ["glm_builder.py"],
+      "files_likely_modified": [
+        "glm_builder.py"
+      ],
       "passes": false
     },
     {
@@ -9347,7 +9365,9 @@
         "Mood affects dialogue tone",
         "Success/failure affects mood"
       ],
-      "files_likely_modified": ["character_mood.py"],
+      "files_likely_modified": [
+        "character_mood.py"
+      ],
       "passes": false
     },
     {
@@ -9363,7 +9383,10 @@
         "Threats = 30 min quiet",
         "Natural ebb and flow of noise level"
       ],
-      "files_likely_modified": ["glm_builder.py", "chatter_control.py"],
+      "files_likely_modified": [
+        "glm_builder.py",
+        "chatter_control.py"
+      ],
       "passes": false
     },
     {
@@ -9378,7 +9401,10 @@
         "High = every few seconds",
         "Low = only important updates"
       ],
-      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "glm_builder.py"
+      ],
       "passes": false
     }
   ],
