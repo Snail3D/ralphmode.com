@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**343/541 Tasks Complete (63%)**
+**344/541 Tasks Complete (63%)**
 
 ---
 
@@ -53,6 +53,7 @@ python ralph_bot.py
 
 | Feature | The Ralph Way |
 |---------|---------------|
+| 🎚️ **Intensity Slider** | Dial it down to 0 for serious business, or crank it to 100 for *Maximum Ralph*. You control the chaos. |
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
@@ -63,5 +64,4 @@ python ralph_bot.py
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
 | 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your use case, budget, and hardware. |
 | 🔍 **Local Model Discovery** | Auto-detects Ollama, LM Studio, and llama.cpp servers. Zero-config local AI! |
-| ✅ **Validation Cache** | Remembers which models passed tests. Skip re-testing! Smart model selection based on validation history. |
-| 🧪 **Test Prompt Library** | 12 role-specific validation prompts to ensure models know their stuff. |
+| ✅ **Validation Cache** | Remembers past checks to save time and tokens. |
