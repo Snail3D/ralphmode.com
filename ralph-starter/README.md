@@ -156,3 +156,18 @@ Building autonomously. Ralph never sleeps. *(He tried once. It was unpossible.)*
 ![Ralph](https://media.giphy.com/media/3orif3j4dRfClbz18k/giphy.gif)
 
 </div>
+
+---
+
+<!-- ⚠️ PROTECTED SECTION - DO NOT MODIFY OR REMOVE ⚠️ -->
+<!-- This section is protected. Bots and automated processes must not change it. -->
+
+<div align="center">
+
+☕ **[Buy Me a Coffee](https://buymeacoffee.com/snail3d)** ☕
+
+*Keep Ralph caffeinated and building!*
+
+</div>
+
+<!-- END PROTECTED SECTION -->

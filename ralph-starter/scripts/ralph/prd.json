@@ -9007,6 +9007,829 @@
         "scripts/ralph/ralph.sh"
       ],
       "passes": false
+    },
+    {
+      "id": "DA-001",
+      "category": "Distribution",
+      "title": "Dockerfile Creation",
+      "description": "Create a production-ready Dockerfile that packages Ralph Mode for easy deployment. Include all dependencies, proper Python version, and health checks.",
+      "acceptance_criteria": [
+        "Dockerfile exists and builds successfully",
+        "Multi-stage build for smaller image size",
+        "Non-root user for security",
+        "Health check endpoint configured",
+        "Proper .dockerignore file"
+      ],
+      "files_likely_modified": [
+        "Dockerfile",
+        ".dockerignore"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-002",
+      "category": "Distribution",
+      "title": "Docker Compose Setup",
+      "description": "Create docker-compose.yml for one-command deployment with all services (bot, database if needed, etc.).",
+      "acceptance_criteria": [
+        "docker-compose.yml exists",
+        "Single command startup: docker-compose up",
+        "Environment variables via .env file",
+        "Volume mounts for persistence",
+        "Network configuration for services"
+      ],
+      "files_likely_modified": [
+        "docker-compose.yml"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-003",
+      "category": "Distribution",
+      "title": "Cross-Platform Install Script",
+      "description": "Create setup.sh that works on macOS, Linux, and WSL. Auto-detects OS and installs appropriate dependencies.",
+      "acceptance_criteria": [
+        "setup.sh detects OS (macOS/Linux/WSL)",
+        "Installs Python 3.10+ if missing",
+        "Creates virtual environment",
+        "Installs all pip dependencies",
+        "Prompts for .env configuration",
+        "Works on fresh system"
+      ],
+      "files_likely_modified": [
+        "setup.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-004",
+      "category": "Distribution",
+      "title": "One-Liner Install Command",
+      "description": "Create a curl-based one-liner that downloads and runs setup: curl -sSL ralphmode.com/install | bash",
+      "acceptance_criteria": [
+        "Install script hosted or embeddable",
+        "One-liner works: curl ... | bash",
+        "Shows progress during install",
+        "Handles errors gracefully",
+        "Works on macOS and Linux"
+      ],
+      "files_likely_modified": [
+        "install.sh",
+        "scripts/install-ralph.sh"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-005",
+      "category": "Distribution",
+      "title": "GitHub Release Automation",
+      "description": "Create GitHub Action to auto-create releases with changelog, version bumps, and downloadable assets.",
+      "acceptance_criteria": [
+        "GitHub Action workflow for releases",
+        "Auto-generates changelog from commits",
+        "Creates downloadable zip/tar.gz",
+        "Tags version properly",
+        "Attaches Docker image to release"
+      ],
+      "files_likely_modified": [
+        ".github/workflows/release.yml"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-006",
+      "category": "Distribution",
+      "title": "Windows Support Guide",
+      "description": "Document and test Ralph Mode on Windows via WSL2. Create clear instructions for Windows users.",
+      "acceptance_criteria": [
+        "WSL2 installation guide in docs",
+        "Tested on Windows 10/11 with WSL2",
+        "Troubleshooting section for common issues",
+        "PowerShell helper script if applicable"
+      ],
+      "files_likely_modified": [
+        "docs/WINDOWS.md"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-007",
+      "category": "Distribution",
+      "title": "Quick Start Validation",
+      "description": "Test the README quick start guide on a FRESH machine. Fix any missing steps or unclear instructions.",
+      "acceptance_criteria": [
+        "Quick start works on fresh Ubuntu 22.04",
+        "Quick start works on fresh macOS",
+        "All dependencies listed accurately",
+        "Time estimate accurate (60 seconds claim)",
+        "No assumed prerequisites"
+      ],
+      "files_likely_modified": [
+        "README.md"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-008",
+      "category": "Distribution",
+      "title": "Connection Testing Suite",
+      "description": "Create test_connections.py that verifies all external connections: Telegram API, Groq API, GitHub, etc.",
+      "acceptance_criteria": [
+        "test_connections.py exists",
+        "Tests Telegram bot token validity",
+        "Tests Groq API key",
+        "Tests GitHub access if configured",
+        "Clear pass/fail output",
+        "Helpful error messages on failure"
+      ],
+      "files_likely_modified": [
+        "test_connections.py",
+        "tests/test_connections.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-009",
+      "category": "Distribution",
+      "title": "Environment Validator",
+      "description": "Create check_env.py that validates .env file has all required variables with correct formats.",
+      "acceptance_criteria": [
+        "check_env.py exists",
+        "Validates all required env vars present",
+        "Checks format of API keys/tokens",
+        "Suggests fixes for common issues",
+        "Runs automatically on startup"
+      ],
+      "files_likely_modified": [
+        "check_env.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-010",
+      "category": "Distribution",
+      "title": "Pre-flight Checklist Command",
+      "description": "Add /preflight command that runs all checks: env vars, API connections, disk space, Python version, etc.",
+      "acceptance_criteria": [
+        "/preflight command exists",
+        "Checks Python version",
+        "Checks all env vars",
+        "Tests all API connections",
+        "Reports disk space",
+        "Shows clear pass/fail for each"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-011",
+      "category": "Distribution",
+      "title": "Dependency Pinning",
+      "description": "Pin all dependencies in requirements.txt to specific versions that are tested to work together.",
+      "acceptance_criteria": [
+        "All dependencies have version pins",
+        "requirements.txt tested on fresh install",
+        "No conflicting versions",
+        "requirements-dev.txt for dev dependencies"
+      ],
+      "files_likely_modified": [
+        "requirements.txt",
+        "requirements-dev.txt"
+      ],
+      "passes": false
+    },
+    {
+      "id": "DA-012",
+      "category": "Distribution",
+      "title": "Demo Mode",
+      "description": "Create demo mode that works without any API keys - uses mock responses to show the experience.",
+      "acceptance_criteria": [
+        "DEMO_MODE env var enables demo",
+        "Mock responses feel realistic",
+        "Shows full Ralph experience",
+        "Clear indication it is demo mode",
+        "Easy upgrade path to real mode"
+      ],
+      "files_likely_modified": [
+        "ralph_bot.py",
+        "demo_mode.py"
+      ],
+      "passes": false
+    },
+    {
+      "id": "CH-001",
+      "category": "Chatter",
+      "title": "Constant Office Chatter",
+      "description": "Generate continuous back-and-forth dialogue between Ralph, Stool, Gomer during build. Never more than 30 seconds silence.",
+      "acceptance_criteria": [
+        "Chat at task start, during GLM thinking, on file writes, on commands, on git push",
+        "Multiple characters talking back and forth",
+        "Never more than 30 seconds of silence",
+        "Each message is unique and entertaining"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-002",
+      "category": "Chatter",
+      "title": "Layman Explanations",
+      "description": "After each task, explain what was built in simple terms anyone can understand. No jargon.",
+      "acceptance_criteria": [
+        "Every task includes simple explanation",
+        "Uses analogies and everyday language",
+        "Non-coders can follow along"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-003",
+      "category": "Chatter",
+      "title": "Character Reactions Library",
+      "description": "Build library of 50+ reactions per character for success, failure, waiting, celebration, etc.",
+      "acceptance_criteria": [
+        "50+ unique reactions per character",
+        "Reactions match character personality",
+        "Random selection prevents repetition"
+      ],
+      "files_likely_modified": ["chatter_library.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-004",
+      "category": "Chatter",
+      "title": "Ralph Wiggum Quote Integration",
+      "description": "Integrate 100+ authentic Ralph Wiggum quotes that appear naturally in conversation.",
+      "acceptance_criteria": [
+        "100+ authentic Ralph quotes",
+        "Quotes appear naturally",
+        "Context-appropriate selection"
+      ],
+      "files_likely_modified": ["ralph_quotes.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-005",
+      "category": "Chatter",
+      "title": "AI Commentary Using Free Model",
+      "description": "Use GLM-4.5-Flash (FREE) to generate dynamic commentary about what's being built.",
+      "acceptance_criteria": [
+        "AI generates contextual commentary",
+        "References actual task being built",
+        "Uses FREE personality model",
+        "Entertaining and informative"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-006",
+      "category": "Chatter",
+      "title": "Progress Celebrations",
+      "description": "Special celebration scenes at milestones: 25%, 50%, 75%, 100%, every 10 tasks, etc.",
+      "acceptance_criteria": [
+        "Celebration at percentage milestones",
+        "Mini celebration every 10 tasks",
+        "Special finale at 100%"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-007",
+      "category": "Chatter",
+      "title": "Error Comedy Scenes",
+      "description": "When errors occur, generate comedic scenes where characters react. Turn failures into entertainment.",
+      "acceptance_criteria": [
+        "Funny reactions to errors",
+        "Ralph confused by error messages",
+        "Error explanation in layman terms"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-008",
+      "category": "Chatter",
+      "title": "Time-Based Chatter",
+      "description": "Characters reference time of day, how long they've been working, coffee breaks. Makes it feel alive.",
+      "acceptance_criteria": [
+        "Morning/afternoon/night greetings",
+        "Break time references",
+        "'Been working X hours' comments"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-009",
+      "category": "Chatter",
+      "title": "Idle Chatter During Waits",
+      "description": "When GLM thinks for a while, characters have idle conversations about non-work topics.",
+      "acceptance_criteria": [
+        "Idle chatter during long waits",
+        "Topics: weather, lunch, weekend",
+        "Fills dead air naturally"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-010",
+      "category": "Chatter",
+      "title": "Character Mood System",
+      "description": "Track character moods based on success/failure. Happy after wins, grumpy after failures.",
+      "acceptance_criteria": [
+        "Mood tracking per character",
+        "Mood affects dialogue tone",
+        "Success/failure affects mood"
+      ],
+      "files_likely_modified": ["character_mood.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-011",
+      "category": "Chatter",
+      "title": "Mr. Worms Chatter Control",
+      "description": "Mr. Worms can tell the team to quiet down. They comply for a bit then gradually start chattering again. Multiple warnings = longer silence. Threats make them actually quiet.",
+      "acceptance_criteria": [
+        "'Quiet' command reduces chatter by 50%",
+        "Team apologizes and gets quiet",
+        "After 5 mins they start chattering again",
+        "Second warning = 10 min quiet",
+        "Threats = 30 min quiet",
+        "Natural ebb and flow of noise level"
+      ],
+      "files_likely_modified": ["glm_builder.py", "chatter_control.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-012",
+      "category": "Chatter",
+      "title": "Chatter Volume Control",
+      "description": "Adjustable chatter frequency: High (constant), Medium (every task), Low (milestones only), Mute (none).",
+      "acceptance_criteria": [
+        "/chatter high|medium|low|mute command",
+        "Setting persists across sessions",
+        "Default is medium",
+        "High = every few seconds",
+        "Low = only important updates"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "RB-001",
+      "category": "Recipe Book",
+      "title": "Recipe Schema Design",
+      "description": "Design the data schema for storing completed project PRDs as 'recipes'. Include: final PRD, tech stack, time to complete, difficulty rating, category, description, success markers.",
+      "acceptance_criteria": [
+        "Schema defined in recipe_schema.py or similar",
+        "Covers all recipe components: PRD, tech stack, time, difficulty, category, description, success markers",
+        "Supports versioning for recipe updates",
+        "Designed for scale (10M+ recipes)"
+      ],
+      "files_likely_modified": ["recipe_book.py", "models/"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-002",
+      "category": "Recipe Book",
+      "title": "Recipe Database Setup",
+      "description": "Set up database storage for recipes. Use SQLite for now with migration path to PostgreSQL.",
+      "acceptance_criteria": [
+        "Recipe table created with proper indexes",
+        "CRUD operations working",
+        "Search and filter capabilities",
+        "Migration notes for production PostgreSQL"
+      ],
+      "files_likely_modified": ["recipe_book.py", "database.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-003",
+      "category": "Recipe Book",
+      "title": "Project Completion Detection",
+      "description": "Detect when a project is 'done' - all PRD tasks completed, user confirms completion, or explicit /done command.",
+      "acceptance_criteria": [
+        "Automatic detection when all tasks marked as passes=true",
+        "/done command for explicit completion",
+        "Confirmation prompt before capturing",
+        "Works in both Telegram and web"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "prd_manager.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-004",
+      "category": "Recipe Book",
+      "title": "PRD Final State Capture",
+      "description": "When project completes, snapshot the final PRD state for the Recipe Book.",
+      "acceptance_criteria": [
+        "Captures full PRD with all tasks",
+        "Records completion timestamps",
+        "Includes metadata (time spent, tech detected)",
+        "Generates unique recipe ID"
+      ],
+      "files_likely_modified": ["recipe_book.py", "prd_manager.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-005",
+      "category": "Recipe Book",
+      "title": "Share Recipe Prompt",
+      "description": "After project completion, ask user if they want to share their 'recipe' with the community. Opt-in only.",
+      "acceptance_criteria": [
+        "Celebratory prompt when project completes",
+        "Clear opt-in language",
+        "Preview of what will be shared",
+        "Attribution options (anonymous or credited)"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "recipe_book.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-006",
+      "category": "Recipe Book",
+      "title": "Anonymization Pipeline",
+      "description": "Strip personal/sensitive info from recipes before sharing. Remove API keys, personal paths, usernames, etc.",
+      "acceptance_criteria": [
+        "Detects and removes API keys/tokens",
+        "Removes personal file paths",
+        "Strips usernames if anonymous",
+        "Sanitizes descriptions"
+      ],
+      "files_likely_modified": ["recipe_book.py", "sanitizer.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-007",
+      "category": "Recipe Book",
+      "title": "Recipe Browser",
+      "description": "Interface to browse shared recipes by category, difficulty, tech stack, popularity.",
+      "acceptance_criteria": [
+        "/recipes command shows categories",
+        "Filter by difficulty level",
+        "Filter by tech stack",
+        "Sort by popularity/recent"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "recipe_book.py", "stream_dashboard.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "RB-008",
+      "category": "Recipe Book",
+      "title": "Clone Recipe to Start Project",
+      "description": "Allow users to clone a recipe as starting point for their own project. Creates new PRD from template.",
+      "acceptance_criteria": [
+        "/clone [recipe-id] command",
+        "Creates new project from recipe",
+        "Resets all tasks to passes=false",
+        "Customization prompts for project-specific details"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "recipe_book.py", "prd_manager.py"],
+      "passes": false,
+      "protected": true,
+      "saleability_feature": true
+    },
+    {
+      "id": "VS-001",
+      "category": "Voice Suggestions",
+      "title": "Voice-Only Suggestion Page",
+      "description": "Mobile-first suggestion page where users hold a button to speak their suggestions instead of typing. No keyboard input.",
+      "acceptance_criteria": [
+        "Big hold-to-talk button on /suggest page",
+        "Visual feedback while recording (waveform, red indicator)",
+        "Sends audio to server for transcription",
+        "Works on iOS and Android mobile browsers"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "VS-002",
+      "category": "Voice Suggestions",
+      "title": "Groq Whisper Transcription Endpoint",
+      "description": "API endpoint that receives audio files and returns transcribed text using Groq Whisper.",
+      "acceptance_criteria": [
+        "/api/transcribe endpoint accepts audio files",
+        "Converts webm to wav for compatibility",
+        "Uses Groq whisper-large-v3-turbo model",
+        "Returns transcribed text or error"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "VS-003",
+      "category": "Voice Suggestions",
+      "title": "Conversational Voice Flow",
+      "description": "Voice suggestion page asks 5 questions in sequence: name, idea, problem, vision, priority. User speaks each answer.",
+      "acceptance_criteria": [
+        "5-question conversational flow",
+        "Each answer captured via voice",
+        "Answers compiled into structured suggestion",
+        "Submitted to existing /api/suggest endpoint"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "VS-004",
+      "category": "Voice Suggestions",
+      "title": "Voice Error Handling",
+      "description": "Handle voice recording errors gracefully - mic permission denied, no speech detected, transcription failed.",
+      "acceptance_criteria": [
+        "Clear error messages for mic permission issues",
+        "Retry option for failed recordings",
+        "'No speech detected' handled gracefully",
+        "Network error recovery"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "LS-001",
+      "category": "Livestream",
+      "title": "YouTube Stream Dashboard",
+      "description": "Beautiful web dashboard for YouTube livestream showing: office chatter, current task, progress, QR code for suggestions.",
+      "acceptance_criteria": [
+        "Real-time message display from office",
+        "Current task card with ID and title",
+        "Progress bar with percentage",
+        "QR code linking to /suggest"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": true
+    },
+    {
+      "id": "LS-002",
+      "category": "Livestream",
+      "title": "Audience Interaction System",
+      "description": "Characters acknowledge chat/suggestions every 15 seconds. Translate comments into 'Simpsonese' style.",
+      "acceptance_criteria": [
+        "Checks for new suggestions every 15 seconds",
+        "Characters react naturally without interrupting work",
+        "Big celebration for accepted suggestions",
+        "Comments translated into character-appropriate style"
+      ],
+      "files_likely_modified": ["audience_interaction.py"],
+      "passes": true
+    },
+    {
+      "id": "LS-003",
+      "category": "Livestream",
+      "title": "FFmpeg YouTube Streaming",
+      "description": "Script to capture dashboard via Xvfb/Chromium and stream to YouTube RTMP.",
+      "acceptance_criteria": [
+        "stream-to-youtube.sh script",
+        "Uses virtual display (Xvfb)",
+        "Chromium in kiosk mode",
+        "FFmpeg streams to YouTube RTMP"
+      ],
+      "files_likely_modified": ["stream-to-youtube.sh"],
+      "passes": true
+    },
+    {
+      "id": "LS-004",
+      "category": "Livestream",
+      "title": "Dashboard Real-time Updates",
+      "description": "Dashboard polls /api/state every 2 seconds for new messages, task updates, progress changes.",
+      "acceptance_criteria": [
+        "Auto-refresh without page reload",
+        "Smooth message animations",
+        "Task and progress updates live",
+        "No flickering or jank"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": true
+    },
+    {
+      "id": "UB-001",
+      "category": "User Branch",
+      "title": "User Suggestions Branch",
+      "description": "User-submitted suggestions get built on a separate 'user-suggestions' branch. Keeps main clean, allows review before merge.",
+      "acceptance_criteria": [
+        "git checkout -b user-suggestions when building user tasks",
+        "SUG-* tasks always built on user-suggestions branch",
+        "Main branch reserved for core development",
+        "Easy merge workflow to main when approved"
+      ],
+      "files_likely_modified": ["glm_builder.py", "ralph.sh"],
+      "passes": false
+    },
+    {
+      "id": "UB-002",
+      "category": "User Branch",
+      "title": "Branch Detection for Task Type",
+      "description": "Detect if current task is a user suggestion (SUG-*) and switch to appropriate branch automatically.",
+      "acceptance_criteria": [
+        "Task ID prefix determines branch",
+        "SUG-* goes to user-suggestions",
+        "All other tasks stay on current branch",
+        "git stash/pop if uncommitted work exists"
+      ],
+      "files_likely_modified": ["glm_builder.py", "prd_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "UB-003",
+      "category": "User Branch",
+      "title": "Branch Merge Workflow",
+      "description": "When Mr. Worms approves, merge user-suggestions to main. /approve-suggestions command or web button.",
+      "acceptance_criteria": [
+        "/approve command in Telegram",
+        "Shows diff of what's being merged",
+        "Confirmation before merge",
+        "Handles merge conflicts gracefully"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "UB-004",
+      "category": "User Branch",
+      "title": "Branch Status Display",
+      "description": "Dashboard shows which branch is active and how many user suggestion commits are pending merge.",
+      "acceptance_criteria": [
+        "Current branch displayed on dashboard",
+        "Pending merge count visible",
+        "'Review user work' button/link",
+        "Visual indicator when on user-suggestions branch"
+      ],
+      "files_likely_modified": ["stream_dashboard.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-001",
+      "category": "Dual Stream",
+      "title": "Parallel Build Streams",
+      "description": "Two build loops running simultaneously: Main PRD (Mr. Worms' tasks) and User Suggestions (community tasks). Ralph works on both.",
+      "acceptance_criteria": [
+        "Two separate ralph.sh processes or alternating mode",
+        "Main stream works on main branch, core PRD tasks",
+        "User stream works on user-suggestions branch, SUG-* tasks",
+        "Dashboard shows both streams' progress"
+      ],
+      "files_likely_modified": ["ralph.sh", "glm_builder.py", "stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-002",
+      "category": "Dual Stream",
+      "title": "Stream Priority System",
+      "description": "Mr. Worms can set priority: 'focus on main', 'focus on suggestions', or 'balanced'. Determines time allocation.",
+      "acceptance_criteria": [
+        "/focus main|suggestions|balanced command",
+        "Balanced = alternating tasks",
+        "Focus main = 80% main, 20% suggestions",
+        "Focus suggestions = opposite"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "ralph.sh", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-003",
+      "category": "Dual Stream",
+      "title": "Cherry-Pick User Work",
+      "description": "Mr. Worms can see completed user suggestions and cherry-pick the good ones to main. /cherry-pick SUG-1234 command.",
+      "acceptance_criteria": [
+        "/suggestions command lists completed user work",
+        "Shows preview of what each suggestion built",
+        "/cherry-pick [task-id] brings it to main",
+        "git cherry-pick under the hood"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-004",
+      "category": "Dual Stream",
+      "title": "User Work Preview",
+      "description": "Before cherry-picking, Mr. Worms can preview what a user suggestion actually built - files changed, features added.",
+      "acceptance_criteria": [
+        "/preview SUG-1234 shows diff summary",
+        "Lists files modified",
+        "Shows acceptance criteria results",
+        "Option to see full diff"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-005",
+      "category": "Dual Stream",
+      "title": "Dual Progress Dashboard",
+      "description": "Stream dashboard shows both build streams: Main PRD progress and User Suggestions progress side by side.",
+      "acceptance_criteria": [
+        "Split view or tabs for both streams",
+        "Current task for each stream visible",
+        "Progress percentage for each",
+        "Recent activity log for each"
+      ],
+      "files_likely_modified": ["stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "DS-006",
+      "category": "Dual Stream",
+      "title": "Cross-Stream Notifications",
+      "description": "When a user suggestion completes, notify Mr. Worms: 'User suggestion SUG-1234 is ready for review!'",
+      "acceptance_criteria": [
+        "Telegram notification when user task completes",
+        "Dashboard highlight for new completions",
+        "Quick buttons: Review / Ignore / Cherry-pick",
+        "Tracks which suggestions were reviewed"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py", "stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "PU-001",
+      "category": "Per-User Branches",
+      "title": "Per-User Branch Creation",
+      "description": "Each user gets their own branch within user-suggestions/. Format: user-suggestions/[nickname]/[task-title-slug]. Isolates each contributor's work.",
+      "acceptance_criteria": [
+        "Branch created as user-suggestions/nickname/task-slug",
+        "Nickname sanitized for branch name safety",
+        "Works with anonymous users (user-suggestions/anon-[hash]/)",
+        "Branch created on first SUG task from that user"
+      ],
+      "files_likely_modified": ["glm_builder.py", "prd_manager.py"],
+      "passes": false
+    },
+    {
+      "id": "PU-002",
+      "category": "Per-User Branches",
+      "title": "User Branch Namespace",
+      "description": "Track which branches belong to which users. Allow browsing by contributor.",
+      "acceptance_criteria": [
+        "Database/file tracks user -> branches mapping",
+        "/contributors command lists active contributors",
+        "/work-by [nickname] shows their branches",
+        "GitHub-style contributor graph on dashboard"
+      ],
+      "files_likely_modified": ["glm_builder.py", "recipe_book.py", "stream_dashboard.py"],
+      "passes": false
+    },
+    {
+      "id": "PU-003",
+      "category": "Per-User Branches",
+      "title": "Cherry-Pick by User",
+      "description": "Mr. Worms can cherry-pick all work from a specific user at once. 'I like this contributor, pull all their stuff.'",
+      "acceptance_criteria": [
+        "/cherry-pick-user [nickname] command",
+        "Shows all branches from that user",
+        "Option to pick all or select specific",
+        "Handles merge conflicts per-branch"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "PU-004",
+      "category": "Per-User Branches",
+      "title": "Contributor Leaderboard",
+      "description": "Track and display top contributors. Who has the most accepted suggestions? Gamification for community.",
+      "acceptance_criteria": [
+        "Track accepted cherry-picks per user",
+        "/leaderboard shows top contributors",
+        "Dashboard widget for top contributors",
+        "Badge system (Beginner, Pro, Expert contributor)"
+      ],
+      "files_likely_modified": ["recipe_book.py", "stream_dashboard.py", "ralph_bot.py"],
+      "passes": false
+    },
+    {
+      "id": "PU-005",
+      "category": "Per-User Branches",
+      "title": "User Work Cleanup",
+      "description": "Prune old/rejected user branches. Keep repo clean. Configurable retention.",
+      "acceptance_criteria": [
+        "Auto-delete branches after X days if not cherry-picked",
+        "/reject SUG-1234 explicitly declines a suggestion",
+        "Declined branches archived or deleted",
+        "Retention configurable (default 30 days)"
+      ],
+      "files_likely_modified": ["glm_builder.py", "ralph.sh"],
+      "passes": false
     }
   ],
   "priority_order": [
