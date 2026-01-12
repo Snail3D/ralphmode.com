@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**346/541 Tasks Complete (63%)**
+**347/541 Tasks Complete (64%)**
 
 ---
 
@@ -57,9 +57,8 @@ python ralph_bot.py
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
-| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. Better requirements = better code. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
+| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. **(New!)** You can now answer with voice messages! Better requirements = better code. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
 | 🧩 **Complexity Awareness** | Big project? Ralph knows. He encourages the team to talk it out before coding starts. Less spaghetti, more strategy. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
 | 💾 **Model Registry** | Persistent model configs with metadata. Models survive restarts and track usage stats. |
-| 💡 **Smart Recommendations** | Ask Ralph which AI model to use. Get personalized suggestions based on your project needs. |
