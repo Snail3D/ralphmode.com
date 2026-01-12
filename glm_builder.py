@@ -183,28 +183,27 @@ GLM-4.7 (Cost-optimized)
         """Generate theatrical office scene using GLM-4.5-Flash (FREE) and send to Telegram."""
         try:
             # Build the scene prompt
-            scene_prompt = f"""Generate a SHORT (3-5 lines) comedic office scene about completing this task:
+            scene_prompt = f"""Generate a SHORT office scene (5-7 lines) about completing this coding task.
 
 Task: [{task['id']}] {task.get('title', '')}
-Progress: {done_count}/{total_count} tasks done ({int(done_count/total_count*100)}%)
+Description: {task.get('description', '')}
+Progress: {done_count}/{total_count} tasks ({int(done_count/total_count*100)}% done)
 
 Characters:
-- Ralph (boss): Lovably confused, misspells words, says "unpossible", picks nose
-- Stool (senior dev): Competent but cynical, sighs a lot
-- Gomer (junior): Eager, asks questions, says "Golly!"
+- Ralph (boss): Lovably confused, says "unpossible", picks nose, but surprisingly explains things simply
+- Stool (senior dev): Competent, cynical, sighs. Explains tech stuff to others.
+- Gomer (junior): Eager, says "Golly!", asks clarifying questions
 
-Write a quick scene where they react to finishing this task. Include:
-- One character announcing completion
-- Another character's reaction
-- A Ralph Wiggum-style non-sequitur or quote
-- Keep it under 5 lines total
+IMPORTANT: Include a SIMPLE EXPLANATION of what was just built so viewers can understand!
 
-Format each line as: *character action* "dialogue"
-Example:
-*Stool sighs, pushing back from keyboard* "Well, that's done."
-*Ralph picks nose* "My code has sparkles in it!"
-*Gomer bounces excitedly* "Golly, we're really building something!"
-"""
+Scene must include:
+1. Character announcing task is done
+2. Someone explaining what they built IN SIMPLE TERMS (like explaining to a friend, not a developer)
+3. A reaction from another character
+4. A Ralph-style funny moment or quote
+
+Format: *action* "dialogue"
+Keep response SHORT - max 7 lines!"""
 
             response = self.client.personality(scene_prompt, "ralph")
 

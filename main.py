@@ -1,18 +1,15 @@
-from character import Character
-from traits.job_anxiety import JobAnxiety
-
-def main():
-    ralph = Character("Ralph")
-    ralph.add_trait(JobAnxiety())
-
-    # Test Case 1: Trigger keyword
-    print(ralph.react("Did you see the news about the economy?"))
-    
-    # Test Case 2: Work context
-    print(ralph.react("The boss wants to see you in his office."))
-    
-    # Test Case 3: No trigger
-    print(ralph.react("I like pizza."))
+import sys
+from src.service import DynamicQuestionService
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        print("Usage: python main.py <file1.py> <file2.py> ...")
+        sys.exit(1)
+        
+    service = DynamicQuestionService()
+    files = sys.argv[1:]
+    questions = service.process_codebase(files)
+    
+    print("--- Generated Contextual Questions ---")
+    for q in questions:
+        print(f"- {q}")
