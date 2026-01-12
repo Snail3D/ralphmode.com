@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**336/565 Tasks Complete (59%)**
+**337/565 Tasks Complete (59%)**
 
 ---
 
@@ -57,7 +57,7 @@ python ralph_bot.py
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
-| 🔍 **Discovery State Machine** | Tracks conversation flow through discovery phases. Ralph now generates **dynamic, contextual questions** by analyzing your actual codebase. With **Claude-Powered Question Analysis**, he extracts precise requirements from your answers. No more guessing games—just smart, code-aware clarification. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
+| 🔍 **Discovery State Machine** | Tracks conversation flow through discovery phases. Ralph now generates **dynamic, contextual questions** by analyzing your actual codebase. With **Claude-Powered Question Analysis**, he extracts precise requirements from your answers. **New:** As requirements emerge, the team **dynamically adds tasks to the PRD** on the fly—no need to stop and restart. No more guessing games—just smart, code-aware clarification. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
 | 🧩 **Complexity Awareness** | Big project? Ralph knows. He encourages the team to talk it out before coding starts. Less spaghetti, more strategy. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
-| 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
+| 🔌 **Model Abstraction** | Switch models easily without changing code. |
