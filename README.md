@@ -11,7 +11,7 @@
 ---
 
 ## 🚧 Project Status
-**347/541 Tasks Complete (64%)**
+**334/553 Tasks Complete (60%)**
 
 ---
 
@@ -43,7 +43,7 @@ python ralph_bot.py
 | 🌟 | **Gomer** *(Junior Dev)* | Eager beaver! Asks good questions. Learning every day. |
 | 🔍 | **Mona** *(QA Lead)* | Catches every edge case. Nothing escapes her. |
 | 🔧 | **Gus** *(DevOps)* | *"The server room is my happy place."* Infrastructure wizard. |
-| 👔 | **Mr. Worms** *(You!)* | The CEO. Your voice becomes theatrical dialogue. You're the boss. **(New!)** The team follows the Obedience Protocol: they defer to you instantly and adjust tone on command. |
+| 👔 | **Mr. Worms** *(You!)* | The CEO. Your voice becomes theatrical dialogue. You're the boss. The team follows the Obedience Protocol: they defer to you instantly and adjust tone on command. |
 
 **Specialists on Call:** Frinky (UI), Willie (DevOps), Doc (Debugging)
 
@@ -57,7 +57,7 @@ python ralph_bot.py
 | 🎤 **Voice-First** | Speak, don't type. Your tone shapes the scene. |
 | 🎬 **Theater Mode** | Every response is part of the story. Dramatic pauses included. |
 | 🤖 **Auto-Building** | Drop a zip, workers build it. You supervise (or nap). |
-| 🔍 **Discovery Mode** | Ralph asks questions to clarify vague tasks. **(New!)** You can now answer with voice messages! Better requirements = better code. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
+| 🔍 **Discovery State Machine** | Tracks conversation flow through discovery phases. Ralph asks questions to clarify vague tasks. Better requirements = better code. Use 'start building' to skip the chit-chat or 'more questions' to keep digging! |
 | 🧩 **Complexity Awareness** | Big project? Ralph knows. He encourages the team to talk it out before coding starts. Less spaghetti, more strategy. |
 | 🧠 **Intent Detection** | Understands what you mean, not just what you say. Vague input? Ralph asks for clarity. |
 | 🔌 **Model Abstraction** | Switch AI providers without changing code. Mix and match! Ralph uses one model, workers use another. |
