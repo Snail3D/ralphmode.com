@@ -135,6 +135,9 @@ class GLMBuilder:
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(content)
         print(f"  [WRITE] {filepath}")
+        # Chatter about file writes (but not too often)
+        if random.random() < 0.3:  # 30% chance
+            self.quick_chatter("writing_file", filepath)
         return True
 
     def run_command(self, command: str) -> tuple[int, str]:
@@ -303,6 +306,47 @@ Update the README to reflect current progress. Keep it fresh and useful."""
         except Exception as e:
             print(f"  [README] Refinement failed: {e}")
 
+    def quick_chatter(self, message_type: str, context: str = ""):
+        """Send quick character chatter to Telegram - keeps the feed alive!"""
+        chatters = {
+            "task_start": [
+                f"*Ralph squints at screen* \"Ooh! New thingy to build!\"",
+                f"*Stool cracks knuckles* \"Alright, let's see what we got...\"",
+                f"*Gomer bounces in chair* \"Golly, another task! What is it?\"",
+                f"*Ralph picks nose* \"I'm gonna build the BEST thing ever!\"",
+                f"*Stool sighs* \"Here we go again...\"",
+            ],
+            "thinking": [
+                f"*Ralph stares intensely* \"The compooter is thinking...\"",
+                f"*Stool taps desk impatiently* \"Any day now, GLM...\"",
+                f"*Gomer whispers* \"Shh, it's doing the smart stuff!\"",
+                f"*Ralph picks nose while waiting* \"I wonder if code tastes like chicken...\"",
+            ],
+            "writing_file": [
+                f"*Stool types furiously* \"Writing code... this is the fun part.\"",
+                f"*Gomer watches amazed* \"Golly, look at all those letters!\"",
+                f"*Ralph claps* \"The magic typing ghost is back!\"",
+            ],
+            "running_cmd": [
+                f"*Stool hits enter dramatically* \"Here goes nothing...\"",
+                f"*Ralph covers eyes* \"I'm too scared to look!\"",
+                f"*Gomer holds breath* \"Please work please work please work...\"",
+            ],
+            "git_push": [
+                f"*Stool smirks* \"Pushed to GitHub. The world can see our work now.\"",
+                f"*Ralph waves at screen* \"Hi internet people!\"",
+                f"*Gomer beams* \"We're on the GitHub! We're famous!\"",
+            ],
+        }
+
+        lines = chatters.get(message_type, [f"*Ralph blinks* \"What's happening?\""])
+        msg = random.choice(lines)
+
+        if context:
+            msg = f"{msg}\n\n📋 _{context}_"
+
+        send_telegram(msg)
+
     def build_task(self, task: dict) -> bool:
         """
         Build a single PRD task using GLM-4.7.
@@ -311,6 +355,9 @@ Update the README to reflect current progress. Keep it fresh and useful."""
         print(f"\n{'='*60}")
         print(f"Building: [{task['id']}] {task.get('title', 'Unknown')}")
         print(f"{'='*60}")
+
+        # Send task start chatter
+        self.quick_chatter("task_start", f"[{task['id']}] {task.get('title', '')}")
 
         # Read relevant context
         prompt_content = self.read_file("scripts/ralph/prompt.md")
@@ -335,10 +382,12 @@ Output Python code for this feature. Be concise."""
 
         # Call GLM-4.7
         print("  [GLM] Generating implementation...")
+        self.quick_chatter("thinking")
         try:
             response = self.client.build(user_prompt, system_prompt, max_tokens=8000)
         except Exception as e:
             print(f"  [ERROR] GLM call failed: {e}")
+            send_telegram(f"*Ralph panics* \"THE COMPUTER BROKE! IT SAYS: {str(e)[:100]}\"")
             return False
 
         if not response:
@@ -367,6 +416,7 @@ Output Python code for this feature. Be concise."""
             # Commit README changes and push
             self.run_command('git add -A && git commit -m "docs: Update README progress" --no-verify || true')
             self.run_command('git push origin main || true')
+            self.quick_chatter("git_push")
 
         return success
 
