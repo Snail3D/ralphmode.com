@@ -9,6 +9,9 @@ Execute validation and score results
 MM-007: Pass/Fail Detection
 Determine if model 'gets' the character - validates personality traits
 
+MM-022: Connection Testing
+Verify model reachability before running full tests
+
 This module provides standardized test prompts for each role to validate
 that models can perform their expected functions. Each test is short,
 focused, and easy to score programmatically.
@@ -17,7 +20,7 @@ focused, and easy to score programmatically.
 import asyncio
 import logging
 import re
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 from model_manager import (
@@ -584,6 +587,87 @@ def validate_character_personality(role: ModelRole, response: str) -> bool:
 
 
 # ============================================================================
+# MM-022: Connection Testing
+# ============================================================================
+
+@dataclass
+class ConnectionTestResult:
+    """Result of testing connection to a model"""
+    role: ModelRole
+    provider: str
+    model_id: str
+    is_reachable: bool
+    latency_ms: Optional[float] = None
+    error: Optional[str] = None
+    timestamp: str = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.utcnow().isoformat()
+
+
+async def test_connection(
+    adapter: ModelAdapter,
+    role: Optional[ModelRole] = None
+) -> Tuple[bool, Optional[str], Optional[float]]:
+    """
+    MM-022: Test connection to a model.
+
+    Performs a lightweight check to verify the model is reachable.
+    This is faster than running a full test and helps diagnose
+    configuration issues early.
+
+    Args:
+        adapter: The ModelAdapter to test
+        role: Optional role (for logging purposes)
+
+    Returns:
+        Tuple of (is_reachable, error_message, latency_ms)
+    """
+    start_time = asyncio.get_event_loop().time()
+
+    try:
+        # First check: is_available() method
+        logger.debug(f"MM-022: Testing connection for {adapter.provider.value}/{adapter.config.model_id}")
+        is_available = await adapter.is_available()
+
+        if not is_available:
+            latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
+            error = "Model reported as unavailable"
+            logger.warning(f"MM-022: Connection failed - {error}")
+            return False, error, latency_ms
+
+        # Second check: minimal test prompt (just to verify actual inference works)
+        test_messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Hi"}
+        ]
+
+        response = await adapter.generate(
+            messages=test_messages,
+            max_tokens=10,  # Minimal tokens for quick test
+            temperature=0.5
+        )
+
+        latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
+
+        # Success if we got any response
+        if response and len(response.strip()) > 0:
+            logger.info(f"MM-022: Connection successful ({latency_ms:.0f}ms)")
+            return True, None, latency_ms
+        else:
+            error = "Model returned empty response"
+            logger.warning(f"MM-022: Connection test failed - {error}")
+            return False, error, latency_ms
+
+    except Exception as e:
+        latency_ms = (asyncio.get_event_loop().time() - start_time) * 1000
+        error = str(e)
+        logger.error(f"MM-022: Connection test failed with exception: {error}")
+        return False, error, latency_ms
+
+
+# ============================================================================
 # MM-006: Test Runner
 # ============================================================================
 
@@ -781,6 +865,108 @@ class ModelTester:
 
         return all_results
 
+    async def test_connection_for_role(
+        self,
+        role: ModelRole,
+        adapter: Optional[ModelAdapter] = None
+    ) -> ConnectionTestResult:
+        """
+        MM-022: Test connection to a model for a specific role.
+
+        Args:
+            role: The role to test
+            adapter: Optional specific adapter. If None, uses role's default model.
+
+        Returns:
+            ConnectionTestResult with reachability status
+        """
+        if adapter is None:
+            adapter = self.manager.get_model(role)
+
+        if not adapter:
+            return ConnectionTestResult(
+                role=role,
+                provider="unknown",
+                model_id="unknown",
+                is_reachable=False,
+                error="No model configured for this role"
+            )
+
+        is_reachable, error, latency_ms = await test_connection(adapter, role)
+
+        return ConnectionTestResult(
+            role=role,
+            provider=adapter.provider.value,
+            model_id=adapter.config.model_id,
+            is_reachable=is_reachable,
+            latency_ms=latency_ms,
+            error=error
+        )
+
+    async def test_all_connections(self) -> Dict[ModelRole, ConnectionTestResult]:
+        """
+        MM-022: Test connections to all configured models.
+
+        Returns:
+            Dict mapping roles to their connection test results
+        """
+        logger.info("MM-022: Testing connections to all configured models")
+
+        results = {}
+
+        for role in ModelRole:
+            result = await self.test_connection_for_role(role)
+            results[role] = result
+
+            if result.is_reachable:
+                logger.info(
+                    f"MM-022: {role.value} ({result.provider}/{result.model_id}): "
+                    f"✅ REACHABLE ({result.latency_ms:.0f}ms)"
+                )
+            else:
+                logger.warning(
+                    f"MM-022: {role.value} ({result.provider}/{result.model_id}): "
+                    f"❌ UNREACHABLE ({result.error})"
+                )
+
+        # Summary
+        reachable = sum(1 for r in results.values() if r.is_reachable)
+        total = len(results)
+        logger.info(f"MM-022: Connection tests complete: {reachable}/{total} models reachable")
+
+        return results
+
+    def print_connection_results(self, results: Dict[ModelRole, ConnectionTestResult]):
+        """
+        MM-022: Pretty-print connection test results.
+
+        Args:
+            results: Dict of results from test_all_connections()
+        """
+        print("\n" + "=" * 70)
+        print("MM-022: Connection Test Results")
+        print("=" * 70)
+
+        for role, result in results.items():
+            status = "✅ REACHABLE" if result.is_reachable else "❌ UNREACHABLE"
+            latency = f"({result.latency_ms:.0f}ms)" if result.latency_ms else ""
+
+            print(f"\n{role.value.upper()}")
+            print(f"  Provider: {result.provider}")
+            print(f"  Model: {result.model_id}")
+            print(f"  Status: {status} {latency}")
+
+            if result.error:
+                print(f"  Error: {result.error}")
+
+        # Overall summary
+        reachable = sum(1 for r in results.values() if r.is_reachable)
+        total = len(results)
+
+        print("\n" + "=" * 70)
+        print(f"OVERALL: {reachable}/{total} models reachable")
+        print("=" * 70 + "\n")
+
     def print_results(self, results: Dict[ModelRole, List[TestResult]]):
         """
         Pretty-print test results.
@@ -834,6 +1020,13 @@ async def main():
 
     tester = ModelTester()
 
+    # Check for connection testing flag
+    if len(sys.argv) > 1 and sys.argv[1] == "--test-connections":
+        print("MM-022: Testing connections to all configured models...")
+        results = await tester.test_all_connections()
+        tester.print_connection_results(results)
+        return
+
     if len(sys.argv) > 1:
         # Run specific role tests
         role_name = sys.argv[1].upper()
@@ -845,6 +1038,7 @@ async def main():
         except KeyError:
             print(f"Unknown role: {role_name}")
             print(f"Available roles: {[r.name for r in ModelRole]}")
+            print(f"\nOr use: --test-connections to test model connectivity")
             sys.exit(1)
     else:
         # Run all tests
