@@ -1076,16 +1076,52 @@ SUGGEST_PAGE = """
     </div>
 
     <script>
-        // Conversation flow
-        const questions = [
-            { key: 'nickname', q: "Hi! I'm Ralph! Hold the button and tell me your name! 🍩" },
-            { key: 'idea', q: "Nice to meet you, {nickname}! What feature would you like us to build?" },
-            { key: 'problem', q: "Interesting! What problem does this solve? Why do you need it?" },
-            { key: 'vision', q: "I think I'm getting it! How would you imagine this working?" },
-            { key: 'priority', q: "How important is this? Say a number from 1 to 10!" },
-            { key: 'buildTag', q: "Last one! Give your build a short name so you can find it later! Like 'dark-mode' or 'speed-boost'!" }
+        // ========================================
+        // MR. WORMS SECRET ACCESS
+        // "Shave and a haircut" tap pattern: tap-tap-tap-TAP-TAP + hold
+        // Rhythm timing (ms): 0, 200, 400, 700, 900, then HOLD
+        // ========================================
+        let tapTimes = [];
+        let secretMode = false;
+        const SHAVE_PATTERN = [0, 200, 400, 700, 900]; // Relative timings
+        const PATTERN_TOLERANCE = 150; // ms tolerance
+
+        function checkShaveAndHaircut() {
+            if (tapTimes.length < 5) return false;
+            const recent = tapTimes.slice(-5);
+            const base = recent[0];
+            const normalized = recent.map(t => t - base);
+
+            // Check if taps match "shave and a haircut" rhythm
+            for (let i = 0; i < 5; i++) {
+                if (Math.abs(normalized[i] - SHAVE_PATTERN[i]) > PATTERN_TOLERANCE) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Mode: 'intro', 'choose', 'question', 'suggestion'
+        let mode = 'intro';
+        let userLanguage = 'en'; // Detected from voice
+
+        // Conversation flows
+        const suggestionQuestions = [
+            { key: 'nickname', q: "Nice! Hold the button and tell me your name!" },
+            { key: 'idea', q: "Great {nickname}! What feature should we build?" },
+            { key: 'problem', q: "Interesting! What problem does this solve?" },
+            { key: 'vision', q: "How would you imagine this working?" },
+            { key: 'startFrom', q: "Want to start from an existing build? Say 'main' for latest, or name a specific build like 'dark-mode'. Or just say 'fresh' for a new start!" },
+            { key: 'priority', q: "How important is this? Say 1 to 10!" },
+            { key: 'buildTag', q: "Last one! Give YOUR build a short name so you can find it later!" }
         ];
 
+        const questionFlow = [
+            { key: 'nickname', q: "Sure! First, what's your name?" },
+            { key: 'question', q: "OK {nickname}! What do you want to know about Ralph Mode?" }
+        ];
+
+        let questions = suggestionQuestions; // Default
         let currentStep = 0;
         let answers = {};
         let mediaRecorder = null;
@@ -1224,14 +1260,87 @@ SUGGEST_PAGE = """
 
         async function handleUserResponse(text) {
             addMessage(text, false);
+            const textLower = text.toLowerCase();
 
+            // Handle mode selection
+            if (mode === 'choose') {
+                if (textLower.includes('question') || textLower.includes('ask') || textLower.includes('pregunta')) {
+                    mode = 'question';
+                    questions = questionFlow;
+                    currentStep = 0;
+                    addMessage("Questions! I love questions! Let's go!", true, 'Ralph');
+                    setTimeout(() => askQuestion(0), 800);
+                    return;
+                } else if (textLower.includes('suggest') || textLower.includes('build') || textLower.includes('idea') || textLower.includes('sugerencia')) {
+                    mode = 'suggestion';
+                    questions = suggestionQuestions;
+                    currentStep = 0;
+                    addMessage("Ooh! You want to build something! Exciting!", true, 'Ralph');
+                    setTimeout(() => askQuestion(0), 800);
+                    return;
+                } else {
+                    // Didn't understand - ask again
+                    addMessage("Hmm, say 'question' if you want to ask something, or 'suggestion' if you have an idea to build!", true, 'Ralph');
+                    return;
+                }
+            }
+
+            // Handle Mr. Worms secret mode
+            if (secretMode && !answers.voiceVerified) {
+                // TODO: Voice verification against stored voiceprint
+                answers.voiceVerified = true;
+                answers.isMrWorms = true;
+                addMessage("Voice recognized! Welcome back, Mr. Worms! 🎩", true, 'System');
+                addMessage("Your builds will go to the mr-worms-edition branch!", true, 'System');
+                mode = 'suggestion';
+                questions = suggestionQuestions;
+                currentStep = 0;
+                setTimeout(() => askQuestion(0), 1000);
+                return;
+            }
+
+            // Normal flow
             answers[questions[currentStep].key] = text;
             currentStep++;
 
             if (currentStep < questions.length) {
                 setTimeout(() => askQuestion(currentStep), 500);
             } else {
-                await submitSuggestion();
+                if (mode === 'question') {
+                    await answerQuestion();
+                } else {
+                    await submitSuggestion();
+                }
+            }
+        }
+
+        async function answerQuestion() {
+            // Send question to API for Ralph to answer
+            showTyping();
+            try {
+                const res = await fetch('/api/answer', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        nickname: answers.nickname,
+                        question: answers.question
+                    })
+                });
+                const data = await res.json();
+                hideTyping();
+
+                if (data.success) {
+                    addMessage(data.answer, true, 'Ralph');
+                    setTimeout(() => {
+                        addMessage("Anything else? Hold the button to ask more, or say 'done'!", true, 'Ralph');
+                        currentStep = 1; // Reset to question step
+                    }, 1500);
+                } else {
+                    addMessage("Hmm, my brain got confused! Try asking again?", true, 'Ralph');
+                }
+            } catch (e) {
+                hideTyping();
+                addMessage("Oops! Network hiccup. Try again!", true, 'Ralph');
             }
         }
 
@@ -1247,13 +1356,24 @@ SUGGEST_PAGE = """
                 .replace(/\s+/g, '-')
                 .substring(0, 30);
 
+            // Clean up start from - normalize to branch/tag name
+            const startFrom = (answers.startFrom || 'main')
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .substring(0, 30) || 'main';
+
             const suggestion = `
 Feature: ${answers.idea}
 Problem: ${answers.problem}
 Vision: ${answers.vision}
+Start From: ${startFrom}
 Priority: ${answers.priority}/10
 Build Tag: ${cleanTag}
             `.trim();
+
+            // Determine which branch based on Mr. Worms mode
+            const targetBranch = answers.isMrWorms ? 'mr-worms-edition' : 'user-suggestions';
 
             try {
                 const res = await fetch('/api/suggest', {
@@ -1262,7 +1382,10 @@ Build Tag: ${cleanTag}
                     body: JSON.stringify({
                         nickname: answers.nickname,
                         suggestion: suggestion,
-                        build_tag: cleanTag
+                        build_tag: cleanTag,
+                        start_from: startFrom,
+                        is_mr_worms: answers.isMrWorms || false,
+                        target_branch: targetBranch
                     })
                 });
                 const data = await res.json();
@@ -1314,34 +1437,65 @@ Build Tag: ${cleanTag}
             }
         }
 
-        // Touch/mouse events for hold-to-talk
-        micButton.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            startRecording();
-        });
+        // Touch/mouse events for hold-to-talk with secret tap detection
+        let holdTimer = null;
 
-        micButton.addEventListener('mouseup', (e) => {
+        function handleTapStart(e) {
             e.preventDefault();
+            const now = Date.now();
+            tapTimes.push(now);
+            if (tapTimes.length > 10) tapTimes.shift();
+
+            // Check for "shave and a haircut" pattern then hold
+            if (checkShaveAndHaircut()) {
+                // Secret pattern detected! Wait for hold...
+                holdTimer = setTimeout(() => {
+                    secretMode = true;
+                    addMessage("🔓 Mr. Worms mode activated! Voice verification starting...", true, 'System');
+                    startRecording();
+                }, 500); // Hold for 500ms after pattern
+            } else {
+                startRecording();
+            }
+        }
+
+        function handleTapEnd(e) {
+            e.preventDefault();
+            if (holdTimer) clearTimeout(holdTimer);
             stopRecording();
-        });
+        }
 
+        micButton.addEventListener('mousedown', handleTapStart);
+        micButton.addEventListener('mouseup', handleTapEnd);
         micButton.addEventListener('mouseleave', (e) => {
             if (isRecording) stopRecording();
+            if (holdTimer) clearTimeout(holdTimer);
         });
 
         // Touch events for mobile
-        micButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startRecording();
-        });
+        micButton.addEventListener('touchstart', handleTapStart);
+        micButton.addEventListener('touchend', handleTapEnd);
 
-        micButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            stopRecording();
-        });
+        // Multi-language intro
+        function showIntro() {
+            addMessage("Hi! I'm Ralph! 🍩", true, 'Ralph');
+            setTimeout(() => {
+                addMessage("I speak ANY language! Hablo español! 我说中文! Je parle français!", true, 'Ralph');
+            }, 800);
+            setTimeout(() => {
+                addMessage("Talk to me however you like - I'll understand!", true, 'Ralph');
+            }, 1600);
+            setTimeout(() => {
+                addMessage("Do you have a QUESTION about Ralph Mode, or a SUGGESTION for something to build?", true, 'Ralph');
+            }, 2400);
+            setTimeout(() => {
+                addMessage("Hold the button and say 'question' or 'suggestion'!", true, 'Ralph');
+                mode = 'choose';
+            }, 3200);
+        }
 
-        // Start conversation
-        setTimeout(() => askQuestion(0), 500);
+        // Start conversation with intro
+        setTimeout(() => showIntro(), 500);
     </script>
 </body>
 </html>
@@ -1409,6 +1563,61 @@ def api_message():
         data.get('action', '')
     )
     return jsonify({"success": True})
+
+
+@app.route('/api/answer', methods=['POST'])
+def api_answer():
+    """Answer a question about Ralph Mode using Groq."""
+    data = request.get_json()
+    nickname = data.get('nickname', 'friend')
+    question = data.get('question', '')
+
+    if not question or len(question) < 3:
+        return jsonify({"success": False, "error": "Question too short"})
+
+    if not GROQ_API_KEY:
+        return jsonify({"success": False, "error": "Not configured"})
+
+    try:
+        # Use Groq to answer questions about Ralph Mode
+        response = requests.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {GROQ_API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': 'llama-3.1-8b-instant',
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': '''You are Ralph from Ralph Mode - a lovably confused but helpful AI assistant.
+Answer questions about Ralph Mode in character. Be friendly, use simple words, occasionally misspell things.
+Ralph Mode is an AI dev team that builds software. It has characters: Ralph (boss), Stool (senior dev),
+Gomer (junior dev), Mona (QA), Gus (DevOps). Mr. Worms is the CEO (the user).
+Keep answers SHORT - 2-3 sentences max. Be helpful but in character.'''
+                    },
+                    {
+                        'role': 'user',
+                        'content': f'{nickname} asks: {question}'
+                    }
+                ],
+                'max_tokens': 150,
+                'temperature': 0.8
+            },
+            timeout=15
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            answer = result['choices'][0]['message']['content']
+            return jsonify({"success": True, "answer": answer})
+        else:
+            return jsonify({"success": False, "error": "API error"})
+
+    except Exception as e:
+        print(f"[ANSWER] Error: {e}")
+        return jsonify({"success": False, "error": str(e)})
 
 
 @app.route('/api/transcribe', methods=['POST'])
