@@ -147,6 +147,26 @@ Building autonomously. Ralph never sleeps. *(He tried once. It was unpossible.)*
 
 ---
 
+## 💰 Pricing
+
+<!-- ⚠️ PROTECTED SECTION - DO NOT MODIFY ⚠️ -->
+
+> *"I only know one number!"* - Ralph
+
+<div align="center">
+
+# **$2 = 3 Ralph Iterations**
+
+### Bug fix? Feature? Enhancement? **$2 gets you 3 tries.**
+
+*Ralph can't count very high, so we made it easy!*
+
+</div>
+
+<!-- END PROTECTED SECTION -->
+
+---
+
 <div align="center">
 
 **Built with 🍩 by the Ralph Mode Team**

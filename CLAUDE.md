@@ -151,45 +151,40 @@ npm run dev  # or python -m http.server
 
 ## 💰 BUSINESS MODEL (PROTECTED - DO NOT MODIFY)
 
-### The Golden Rule: Fixes FREE, Features PAID
+### Ralph Only Knows One Number: $2
 
-**FREE FOREVER:**
-- ✅ Bug fixes - something broken? We fix it free
-- ✅ Security patches - your safety is not for sale
-- ✅ Performance fixes - if we broke it, we fix it
-- ✅ Documentation fixes - typos, clarifications
+**$2 = 3 Ralph Iterations. That's it. Simple.**
 
-**PAID (New Value = New Price):**
-- 💰 New features - adding capabilities
-- 💰 Enhancements - making good things better
-- 💰 Integrations - connecting to new services
-- 💰 Custom builds - your specific requirements
+- 🔧 Bug fix? **$2** (3 tries)
+- ✨ New feature? **$2** (3 tries)
+- 🚀 Enhancement? **$2** (3 tries)
+- 🔒 Security patch? **$2** (3 tries)
+- 🎨 Custom build? **$2** (3 tries)
+
+*Ralph can't count very high, so we made it easy!*
 
 ### Branch Strategy
 
 ```
 main (stable release)
   │
-  ├── hotfix/* ─────────────► FAST TRACK TO MAIN (FREE)
+  ├── hotfix/* ─────────────► FAST TRACK TO MAIN ($2)
   │   • Critical bug fixes, security patches
   │   • Merges to main IMMEDIATELY
   │
   ├── mr-worms-edition ────► Owner's direct work
   │   • Mr. Worms' personal builds
   │
-  └── user-suggestions/* ──► Community features (PAID)
+  └── user-suggestions/* ──► Community features ($2)
       └── [nickname]/[task]
 ```
 
-### Pricing (Features Only)
+### Why $2?
 
-| Type | Price |
-|------|-------|
-| 🟢 Simple | $5-15 |
-| 🟡 Medium | $25-75 |
-| 🟠 Complex | $100-300 |
-| 🔴 Enterprise | Custom |
-| 🆓 **Fixes** | **FREE** |
+- 🧠 Ralph only knows one number
+- 💰 Low barrier = more users
+- 🎯 No confusion, no tiers
+- ❤️ Everyone can afford it
 
 ---
 
