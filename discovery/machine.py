@@ -1,29 +1,37 @@
-from typing import Dict, Optional
-from .states import DiscoveryState
+from discovery.states import DiscoveryState, DiscoveryEvent
 
-class DiscoveryMachine:
-    def __init__(self):
-        self.state = DiscoveryState.INIT
-        self.context: Dict = {}
-        self._transitions: Dict[DiscoveryState, Dict[str, DiscoveryState]] = {
-            DiscoveryState.INIT: {"start": DiscoveryState.GREETING},
-            DiscoveryState.GREETING: {"provide_details": DiscoveryState.REQUIREMENTS},
-            DiscoveryState.REQUIREMENTS: {"clarify": DiscoveryState.QUALIFICATION},
-            DiscoveryState.QUALIFICATION: {"approve": DiscoveryState.PROPOSAL, "reject": DiscoveryState.CLOSED},
-            DiscoveryState.PROPOSAL: {"accept": DiscoveryState.CLOSED, "decline": DiscoveryState.CLOSED},
-            DiscoveryState.CLOSED: {"reset": DiscoveryState.INIT},
+class DiscoveryStateMachine:
+    def __init__(self, initial_state=DiscoveryState.INITIAL):
+        self.state = initial_state
+        self._transitions = {
+            DiscoveryState.INITIAL: {
+                DiscoveryEvent.START: DiscoveryState.GATHERING_REQUIREMENTS
+            },
+            DiscoveryState.GATHERING_REQUIREMENTS: {
+                DiscoveryEvent.REQUIREMENTS_MET: DiscoveryState.ANALYZING,
+                DiscoveryEvent.CANCEL: DiscoveryState.CANCELLED
+            },
+            DiscoveryState.ANALYZING: {
+                DiscoveryEvent.ANALYSIS_COMPLETE: DiscoveryState.PROPOSING,
+                DiscoveryEvent.CANCEL: DiscoveryState.CANCELLED
+            },
+            DiscoveryState.PROPOSING: {
+                DiscoveryEvent.PROPOSAL_ACCEPTED: DiscoveryState.COMPLETED,
+                DiscoveryEvent.CANCEL: DiscoveryState.CANCELLED
+            },
+            DiscoveryState.COMPLETED: {
+                DiscoveryEvent.RESET: DiscoveryState.INITIAL
+            },
+            DiscoveryState.CANCELLED: {
+                DiscoveryEvent.RESET: DiscoveryState.INITIAL
+            }
         }
 
-    def transition(self, event: str, payload: Optional[Dict] = None) -> bool:
-        if self.state not in self._transitions:
-            return False
-        if event not in self._transitions[self.state]:
-            return False
+    def trigger(self, event):
+        if self.state in self._transitions and event in self._transitions[self.state]:
+            self.state = self._transitions[self.state][event]
+            return True
+        return False
 
-        self.state = self._transitions[self.state][event]
-        if payload:
-            self.context.update(payload)
-        return True
-
-    def get_state(self) -> DiscoveryState:
+    def get_state(self):
         return self.state

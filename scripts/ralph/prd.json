@@ -5297,7 +5297,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-007",
@@ -5311,7 +5311,7 @@
       "files_likely_modified": [
         "discovery_state.py"
       ],
-      "passes": true
+      "passes": false
     },
     {
       "id": "PD-008",
@@ -9216,6 +9216,169 @@
         "ralph_bot.py",
         "demo_mode.py"
       ],
+      "passes": false
+    },
+    {
+      "id": "CH-001",
+      "category": "Chatter",
+      "title": "Constant Office Chatter",
+      "description": "Generate continuous back-and-forth dialogue between Ralph, Stool, Gomer during build. Never more than 30 seconds silence.",
+      "acceptance_criteria": [
+        "Chat at task start, during GLM thinking, on file writes, on commands, on git push",
+        "Multiple characters talking back and forth",
+        "Never more than 30 seconds of silence",
+        "Each message is unique and entertaining"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-002",
+      "category": "Chatter",
+      "title": "Layman Explanations",
+      "description": "After each task, explain what was built in simple terms anyone can understand. No jargon.",
+      "acceptance_criteria": [
+        "Every task includes simple explanation",
+        "Uses analogies and everyday language",
+        "Non-coders can follow along"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-003",
+      "category": "Chatter",
+      "title": "Character Reactions Library",
+      "description": "Build library of 50+ reactions per character for success, failure, waiting, celebration, etc.",
+      "acceptance_criteria": [
+        "50+ unique reactions per character",
+        "Reactions match character personality",
+        "Random selection prevents repetition"
+      ],
+      "files_likely_modified": ["chatter_library.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-004",
+      "category": "Chatter",
+      "title": "Ralph Wiggum Quote Integration",
+      "description": "Integrate 100+ authentic Ralph Wiggum quotes that appear naturally in conversation.",
+      "acceptance_criteria": [
+        "100+ authentic Ralph quotes",
+        "Quotes appear naturally",
+        "Context-appropriate selection"
+      ],
+      "files_likely_modified": ["ralph_quotes.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-005",
+      "category": "Chatter",
+      "title": "AI Commentary Using Free Model",
+      "description": "Use GLM-4.5-Flash (FREE) to generate dynamic commentary about what's being built.",
+      "acceptance_criteria": [
+        "AI generates contextual commentary",
+        "References actual task being built",
+        "Uses FREE personality model",
+        "Entertaining and informative"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-006",
+      "category": "Chatter",
+      "title": "Progress Celebrations",
+      "description": "Special celebration scenes at milestones: 25%, 50%, 75%, 100%, every 10 tasks, etc.",
+      "acceptance_criteria": [
+        "Celebration at percentage milestones",
+        "Mini celebration every 10 tasks",
+        "Special finale at 100%"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-007",
+      "category": "Chatter",
+      "title": "Error Comedy Scenes",
+      "description": "When errors occur, generate comedic scenes where characters react. Turn failures into entertainment.",
+      "acceptance_criteria": [
+        "Funny reactions to errors",
+        "Ralph confused by error messages",
+        "Error explanation in layman terms"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-008",
+      "category": "Chatter",
+      "title": "Time-Based Chatter",
+      "description": "Characters reference time of day, how long they've been working, coffee breaks. Makes it feel alive.",
+      "acceptance_criteria": [
+        "Morning/afternoon/night greetings",
+        "Break time references",
+        "'Been working X hours' comments"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-009",
+      "category": "Chatter",
+      "title": "Idle Chatter During Waits",
+      "description": "When GLM thinks for a while, characters have idle conversations about non-work topics.",
+      "acceptance_criteria": [
+        "Idle chatter during long waits",
+        "Topics: weather, lunch, weekend",
+        "Fills dead air naturally"
+      ],
+      "files_likely_modified": ["glm_builder.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-010",
+      "category": "Chatter",
+      "title": "Character Mood System",
+      "description": "Track character moods based on success/failure. Happy after wins, grumpy after failures.",
+      "acceptance_criteria": [
+        "Mood tracking per character",
+        "Mood affects dialogue tone",
+        "Success/failure affects mood"
+      ],
+      "files_likely_modified": ["character_mood.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-011",
+      "category": "Chatter",
+      "title": "Mr. Worms Chatter Control",
+      "description": "Mr. Worms can tell the team to quiet down. They comply for a bit then gradually start chattering again. Multiple warnings = longer silence. Threats make them actually quiet.",
+      "acceptance_criteria": [
+        "'Quiet' command reduces chatter by 50%",
+        "Team apologizes and gets quiet",
+        "After 5 mins they start chattering again",
+        "Second warning = 10 min quiet",
+        "Threats = 30 min quiet",
+        "Natural ebb and flow of noise level"
+      ],
+      "files_likely_modified": ["glm_builder.py", "chatter_control.py"],
+      "passes": false
+    },
+    {
+      "id": "CH-012",
+      "category": "Chatter",
+      "title": "Chatter Volume Control",
+      "description": "Adjustable chatter frequency: High (constant), Medium (every task), Low (milestones only), Mute (none).",
+      "acceptance_criteria": [
+        "/chatter high|medium|low|mute command",
+        "Setting persists across sessions",
+        "Default is medium",
+        "High = every few seconds",
+        "Low = only important updates"
+      ],
+      "files_likely_modified": ["ralph_bot.py", "glm_builder.py"],
       "passes": false
     }
   ],
