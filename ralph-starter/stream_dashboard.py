@@ -1121,6 +1121,15 @@ SUGGEST_PAGE = """
             { key: 'question', q: "OK {nickname}! What do you want to know about Ralph Mode?" }
         ];
 
+        // BUG FIX FLOW - FREE for users reporting issues with their builds
+        const fixFlow = [
+            { key: 'nickname', q: "Oh no! Something's broken? Tell me your name first!" },
+            { key: 'buildTag', q: "Which build has the bug? Say the name like 'dark-mode' or your task ID like 'SUG-1234'." },
+            { key: 'bugDescription', q: "OK {nickname}, what's broken? Describe what's happening." },
+            { key: 'expected', q: "What SHOULD it be doing instead?" },
+            { key: 'steps', q: "How do I make the bug happen? What steps?" }
+        ];
+
         let questions = suggestionQuestions; // Default
         let currentStep = 0;
         let answers = {};
@@ -1271,16 +1280,23 @@ SUGGEST_PAGE = """
                     addMessage("Questions! I love questions! Let's go!", true, 'Ralph');
                     setTimeout(() => askQuestion(0), 800);
                     return;
-                } else if (textLower.includes('suggest') || textLower.includes('build') || textLower.includes('idea') || textLower.includes('sugerencia')) {
+                } else if (textLower.includes('suggest') || textLower.includes('build') || textLower.includes('idea') || textLower.includes('feature') || textLower.includes('sugerencia')) {
                     mode = 'suggestion';
                     questions = suggestionQuestions;
                     currentStep = 0;
                     addMessage("Ooh! You want to build something! Exciting!", true, 'Ralph');
                     setTimeout(() => askQuestion(0), 800);
                     return;
+                } else if (textLower.includes('fix') || textLower.includes('bug') || textLower.includes('broken') || textLower.includes('error') || textLower.includes('problem')) {
+                    mode = 'fix';
+                    questions = fixFlow;
+                    currentStep = 0;
+                    addMessage("Oh no! Something's not working? Don't worry, fixes are FREE! Let's get it sorted!", true, 'Ralph');
+                    setTimeout(() => askQuestion(0), 800);
+                    return;
                 } else {
                     // Didn't understand - ask again
-                    addMessage("Hmm, say 'question' if you want to ask something, or 'suggestion' if you have an idea to build!", true, 'Ralph');
+                    addMessage("Hmm, say 'question' to ask something, 'suggestion' to build something new, or 'fix' to report a bug!", true, 'Ralph');
                     return;
                 }
             }
@@ -1308,9 +1324,88 @@ SUGGEST_PAGE = """
             } else {
                 if (mode === 'question') {
                     await answerQuestion();
+                } else if (mode === 'fix') {
+                    await submitFix();
                 } else {
                     await submitSuggestion();
                 }
+            }
+        }
+
+        async function submitFix() {
+            // Submit bug fix request - goes to hotfix branch, FREE
+            showTyping();
+            micButton.disabled = true;
+            voiceHint.textContent = 'Submitting bug report...';
+
+            const bugReport = `
+BUG REPORT (FREE FIX)
+Build: ${answers.buildTag}
+Reporter: ${answers.nickname}
+
+What's broken:
+${answers.bugDescription}
+
+Expected behavior:
+${answers.expected}
+
+Steps to reproduce:
+${answers.steps}
+            `.trim();
+
+            try {
+                const res = await fetch('/api/suggest', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        nickname: answers.nickname,
+                        suggestion: bugReport,
+                        build_tag: 'hotfix-' + answers.buildTag,
+                        is_bug_fix: true,
+                        target_branch: 'hotfix',
+                        affected_build: answers.buildTag
+                    })
+                });
+                const data = await res.json();
+
+                hideTyping();
+
+                if (data.success) {
+                    addMessage(`Got it ${answers.nickname}! We'll fix this ASAP - and it's FREE!`, true, 'Ralph');
+
+                    setTimeout(() => {
+                        const messages = document.getElementById('messages');
+                        const card = document.createElement('div');
+                        card.className = 'success-card';
+                        card.innerHTML = `
+                            <h2>🔧 Bug Report Filed!</h2>
+                            <p>Your fix ID:</p>
+                            <div class="task-id">${data.task_id}</div>
+                            <p style="margin-top: 15px; color: var(--accent-green); font-size: 14px; font-weight: bold;">
+                                💚 This fix is FREE
+                            </p>
+                            <p style="margin-top: 8px; color: var(--text-secondary); font-size: 13px;">
+                                We'll prioritize this and get it fixed!
+                            </p>
+                        `;
+                        messages.appendChild(card);
+                        messages.scrollTop = messages.scrollHeight;
+                    }, 800);
+
+                    document.getElementById('voiceArea').style.display = 'none';
+                } else {
+                    addMessage(`Oops! ${data.message}. Let's try again!`, true, 'Ralph');
+                    currentStep = 0;
+                    answers = {};
+                    micButton.disabled = false;
+                    voiceHint.textContent = 'Hold to talk';
+                    setTimeout(() => askQuestion(0), 1000);
+                }
+            } catch (e) {
+                hideTyping();
+                micButton.disabled = false;
+                voiceHint.textContent = 'Hold to talk';
+                showError("Network error. Try again!");
             }
         }
 
@@ -1486,12 +1581,18 @@ Build Tag: ${cleanTag}
                 addMessage("Talk to me however you like - I'll understand!", true, 'Ralph');
             }, 1600);
             setTimeout(() => {
-                addMessage("Do you have a QUESTION about Ralph Mode, or a SUGGESTION for something to build?", true, 'Ralph');
+                addMessage("What can I help with?", true, 'Ralph');
             }, 2400);
             setTimeout(() => {
-                addMessage("Hold the button and say 'question' or 'suggestion'!", true, 'Ralph');
+                addMessage("Say 'QUESTION' to ask about Ralph Mode", true, 'Ralph');
+            }, 3000);
+            setTimeout(() => {
+                addMessage("Say 'SUGGESTION' to request a new feature (paid)", true, 'Ralph');
+            }, 3600);
+            setTimeout(() => {
+                addMessage("Say 'FIX' to report a bug (FREE!)", true, 'Ralph');
                 mode = 'choose';
-            }, 3200);
+            }, 4200);
         }
 
         // Start conversation with intro
