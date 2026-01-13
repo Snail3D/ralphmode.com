@@ -2644,7 +2644,7 @@ Output compact JSON:
 {{
   "project_name": "name",
   "project_description": "1 sentence",
-  "starter_prompt": "Complete build instructions. Start: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. 3-4 paragraphs.",
+  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude --dangerously-skip-permissions'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. 3-4 paragraphs.",
   "tech_stack": {{"language": "x", "framework": "y", "database": "z", "other": []}},
   "file_structure": [".gitignore", ".env.example", "config.py", "main.py", "requirements.txt"],
   "commands": {{"setup": "pip install -r requirements.txt", "run": "python main.py", "test": "pytest"}},
