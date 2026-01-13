@@ -2755,7 +2755,7 @@ Output compact JSON:
 {{
   "project_name": "name",
   "project_description": "1 sentence",
-  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude{" --dangerously-skip-permissions" if session.get("dangerous_mode", True) else ""}'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. 3-4 paragraphs.",
+  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude{" --dangerously-skip-permissions" if session.get("dangerous_mode", True) else ""}'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. CRITICAL: After completing EACH task, commit to git with descriptive message and push to GitHub immediately. Push after every single step - no batching. Keep GitHub in sync at all times. 3-4 paragraphs.",
   "tech_stack": {{"language": "x", "framework": "y", "database": "z", "other": []}},
   "file_structure": [".gitignore", ".env.example", "config.py", "main.py", "requirements.txt"],
   "commands": {{"setup": "pip install -r requirements.txt", "run": "python main.py", "test": "pytest"}},
@@ -4954,6 +4954,9 @@ SECURITY FIRST:
 1. Create .gitignore with: .env, *.pyc, __pycache__/, venv/, sessions/, recipes/
 2. Create .env.example with: TELEGRAM_BOT_TOKEN=your_token_here, GROQ_API_KEY=gsk_your_key_here
 3. NEVER commit .env to git!
+
+BUILD LOOP INSTRUCTIONS:
+CRITICAL: After completing EACH task, commit to git with descriptive message and push to GitHub immediately. Push after every single step - no batching. Keep GitHub in sync at all times.
 
 SETUP:
 1. Get Telegram Bot Token from @BotFather (/newbot command)
