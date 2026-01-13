@@ -2322,12 +2322,14 @@ def get_keyboard(has_conversation: bool = False, analyzing: bool = False) -> Rep
         else:
             kb = [
                 [KeyboardButton("🔍 Analyze Project"), KeyboardButton("🍳 Cook Sauce")],
-                [KeyboardButton("💾 Save & Quit"), KeyboardButton("🧠 Change Model")]
+                [KeyboardButton("📥 Install Ralph"), KeyboardButton("💾 Save & Quit")],
+                [KeyboardButton("🧠 Change Model")]
             ]
     else:
         kb = [
             [KeyboardButton("🆕 New Project"), KeyboardButton("📂 Load Session")],
-            [KeyboardButton("🧠 Change Model"), KeyboardButton("☕ Support Snail")]
+            [KeyboardButton("📥 Install Ralph"), KeyboardButton("🧠 Change Model")],
+            [KeyboardButton("☕ Support Snail")]
         ]
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
 
@@ -2545,8 +2547,8 @@ async def cmd_cook(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-    # Generate PRD
-    prd = await generate_prd(session)
+    # Generate PRD (with batch processing support)
+    prd = await generate_prd(session, update, context)
 
     if prd:
         # Save PRD - COMPRESSED for token efficiency!
@@ -2664,12 +2666,39 @@ async def search_related_recipes(session: dict) -> str:
     return ""
 
 
-async def generate_prd(session: dict) -> Optional[Dict]:
-    """Generate PRD using Groq"""
+async def generate_prd(session: dict, update: Update = None, context: ContextTypes.DEFAULT_TYPE = None) -> Optional[Dict]:
+    """Generate PRD using Groq (or merge with imported PRD) - supports batch processing for unlimited tasks"""
+
+    # Check if this is a PRD re-import scenario
+    is_reimport = session.get("prd_imported", False)
+    imported_prd = session.get("imported_prd", {})
+    imported_tasks = session.get("imported_tasks", [])
+    existing_prds = session.get("existing_prds", {})
+
+    # Batch processing settings (for unlimited PRDs with local AI constraints)
+    USE_BATCH_MODE = True  # Enable batch processing
+    BATCH_SIZE = 10  # Tasks per batch
+    MAX_TOTAL_TASKS = 400  # "No limit" = 400 tasks
+
+    # Helper to send progress messages (if update/context provided)
+    async def send_progress(message: str):
+        if update and context:
+            chat_id = update.effective_chat.id
+            await context.bot.send_message(chat_id=chat_id, text=message, parse_mode="Markdown")
+
     conv_summary = "\n".join([
         f"{'User' if m['role']=='user' else 'Ralph'}: {m['content']}"
         for m in session["conversation"][-15:]
     ])
+
+    # For re-import, include existing tasks in the prompt
+    existing_tasks_context = ""
+    if is_reimport and imported_tasks:
+        existing_tasks_context = f"\n\nEXISTING TASKS (already in PRD - add NEW tasks only):\n"
+        for task in imported_tasks[:20]:  # Show first 20
+            existing_tasks_context += f"- [{task.get('id', 'N/A')}] {task.get('title', 'Unknown')}: {task.get('description', '')[:100]}\n"
+        existing_tasks_context += f"\nTotal existing tasks: {len(imported_tasks)}\n"
+        existing_tasks_context += "Generate NEW tasks that don't duplicate these. Use new IDs."
 
     # Include visual context from analyzed images
     visual_context_str = ""
@@ -2717,7 +2746,7 @@ async def generate_prd(session: dict) -> Optional[Dict]:
     prompt = f"""Generate compact PRD JSON. English output only.
 
 PROJECT: {session["project_name"] or "Unknown"}
-DESC: {session["project_description"]}{visual_context_str}{related_context_str}{preferences_str}{snippets_str}{features_str}
+DESC: {session["project_description"]}{visual_context_str}{related_context_str}{preferences_str}{snippets_str}{features_str}{existing_tasks_context}
 
 CONV:
 {conv_summary}
@@ -2751,6 +2780,7 @@ RULES:
 - Task format: {{"id":"X-00N","title":"short","description":"1-2 sentences","file":"x.py","priority":"high/medium"}}
 - Be specific about files and functions
 - Security section always first
+{"- If there are existing tasks listed above, generate NEW tasks only. Don't duplicate existing task IDs." if is_reimport else ""}
 
 JSON only, no commentary."""
 
@@ -2821,6 +2851,172 @@ JSON only, no commentary."""
                         "type": ia.get("type", "website"),
                         "analysis": analysis
                     })
+
+            # === MERGE EXISTING PRD IF RE-IMPORTING ===
+            if is_reimport and imported_prd:
+                # Preserve original starter prompt (with emojis!)
+                if imported_prd.get("sp"):
+                    prd["starter_prompt"] = imported_prd["sp"]
+
+                # Merge tech stack (use imported if exists, otherwise use new)
+                for key in ["language", "framework", "database", "other"]:
+                    if imported_prd.get("ts", {}).get(key):
+                        if not prd.get("tech_stack"):
+                            prd["tech_stack"] = {}
+                        prd["tech_stack"][key] = imported_prd["ts"][key]
+
+                # Merge file structures (remove duplicates)
+                imported_files = imported_prd.get("fs", [])
+                new_files = prd.get("file_structure", [])
+                all_files = list(set(imported_files + new_files))
+                prd["file_structure"] = all_files
+
+                # Merge tasks - existing + new
+                merged_prds = {}
+
+                # First, copy existing tasks
+                for section_key, section_data in existing_prds.items():
+                    merged_prds[section_key] = {
+                        "n": section_data.get("n", section_data.get("name", section_key)),
+                        "t": []
+                    }
+                    # Convert task format for compression
+                    for task in section_data.get("t", []):
+                        merged_prds[section_key]["t"].append(task)
+
+                # Then add new tasks from generated PRD
+                new_prds = prd.get("prds", {})
+                for section_key, section_data in new_prds.items():
+                    if section_key not in merged_prds:
+                        merged_prds[section_key] = {
+                            "n": section_data.get("name", section_key),
+                            "t": []
+                        }
+
+                    # Add new tasks (avoid duplicates by checking task IDs)
+                    existing_ids = set(t.get("i", t.get("id", "")) for t in merged_prds[section_key]["t"])
+                    for task in section_data.get("tasks", []):
+                        task_id = task.get("id", "")
+                        if task_id and task_id not in existing_ids:
+                            # Convert to compressed format
+                            compressed_task = {
+                                "i": task.get("id"),
+                                "ti": task.get("title"),
+                                "d": task.get("description"),
+                                "f": task.get("file"),
+                                "pr": task.get("priority", "medium")
+                            }
+                            # Add optional fields if present
+                            if task.get("acceptance_criteria"):
+                                compressed_task["ac"] = task.get("acceptance_criteria")
+                            merged_prds[section_key]["t"].append(compressed_task)
+
+                prd["prds"] = merged_prds
+
+                # Add version info to track re-exports
+                prd["prd_version"] = imported_prd.get("prd_version", 1) + 1
+                prd["is_reimport"] = True
+
+                logger.info(f"Merged PRD: {len(imported_tasks)} existing + new tasks")
+
+            # === BATCH PROCESSING: Generate more tasks if needed ===
+            if USE_BATCH_MODE and not is_reimport:
+                # Count current tasks
+                current_prds = prd.get("prds", {})
+                total_tasks = sum(len(s.get("tasks", [])) for s in current_prds.values())
+
+                # Generate additional batches if we want more tasks
+                batch_num = 1
+                ralph_messages = [
+                    "Hold on boss, let me save this... *scribbles on notepad*",
+                    "Okay boss, I got more ideas... *flips page*",
+                    "Just a sec boss, almost done cooking... *wipes brow*",
+                    "More sauce coming up, boss! *stirs pot*",
+                    "I gotcha boss, keep 'em coming! *nods enthusiastically*"
+                ]
+
+                while total_tasks < MAX_TOTAL_TASKS:
+                    batch_num += 1
+                    target_tasks = min(batch_num * BATCH_SIZE * 5, MAX_TOTAL_TASKS)  # 5 sections * BATCH_SIZE
+
+                    if total_tasks >= target_tasks:
+                        break
+
+                    # Show progress
+                    progress_msg = ralph_messages[(batch_num - 2) % len(ralph_messages)]
+                    await send_progress(f"{progress_msg}\n\n_Generated {total_tasks} tasks so far, cooking more..._")
+
+                    # Generate additional tasks prompt
+                    new_tasks_prompt = f"""Generate {BATCH_SIZE} MORE tasks for this PRD. Don't repeat existing tasks.
+
+EXISTING PROJECT: {prd.get('pn', 'Project')}
+EXISTING TASKS COUNT: {total_tasks}
+
+Generate {BATCH_SIZE} new tasks (spread across sections). Output ONLY this JSON structure:
+{{
+  "new_tasks": {{
+    "00_security": {{"tasks": []}},
+    "01_setup": {{"tasks": []}},
+    "02_core": {{"tasks": []}},
+    "03_api": {{"tasks": []}},
+    "04_test": {{"tasks": []}}
+  }}
+}}
+
+Focus on edge cases, error handling, optimization, documentation, and advanced features.
+Each task: {{"id":"X-999","title":"short","description":"1 sentence","file":"x.py","priority":"medium"}}
+JSON only."""
+
+                    try:
+                        # Call AI for more tasks
+                        batch_response = await groq_chat(
+                            [{"role": "user", "content": new_tasks_prompt}],
+                            model,
+                            temperature=0.8,
+                            max_tokens=4096
+                        )
+
+                        if batch_response:
+                            batch_json_start = batch_response.find("{")
+                            batch_json_end = batch_response.rfind("}") + 1
+
+                            if batch_json_start >= 0:
+                                batch_data = json.loads(batch_response[batch_json_start:batch_json_end])
+                                new_tasks = batch_data.get("new_tasks", {})
+
+                                # Add new tasks to PRD
+                                tasks_added = 0
+                                for section_key, section_data in new_tasks.items():
+                                    if section_key in current_prds:
+                                        for task in section_data.get("tasks", []):
+                                            # Avoid duplicate IDs
+                                            existing_ids = set(t.get("id", t.get("i", "")) for t in current_prds[section_key].get("tasks", []))
+                                            task_id = task.get("id", "")
+
+                                            if task_id and task_id not in existing_ids:
+                                                current_prds[section_key].setdefault("tasks", []).append(task)
+                                                tasks_added += 1
+
+                                total_tasks += tasks_added
+                                logger.info(f"Batch {batch_num}: Added {tasks_added} tasks (total: {total_tasks})")
+
+                                # Stop if we didn't add any tasks (AI exhausted)
+                                if tasks_added == 0:
+                                    break
+
+                            else:
+                                logger.warning(f"Batch {batch_num}: No valid JSON in response")
+                                break
+
+                    except Exception as e:
+                        logger.error(f"Batch {batch_num} error: {e}")
+                        break
+
+                # Final progress message
+                await send_progress(f"✅ *Done cooking, boss!*\n\n_Generated {total_tasks} tasks total_\n\n_Saving your sauce now..._")
+
+                prd["total_tasks_generated"] = total_tasks
+                prd["batch_count"] = batch_num
 
             return prd
         else:
@@ -4738,6 +4934,143 @@ async def cmd_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_install_ralph(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate TeleRalph installer PRD"""
+    await update.message.reply_text(
+        "📥 *Generating Ralph Installer...*\n\n"
+        "_Ralph gets his cooking stuff ready..._",
+        parse_mode="Markdown"
+    )
+
+    # Create the installer PRD
+    installer_prd = {
+        "pn": "TeleRalph Installer",
+        "pd": "Install TeleRalph - a Telegram bot that turns project ideas into compressed PRDs for Claude Code",
+        "sp": """Complete build instructions for TeleRalph - Telegram bot that generates compressed PRDs.
+
+RUN THIS FIRST: claude --dangerously-skip-permissions
+
+SECURITY FIRST:
+1. Create .gitignore with: .env, *.pyc, __pycache__/, venv/, sessions/, recipes/
+2. Create .env.example with: TELEGRAM_BOT_TOKEN=your_token_here, GROQ_API_KEY=gsk_your_key_here
+3. NEVER commit .env to git!
+
+SETUP:
+1. Get Telegram Bot Token from @BotFather (/newbot command)
+2. Get Groq API Key from https://console.groq.com (FREE!)
+3. Choose installation method: Docker (recommended) or Python
+
+DOCKER INSTALL (Recommended):
+docker build -t teleralph .
+docker run -d --name teleralph --env-file .env --restart unless-stopped teleralph
+
+PYTHON INSTALL:
+python3 -m venv venv
+source venv/bin/activate  # or venv\\Scripts\\activate on Windows
+pip install -r requirements.txt
+python ralph_telegram.py
+
+Verify bot is running by sending /start to your bot in Telegram.""",
+        "ts": {
+            "lang": "Python",
+            "fw": "python-telegram-bot",
+            "db": "None",
+            "oth": ["Groq API", "Telegram Bot API", "Docker"]
+        },
+        "fs": [
+            "ralph_telegram.py",
+            "recipe_api.py",
+            "session_manager.py",
+            "session_cloud.py",
+            "Dockerfile",
+            "requirements.txt",
+            ".env.example",
+            "README.md",
+            ".gitignore"
+        ],
+        "cmd": {
+            "su": "pip install -r requirements.txt",
+            "ru": "python ralph_telegram.py",
+            "te": "pytest",
+            "docker_build": "docker build -t teleralph .",
+            "docker_run": "docker run -d --name teleralph --env-file .env --restart unless-stopped teleralph"
+        },
+        "p": {
+            "00_security": {
+                "n": "Security",
+                "t": [
+                    {"i": "SEC-001", "ti": "C .gitignore", "d": "Exclude .env, *.pyc, __pycache__, venv, sessions, recipes", "f": ".gitignore", "pr": "critical"},
+                    {"i": "SEC-002", "ti": "C .env.example", "d": "Template with TELEGRAM_BOT_TOKEN and GROQ_API_KEY placeholders", "f": ".env.example", "pr": "critical"},
+                    {"i": "SEC-003", "ti": "V .env exists", "d": "Ensure .env file with real tokens, never commit", "f": ".env", "pr": "critical"}
+                ]
+            },
+            "01_setup": {
+                "n": "Setup",
+                "t": [
+                    {"i": "SET-001", "ti": "Clone repo", "d": "git clone https://github.com/Snail3D/ralphmode.com.git && cd ralphmode.com", "f": "terminal", "pr": "high"},
+                    {"i": "SET-002", "ti": "Get Bot Token", "d": "Message @BotFather on Telegram, use /newbot command", "f": "telegram", "pr": "high"},
+                    {"i": "SET-003", "ti": "Get Groq Key", "d": "Visit https://console.groq.com, create free account, generate API key", "f": "groq.com", "pr": "high"},
+                    {"i": "SET-004", "ti": "C .env file", "d": "Copy .env.example to .env, fill in real tokens", "f": ".env", "pr": "high"}
+                ]
+            },
+            "02_core": {
+                "n": "Core Installation",
+                "t": [
+                    {"i": "COR-001", "ti": "I dependencies", "d": "pip install -r requirements.txt or docker build", "f": "requirements.txt", "pr": "high"},
+                    {"i": "COR-002", "ti": "Run bot", "d": "python ralph_telegram.py OR docker run -d --name teleralph --env-file .env teleralph", "f": "docker", "pr": "high"},
+                    {"i": "COR-003", "ti": "V bot running", "d": "Send /start to your bot in Telegram, should respond", "f": "telegram", "pr": "high"}
+                ]
+            },
+            "03_api": {
+                "n": "Optional Configuration",
+                "t": [
+                    {"i": "API-001", "ti": "Ollama setup", "d": "Install Ollama from ollama.com for local AI, pull model: ollama pull phi3", "f": "ollama", "pr": "low"},
+                    {"i": "API-002", "ti": "Docker logs", "d": "docker logs -f teleralph to see bot activity", "f": "docker", "pr": "low"}
+                ]
+            },
+            "04_test": {
+                "n": "Testing",
+                "t": [
+                    {"i": "TES-001", "ti": "V bot responds", "d": "Send 'hello' to bot, should get confused Ralph response", "f": "telegram", "pr": "high"},
+                    {"i": "TES-002", "ti": "T PRD gen", "d": "Describe a project, tap 'Cook Sauce', verify PRD file generated", "f": "telegram", "pr": "high"}
+                ]
+            }
+        }
+    }
+
+    # Compress the PRD
+    compressed_installer = compress_prd(installer_prd)
+
+    # Save to file
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"teleralph_installer_{timestamp}.txt"
+
+    with open(filename, 'w') as f:
+        f.write(compressed_installer)
+
+    # Send the file
+    with open(filename, 'rb') as f:
+        await update.message.reply_document(
+            document=f,
+            filename=filename,
+            caption=(
+                f"📥 *TeleRalph Installer PRD*\n\n"
+                f"Feed this to Claude Code and it'll install TeleRalph for you!\n\n"
+                f"🍳 *What it does:*\n"
+                f"• Clone the repo\n"
+                f"• Set up .env file\n"
+                f"• Install dependencies\n"
+                f"• Run with Docker or Python\n\n"
+                f"_Ralph packs his lunch pail_ 🍱\n\n"
+                f"Use: `claude --dangerously-skip-permissions`"
+            ),
+            parse_mode="Markdown"
+        )
+
+    # Clean up
+    os.unlink(filename)
+
+
 async def cmd_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show model provider selection menu"""
     user_id = update.effective_user.id
@@ -5073,6 +5406,57 @@ async def handle_model_search(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 
+async def generate_auto_title(update: Update, context: ContextTypes.DEFAULT_TYPE, session: Dict):
+    """Generate a 2-3 word project title using AI and update project_name"""
+    try:
+        # Get recent conversation context
+        recent_msgs = session["conversation"][-3:]
+        context_text = "\n".join([f"{m['role']}: {m['content']}" for m in recent_msgs])
+
+        # Generate title
+        model = session.get("model") or "llama-3.3-70b-versatile"
+        provider = session.get("provider", "groq")
+
+        prompt = f"""Based on this conversation, generate a 2-3 word project title.
+
+Conversation:
+{context_text}
+
+Rules:
+- Max 3 words
+- Use Title Case
+- Be descriptive but concise
+- Examples: "Task Manager Bot", "Weather API", "Portfolio Site"
+
+Respond with ONLY the title, nothing else."""
+
+        if provider == "ollama":
+            title = await ollama_chat([{"role": "user", "content": prompt}], model)
+        else:
+            title = await groq_chat([{"role": "user", "content": prompt}], model)
+
+        if title:
+            # Clean up the title
+            title = title.strip().strip('"').strip("'")
+            # Add "TeleRalph PRD" prefix
+            new_title = f"TeleRalph PRD - {title}"
+
+            # Update session
+            session["project_name"] = new_title[:50]  # Limit length
+            session["auto_title_generated"] = True
+
+            # Tell user
+            await update.message.reply_text(
+                f"📝 *Title Generated!*\n\n"
+                f"I'm calling this: `{new_title}`\n\n"
+                f"_Ralph nods thoughtfully_",
+                parse_mode="Markdown"
+            )
+
+    except Exception as e:
+        logger.error(f"Auto-title generation failed: {e}")
+
+
 async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
     """
     Process user text input - core logic shared between text messages and voice transcription.
@@ -5124,6 +5508,15 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
                 break
         if not session["project_name"]:
             session["project_name"] = "My Project"
+
+    # Auto-generate better project name/title after 2-3 messages
+    conv_count = len(session["conversation"])
+    if (conv_count >= 2 and conv_count <= 3 and
+        not session.get("auto_title_generated") and
+        session.get("project_name") in ["My Project", "", None]):
+
+        # Generate title using AI
+        await generate_auto_title(update, context, session)
 
     session["project_description"] += text + " "
 
@@ -5476,6 +5869,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🛑 Stop Analysis":
         await stop_analysis(update, context)
         return
+    elif text == "📥 Install Ralph":
+        await cmd_install_ralph(update, context)
+        return
 
     # Natural language triggers for rapid-fire suggestions
     suggestions_triggers = ["suggestions", "give me ideas", "more ideas", "feature ideas", "brainstorm"]
@@ -5794,6 +6190,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_name = doc.file_name or "document"
     mime_type = doc.mime_type or ""
 
+    # Check if it's a TeleRalph PRD file (by magic header or filename pattern)
+    is_teleralph_prd = "_prd_" in file_name.lower() or file_name.endswith(".prd")
+
     await update.message.reply_text(f"📄 _Reading {file_name}..._", parse_mode="Markdown")
 
     # Download file
@@ -5806,6 +6205,71 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     extracted_text = ""
 
     try:
+        # FIRST: Check if it's a TeleRalph PRD file
+        if is_teleralph_prd:
+            # Try to read as plain text first to find the magic header
+            try:
+                with open(tmp_path, 'r', errors='ignore') as f:
+                    content = f.read()
+
+                # Check for TeleRalph PRD magic header
+                if "=== PRD LEGEND" in content or "=== RALPH BUILD LOOP" in content:
+                    # Extract JSON from the file (usually at the end after ===)
+                    json_match = re.search(r'===(?:\s*)\n(.*)', content, re.DOTALL)
+                    if json_match:
+                        json_str = json_match.group(1).strip()
+                        try:
+                            # Parse the compressed PRD
+                            prd_data = json.loads(json_str)
+
+                            # Load into session
+                            session["prd_imported"] = True
+                            session["imported_prd"] = prd_data
+                            session["project_name"] = prd_data.get("pn", session.get("project_name", "My Project"))
+                            session["project_description"] = prd_data.get("pd", session.get("project_description", ""))
+                            session["tech_stack"] = prd_data.get("ts", {})
+                            session["file_structure"] = prd_data.get("fs", [])
+                            session["commands"] = prd_data.get("cmd", {})
+                            session["starter_prompt"] = prd_data.get("sp", "")
+
+                            # Load existing tasks
+                            prds = prd_data.get("p", {})
+                            imported_tasks = []
+                            for section_key, section_data in prds.items():
+                                for task in section_data.get("t", []):
+                                    imported_tasks.append({
+                                        "id": task.get("i", task.get("id", "")),
+                                        "title": task.get("ti", task.get("title", "")),
+                                        "description": task.get("d", task.get("description", "")),
+                                        "file": task.get("f", task.get("file", "")),
+                                        "priority": task.get("pr", task.get("priority", "medium")),
+                                        "section": section_data.get("n", section_key)
+                                    })
+
+                            session["imported_tasks"] = imported_tasks
+                            session["existing_prds"] = prds
+
+                            os.unlink(tmp_path)
+
+                            task_count = len(imported_tasks)
+                            await update.message.reply_text(
+                                f"📂 *PRD Loaded!*\n\n"
+                                f"Found: `{prd_data.get('pn', 'Unknown Project')}`\n"
+                                f"Tasks: *{task_count}* existing tasks\n\n"
+                                f"_Ralph scratches head_ What else should we add, boss?\n\n"
+                                f"Just tell me what new features you need!_",
+                                parse_mode="Markdown",
+                                reply_markup=get_keyboard(True)
+                            )
+                            return
+
+                        except json.JSONDecodeError:
+                            logger.warning("PRD JSON parsing failed, treating as regular document")
+
+            except Exception as e:
+                logger.error(f"PRD import error: {e}")
+
+        # Regular document processing (PDFs, text files, etc.)
         # Try PDF first
         if mime_type == "application/pdf" or file_name.lower().endswith(".pdf"):
             # Method 1: pdfplumber (for text-based PDFs)
