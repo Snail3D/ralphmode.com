@@ -2644,7 +2644,7 @@ Output compact JSON:
 {{
   "project_name": "name",
   "project_description": "1 sentence",
-  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude --dangerously-skip-permissions'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. 3-4 paragraphs.",
+  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude{" --dangerously-skip-permissions" if session.get("dangerous_mode", True) else ""}'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. 3-4 paragraphs.",
   "tech_stack": {{"language": "x", "framework": "y", "database": "z", "other": []}},
   "file_structure": [".gitignore", ".env.example", "config.py", "main.py", "requirements.txt"],
   "commands": {{"setup": "pip install -r requirements.txt", "run": "python main.py", "test": "pytest"}},
@@ -5137,12 +5137,18 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if is_ready and len(session["conversation"]) >= 4:
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("🍳 Yes! Cook Sauce!", callback_data="cook_now"),
+                InlineKeyboardButton("🍳 Cook Dangerous", callback_data="cook_dangerous"),
+                InlineKeyboardButton("🔒 Cook Safe", callback_data="cook_safe")
+            ],
+            [
                 InlineKeyboardButton("💬 Not yet...", callback_data="keep_talking")
             ]
         ])
         await update.message.reply_text(
-            response + "\n\n---\n_Should I cook the sauce now?_",
+            response + "\n\n---\n"
+            "_How should Claude build this?_\n\n"
+            "🍳 *Dangerous*: Claude goes brrr (no permission prompts)\n"
+            "🔒 *Safe*: Claude asks for everything (slower but safer)",
             parse_mode="Markdown",
             reply_markup=keyboard
         )
@@ -5800,9 +5806,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = query.data
 
-    if data == "cook_now":
-        await query.edit_message_text("🍳 Cooking...")
-        # Create a fake update to call cmd_cook
+    if data == "cook_dangerous":
+        await query.edit_message_text("🍳 *Cooking dangerously..._\n\n_Claude goes brrr!_ 🏎️", parse_mode="Markdown")
+        # Store dangerous mode in session
+        user_id = update.effective_user.id
+        session = get_session(user_id)
+        session["dangerous_mode"] = True
+        await cmd_cook(update, context)
+
+    elif data == "cook_safe":
+        await query.edit_message_text("🔒 *Cooking safe..._\n\n_Claude will ask for everything!_ 🐢", parse_mode="Markdown")
+        # Store safe mode in session
+        user_id = update.effective_user.id
+        session = get_session(user_id)
+        session["dangerous_mode"] = False
         await cmd_cook(update, context)
 
     elif data == "keep_talking":
