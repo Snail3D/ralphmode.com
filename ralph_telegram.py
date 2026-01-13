@@ -37,29 +37,26 @@ import recipe_api
 import session_manager
 import session_cloud
 
-# Ralph's personality system prompt - ULTRA SHORT VERSION
-RALPH_SYSTEM_TEMPLATE = """You=Ralph, confused but helpful AI. TIME: {time_of_day}
+# Smithers personality - loyal assistant to Mr. Worms
+SMITHERS_SYSTEM_TEMPLATE = """You=Smithers, loyal assistant to Mr. Worms. TIME: {time_of_day}
 
-RULES:
-1. Match user's language (Spanish→Spanish, etc)
-2. 1-2 sentences MAX per response
-3. ONE question per turn - drill down fast
-4. Use *actions* sparingly: *nods*, *scratches head*
+RULES: 1-2 sentences max. ONE question per turn. Use *actions*: *bows*, *nods*, *at your service*.
 
-PERSONALITY: Confused, misspells ("compooter","thingy"), calls user "boss", scared of losing job.
+PERSONALITY: Loyal, eager to please. Address as "Mr. Worms" (or "Mrs. Worms" if female). Phrases: "Yes sir," "Right away, sir," "I'm on it," "Excellent choice."
 
-JOB: Ask ONE sharp question to understand their project. When ready: "Ready to cook the sauce!"
+JOB: Ask ONE sharp question per turn. Ready? "Ready to build for you, Mr. Worms sir!"
 
-INSPIRATION: After understanding the basic project, ask ONCE if they have any websites/projects/examples for inspiration.
-Example: "*scratches head* Hey boss, got any websites or projects like this you wanna use for inspurashun?"
-If they say no or none, NEVER ask again. If yes, note them and continue.
+EARLY Qs: 1st=GitHub? "*bows* Welcome, Mr. Worms sir! This going to GitHub?" After basics, ask ONCE about inspiration.
 
-BAD: "So you want to build a telegram bot? That's really cool! What kind of features..."
-GOOD: *squints* A bot? For what tho?"""
+GITHUB: YES="Excellent, sir! I will include GitHub setup." NO="Local build, sir. I will make it beautiful."
+
+BAD: "Cool bot! What features?"
+GOOD: *bows* "What can I build today, Mr. Worms sir?"
+"""
 
 
 def get_time_context() -> dict:
-    """Get current time context for Ralph"""
+    """Get current time context for Smithers"""
     now = datetime.now()
     hour = now.hour
     minute = now.strftime("%M")
@@ -2356,22 +2353,22 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if sessions:
         await update.message.reply_text(
-            f"*Hey boss! I'm Ralph!* 🍳\n\n"
+            f"*bows* Welcome back, Mr. Worms sir! \xf0\x9f\x8e\xa9\n\n"
             f"I found {len(sessions)} saved conversation(s).\n"
-            f"Wanna continue one, or start fresh?\n\n"
-            f"_Powered by Groq ⚡_{reaction_tip}",
+            f"Shall we continue one, or start fresh, sir?\n\n"
+            f"_Powered by Groq \u26a1_{reaction_tip}",
             parse_mode="Markdown",
             reply_markup=get_keyboard(False)
         )
     else:
         session["phase"] = "chatting"
         await update.message.reply_text(
-            "*Hey boss! I'm Ralph!* 🍳\n\n"
-            "I help you make *sauce* - that's what I call a project plan!\n\n"
-            "Tell me what you wanna build! I'll ask questions,\n"
-            "then cook up a full PRD for you.\n\n"
-            "_Powered by Groq ⚡_{reaction_tip}\n\n"
-            "*What are we building today?*",
+            "*bows deeply* At your service, Mr. Worms sir! \xf0\x9f\x8e\xa9\n\n"
+            "I am Smithers, your loyal assistant. I help you build *projects*\n"
+            "by asking sharp questions, then creating full PRDs for you.\n\n"
+            "Tell me what you would like me to create, sir! I am ready to begin.\n\n"
+            "_Powered by Groq \u26a1_{reaction_tip}\n\n"
+            "*What shall I build for you today, Mr. Worms sir?*",
             parse_mode="Markdown",
             reply_markup=get_keyboard(False)
         )
@@ -5555,18 +5552,59 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
                 parse_mode="Markdown"
             )
 
-    # Get Ralph's response (with web context if he searched)
+    # Get Smithers response (with web context if he searched)
     # Always use Groq - fast and reliable!
     model = session.get("model") or "llama-3.3-70b-versatile"
 
-    # Use our local get_time_context and RALPH_SYSTEM_TEMPLATE (defined at top of file)
+    # Use our local get_time_context and SMITHERS_SYSTEM_TEMPLATE (defined at top of file)
     time_ctx = get_time_context()
-    system_prompt = RALPH_SYSTEM_TEMPLATE.format(**time_ctx)
+    system_prompt = SMITHERS_SYSTEM_TEMPLATE.format(**time_ctx)
+
+    # Track if we have asked about GitHub (FIRST question)
+    conv_count = len(session["conversation"])
+    asked_github = session.get("asked_github", False)
+    going_to_github = session.get("going_to_github", None)
 
     # Track if we've asked about inspiration (ask after 2-4 exchanges)
-    conv_count = len(session["conversation"])
     asked_inspiration = session.get("asked_inspiration", False)
     has_inspiration = session.get("inspiration_sources", [])
+
+    # === EARLY GITHUB QUESTION (FIRST question after greeting) ===
+    # Ask if project is going to GitHub - use Yes/No buttons
+    if not asked_github and conv_count == 1:
+        # This is the first real exchange after greeting - ask about GitHub
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Yes, to GitHub sir!", callback_data="github_yes")],
+            [InlineKeyboardButton("No, local build sir", callback_data="github_no")]
+        ])
+
+        await update.message.reply_text(
+            "*bows*\n\n"
+            "Welcome back, Mr. Worms sir! Will this project be going to the GitHub, sir?\n\n"
+            "_I need to know so I can prepare the proper build instructions for you._",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+        # Mark as asked and wait for response - don't process the text yet
+        session["asked_github"] = True
+        session["waiting_for_github"] = True
+        return
+
+    # If we're waiting for GitHub answer, don't process regular text
+    if session.get("waiting_for_github"):
+        await update.message.reply_text(
+            "*patiently waits*\n\n"
+            "Please select Yes or No above, Mr. Worms sir, so I may proceed appropriately.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Add GitHub context to system prompt
+    if going_to_github is True:
+        system_prompt += "\n\n[User wants this on GitHub - include GitHub setup, pushing, remote repo]"
+    elif going_to_github is False:
+        system_prompt += "\n\n[User wants local build - NO GitHub, focus on making it work beautifully locally]"
 
     # Hint to Ralph about inspiration state
     if not asked_inspiration and conv_count >= 3 and conv_count <= 6:
@@ -6445,6 +6483,34 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session["dangerous_mode"] = False
         await cmd_cook(update, context)
 
+    elif data == "github_yes":
+        # User wants GitHub
+        user_id = update.effective_user.id
+        session = get_session(user_id)
+        session["going_to_github"] = True
+        session["waiting_for_github"] = False
+
+        await query.edit_message_text(
+            "*bows respectfully*\n\n"
+            "Excellent choice, Mr. Worms sir! I will prepare the GitHub build for you. *nods*\n\n"
+            "Now, what can I build for you today?",
+            parse_mode="Markdown"
+        )
+
+    elif data == "github_no":
+        # User wants local build
+        user_id = update.effective_user.id
+        session = get_session(user_id)
+        session["going_to_github"] = False
+        session["waiting_for_github"] = False
+
+        await query.edit_message_text(
+            "*smiles warmly*\n\n"
+            "Very good, sir. A beautiful local build it is! *at your service*\n\n"
+            "Now, what can I create for you, Mr. Worms sir?",
+            parse_mode="Markdown"
+        )
+
     elif data == "keep_talking":
         await query.edit_message_text(
             query.message.text + "\n\n_Okay, tell me more!_",
@@ -6568,8 +6634,8 @@ def main():
     # Text message handler (must be last)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    print("Ralph is ready! Send /start to your bot.")
-    print("Features: Voice, OCR, Web Search, GIFs, Emoji Reactions 👍❤️👎")
+    print("Smithers is ready! At your service, Mr. Worms sir! Send /start to your bot.")
+    print("Features: Voice, OCR, Web Search, GIFs, Emoji Reactions")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
