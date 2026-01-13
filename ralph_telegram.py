@@ -2755,7 +2755,17 @@ Output compact JSON:
 {{
   "project_name": "name",
   "project_description": "1 sentence",
-  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude{" --dangerously-skip-permissions" if session.get("dangerous_mode", True) else ""}'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order. CRITICAL: After completing EACH task, commit to git with descriptive message and push to GitHub immediately. Push after every single step - no batching. Keep GitHub in sync at all times. 3-4 paragraphs.",
+  "starter_prompt": "Complete build instructions for Claude Code. Start: 'RUN THIS FIRST: claude{" --dangerously-skip-permissions" if session.get("dangerous_mode", True) else ""}'. Then: 'SECURITY FIRST: .gitignore, .env.example, config.py'. Then: purpose, stack, features, files, build order.
+
+CRITICAL: After EACH task, commit+push to GitHub immediately. No batching. Keep GitHub in sync.
+
+README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track pass/iteration counts. Update install instructions as you go - prioritize SIMPLEST method if same cost/result.
+
+FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Telegram bot that turns ideas into PRDs. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
+
+DEDICATED README PASS: Include ONE dedicated README.md pass (last/near-last). Must: search codebase, identify hottest functions, write clear install docs, document usage. Last task: Dockerize if possible (volumes, compose). Install instructions AT TOP - simplest method优先.
+
+3-4 paragraphs total.",
   "tech_stack": {{"language": "x", "framework": "y", "database": "z", "other": []}},
   "file_structure": [".gitignore", ".env.example", "config.py", "main.py", "requirements.txt"],
   "commands": {{"setup": "pip install -r requirements.txt", "run": "python main.py", "test": "pytest"}},
@@ -4950,30 +4960,23 @@ async def cmd_install_ralph(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 RUN THIS FIRST: claude --dangerously-skip-permissions
 
-SECURITY FIRST:
-1. Create .gitignore with: .env, *.pyc, __pycache__/, venv/, sessions/, recipes/
-2. Create .env.example with: TELEGRAM_BOT_TOKEN=your_token_here, GROQ_API_KEY=gsk_your_key_here
-3. NEVER commit .env to git!
+SECURITY FIRST: .gitignore with .env,*.pyc,__pycache__,venv,sessions,recipes. .env.example with placeholders. NEVER commit .env.
 
-BUILD LOOP INSTRUCTIONS:
-CRITICAL: After completing EACH task, commit to git with descriptive message and push to GitHub immediately. Push after every single step - no batching. Keep GitHub in sync at all times.
+CRITICAL: After EACH task, commit+push to GitHub immediately. No batching. Keep GitHub in sync.
 
-SETUP:
-1. Get Telegram Bot Token from @BotFather (/newbot command)
-2. Get Groq API Key from https://console.groq.com (FREE!)
-3. Choose installation method: Docker (recommended) or Python
+README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track counts. Update install instructions - prioritize SIMPLEST method if same cost.
 
-DOCKER INSTALL (Recommended):
-docker build -t teleralph .
-docker run -d --name teleralph --env-file .env --restart unless-stopped teleralph
+FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Telegram bot that turns ideas into PRDs. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
 
-PYTHON INSTALL:
-python3 -m venv venv
-source venv/bin/activate  # or venv\\Scripts\\activate on Windows
-pip install -r requirements.txt
-python ralph_telegram.py
+DEDICATED README PASS: ONE dedicated README.md pass (last/near-last). Search codebase, identify hottest functions, write clear install docs, document usage. Last task: Dockerize if possible. Install AT TOP - simplest method优先.
 
-Verify bot is running by sending /start to your bot in Telegram.""",
+SETUP: Get Telegram Bot Token from @BotFather (/newbot). Get Groq API Key from https://console.groq.com (FREE!). Choose: Docker (recommended) or Python.
+
+DOCKER: docker build -t teleralph . && docker run -d --name teleralph --env-file .env --restart unless-stopped teleralph
+
+PYTHON: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python ralph_telegram.py
+
+Verify: Send /start to your bot in Telegram.""",
         "ts": {
             "lang": "Python",
             "fw": "python-telegram-bot",
