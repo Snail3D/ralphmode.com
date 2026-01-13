@@ -1,2 +1,0 @@
-{"timestamp": "2026-01-10T14:16:01.767509", "table": "users", "operation": "INSERT", "user_id": 12345, "record_id": 1, "changes": null}
-{"timestamp": "2026-01-10T14:16:01.767780", "table": "users", "operation": "UPDATE", "user_id": 12345, "record_id": 1, "changes": {"username": {"old": "oldname", "new": "newname"}}}

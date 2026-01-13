@@ -1,4 +1,0 @@
-{"session_id": "5994471abb01_1768113975", "event_type": "step_start", "step_name": "ssh_key_generation", "timestamp": "2026-01-10T23:46:15.918606", "step_data": {}}
-{"session_id": "5994471abb01_1768113975", "event_type": "step_complete", "step_name": "ssh_key_generation", "timestamp": "2026-01-10T23:46:15.918657", "duration_seconds": 45.2}
-{"session_id": "5994471abb01_1768113975", "event_type": "step_start", "step_name": "ssh_key_addition", "timestamp": "2026-01-10T23:46:15.918691", "step_data": {}}
-{"session_id": "5994471abb01_1768113975", "event_type": "abandoned", "last_step": "ssh_key_addition", "timestamp": "2026-01-10T23:46:15.918801"}

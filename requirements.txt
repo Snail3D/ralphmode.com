@@ -1,1 +1,23 @@
-anthropic>=0.18.0
+# Core
+aiohttp>=3.9.0
+python-telegram-bot>=21.0
+rich>=13.0.0
+requests>=2.31.0
+
+# OCR & Image Processing
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# PDF Processing
+pdfplumber>=0.10.0
+pdf2image>=1.16.0
+
+# QR Codes
+qrcode>=7.4.0
+pyzbar>=0.1.9
+
+# Web Search (no API key needed)
+duckduckgo-search>=5.0.0
+
+# Optional: Local Whisper for voice (large dependency)
+# openai-whisper>=20231117
