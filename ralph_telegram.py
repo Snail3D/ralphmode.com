@@ -2759,6 +2759,8 @@ Output compact JSON:
 
 CRITICAL: After EACH task, commit+push to GitHub immediately. No batching. Keep GitHub in sync.
 
+REAL-TIME PREVIEW: If possible, run project in real-time as you build. For websites: open preview ASAP, update at every step. Preview should work minimized/maximized, updating in background. Prioritize getting preview running early.
+
 README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track pass/iteration counts. Update install instructions as you go - prioritize SIMPLEST method if same cost/result.
 
 FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Telegram bot that turns ideas into PRDs. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
@@ -4963,6 +4965,8 @@ RUN THIS FIRST: claude --dangerously-skip-permissions
 SECURITY FIRST: .gitignore with .env,*.pyc,__pycache__,venv,sessions,recipes. .env.example with placeholders. NEVER commit .env.
 
 CRITICAL: After EACH task, commit+push to GitHub immediately. No batching. Keep GitHub in sync.
+
+REAL-TIME PREVIEW: If possible, run project in real-time as you build. For websites: open preview ASAP, update at every step. Preview should work minimized/maximized, updating in background. Prioritize getting preview running early.
 
 README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track counts. Update install instructions - prioritize SIMPLEST method if same cost.
 
