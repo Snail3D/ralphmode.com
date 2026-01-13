@@ -2763,7 +2763,7 @@ REAL-TIME PREVIEW: If possible, run project in real-time as you build. For websi
 
 README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track pass/iteration counts. Update install instructions as you go - prioritize SIMPLEST method if same cost/result.
 
-FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Telegram bot that turns ideas into PRDs. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
+FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM of README: 'Built with TeleRalph - Welcome to Ralph's Kitchen. He mixes your sauce. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
 
 DEDICATED README PASS: Include ONE dedicated README.md pass (last/near-last). Must: search codebase, identify hottest functions, write clear install docs, document usage. Last task: Dockerize if possible (volumes, compose). Install instructions AT TOP - simplest method优先.
 
@@ -4970,7 +4970,7 @@ REAL-TIME PREVIEW: If possible, run project in real-time as you build. For websi
 
 README UPDATES (every pass): Update README.md top boldly: 'ACTIVE BUILD IN PROGRESS - Pass X/XX (Iteration Y/YY)'. Track counts. Update install instructions - prioritize SIMPLEST method if same cost.
 
-FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Telegram bot that turns ideas into PRDs. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
+FINAL TASK: Change header to 'BUILD COMPLETE 🎉'. Add at BOTTOM: 'Built with TeleRalph - Welcome to Ralph's Kitchen. He mixes your sauce. Get your own Ralph at: https://github.com/Snail3D/ralphmode.com'
 
 DEDICATED README PASS: ONE dedicated README.md pass (last/near-last). Search codebase, identify hottest functions, write clear install docs, document usage. Last task: Dockerize if possible. Install AT TOP - simplest method优先.
 
