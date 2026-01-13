@@ -89,6 +89,10 @@ def get_time_context() -> dict:
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_API_BASE = "https://api.groq.com/openai/v1"
 
+# Ollama API for local models
+# Install from: https://ollama.com
+OLLAMA_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+
 # Cache for Groq model info (refreshed periodically)
 GROQ_MODEL_CACHE = {
     "last_fetch": None,
@@ -1304,6 +1308,84 @@ async def groq_chat(messages: List[Dict], model: str, temperature: float = 0.7, 
     except Exception as e:
         logger.error(f"Groq chat error: {e}")
     return ""
+
+
+# ============ OLLAMA API INTEGRATION (LOCAL AI) ============
+
+async def ollama_chat(messages: List[Dict], model: str, temperature: float = 0.7, max_tokens: int = 4096) -> str:
+    """Chat with local Ollama API"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Convert messages to Ollama format
+            ollama_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
+
+            async with session.post(
+                f"{OLLAMA_API_BASE}/v1/chat/completions",
+                json={
+                    "model": model,
+                    "messages": ollama_messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "stream": False
+                },
+                timeout=aiohttp.ClientTimeout(total=300)  # Local models can be slower
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                else:
+                    body = await resp.text()
+                    logger.error(f"Ollama chat error {resp.status}: {body[:200]}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Ollama connection error: {e}")
+    except Exception as e:
+        logger.error(f"Ollama chat error: {e}")
+    return ""
+
+
+async def list_ollama_models() -> List[Dict]:
+    """List available local Ollama models"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{OLLAMA_API_BASE}/v1/models",
+                timeout=aiohttp.ClientTimeout(total=5)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    models = []
+                    for m in data.get("data", []):
+                        model_id = m.get("id", "")
+                        # Size info (approximate based on model name)
+                        size_category = 3  # Default
+                        if any(x in model_id.lower() for x in ["3b", "tiny", "gemma:2b"]):
+                            size_category = 1
+                        elif any(x in model_id.lower() for x in ["7b", "8b", "mistral:7b"]):
+                            size_category = 2
+                        elif any(x in model_id.lower() for x in ["14b", "70b"]):
+                            size_category = 3
+
+                        # Clean up model name
+                        name = model_id.replace(":", " ").replace("_", " ").title()
+
+                        models.append({
+                            "id": model_id,
+                            "name": name,
+                            "context": m.get("context_length", 4096),
+                            "owned_by": "ollama",
+                            "quality": size_category,
+                            "size": "Small" if size_category == 1 else "Medium" if size_category == 2 else "Large"
+                        })
+
+                    # Sort: small models first (for local AI preference), then by name
+                    return sorted(models, key=lambda x: (x["quality"], x["name"]))
+                else:
+                    logger.error(f"Ollama models error: {resp.status}")
+    except aiohttp.ClientError:
+        logger.warning("Ollama not running - local models unavailable")
+    except Exception as e:
+        logger.error(f"Ollama models list error: {e}")
+    return []
 
 
 # Model info URLs (updated 2025)
@@ -4664,16 +4746,20 @@ async def cmd_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_provider = session.get("provider", "groq")
     current_model = session.get("model", "llama-3.3-70b-versatile")
 
-    # Groq is our only option now - fast and free!
+    # Both Groq (cloud) and Ollama (local) options
     keyboard = [
-        [InlineKeyboardButton("⚡ Choose Groq Model", callback_data="provider_groq")],
+        [InlineKeyboardButton("⚡ Groq (Cloud, Fast)", callback_data="provider_groq")],
+        [InlineKeyboardButton("🏠 Ollama (Local, Private)", callback_data="provider_ollama")],
         [InlineKeyboardButton("⚙️ Set Groq API Key", callback_data="groq_set_key")]
     ]
 
+    provider_emoji = "⚡" if current_provider == "groq" else "🏠"
     text = (
         f"🧠 *Model Settings*\n\n"
-        f"Current: `{current_model}`\n\n"
-        f"⚡ Powered by Groq - Lightning fast, free tier!"
+        f"{provider_emoji} Current: `{current_model}`\n\n"
+        f"Choose your AI provider:\n"
+        f"⚡ Groq - Cloud, fast, free\n"
+        f"🏠 Ollama - Local, private, runs on your machine"
     )
 
     # Handle both callback queries and regular messages
@@ -4691,16 +4777,54 @@ async def cmd_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-async def show_local_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Legacy handler - redirects to Groq"""
+async def show_ollama_models(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show local Ollama models"""
+    user_id = update.effective_user.id
+    session = get_session(user_id)
     query = update.callback_query
 
-    # Redirect to Groq
-    keyboard = [[InlineKeyboardButton("⚡ Go to Groq Models", callback_data="provider_groq")]]
+    await query.edit_message_text("🏠 _Scanning local models..._", parse_mode="Markdown")
+
+    models = await list_ollama_models()
+    current = session.get("model", "none")
+
+    if not models:
+        keyboard = [
+            [InlineKeyboardButton("📖 Install Ollama", url="https://ollama.com")],
+            [InlineKeyboardButton("🔙 Back", callback_data="model_back_main")]
+        ]
+        await query.edit_message_text(
+            "🏠 *Local Models (Ollama)*\n\n"
+            "No local models found!\n\n"
+            "1. Install Ollama: https://ollama.com\n"
+            "2. Run: `ollama pull phi3` (3B model)\n"
+            "3. Or: `ollama pull gemma2:2b` (2B model)\n\n"
+            "Small models = fast, private, free!",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    # Build keyboard with models
+    keyboard = []
+    for model in models[:10]:  # Show top 10
+        model_id = model["id"]
+        is_current = "✓ " if model_id == current else ""
+        size_info = f" ({model['size']})" if model.get("size") else ""
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{is_current}{model['name']}{size_info}",
+                callback_data=f"select_model_ollama_{model_id}"
+            )
+        ])
+
+    keyboard.append([InlineKeyboardButton("🔄 Refresh", callback_data="provider_ollama")])
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="model_back_main")])
+
     await query.edit_message_text(
-        "⚡ *We're All Groq Now!*\n\n"
-        "Local models have been retired.\n"
-        "Groq is faster and free! Let's go! 🚀",
+        "🏠 *Local Models (Ollama)*\n\n"
+        "Running on your machine!\n"
+        "Small = fast, private, free",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -4784,9 +4908,9 @@ async def handle_model_callback(update: Update, context: ContextTypes.DEFAULT_TY
     data = query.data
 
     # Provider selection
-    if data == "provider_local":
-        session["provider"] = "local"
-        await show_local_models(update, context)
+    if data == "provider_ollama":
+        session["provider"] = "ollama"
+        await show_ollama_models(update, context)
         return
 
     elif data == "provider_groq":
@@ -4823,6 +4947,17 @@ async def handle_model_callback(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text(
             f"✅ *Switched to Groq:* `{model}`\n\n"
             f"*Ralph points to the cloud* Using the fast cloud brain now!",
+            parse_mode="Markdown"
+        )
+
+    # Ollama model selection
+    elif data.startswith("select_model_ollama_"):
+        model = data[21:]
+        session["model"] = model
+        session["provider"] = "ollama"
+        await query.edit_message_text(
+            f"✅ *Switched to Ollama:* `{model}`\n\n"
+            f"*Ralph taps his head* I got a local brain now! Running on your machine, boss!",
             parse_mode="Markdown"
         )
 
@@ -5104,7 +5239,12 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     else:
         messages.extend(conversation)
 
-    response = await groq_chat(messages, model)
+    # Use Ollama or Groq based on provider
+    provider = session.get("provider", "groq")
+    if provider == "ollama":
+        response = await ollama_chat(messages, model)
+    else:
+        response = await groq_chat(messages, model)
 
     if response:
         session["conversation"].append({"role": "assistant", "content": response})
