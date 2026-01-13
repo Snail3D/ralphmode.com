@@ -6252,12 +6252,21 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             os.unlink(tmp_path)
 
                             task_count = len(imported_tasks)
+                            project_desc = prd_data.get('pd', '')
+                            project_name = prd_data.get('pn', 'this project')
+
+                            # Build the recognition message
+                            if project_desc:
+                                recognition = f"Oh, I see you brought back in the plan about *{project_desc}*"
+                            else:
+                                recognition = f"Oh, I see you brought back in the plan for *{project_name}*"
+
                             await update.message.reply_text(
                                 f"📂 *PRD Loaded!*\n\n"
-                                f"Found: `{prd_data.get('pn', 'Unknown Project')}`\n"
-                                f"Tasks: *{task_count}* existing tasks\n\n"
-                                f"_Ralph scratches head_ What else should we add, boss?\n\n"
-                                f"Just tell me what new features you need!_",
+                                f"{recognition}\n\n"
+                                f"You've already got *{task_count}* tasks in there, boss!\n\n"
+                                f"_Ralph scratches head_\n\n"
+                                f"So what would you like to add to it?",
                                 parse_mode="Markdown",
                                 reply_markup=get_keyboard(True)
                             )
