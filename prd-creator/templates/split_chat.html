@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ralph Mode PRD Creator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Split Container */
+        .split-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Left Panel - Chat */
+        .chat-panel {
+            flex: 1;
+            min-width: 350px;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2a2a2a;
+        }
+
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1f1f1f;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ralph-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+        }
+
+        .chat-title h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-title span {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Gender Toggle */
+        .gender-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            background: #2a2a2a;
+            border-radius: 6px;
+        }
+
+        .gender-btn {
+            padding: 4px 10px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .gender-btn.active {
+            background: #ff6b35;
+            color: #fff;
+        }
+
+        .gender-btn:hover:not(.active) {
+            color: #e0e0e0;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            color: #fff;
+        }
+
+        .message.user .message-avatar {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .message-bubble {
+            padding: 10px 12px;
+            border-radius: 10px;
+            line-height: 1.5;
+            font-size: 14px;
+            max-width: 85%;
+        }
+
+        .message.assistant .message-bubble {
+            background: transparent;
+            padding-left: 0;
+        }
+
+        .message.user .message-bubble {
+            background: #2a2a2a;
+        }
+
+        /* Backroom Debate */
+        .backroom-debate {
+            margin-top: 12px;
+            padding: 12px;
+            background: #151515;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .backroom-header {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .analyst-message {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .analyst-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .analyst-emoji {
+            font-size: 14px;
+        }
+
+        .analyst-name {
+            font-weight: 600;
+            color: #888;
+            margin-right: 4px;
+        }
+
+        .analyst-text {
+            color: #aaa;
+            font-style: italic;
+        }
+
+        /* Suggestions */
+        .message-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .suggestion-text {
+            color: #e0e0e0;
+        }
+
+        .vote-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .vote-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .vote-btn.up {
+            background: #2a2a2a;
+            color: #888;
+        }
+
+        .vote-btn.up:hover {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .vote-btn.down {
+            background: #2a2a2a;
+            color: #888;
+        }
+
+        .vote-btn.down:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .vote-btn.voted {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .action-btn {
+            padding: 8px 14px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #2a2a2a;
+            border-color: #ff6b35;
+        }
+
+        /* Input area */
+        .input-area {
+            padding: 12px;
+            border-top: 1px solid #2a2a2a;
+            background: #1f1f1f;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            background: #2a2a2a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            border-color: #ff6b35;
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            width: 26px;
+            height: 26px;
+            background: #ff6b35;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            opacity: 0.8;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Right Panel - PRD Editor */
+        .prd-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 400px;
+        }
+
+        .prd-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1f1f1f;
+        }
+
+        .prd-header h2 {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prd-header-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .header-btn {
+            padding: 6px 12px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: #2a2a2a;
+        }
+
+        .header-btn.primary {
+            background: #ff6b35;
+            border-color: #ff6b35;
+            color: #fff;
+        }
+
+        .prd-editor-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prd-editor {
+            flex: 1;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            border: none;
+            outline: none;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            resize: none;
+            overflow-y: auto;
+            tab-size: 2;
+        }
+
+        .prd-editor:focus {
+            outline: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f0f0f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff6b35;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 6px 0;
+        }
+
+        .typing-indicator span {
+            width: 5px;
+            height: 5px;
+            background: #666;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .status-badge.building {
+            background: rgba(255, 107, 53, 0.2);
+            color: #ff6b35;
+        }
+
+        .status-badge.complete {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        /* Welcome screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .welcome-screen h2 {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .welcome-screen p {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .suggestion-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .suggestion-card {
+            padding: 10px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color 0.2s;
+        }
+
+        .suggestion-card:hover {
+            border-color: #ff6b35;
+        }
+
+        .suggestion-card h4 {
+            font-size: 12px;
+            margin-bottom: 2px;
+            color: #e0e0e0;
+        }
+
+        .suggestion-card p {
+            font-size: 11px;
+            color: #888;
+            margin: 0;
+        }
+
+        /* PRD placeholder */
+        .prd-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            text-align: center;
+        }
+
+        .prd-placeholder svg {
+            width: 56px;
+            height: 56px;
+            opacity: 0.3;
+            margin-bottom: 16px;
+        }
+
+        .prd-placeholder h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        .prd-placeholder p {
+            font-size: 12px;
+        }
+
+        /* Legend highlight in PRD */
+        .prd-editor {
+            white-space: pre;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .split-container {
+                flex-direction: column;
+            }
+
+            .chat-panel {
+                max-width: none;
+                border-right: none;
+                border-bottom: 1px solid #2a2a2a;
+            }
+
+            .prd-panel {
+                min-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="split-container">
+        <!-- Left Panel - Chat -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="ralph-avatar">R</div>
+                    <div class="chat-title">
+                        <h1>Ralph</h1>
+                        <span id="genderDisplay">Mr. Worms</span>
+                    </div>
+                </div>
+                <div class="gender-toggle">
+                    <button class="gender-btn active" id="maleBtn" onclick="setGender('male')">Mr.</button>
+                    <button class="gender-btn" id="femaleBtn" onclick="setGender('female')">Mrs.</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                {% if not messages %}
+                <div class="welcome-screen">
+                    <h2 id="welcomeTitle">Good evening, Mr. Worms!</h2>
+                    <p>What can I build for you today?</p>
+                    <div class="suggestion-grid">
+                        <div class="suggestion-card" onclick="sendSuggestion('I want to build a todo app with Flask')">
+                            <h4>📝 Todo App</h4>
+                            <p>A simple task manager with web interface</p>
+                        </div>
+                        <div class="suggestion-card" onclick="sendSuggestion('Build me a REST API for a blog')">
+                            <h4>🔗 REST API</h4>
+                            <p>Backend API with database integration</p>
+                        </div>
+                        <div class="suggestion-card" onclick="sendSuggestion('Create a real-time chat application')">
+                            <h4>💬 Chat App</h4>
+                            <p>Real-time messaging with WebSockets</p>
+                        </div>
+                        <div class="suggestion-card" onclick="sendSuggestion('I need an e-commerce storefront')">
+                            <h4>🛒 E-Commerce</h4>
+                            <p>Online store with payment integration</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% for msg in messages %}
+                <div class="message {{ msg.role }}">
+                    <div class="message-avatar">{{ 'R' if msg.role == 'assistant' else 'U' }}</div>
+                    <div>
+                        <div class="message-bubble">{{ msg.content | safe }}</div>
+
+                        {% if msg.backroom %}
+                        <div class="backroom-debate">
+                            <div class="backroom-header">🎭 The Backroom Debate</div>
+                            <div class="analyst-message">
+                                <span class="analyst-emoji">🤔</span>
+                                <span class="analyst-name">Stool:</span>
+                                <span class="analyst-text">{{ msg.backroom.stool }}</span>
+                            </div>
+                            <div class="analyst-message">
+                                <span class="analyst-emoji">💡</span>
+                                <span class="analyst-name">Gomer:</span>
+                                <span class="analyst-text">{{ msg.backroom.gomer }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if msg.suggestions %}
+                        <div class="message-actions">
+                            {% for sugg in msg.suggestions %}
+                            <div class="suggestion-item">
+                                <span class="suggestion-text">{{ sugg.text or sugg.label }}</span>
+                                <div class="vote-buttons">
+                                    <button class="vote-btn up" onclick="voteSuggestion('{{ sugg.id }}', 'up')">👍</button>
+                                    <button class="vote-btn down" onclick="voteSuggestion('{{ sugg.id }}', 'down')">👎</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if msg.actions %}
+                        <div class="message-actions">
+                            {% for action in msg.actions %}
+                            <button class="action-btn" onclick="handleAction({{ action | tojson | safe }})">{{ action.label }}</button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea
+                        id="chatInput"
+                        class="chat-input"
+                        placeholder="Message Ralph..."
+                        rows="1"
+                        onkeydown="handleKeyDown(event)"
+                        oninput="autoResize(this)"></textarea>
+                    <button id="sendBtn" class="send-btn" onclick="sendMessage()" disabled>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Live PRD Editor -->
+        <div class="prd-panel">
+            <div class="prd-header">
+                <h2>
+                    <span id="prdStatus" class="status-badge building">Building PRD</span>
+                    <span id="prdTitle">Ralph Mode PRD</span>
+                </h2>
+                <div class="prd-header-actions">
+                    <button class="header-btn" onclick="copyPRD()">📋 Copy All</button>
+                    <button class="header-btn primary" onclick="exportCompressed()">💾 Export</button>
+                </div>
+            </div>
+
+            <div class="prd-editor-container">
+                {% if initial_prd %}
+                <textarea
+                    id="prdEditor"
+                    class="prd-editor"
+                    spellcheck="false"
+                    oninput="onPRDEdit()">{{ initial_prd }}</textarea>
+                {% else %}
+                <div class="prd-placeholder" id="prdPlaceholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3>Your PRD will appear here</h3>
+                    <p>Start chatting with Ralph to build your PRD</p>
+                    <p style="margin-top: 8px; color: #555;">Includes full "How to Ralph" legend at top</p>
+                </div>
+                <textarea
+                    id="prdEditor"
+                    class="prd-editor"
+                    style="display: none;"
+                    spellcheck="false"
+                    oninput="onPRDEdit()"></textarea>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesContainer = document.getElementById('messagesContainer');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const prdEditor = document.getElementById('prdEditor');
+        const prdPlaceholder = document.getElementById('prdPlaceholder');
+        const prdTitle = document.getElementById('prdTitle');
+        const prdStatus = document.getElementById('prdStatus');
+        const genderDisplay = document.getElementById('genderDisplay');
+        const welcomeTitle = document.getElementById('welcomeTitle');
+        let sessionId = '{{ session_id or "" }}';
+        let currentGender = 'male';
+
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function sendSuggestion(text) {
+            chatInput.value = text;
+            sendMessage();
+        }
+
+        function setGender(gender) {
+            currentGender = gender;
+
+            // Update buttons
+            document.getElementById('maleBtn').classList.toggle('active', gender === 'male');
+            document.getElementById('femaleBtn').classList.toggle('active', gender === 'female');
+
+            // Update display
+            if (gender === 'female') {
+                genderDisplay.textContent = 'Mrs. Worms';
+                if (welcomeTitle) welcomeTitle.textContent = 'Good evening, Mrs. Worms!';
+            } else {
+                genderDisplay.textContent = 'Mr. Worms';
+                if (welcomeTitle) welcomeTitle.textContent = 'Good evening, Mr. Worms!';
+            }
+
+            // Send to server
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    gender_toggle: gender
+                })
+            }).then(r => r.json()).then(data => {
+                sessionId = data.session_id || sessionId;
+            });
+        }
+
+        function voteSuggestion(suggestionId, vote) {
+            // Send vote to server
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    suggestion_id: suggestionId,
+                    vote: vote
+                })
+            }).then(r => r.json()).then(data => {
+                sessionId = data.session_id || sessionId;
+
+                // Add assistant response
+                addMessage('assistant', data.message, [], data.actions || []);
+
+                // Update PRD editor if preview available
+                if (data.prd_preview) {
+                    updatePRDEditor(data.prd_preview);
+                }
+            });
+
+            // Disable the voted buttons
+            event.target.classList.add('voted');
+            event.target.parentElement.querySelector('.vote-btn.' + (vote === 'up' ? 'down' : 'up')).style.display = 'none';
+        }
+
+        function addMessage(role, content, actions = [], backroom = null, suggestions = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'assistant' ? 'R' : 'U';
+
+            let innerContent = `<div class="message-bubble">${content.replace(/\n/g, '<br>').replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+
+            // Add backroom debate if present
+            if (backroom) {
+                innerContent += `
+                    <div class="backroom-debate">
+                        <div class="backroom-header">🎭 The Backroom Debate</div>
+                        <div class="analyst-message">
+                            <span class="analyst-emoji">🤔</span>
+                            <span class="analyst-name">Stool:</span>
+                            <span class="analyst-text">${backroom.stool}</span>
+                        </div>
+                        <div class="analyst-message">
+                            <span class="analyst-emoji">💡</span>
+                            <span class="analyst-name">Gomer:</span>
+                            <span class="analyst-text">${backroom.gomer}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add suggestions if present
+            if (suggestions && suggestions.length > 0) {
+                innerContent += '<div class="message-actions">';
+                suggestions.forEach(s => {
+                    innerContent += `
+                        <div class="suggestion-item">
+                            <span class="suggestion-text">${s.text || s.label}</span>
+                            <div class="vote-buttons">
+                                <button class="vote-btn up" onclick="voteSuggestion('${s.id}', 'up')">👍</button>
+                                <button class="vote-btn down" onclick="voteSuggestion('${s.id}', 'down')">👎</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                innerContent += '</div>';
+            }
+
+            // Add action buttons if present
+            if (actions && actions.length > 0) {
+                innerContent += `
+                    <div class="message-actions">
+                        ${actions.map(a => `<button class="action-btn" onclick="handleAction(${JSON.stringify(a)})">${a.label}</button>`).join('')}
+                    </div>
+                `;
+            }
+
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = innerContent;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typingIndicator';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'R';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+        }
+
+        function updatePRDEditor(prdJson) {
+            // Show editor, hide placeholder
+            if (prdPlaceholder) prdPlaceholder.style.display = 'none';
+            prdEditor.style.display = 'block';
+
+            // Update editor content
+            prdEditor.value = prdJson;
+
+            // Auto-scroll to bottom
+            prdEditor.scrollTop = prdEditor.scrollHeight;
+
+            // Update status
+            prdStatus.textContent = 'Building PRD';
+            prdStatus.className = 'status-badge building';
+        }
+
+        function handleAction(action) {
+            if (action.type === 'github_yes') {
+                sendMessage('/github_yes');
+            } else if (action.type === 'github_no') {
+                sendMessage('/github_no');
+            } else if (action.type === 'generate_prd') {
+                sendMessage('/generate_prd');
+            } else if (action.type === 'export') {
+                if (action.format === 'copy_all') copyPRD();
+                else if (action.format === 'json') downloadJSON();
+                else if (action.format === 'markdown') downloadMarkdown();
+            }
+        }
+
+        function onPRDEdit() {
+            // Mark PRD as modified when user edits
+            prdStatus.textContent = 'Modified';
+            prdStatus.className = 'status-badge';
+            prdStatus.style.background = 'rgba(255, 200, 0, 0.2)';
+            prdStatus.style.color = '#ffc800';
+        }
+
+        async function sendMessage(text) {
+            const message = text || chatInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage('user', message);
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            sendBtn.disabled = true;
+
+            // Show typing
+            showTyping();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+                sessionId = data.session_id || sessionId;
+
+                hideTyping();
+
+                // Add assistant response
+                addMessage('assistant', data.message, data.actions || [], data.backroom, data.suggestions || []);
+
+                // Update PRD editor if preview available
+                if (data.prd_preview) {
+                    updatePRDEditor(data.prd_preview);
+                }
+
+                // Update URL
+                if (data.session_id && data.is_new) {
+                    window.history.pushState({}, '', `/chat/${data.session_id}`);
+                }
+
+            } catch (error) {
+                hideTyping();
+                addMessage('assistant', '*scratches head*\n\nWell slap my thigh! Something went wrong. Please try again.');
+            }
+        }
+
+        async function copyPRD() {
+            try {
+                await navigator.clipboard.writeText(prdEditor.value);
+                // Brief flash effect
+                const originalBg = prdEditor.style.background;
+                prdEditor.style.background = '#2a2a2a';
+                setTimeout(() => prdEditor.style.background = originalBg, 200);
+            } catch (e) {
+                console.error('Copy failed:', e);
+            }
+        }
+
+        function downloadJSON() {
+            const blob = new Blob([prdEditor.value], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ralph-prd-${Date.now()}.json`;
+            a.click();
+        }
+
+        async function exportCompressed() {
+            const blob = new Blob([prdEditor.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ralph-prd-${Date.now()}.txt`;
+            a.click();
+
+            // Try to copy to clipboard as well
+            try {
+                await navigator.clipboard.writeText(prdEditor.value);
+                console.log('Copied to clipboard!');
+            } catch (e) {
+                console.log('Could not copy to clipboard');
+            }
+        }
+
+        // Enable/disable send button
+        chatInput.addEventListener('input', () => {
+            sendBtn.disabled = !chatInput.value.trim();
+        });
+
+        // Focus input on load
+        document.addEventListener('DOMContentLoaded', () => {
+            chatInput.focus();
+        });
+    </script>
+</body>
+</html>

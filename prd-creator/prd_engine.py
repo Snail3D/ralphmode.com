@@ -104,7 +104,7 @@ class PRDEngine:
         self.ollama_client = None
         if OLLAMA_AVAILABLE:
             try:
-                self.ollama_client = ollama.Client(host=ollama_url)
+                self.ollama_client = ollama.Client(base_url=ollama_url)
                 self._validate_ollama()
             except Exception as e:
                 logger.warning(f"Ollama initialization failed: {e}")

@@ -9,6 +9,7 @@ X-911/X-1001: Rate Limiting
 API-001: API endpoint for PRD creation
 """
 import os
+import json
 import logging
 from io import BytesIO
 from functools import wraps
@@ -35,6 +36,8 @@ from exceptions import (
 from prd_engine import get_prd_engine
 from prd_store import get_prd_store, PRD
 from ocr_processor import get_ocr_processor
+import ralph
+import uuid
 
 # Configure logging
 logging.basicConfig(
@@ -169,8 +172,8 @@ def ratelimit_handler(e):
 
 @app.route('/')
 def index():
-    """Landing page."""
-    return render_template('index.html')
+    """Landing page - redirect to chat."""
+    return redirect(url_for('chat_new'))
 
 
 @app.route('/create')
@@ -206,6 +209,48 @@ def view_prd(prd_id: str):
 
 
 # ============================================================================
+# CHAT ROUTES (Ralph)
+# ============================================================================
+
+@app.route('/chat')
+def chat_new():
+    """Create a new chat session."""
+    new_session_id = str(uuid.uuid4())
+    return redirect(url_for('chat_session', session_id=new_session_id))
+
+
+@app.route('/chat/<session_id>')
+def chat_session(session_id: str):
+    """Chat with Ralph - split view with live PRD editor."""
+    chat = ralph.get_chat_session(session_id)
+    messages = chat.conversation_state.get("messages", [])
+
+    # Convert messages to format expected by template
+    formatted_messages = []
+    for msg in messages:
+        formatted_messages.append({
+            "role": msg["role"],
+            "content": msg["content"],
+            "actions": []  # Actions are generated dynamically
+        })
+
+    # Get initial PRD state for the editor
+    initial_prd = None
+    if chat.get_prd():
+        initial_prd = ralph.compress_prd(chat.get_prd())
+
+    # Get all sessions for sidebar
+    all_sessions = ralph.list_chat_sessions()
+
+    return render_template('split_chat.html',
+                         session_id=session_id,
+                         messages=formatted_messages,
+                         chats=all_sessions,
+                         current_chat_id=session_id,
+                         initial_prd=initial_prd)
+
+
+# ============================================================================
 # API ENDPOINTS
 # ============================================================================
 
@@ -236,6 +281,154 @@ def api_status():
             "prd_count": prd_store.count(),
             "error": str(e)
         })
+
+
+@app.route('/api/chat', methods=['POST'])
+@limiter.limit("60 per minute")
+def api_chat():
+    """
+    Chat with Ralph API endpoint.
+
+    Handles conversational PRD building with Ralph.
+    Returns PRD preview for live editor updates.
+    Also handles: gender_toggle, suggestion_id, vote
+    """
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        session_id = data.get('session_id', '')
+
+        # Ralph-specific parameters
+        action = data.get('action')
+        suggestion_id = data.get('suggestion_id')
+        vote = data.get('vote')
+        gender_toggle = data.get('gender_toggle')
+
+        if not message and not action and not suggestion_id and not gender_toggle:
+            return jsonify({"error": "Message or action is required"}), 400
+
+        # Get or create chat session
+        if session_id:
+            chat = ralph.get_chat_session(session_id)
+        else:
+            chat = ralph.get_chat_session(str(uuid.uuid4()))
+            session_id = chat.session_id
+
+        # Process message/action and get response
+        # Ralph returns: (response, suggestions, prd_preview, backroom)
+        result = chat.process_message(
+            message=message,
+            action=action,
+            suggestion_id=suggestion_id,
+            vote=vote,
+            gender_toggle=gender_toggle
+        )
+
+        # Handle both old return format and new Ralph format
+        if len(result) == 3:
+            response_text, actions, prd_preview = result
+            backroom = None
+            suggestions = []
+        elif len(result) == 4:
+            response_text, suggestions, prd_preview, backroom = result
+            actions = []
+        else:
+            response_text = result[0] if result else "Something went wrong"
+            actions = []
+            suggestions = []
+            prd_preview = None
+            backroom = None
+
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "is_new": len(chat.conversation_state.get("messages", [])) <= 2,
+            "message": response_text,
+            "actions": actions,
+            "suggestions": suggestions,
+            "prd_preview": prd_preview,
+            "backroom": backroom,
+            "has_prd": chat.get_prd() is not None
+        })
+
+    except Exception as e:
+        logger.exception("Chat API error")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "*scratches head*\n\nWell slap my thigh! Something went wrong. Please try again."
+        }), 500
+
+
+@app.route('/api/chat/<session_id>/export/<format>')
+def api_export_chat_prd(session_id: str, format: str):
+    """Export PRD from chat session."""
+    try:
+        chat = ralph.get_chat_session(session_id)
+        prd = chat.get_prd()
+
+        if not prd:
+            return jsonify({"error": "No PRD generated yet"}), 404
+
+        if format == 'json':
+            response = Response(
+                json.dumps(prd, indent=2),
+                mimetype='application/json',
+                headers={
+                    'Content-Disposition': f'attachment; filename="prd-{prd.get("pn", "project")}.json"'
+                }
+            )
+            return response
+
+        elif format == 'markdown':
+            md = f"# {prd.get('pn', 'Project')}\n\n"
+            md += f"**Description:** {prd.get('pd', 'N/A')}\n\n"
+            md += f"## Tech Stack\n\n"
+            ts = prd.get('ts', {})
+            md += f"- Language: {ts.get('lang', 'N/A')}\n"
+            md += f"- Framework: {ts.get('fw', 'N/A')}\n"
+            md += f"- Database: {ts.get('db', 'N/A')}\n"
+            if ts.get('oth'):
+                md += f"- Other: {', '.join(ts['oth'])}\n"
+            md += f"\n## File Structure\n\n"
+            for f in prd.get('fs', []):
+                md += f"- `{f}`\n"
+            md += f"\n## Tasks\n\n"
+            for cat_id, cat in prd.get('p', {}).items():
+                md += f"### {cat['n']} [{cat_id}]\n\n"
+                for task in cat['t']:
+                    md += f"#### {task['id']} [{task['pr']}]\n\n"
+                    md += f"**{task['ti']}**\n\n"
+                    md += f"- {task['d']}\n"
+                    md += f"- File: `{task['f']}`\n\n"
+
+            response = Response(
+                md,
+                mimetype='text/markdown',
+                headers={
+                    'Content-Disposition': f'attachment; filename="prd-{prd.get("pn", "project")}.md"'
+                }
+            )
+            return response
+
+        elif format == 'compressed':
+            # Return compressed format (like Telegram) - includes full legend
+            compressed = ralph.compress_prd(prd)
+            response = Response(
+                compressed,
+                mimetype='text/plain',
+                headers={
+                    'Content-Disposition': f'attachment; filename="prd-{prd.get("pn", "project")}.txt"'
+                }
+            )
+            return response
+
+        else:
+            return jsonify({"error": "Invalid format. Use: json, markdown, or compressed"}), 400
+
+    except Exception as e:
+        logger.exception("Export error")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/ocr', methods=['POST'])
@@ -489,4 +682,4 @@ if __name__ == '__main__':
     print(f"> Debug: {DEBUG}")
     print()
 
-    app.run(host='0.0.0.0', port=5000, debug=DEBUG)
+    app.run(host='0.0.0.0', port=8000, debug=DEBUG)

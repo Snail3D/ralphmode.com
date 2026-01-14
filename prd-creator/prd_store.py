@@ -3,6 +3,7 @@ PRD Store - Data Model and Storage
 SET-001: Create new PRD structure with basic fields
 """
 import json
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
