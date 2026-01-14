@@ -1136,14 +1136,6 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-
-                        {% if msg.actions %}
-                        <div class="message-actions">
-                            {% for action in msg.actions %}
-                            <button class="action-btn" onclick="handleAction({{ action | tojson | safe }})">{{ action.label }}</button>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
