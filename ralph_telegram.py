@@ -5503,8 +5503,16 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if session["phase"] == "idle":
         session["phase"] = "chatting"
 
-    # Add to conversation
-    session["conversation"].append({"role": "user", "content": text})
+    # Add to conversation (with reply-to context if applicable)
+    user_content = text
+    if update.message and update.message.reply_to_message:
+        replied_msg = update.message.reply_to_message
+        if replied_msg.text:
+            user_content = f"[Replying to: \"{replied_msg.text[:100]}\"]\n\n{text}"
+        elif replied_msg.caption:
+            user_content = f"[Replying to: \"{replied_msg.caption[:100]}\"]\n\n{text}"
+
+    session["conversation"].append({"role": "user", "content": user_content})
 
     # Extract project name from first message
     if not session["project_name"] and len(session["conversation"]) == 1:
