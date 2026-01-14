@@ -360,6 +360,359 @@ def api_chat():
         }), 500
 
 
+@app.route('/api/chat/reset', methods=['POST'])
+def api_reset_chat():
+    """
+    Reset/clear conversation and start fresh.
+    Creates a new session and redirects to it.
+    """
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id', '')
+
+        # Remove old session from memory
+        if session_id and session_id in ralph._sessions:
+            del ralph._sessions[session_id]
+
+        # Create new session
+        new_session_id = str(uuid.uuid4())
+
+        return jsonify({
+            "success": True,
+            "new_session_id": new_session_id
+        })
+
+    except Exception as e:
+        logger.exception("Reset error")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================================
+# OLLAMA MODEL MANAGEMENT API
+# ============================================================================
+
+@app.route('/api/ollama/models')
+def api_ollama_models():
+    """Get list of installed Ollama models."""
+    try:
+        import requests
+        response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+
+        if response.status_code == 200:
+            data = response.json()
+            models = []
+
+            if 'models' in data:
+                for model in data['models']:
+                    models.append({
+                        'name': model['name'],
+                        'size': model.get('size', 0),
+                        'modified': model.get('modified_at', '')
+                    })
+
+            return jsonify({
+                "success": True,
+                "models": models
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Ollama not responding"
+            }), 503
+
+    except Exception as e:
+        logger.exception("Ollama models error")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/ollama/search')
+def api_ollama_search():
+    """Search for Ollama models in the library."""
+    try:
+        query = request.args.get('q', '')
+
+        # Ollama library search - using a predefined list of popular models
+        # In production, you'd scrape ollama.com/library or use their API
+        popular_models = [
+            {"name": "llama3.2", "description": "Meta's Llama 3.2 - 3B parameter model"},
+            {"name": "llama3.2:1b", "description": "Meta's Llama 3.2 - 1B parameter model (lightweight)"},
+            {"name": "llama3.1", "description": "Meta's Llama 3.1 - 8B parameter model"},
+            {"name": "llama3", "description": "Meta's Llama 3 - 70B parameter model"},
+            {"name": "mistral", "description": "Mistral 7B - high quality open source model"},
+            {"name": "mixtral", "description": "Mixtral 8x7B - mixture of experts model"},
+            {"name": "codellama", "description": "Code Llama - model fine-tuned for coding"},
+            {"name": "deepseek-coder", "description": "DeepSeek Coder - specialized for code"},
+            {"name": "phi3", "description": "Microsoft Phi-3 - 3.8B parameter model"},
+            {"name": "gemma2", "description": "Google Gemma 2 - lightweight yet powerful"},
+            {"name": "qwen2.5", "description": "Alibaba Qwen 2.5 - multilingual model"},
+            {"name": "nomic-embed-text", "description": "Nomic embedding model for text"},
+        ]
+
+        # Filter by query
+        if query:
+            filtered = [m for m in popular_models if query.lower() in m['name'].lower()]
+        else:
+            filtered = popular_models[:10]
+
+        return jsonify({
+            "success": True,
+            "models": filtered
+        })
+
+    except Exception as e:
+        logger.exception("Ollama search error")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/ollama/pull', methods=['POST'])
+@limiter.limit("10 per hour")
+def api_ollama_pull():
+    """Pull/download an Ollama model."""
+    try:
+        data = request.get_json()
+        model = data.get('model', '')
+
+        if not model:
+            return jsonify({"error": "Model name is required"}), 400
+
+        import requests
+        # Pull model (this is async, will take time)
+        response = requests.post(
+            f"{OLLAMA_URL}/api/pull",
+            json={"name": model},
+            timeout=300  # 5 minute timeout
+        )
+
+        if response.status_code == 200:
+            return jsonify({
+                "success": True,
+                "message": f"Model {model} pulled successfully"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to pull model"
+            }), 500
+
+    except Exception as e:
+        logger.exception("Ollama pull error")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# ============================================================================
+# BACKROOM DEBATE API
+# ============================================================================
+
+@app.route('/api/backroom/debate', methods=['POST'])
+@limiter.limit("20 per hour")
+def api_backroom_debate():
+    """
+    Generate a backroom debate between Stool (skeptic) and Gomer (optimist).
+    Returns 10 exchanges (5 each) with typing effect for display.
+    """
+    try:
+        data = request.get_json()
+        context = data.get('context', 'Building a web application')
+
+        # Import for LLM calls
+        import requests
+
+        # Define analyst personas
+        ANALYST_A = {"name": "Stool", "role": "The Skeptic", "emoji": "🤔"}
+        ANALYST_B = {"name": "Gomer", "role": "The Optimist", "emoji": "💡"}
+
+        # Build the debate
+        exchanges = []
+
+        # First message - Stool starts
+        prompt_1 = f"""Stool (skeptic) analyzing project. 1-2 sentences MAX.
+CTX: {context}
+Question ONE thing: need, problem, or gap. Direct, punchy."""
+
+        response_1 = query_llm(prompt_1)
+        if response_1:
+            exchanges.append({"analyst": "Stool", "message": response_1})
+
+        # Generate 9 more exchanges (alternating)
+        for i in range(9):
+            last_msg = exchanges[-1]["message"]
+
+            if i % 2 == 0:  # Gomer's turn
+                prompt = f"""Gomer (optimist) responds. 1-2 sentences MAX.
+CTX: {context}
+STOOL: {last_msg}
+Counter with ONE use case or opportunity. Punchy."""
+                analyst = "Gomer"
+            else:  # Stool's turn
+                prompt = f"""Stool (skeptic) responds. 1-2 sentences MAX.
+CTX: {context}
+GOMER: {last_msg}
+ONE concern or edge case. Acknowledge good points briefly."""
+                analyst = "Stool"
+
+            response = query_llm(prompt)
+            if response:
+                exchanges.append({"analyst": analyst, "message": response})
+
+        return jsonify({
+            "success": True,
+            "debate": exchanges
+        })
+
+    except Exception as e:
+        logger.exception("Backroom debate error")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+def query_llm(prompt: str) -> str:
+    """Query the LLM (Ollama or Grok) with a prompt."""
+    try:
+        import requests
+
+        # Check if Grok API key is configured
+        grok_api_key = os.environ.get("GROK_API_KEY") or os.environ.get("GROQ_API_KEY")
+
+        if grok_api_key:
+            # Use Grok/Groq
+            try:
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {grok_api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.8,
+                        "max_tokens": 150
+                    },
+                    timeout=30
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"].strip()
+            except:
+                pass  # Fall through to Ollama
+
+        # Use Ollama
+        ollama_model = os.environ.get("OLLAMA_MODEL", "llama3.2")
+        response = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={
+                "model": ollama_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.8, "num_predict": 150}
+            },
+            timeout=60
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("response", "").strip()
+
+        return ""
+
+    except Exception as e:
+        logger.error(f"LLM query error: {e}")
+        return ""
+
+
+@app.route('/api/chat/backroom-add', methods=['POST'])
+def api_backroom_add():
+    """Add an approved backroom message to the PRD."""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id', '')
+        analyst = data.get('analyst', '')
+        message = data.get('message', '')
+
+        chat = ralph.get_chat_session(session_id)
+        prd = chat.get_prd()
+
+        if not prd:
+            return jsonify({"success": False, "error": "No PRD yet"}), 400
+
+        # Add as a task based on the analyst's perspective
+        task_id = f"BACK-{len(prd.get('p', {}).get('02_core', {}).get('t', [])) + 1}"
+
+        if analyst == 'Stool':
+            # Skeptic concerns → Security/Validation tasks
+            prd['p']['00_security']['t'].append({
+                "id": task_id,
+                "ti": f"Address: {message[:50]}",
+                "d": f"Security concern from backroom: {message}",
+                "f": "security.py",
+                "pr": "high"
+            })
+        else:
+            # Optimist suggestions → Feature tasks
+            prd['p']['02_core']['t'].append({
+                "id": task_id,
+                "ti": f"Feature: {message[:50]}",
+                "d": f"Feature suggestion from backroom: {message}",
+                "f": "features.py",
+                "pr": "medium"
+            })
+
+        # Update PRD display
+        prd_preview = ralph.compress_prd(prd)
+
+        return jsonify({
+            "success": True,
+            "prd_preview": prd_preview,
+            "message": f"*nods* Added {analyst}'s point to your PRD!"
+        })
+
+    except Exception as e:
+        logger.exception("Backroom add error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/chat/summarize', methods=['POST'])
+def api_summarize_prd():
+    """Generate a summary and update the PRD."""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id', '')
+
+        chat = ralph.get_chat_session(session_id)
+        prd = chat.get_prd()
+
+        if not prd:
+            return jsonify({"success": False, "error": "No PRD yet"}), 400
+
+        # Add summary task
+        total_tasks = sum(len(cat.get("t", [])) for cat in prd.get("p", {}).values())
+
+        prd_preview = ralph.compress_prd(prd)
+
+        return jsonify({
+            "success": True,
+            "prd_preview": prd_preview,
+            "total_tasks": total_tasks,
+            "message": f"*beams proudly* Your PRD now has {total_tasks} tasks!"
+        })
+
+    except Exception as e:
+        logger.exception("Summarize error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/api/chat/<session_id>/export/<format>')
 def api_export_chat_prd(session_id: str, format: str):
     """Export PRD from chat session."""

@@ -583,6 +583,458 @@
             white-space: pre;
         }
 
+        /* Reset button */
+        .reset-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .settings-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #ff6b35;
+            border-radius: 6px;
+            color: #ff6b35;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: #ff6b35;
+            color: #fff;
+        }
+
+        /* Confirmation modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .modal-btn.cancel {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #3a3a3a;
+        }
+
+        .modal-btn.confirm {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .modal-btn.confirm:hover {
+            background: #dc2626;
+        }
+
+        /* Settings Modal specific */
+        .settings-content {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .provider-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 12px;
+        }
+
+        .provider-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .provider-tab.active {
+            background: #ff6b35;
+            color: #fff;
+        }
+
+        .provider-tab:hover:not(.active) {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .provider-panel {
+            display: none;
+        }
+
+        .provider-panel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #2a2a2a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #ff6b35;
+        }
+
+        .model-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .model-item:hover {
+            background: #2a2a2a;
+        }
+
+        .model-item.selected {
+            background: rgba(255, 107, 53, 0.2);
+            border: 1px solid #ff6b35;
+        }
+
+        .model-item-name {
+            font-size: 13px;
+            color: #e0e0e0;
+        }
+
+        .model-item-size {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-box input {
+            padding-right: 80px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            padding: 6px 12px;
+            background: #ff6b35;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .search-btn:hover {
+            opacity: 0.8;
+        }
+
+        .search-results {
+            display: none;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-name {
+            font-size: 13px;
+            color: #e0e0e0;
+        }
+
+        .search-result-desc {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .download-btn {
+            padding: 4px 10px;
+            background: #4ade80;
+            border: none;
+            border-radius: 4px;
+            color: #000;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .download-btn:hover {
+            opacity: 0.8;
+        }
+
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #888;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Backroom button */
+        .backroom-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .backroom-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .backroom-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .backroom-btn .spinner {
+            display: none;
+        }
+
+        .backroom-btn.loading .spinner {
+            display: inline-block;
+        }
+
+        .backroom-btn.loading .btn-text {
+            display: none;
+        }
+
+        /* Backroom transcript */
+        .backroom-transcript {
+            margin-top: 12px;
+            padding: 12px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .transcript-message {
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .transcript-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .transcript-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .transcript-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .transcript-role {
+            font-size: 10px;
+            color: #666;
+            padding: 2px 6px;
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+
+        .transcript-text {
+            font-size: 13px;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .transcript-votes {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .vote-chip {
+            padding: 4px 8px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .vote-chip:hover {
+            border-color: #4ade80;
+        }
+
+        .vote-chip.voted-up {
+            background: rgba(74, 222, 128, 0.2);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .vote-chip.voted-down {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        /* Typing cursor effect */
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 14px;
+            background: #888;
+            animation: blink 0.8s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .split-container {
@@ -613,9 +1065,13 @@
                         <span id="genderDisplay">Mr. Worms</span>
                     </div>
                 </div>
-                <div class="gender-toggle">
-                    <button class="gender-btn active" id="maleBtn" onclick="setGender('male')">Mr.</button>
-                    <button class="gender-btn" id="femaleBtn" onclick="setGender('female')">Mrs.</button>
+                <div class="chat-header-right" style="display: flex; gap: 8px; align-items: center;">
+                    <div class="gender-toggle">
+                        <button class="gender-btn active" id="maleBtn" onclick="setGender('male')">Mr.</button>
+                        <button class="gender-btn" id="femaleBtn" onclick="setGender('female')">Mrs.</button>
+                    </div>
+                    <button class="settings-btn" onclick="showSettingsModal()">⚙️ Model</button>
+                    <button class="reset-btn" onclick="showResetModal()">🗑️ Reset</button>
                 </div>
             </div>
 
@@ -691,6 +1147,14 @@
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+
+            <div style="padding: 0 12px;">
+                <button id="backroomBtn" class="backroom-btn" onclick="startBackroomDebate()">
+                    <span class="spinner loading-spinner"></span>
+                    <span class="btn-text">🎭 Listen to the Backroom Conversation</span>
+                </button>
+                <div id="backroomTranscript" class="backroom-transcript" style="display: none;"></div>
             </div>
 
             <div class="input-area">
@@ -1049,6 +1513,38 @@
             }
         }
 
+        // Reset conversation functions
+        function showResetModal() {
+            document.getElementById('resetModal').classList.add('active');
+        }
+
+        function hideResetModal() {
+            document.getElementById('resetModal').classList.remove('active');
+        }
+
+        async function resetConversation() {
+            hideResetModal();
+
+            try {
+                const response = await fetch('/api/chat/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Create new session
+                    sessionId = data.new_session_id;
+                    window.location.href = `/chat/${sessionId}`;
+                }
+            } catch (error) {
+                console.error('Reset failed:', error);
+                alert('Failed to reset conversation. Please try again.');
+            }
+        }
+
         // Enable/disable send button
         chatInput.addEventListener('input', () => {
             sendBtn.disabled = !chatInput.value.trim();
@@ -1057,7 +1553,467 @@
         // Focus input on load
         document.addEventListener('DOMContentLoaded', () => {
             chatInput.focus();
+            loadModelSettings();
         });
+
+        // ===== MODEL SETTINGS FUNCTIONS =====
+
+        let currentProvider = 'ollama';
+        let currentModel = '';
+        let grokApiKey = '';
+
+        function showSettingsModal() {
+            document.getElementById('settingsModal').classList.add('active');
+            loadOllamaModels();
+        }
+
+        function hideSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function switchProvider(provider) {
+            currentProvider = provider;
+
+            // Update tabs
+            document.querySelectorAll('.provider-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.provider-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById(`${provider}Panel`).classList.add('active');
+
+            if (provider === 'ollama') {
+                loadOllamaModels();
+            }
+        }
+
+        async function loadModelSettings() {
+            // Load saved settings from localStorage
+            const savedProvider = localStorage.getItem('modelProvider') || 'ollama';
+            const savedModel = localStorage.getItem('modelName') || '';
+            const savedApiKey = localStorage.getItem('grokApiKey') || '';
+
+            currentModel = savedModel;
+            grokApiKey = savedApiKey;
+
+            // Update UI
+            if (savedModel) {
+                document.getElementById('selectedOllamaModel').value = savedModel;
+            }
+            if (savedApiKey) {
+                document.getElementById('grokApiKeyInput').value = savedApiKey;
+            }
+            if (savedModel) {
+                document.getElementById('grokModelInput').value = savedModel;
+            }
+        }
+
+        async function loadOllamaModels() {
+            try {
+                const response = await fetch('/api/ollama/models');
+                const data = await response.json();
+
+                if (data.models) {
+                    const modelList = document.getElementById('ollamaModelList');
+                    modelList.innerHTML = '';
+
+                    data.models.forEach(model => {
+                        const div = document.createElement('div');
+                        div.className = 'model-item' + (model.name === currentModel ? ' selected' : '');
+                        div.innerHTML = `
+                            <span class="model-item-name">${model.name}</span>
+                            <span class="model-item-size">${formatSize(model.size)}</span>
+                        `;
+                        div.onclick = () => selectOllamaModel(model.name);
+                        modelList.appendChild(div);
+                    });
+
+                    if (data.models.length > 0 && !currentModel) {
+                        selectOllamaModel(data.models[0].name);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load Ollama models:', error);
+            }
+        }
+
+        function selectOllamaModel(modelName) {
+            currentModel = modelName;
+            document.getElementById('selectedOllamaModel').value = modelName;
+            localStorage.setItem('modelName', modelName);
+            localStorage.setItem('modelProvider', 'ollama');
+
+            // Update UI
+            document.querySelectorAll('.model-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.model-item')?.classList.add('selected');
+        }
+
+        async function searchOllamaModels() {
+            const query = document.getElementById('ollamaSearchInput').value.trim();
+            if (!query) return;
+
+            const resultsDiv = document.getElementById('ollamaSearchResults');
+            resultsDiv.innerHTML = '<div class="status-text"><span class="loading-spinner"></span> Searching...</div>';
+            resultsDiv.classList.add('active');
+
+            try {
+                const response = await fetch(`/api/ollama/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                resultsDiv.innerHTML = '';
+
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(model => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item';
+                        div.innerHTML = `
+                            <div>
+                                <div class="search-result-name">${model.name}</div>
+                                <div class="search-result-desc">${model.description || 'No description'}</div>
+                            </div>
+                            <button class="download-btn" onclick="pullOllamaModel('${model.name}', this)">
+                                Pull
+                            </button>
+                        `;
+                        resultsDiv.appendChild(div);
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<div class="status-text">No models found</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="status-text">Search failed. Is Ollama running?</div>';
+            }
+        }
+
+        async function pullOllamaModel(modelName, button) {
+            button.disabled = true;
+            button.textContent = 'Pulling...';
+
+            try {
+                const response = await fetch('/api/ollama/pull', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelName })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    button.textContent = '✓ Done';
+                    setTimeout(() => {
+                        loadOllamaModels();
+                        document.getElementById('ollamaSearchResults').classList.remove('active');
+                    }, 1000);
+                } else {
+                    button.textContent = 'Failed';
+                    setTimeout(() => button.disabled = false, 2000);
+                }
+            } catch (error) {
+                button.textContent = 'Error';
+                setTimeout(() => button.disabled = false, 2000);
+            }
+        }
+
+        function saveGrokSettings() {
+            const apiKey = document.getElementById('grokApiKeyInput').value;
+            const model = document.getElementById('grokModelInput').value;
+
+            localStorage.setItem('grokApiKey', apiKey);
+            localStorage.setItem('modelName', model);
+            localStorage.setItem('modelProvider', 'grok');
+
+            grokApiKey = apiKey;
+            currentModel = model;
+
+            hideSettingsModal();
+            addMessage('assistant', '*adjusts tie*\n\nSettings saved! Now using Grok with model: ' + model);
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return 'Unknown';
+            const gb = bytes / (1024 * 1024 * 1024);
+            if (gb >= 1) return gb.toFixed(1) + ' GB';
+            const mb = bytes / (1024 * 1024);
+            return mb.toFixed(1) + ' MB';
+        }
+
+        // ===== BACKROOM DEBATE FUNCTIONS =====
+
+        let backroomActive = false;
+
+        async function startBackroomDebate() {
+            if (backroomActive) return;
+
+            const btn = document.getElementById('backroomBtn');
+            const transcript = document.getElementById('backroomTranscript');
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+            backroomActive = true;
+
+            transcript.style.display = 'block';
+            transcript.innerHTML = '<div class="status-text"><span class="loading-spinner"></span> Starting backroom debate...</div>';
+
+            try {
+                const response = await fetch('/api/backroom/debate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        context: getCurrentProjectContext()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.debate) {
+                    transcript.innerHTML = '';
+                    await playDebate(data.debate);
+                } else {
+                    transcript.innerHTML = '<div class="status-text">Failed to start debate. Please try again.</div>';
+                }
+            } catch (error) {
+                console.error('Debate error:', error);
+                transcript.innerHTML = '<div class="status-text">Error starting debate. Is the model running?</div>';
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                backroomActive = false;
+            }
+        }
+
+        function getCurrentProjectContext() {
+            // Get current project context from PRD if available
+            const prdText = prdEditor.value;
+            if (prdText && prdText.length > 100) {
+                return prdText.substring(0, 500);
+            }
+            return "Building a web application";
+        }
+
+        async function playDebate(exchanges) {
+            const transcript = document.getElementById('backroomTranscript');
+            const approvedExchanges = [];
+
+            for (let i = 0; i < exchanges.length; i++) {
+                const exchange = exchanges[i];
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'transcript-message';
+
+                const analyst = exchange.analyst;
+                const emoji = analyst === 'Stool' ? '🤔' : '💡';
+                const role = analyst === 'Stool' ? 'The Skeptic' : 'The Optimist';
+
+                messageDiv.innerHTML = `
+                    <div class="transcript-header">
+                        <span>${emoji}</span>
+                        <span class="transcript-name">${analyst}</span>
+                        <span class="transcript-role">${role}</span>
+                    </div>
+                    <div class="transcript-text" id="transcript-${i}"><span class="typing-cursor"></span></div>
+                    <div class="transcript-votes" id="votes-${i}">
+                        <span class="vote-chip" onclick="voteBackroom(${i}, 'up', '${exchange.analyst}', '${escapeHtml(exchange.message)}')">
+                            👍 Approve
+                        </span>
+                        <span class="vote-chip" onclick="voteBackroom(${i}, 'down', '${exchange.analyst}', '${escapeHtml(exchange.message)}')">
+                            👎 Skip
+                        </span>
+                    </div>
+                `;
+
+                transcript.appendChild(messageDiv);
+
+                // Type out the message letter by letter
+                await typeMessage(exchange.message, `transcript-${i}`);
+
+                // Scroll to bottom
+                transcript.scrollTop = transcript.scrollHeight;
+
+                // Small pause between messages
+                await sleep(1500);
+            }
+
+            // After all exchanges, show summary button
+            showSummaryButton();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function voteBackroom(index, vote, analyst, message) {
+            const votesDiv = document.getElementById(`votes-${index}`);
+            const chips = votesDiv.querySelectorAll('.vote-chip');
+
+            // Disable voting
+            chips.forEach(chip => {
+                chip.style.pointerEvents = 'none';
+                chip.style.opacity = '0.5';
+            });
+
+            if (vote === 'up') {
+                chips[0].classList.add('voted-up');
+
+                // Send to server to add to PRD
+                await addToPRDFromBackroom(analyst, message);
+            } else {
+                chips[1].classList.add('voted-down');
+            }
+        }
+
+        async function addToPRDFromBackroom(analyst, message) {
+            try {
+                const response = await fetch('/api/chat/backroom-add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        analyst: analyst,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.prd_preview) {
+                    updatePRDEditor(data.prd_preview);
+                }
+            } catch (error) {
+                console.error('Failed to add to PRD:', error);
+            }
+        }
+
+        function showSummaryButton() {
+            const transcript = document.getElementById('backroomTranscript');
+            const summaryBtn = document.createElement('button');
+            summaryBtn.className = 'action-btn';
+            summaryBtn.textContent = '✨ Generate PRD Summary';
+            summaryBtn.style.width = '100%';
+            summaryBtn.style.marginTop = '12px';
+            summaryBtn.onclick = async () => {
+                summaryBtn.disabled = true;
+                summaryBtn.textContent = 'Generating...';
+
+                try {
+                    const response = await fetch('/api/chat/summarize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.prd_preview) {
+                        updatePRDEditor(data.prd_preview);
+                        summaryBtn.textContent = '✓ PRD Updated!';
+                    }
+                } catch (error) {
+                    summaryBtn.textContent = 'Error - try again';
+                }
+            };
+
+            transcript.appendChild(summaryBtn);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        async function typeMessage(text, elementId) {
+            const element = document.getElementById(elementId);
+            const speed = 20; // milliseconds per character
+
+            for (let i = 0; i < text.length; i++) {
+                element.textContent = text.substring(0, i + 1) + ' ';
+                await sleep(speed);
+            }
+
+            element.textContent = text;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
     </script>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="modal-overlay" id="resetModal">
+        <div class="modal">
+            <h3>🗑️ Reset Conversation?</h3>
+            <p>This will clear all messages and start fresh. Your current PRD will be lost. Are you sure you want to continue?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="hideResetModal()">Cancel</button>
+                <button class="modal-btn confirm" onclick="resetConversation()">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal" style="max-width: 500px;">
+            <h3>⚙️ Model Settings</h3>
+
+            <div class="provider-tabs">
+                <button class="provider-tab active" onclick="switchProvider('ollama')">Ollama (Local)</button>
+                <button class="provider-tab" onclick="switchProvider('grok')">Grok API</button>
+            </div>
+
+            <div class="settings-content">
+                <!-- Ollama Panel -->
+                <div id="ollamaPanel" class="provider-panel active">
+                    <div class="form-group">
+                        <label>Currently Selected Model</label>
+                        <input type="text" id="selectedOllamaModel" placeholder="Select a model below" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Installed Models</label>
+                        <div class="model-list" id="ollamaModelList">
+                            <div class="status-text">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Search & Download New Models</label>
+                        <div class="search-box">
+                            <input type="text" id="ollamaSearchInput" placeholder="e.g., llama3, mistral, codellama">
+                            <button class="search-btn" onclick="searchOllamaModels()">Search</button>
+                        </div>
+                        <div class="search-results" id="ollamaSearchResults"></div>
+                    </div>
+                </div>
+
+                <!-- Grok Panel -->
+                <div id="grokPanel" class="provider-panel">
+                    <div class="form-group">
+                        <label>Grok API Key</label>
+                        <input type="password" id="grokApiKeyInput" placeholder="Enter your Grok API key">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" id="grokModelInput" placeholder="e.g., llama-3.3-70b-versatile">
+                        <div class="status-text" style="margin-top: 4px;">
+                            Available models: llama-3.3-70b-versatile, mixtral-8x7b-32768, gemma2-9b-it
+                        </div>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button class="modal-btn cancel" onclick="hideSettingsModal()">Cancel</button>
+                        <button class="modal-btn confirm" style="background: #ff6b35;" onclick="saveGrokSettings()">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; text-align: right;">
+                <button class="modal-btn cancel" onclick="hideSettingsModal()">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
