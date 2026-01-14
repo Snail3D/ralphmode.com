@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}USER_DASHBOARD{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="welcome-line">
+            <span class="prompt">&gt;</span>
+            <span>Welcome back, <span class="highlight">{{ user.name }}</span></span>
+        </div>
+        <div class="email-line">
+            <span class="prompt">&gt;</span>
+            <span>{{ user.email }}</span>
+        </div>
+    </div>
+
+    <div class="dashboard-menu">
+        <div class="menu-section">
+            <div class="section-header">[MAIN_MENU]</div>
+            <a href="{{ url_for('generate') }}" class="dashboard-link">
+                <span class="prompt">1.</span>
+                <span>[GENERATE_RECIPE] Create new recipe</span>
+            </a>
+            <div class="dashboard-link disabled">
+                <span class="prompt">2.</span>
+                <span>[SAVED_RECIPES] View saved recipes (COMING_SOON)</span>
+            </div>
+            <div class="dashboard-link disabled">
+                <span class="prompt">3.</span>
+                <span>[SETTINGS] Configure preferences (COMING_SOON)</span>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <div class="section-header">[SYSTEM_INFO]</div>
+            <div class="info-line">
+                <span class="info-label">User ID:</span>
+                <span class="info-value">{{ user.id[:16] }}...</span>
+            </div>
+            <div class="info-line">
+                <span class="info-label">Session:</span>
+                <span class="info-value status-active">ACTIVE</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

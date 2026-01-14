@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RALPH_MODE v1.0{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="terminal-container">
+        <!-- Terminal Header -->
+        <div class="terminal-header">
+            <div class="terminal-buttons">
+                <span class="btn-close"></span>
+                <span class="btn-minimize"></span>
+                <span class="btn-maximize"></span>
+            </div>
+            <div class="terminal-title">ralph@mode:~$ {{ self.title() }}</div>
+        </div>
+
+        <!-- Terminal Body -->
+        <div class="terminal-body">
+            <!-- Navigation -->
+            <nav class="terminal-nav">
+                <a href="{{ url_for('index') }}" class="nav-link">[HOME]</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}" class="nav-link">[DASHBOARD]</a>
+                    <a href="{{ url_for('generate') }}" class="nav-link">[GENERATE]</a>
+                    <a href="{{ url_for('logout') }}" class="nav-link">[LOGOUT]</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">[LOGIN]</a>
+                {% endif %}
+            </nav>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="terminal-flash">
+                        {% for message in messages %}
+                            <div class="flash-line">&gt; {{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Main Content -->
+            <main class="terminal-content">
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Terminal Footer -->
+            <footer class="terminal-footer">
+                <span class="prompt">ralph@mode:~$</span>
+                <span class="cursor" id="cursor"></span>
+            </footer>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

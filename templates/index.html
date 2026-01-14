@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}WELCOME_TO_RALPH_MODE{% endblock %}
+
+{% block content %}
+<div class="ascii-logo">
+<pre>
+    _    _      _                           _
+   / \  / \    | |                         | |
+  /   \/   \   | |_   _ _ __   __ _    __| | __ _ _ __
+ /           \ | | | | | '_ \ / _` |  / _` |/ _` | '__|
+/  /^\   /^\  \| | |_| | |_) | (_| | | (_| | (_| | |
+/   /     \   \_\_/\__, | .__/ \__,_|  \__,_|\__,_|_|
+                     __/ | |
+                    |___/|_|
+      __    __            _
+     / / /\ \ \   __ _  | |
+    / / /  \ \ \ / _` | | |
+    \ \ \  / / /| (_| | | |
+     \_\ \/_/\/  \__,_| |_|
+</pre>
+</div>
+
+<div class="typing-container">
+    <div class="typing-text" id="typing-text"></div>
+</div>
+
+<div class="menu-container">
+    <div class="menu-line">>&gt; SELECT MISSION:</div>
+    <a href="{{ url_for('login') }}" class="menu-item">
+        <span class="menu-prompt">1.</span>
+        <span class="menu-text">[INITIALIZE_SESSION] Login with Google</span>
+    </a>
+    <a href="https://github.com/Snail3D/ralphmode.com" target="_blank" class="menu-item">
+        <span class="menu-prompt">2.</span>
+        <span class="menu-text">[ACCESS_SOURCE] View on GitHub</span>
+    </a>
+    <a href="https://t.me/ralphmodebot" target="_blank" class="menu-item">
+        <span class="menu-prompt">3.</span>
+        <span class="menu-text">[TELEGRAM_LINK] Try the Bot</span>
+    </a>
+</div>
+
+<div class="stats-container">
+    <div class="stat-line">&gt; SYSTEM_STATUS: <span class="status-online">ONLINE</span></div>
+    <div class="stat-line">&gt; RECIPES_GENERATED: <span class="stat-value">2,847</span></div>
+    <div class="stat-line">&gt; ACTIVE_USERS: <span class="stat-value">1337</span></div>
+    <div class="stat-line">&gt; UPTIME: <span class="stat-value">99.9%</span></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const phrases = [
+    "Welcome to Ralph Mode...",
+    "Generating chaos...",
+    "Mixing your sauce...",
+    "He mixes your sauce. Get your own Ralph.",
+    "Access granted."
+];
+
+let phraseIndex = 0;
+let charIndex = 0;
+const typingElement = document.getElementById('typing-text');
+
+function typePhrase() {
+    if (charIndex < phrases[phraseIndex].length) {
+        typingElement.innerHTML += phrases[phraseIndex].charAt(charIndex);
+        charIndex++;
+        setTimeout(typePhrase, 50);
+    } else {
+        setTimeout(() => {
+            typingElement.innerHTML = '';
+            charIndex = 0;
+            phraseIndex = (phraseIndex + 1) % phrases.length;
+            typePhrase();
+        }, 2000);
+    }
+}
+
+// Start typing animation
+typePhrase();
+</script>
+{% endblock %}

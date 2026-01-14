@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}RECIPE_GENERATOR{% endblock %}
+
+{% block content %}
+<div class="generate-container">
+    <div class="generate-header">
+        <div class="header-line">
+            <span class="prompt">&gt;</span>
+            <span>RECIPE_GENERATOR v2.0</span>
+        </div>
+        <div class="header-line">
+            <span class="prompt">&gt;</span>
+            <span>AI_Model: <span class="highlight">Llama-3.3-70b</span></span>
+        </div>
+    </div>
+
+    <div class="input-section">
+        <div class="input-header">
+            <span class="prompt">ralph@mode:~/generate$</span>
+            <span class="command">./generate.sh --prompt="</span>
+            <input type="text" id="recipe-prompt" class="terminal-input" placeholder="Enter recipe idea..." autocomplete="off">
+            <span class="command">"</span>
+        </div>
+    </div>
+
+    <div class="button-section">
+        <button id="generate-btn" class="terminal-btn">
+            <span class="btn-prompt">&gt;</span>
+            <span>[EXECUTE]</span>
+        </button>
+        <button id="clear-btn" class="terminal-btn secondary">
+            <span class="btn-prompt">&gt;</span>
+            <span>[CLEAR]</span>
+        </button>
+    </div>
+
+    <div class="output-section" id="output-container" style="display: none;">
+        <div class="output-header">
+            <span class="prompt">&gt;</span>
+            <span>OUTPUT:</span>
+        </div>
+        <div class="output-content" id="recipe-output">
+            <div class="loading-line" id="loading">
+                <span class="prompt">&gt;</span>
+                <span class="loading-dots">Generating</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generate-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const promptInput = document.getElementById('recipe-prompt');
+    const outputContainer = document.getElementById('output-container');
+    const recipeOutput = document.getElementById('recipe-output');
+    const loading = document.getElementById('loading');
+
+    // Generate button click
+    generateBtn.addEventListener('click', async function() {
+        const prompt = promptInput.value.trim();
+        if (!prompt) {
+            promptInput.classList.add('error');
+            setTimeout(() => promptInput.classList.remove('error'), 1000);
+            return;
+        }
+
+        outputContainer.style.display = 'block';
+        loading.style.display = 'block';
+        recipeOutput.innerHTML = '';
+        recipeOutput.appendChild(loading);
+
+        try {
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                recipeOutput.innerHTML = '<div class="error-line">&gt; ERROR: ' + data.error + '</div>';
+            } else {
+                recipeOutput.innerHTML = '<pre class="recipe-text">' + data.recipe + '</pre>';
+            }
+        } catch (error) {
+            recipeOutput.innerHTML = '<div class="error-line">&gt; ERROR: ' + error.message + '</div>';
+        }
+    });
+
+    // Clear button click
+    clearBtn.addEventListener('click', function() {
+        promptInput.value = '';
+        outputContainer.style.display = 'none';
+    });
+
+    // Enter key to submit
+    promptInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            generateBtn.click();
+        }
+    });
+});
+</script>
+{% endblock %}

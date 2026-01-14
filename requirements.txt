@@ -21,3 +21,15 @@ duckduckgo-search>=5.0.0
 
 # Optional: Local Whisper for voice (large dependency)
 # openai-whisper>=20231117
+
+# ===== FLASK WEBSITE =====
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-Login>=0.6.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+psycopg2-binary>=2.9.0  # PostgreSQL for Render
+groq>=0.4.0
+gunicorn>=21.0.0  # Production WSGI server
