@@ -2549,7 +2549,8 @@ async def cmd_cook(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if prd:
         # Save PRD - COMPRESSED for token efficiency!
-        safe_name = (session["project_name"] or "project").replace(" ", "_").lower()
+        safe_name = (session["project_name"] or "project").replace(" ", "_").replace("/", "_").lower()
+        display_name = session["project_name"] or "Project"  # Keep proper casing for display
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
         # Compressed version (for Claude Code - saves tokens!)
@@ -2605,7 +2606,7 @@ async def cmd_cook(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=chat_id,
                 document=f,
                 filename=compressed_filename,
-                caption="🍳 Compressed PRD - saves tokens!"
+                caption=f"🍳 {display_name} - TeleRalph PRD (token-optimized)"
             )
 
         session["phase"] = "idle"
@@ -5514,15 +5515,27 @@ async def process_user_text(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     session["conversation"].append({"role": "user", "content": user_content})
 
-    # Extract project name from first message
+    # Extract project name from first message (smarter extraction)
     if not session["project_name"] and len(session["conversation"]) == 1:
         words = text.lower().split()
+        # Look for keywords with surrounding context
         for i, word in enumerate(words):
-            if word in ['bot', 'app', 'website', 'api', 'tool', 'scraper', 'game', 'tracker']:
-                session["project_name"] = ' '.join(words[max(0,i-2):i+2]).title()[:30]
+            if word in ['bot', 'app', 'website', 'api', 'tool', 'scraper', 'game', 'tracker', 'system', 'platform']:
+                # Get 2-3 words before and after the keyword
+                start = max(0, i-2)
+                end = min(len(words), i+3)
+                candidate = ' '.join(words[start:end])
+                # Clean up and title case
+                session["project_name"] = candidate.strip().title()[:40]
                 break
+
+        # Fallback: use first few meaningful words
         if not session["project_name"]:
-            session["project_name"] = "My Project"
+            meaningful_words = [w for w in words if len(w) > 2][:4]
+            if meaningful_words:
+                session["project_name"] = ' '.join(meaningful_words).title()[:40]
+            else:
+                session["project_name"] = "My Project"
 
     # Auto-generate better project name/title after 2-3 messages
     conv_count = len(session["conversation"])
